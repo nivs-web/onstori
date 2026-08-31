@@ -1,7 +1,10 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
 /**
  * 고객 사이트 렌더러 자리 (P1에서 구현).
- * P0 확인용: {slug}.localhost:3000 / {slug}.onstori.com 접속 시 이 페이지가 떠야
- * 미들웨어 재작성이 동작하는 것.
+ * 라우팅은 next.config.ts의 host 기반 rewrites가 담당:
+ * {slug}.onstori.com → /sites/{slug}. 본사 도메인에서 /sites/* 직접 접근은 홈으로 돌려보낸다.
  */
 export default async function SitePage({
   params,
@@ -9,6 +12,12 @@ export default async function SitePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  const host = (await headers()).get("host")?.split(":")[0] ?? "";
+  const viaSubdomain =
+    host === `${slug}.onstori.com` || host === `${slug}.localhost`;
+  if (!viaSubdomain) redirect("/");
+
   return (
     <main style={{ fontFamily: "sans-serif", padding: "4rem 2rem", textAlign: "center" }}>
       <p style={{ color: "#888", fontSize: 14, letterSpacing: 2 }}>ONSTORI · P0</p>
