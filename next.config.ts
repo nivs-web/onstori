@@ -26,22 +26,30 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // beforeFiles 필수: 루트 "/" 등 실제 존재하는 라우트보다 먼저 실행돼야
     // 서브도메인에서 본사 페이지 대신 고객 사이트가 뜬다.
-    // source의 커스텀 정규식으로 _next/·api/·정적 파일(.ext)은 제외 — 자산은 그대로 서빙.
-    const sitePath = "/:path((?!_next/|api/|.*\\.[\\w]+$).*)";
+    //
+    // 경로는 정규식 트릭 없이 "허용 목록"으로 명시한다 — lookahead가 든 source 패턴은
+    // Vercel 라우팅에서 전체 NOT_FOUND를 유발했음(2026-08-31, DECISIONS.md).
+    // 고객 사이트에 경로가 늘어나면 여기에 한 줄씩 추가한다.
+    const hosts = [
+      "(?<slug>[a-z0-9-]+)\\.onstori\\.com",
+      "(?<slug>[a-z0-9-]+)\\.localhost(?::\\d+)?", // 로컬 개발
+    ];
+    const sitePaths: Array<[string, string]> = [
+      ["/", "/sites/:slug"],
+      ["/edit/:path*", "/sites/:slug/edit/:path*"],
+      ["/admin/:path*", "/sites/:slug/admin/:path*"],
+      ["/story/:path*", "/sites/:slug/story/:path*"],
+      ["/sitemap.xml", "/sites/:slug/sitemap.xml"],
+      ["/robots.txt", "/sites/:slug/robots.txt"],
+    ];
     return {
-      beforeFiles: [
-        {
-          source: sitePath,
-          has: [{ type: "host", value: "(?<slug>[a-z0-9-]+)\\.onstori\\.com" }],
-          destination: "/sites/:slug/:path",
-        },
-        // 로컬 개발: {slug}.localhost:3000
-        {
-          source: sitePath,
-          has: [{ type: "host", value: "(?<slug>[a-z0-9-]+)\\.localhost(?::\\d+)?" }],
-          destination: "/sites/:slug/:path",
-        },
-      ],
+      beforeFiles: hosts.flatMap((host) =>
+        sitePaths.map(([source, destination]) => ({
+          source,
+          destination,
+          has: [{ type: "host" as const, value: host }],
+        })),
+      ),
     };
   },
 };
