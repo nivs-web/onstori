@@ -16,7 +16,7 @@ export default function Home() {
         <Link href="/new" className="rounded-full bg-blue-700 px-7 py-3.5 font-semibold text-white shadow-lg">
           내 가게 홈페이지 미리 보기 — 무료
         </Link>
-        <a href="https://niv.onstori.com" className="text-sm font-medium text-blue-700 underline underline-offset-4">
+        <a href="/niv" className="text-sm font-medium text-blue-700 underline underline-offset-4">
           완성 예시 보기 ↗
         </a>
       </div>

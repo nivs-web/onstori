@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     });
 
     console.log(JSON.stringify({ evt: "generate_ok", slug: input.slug, industry: industry.id, method: inferred.method, ms: Date.now() - started }));
-    return NextResponse.json({ url: `https://${input.slug}.onstori.com`, slug: input.slug });
+    return NextResponse.json({ url: `https://onstori.com/${input.slug}`, slug: input.slug });
   } catch (e) {
     console.error(JSON.stringify({ evt: "generate_fail", slug: input.slug, ms: Date.now() - started, err: String(e).slice(0, 300) }));
     return NextResponse.json({ error: "생성에 실패했어요. 잠시 후 다시 시도해주세요." }, { status: 500 });

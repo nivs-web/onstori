@@ -1,33 +1,30 @@
-import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSiteBySlug } from "@/lib/sites";
 import { PALETTES, RenderSection } from "@/components/sections";
 
 /**
- * 고객 사이트 렌더러 — site JSON → 페이지.
- * 라우팅은 next.config.ts의 host 기반 rewrites: {slug}.onstori.com → /sites/{slug}
+ * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
+ * (서브도메인 방식 폐기: 네이버 서치어드바이저 자동화 불가·수집 지연·도메인 권위 — DECISIONS 참조)
+ * 정적 라우트(/new, /admin, /api…)가 파일시스템 우선이며, 예약어 200개는 reserved_slugs가 방어.
  */
 
 type Props = { params: Promise<{ slug: string }> };
-
-async function guardHost(slug: string) {
-  const host = (await headers()).get("host")?.split(":")[0] ?? "";
-  const ok = host === `${slug}.onstori.com` || host === `${slug}.localhost`;
-  if (!ok) redirect("/");
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const site = await getSiteBySlug(slug);
   if (!site) return {};
   const hero = site.doc.sections.find((s) => s.type === "hero");
+  const url = `https://onstori.com/${slug}`;
   return {
     title: site.doc.businessName,
     description: (hero && "sub" in hero && hero.sub) || `${site.doc.businessName} 공식 홈페이지`,
     robots: site.status === "trial" ? { index: false, follow: false } : undefined,
+    alternates: { canonical: url },
     openGraph: {
       title: site.doc.businessName,
+      url,
       description: (hero && "sub" in hero && hero.sub) || undefined,
       images: hero && "image" in hero && hero.image ? [hero.image] : undefined,
     },
@@ -36,8 +33,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SitePage({ params }: Props) {
   const { slug } = await params;
-  await guardHost(slug);
-
   const site = await getSiteBySlug(slug);
   if (!site) notFound();
 

@@ -98,10 +98,10 @@ export default function NewSitePage() {
         <Field label="홈페이지 주소" hint={slugMsg ? slugMsg.msg : "영문 소문자·숫자·하이픈"}
                hintColor={slugMsg ? (slugMsg.ok ? "text-green-600" : "text-red-500") : undefined}>
           <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm text-neutral-400">onstori.com/</span>
             <input className="inp flex-1" value={slug} maxLength={30}
                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                    placeholder="mystore" />
-            <span className="whitespace-nowrap text-sm text-neutral-400">.onstori.com</span>
           </div>
         </Field>
         <Field label="분위기">
