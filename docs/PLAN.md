@@ -22,7 +22,7 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 ## Phase 체크리스트
 
 - [x] **P0 환경 구축(완료 2026-08-31)**: 도메인 구매·Vercel 연결·와일드카드 / 저장소·스캐폴드 / CLAUDE.md·정책 3파일 / Supabase 프로젝트 / 토스 가맹 신청
-- [~] **P1 진행 중** — 완료: 스키마 v1(zod)·렌더러 12섹션·시드 3종(niv/cleanhaus/cafecroft 프로덕션 라이브)·코어 마이그레이션 SQL+RLS 작성 / 남음: supabase link 후 db push, DB 데이터 소스 전환(lib/sites.ts), 사이트별 sitemap·robots
+- [x] **P1 완료(2026-08-31)** — 스키마 v1(zod)·렌더러 12섹션·시드 3종 라이브·코어 마이그레이션 원격 적용·DB 데이터 소스(시드 폴백)·사이트별 sitemap/robots. dbtest.onstori.com이 DB에서 렌더링됨. (완성도 점수 서버 계산은 소비처인 P3로 이동)
 - [ ] P2 위저드(무질문 추론)+AI 생성+이미지 뱅크+쇼케이스 10~12개
 - [ ] P3 에디터+스토리 UX+점수·앵커 스크롤
 - [ ] P4 계정·쿠키(.onstori.com) 세션 공유
@@ -37,8 +37,8 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 - [x] onstori.com·*.onstori.com → Vercel 프로젝트 onstori-pwk2 연결, 서브도메인 라우팅·www 리다이렉트·직접접근 가드 프로덕션 검증 완료 (2026-08-31)
 - [x] GitHub: github.com/nivs-web/onstori (main 푸시됨)
 - [x] Supabase 프로젝트 생성 — ref: `wpsrfjqfbhmeriscdacu` (무료 티어)
-- [ ] `.env.local` 채우기(.env.example 참고: anon key, service role key) + Vercel 환경변수 등록
-- [ ] (다음 작업) `npx supabase login` 후 `npx supabase link --project-ref wpsrfjqfbhmeriscdacu` (P1 첫 마이그레이션 전까지)
+- [x] .env.local 구성 + Vercel 환경변수(URL·anon key, Production) 등록 완료
+- [x] supabase link + db push 완료 (core 마이그레이션 원격 적용)
 - [ ] 토스페이먼츠 가맹 신청 — 보류: 통신판매업 신고 후 진행 (P5 전까지만 완료하면 됨)
 
 ## 남은 정리 · 알려진 이슈

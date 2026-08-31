@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-08-31 · P1 완료: 데이터 소스는 DB 우선 + 시드 폴백(lib/sites.ts 한 곳에서 전환) · 쇼케이스 시드는 파일로 관리, 실사이트는 DB. Vercel 환경변수(NEXT_PUBLIC_SUPABASE_URL·ANON_KEY)는 대시보드에서 등록(Production) — service_role 키는 Vercel에 올리지 않음(현재 서버 코드가 미사용)
+
 - 2026-08-31 · 서브도메인 라우팅을 미들웨어 → next.config beforeFiles rewrites(경로 allowlist)로 전환 · Vercel에서 미들웨어가 코드와 무관하게 MIDDLEWARE_INVOCATION_FAILED(최소 미들웨어로 확인). 부수 확인: lookahead 정규식 source는 Vercel 라우팅 전체를 깨뜨림 → 경로 명시 매핑만 사용. 원본 미들웨어는 debug/full-middleware 브랜치 보관
 - 2026-08-31 · [해결] Vercel 전 페이지 NOT_FOUND의 진짜 원인 = 도메인(onstori.com)이 붙은 프로젝트가 onstori-pwk2였고 그 프로젝트의 Framework Preset이 "Other"(정적 배포만 생성, 빌드 12초). Next.js로 변경 + 캐시 없이 Redeploy로 해결 · 교훈: 같은 저장소로 프로젝트가 2개 생겨 있었음(onstori / onstori-pwk2) — 확인은 도메인이 붙은 쪽에서. 중복 프로젝트(onstori)는 삭제 권장
 
