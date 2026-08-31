@@ -2,6 +2,10 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-08-31 · AI 벤더를 Gemini 단일화(카피·분류=gemini-3.5-flash 폴백 2.5-flash, 이미지=gemini-3-pro-image/3.1-flash-image 벤치 예정) · 키 1개 관리, 계정에 3.x 세대 접근 확인. LLM엔 카피 조각만 맡기고 SiteDoc 구조는 코드 조립(안정성). 사실 날조 금지 프롬프트 규칙
+- 2026-08-31 · 선판매 채널을 콜드콜→당근마켓(비즈프로필)+지인으로 변경, 오퍼="1개월 무료→월 9,900원(언제든 해지)" · 2단 게이트: ①사진 수신 5건/2주→P3 ②유료 전환 30%→P5. 체험 기간 24h→30일로 변경(정책 일치). 통신판매업 신고·토스 가맹 지금 시작 필요(1개월 뒤 첫 결제)
+- 2026-08-31 · 어드민 콘솔 기획 확정(docs/admin.md) — 이미지뱅크 CRUD·신청 접수함 포함, P4 전 임시 게이트는 ADMIN_KEY
+
 - 2026-08-31 · P1 완료: 데이터 소스는 DB 우선 + 시드 폴백(lib/sites.ts 한 곳에서 전환) · 쇼케이스 시드는 파일로 관리, 실사이트는 DB. Vercel 환경변수(NEXT_PUBLIC_SUPABASE_URL·ANON_KEY)는 대시보드에서 등록(Production) — service_role 키는 Vercel에 올리지 않음(현재 서버 코드가 미사용)
 
 - 2026-08-31 · 서브도메인 라우팅을 미들웨어 → next.config beforeFiles rewrites(경로 allowlist)로 전환 · Vercel에서 미들웨어가 코드와 무관하게 MIDDLEWARE_INVOCATION_FAILED(최소 미들웨어로 확인). 부수 확인: lookahead 정규식 source는 Vercel 라우팅 전체를 깨뜨림 → 경로 명시 매핑만 사용. 원본 미들웨어는 debug/full-middleware 브랜치 보관
