@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
+import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -179,6 +180,19 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
     if (url) patchSection(idx, { image: url } as Partial<SectionT>);
   }
 
+  function moveSection(i: number, d: -1 | 1) {
+    const a = [...doc.sections];
+    const [x] = a.splice(i, 1);
+    a.splice(i + d, 0, x);
+    setDoc({ ...doc, sections: a });
+  }
+
+  function addSection(type: AddableType, photoUrl?: string) {
+    setDoc({ ...doc, sections: [...doc.sections, sectionDefault(type, photoUrl)] });
+  }
+
+  const missing = ADDABLE_SECTIONS.filter((m) => !doc.sections.some((s) => s.type === m.type));
+
   return (
     <div data-tour="panel-sections" className="mt-5 space-y-6">
       {/* 분위기 */}
@@ -195,9 +209,10 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
       </section>
 
       {doc.sections.map((s, i) => {
+        const card = (() => {
         switch (s.type) {
           case "hero": return (
-            <section key={i} data-tour="sec-hero" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section data-tour="sec-hero" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">첫 화면</h2>
               <Field label="작은 소개 (한 줄)"><input className={inp} value={s.eyebrow ?? ""} maxLength={40} onChange={(e) => patchSection(i, { eyebrow: e.target.value })} /></Field>
               <Field label="큰 제목"><textarea className={inp} rows={2} value={s.headline} maxLength={60} onChange={(e) => patchSection(i, { headline: e.target.value })} /></Field>
@@ -213,14 +228,14 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "about": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">소개</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               <Field label="내용"><textarea className={inp} rows={5} value={s.body} maxLength={600} onChange={(e) => patchSection(i, { body: e.target.value })} /></Field>
             </section>
           );
           case "processSteps": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">진행 과정</h2>
               {s.steps.map((st, j) => (
                 <div key={j} className="flex gap-2">
@@ -233,7 +248,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "quoteForm": return (
-            <section key={i} data-tour="sec-form" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section data-tour="sec-form" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">문의 받기</h2>
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
@@ -242,20 +257,20 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "map": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">오시는 길</h2>
               <Field label="주소"><input className={inp} value={s.address} maxLength={120} onChange={(e) => patchSection(i, { address: e.target.value })} /></Field>
               <Field label="안내 (선택)"><input className={inp} value={s.note ?? ""} maxLength={120} onChange={(e) => patchSection(i, { note: e.target.value })} /></Field>
             </section>
           );
           case "hoursCard": return (
-            <section key={i} data-tour="set-hours" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section data-tour="set-hours" className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">영업시간</h2>
               <Field label="영업시간 (줄바꿈 가능)"><textarea className={inp} rows={3} value={s.hours} maxLength={200} onChange={(e) => patchSection(i, { hours: e.target.value })} /></Field>
             </section>
           );
           case "storyFeed": return (
-            <section key={i} className="rounded-2xl border border-neutral-200 p-4">
+            <section className="rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">이야기 코너</h2>
               <Field label="코너 제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
             </section>
@@ -266,7 +281,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
               patchSection(i, { photos: a });
             };
             return (
-              <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+              <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
                 <h2 className="text-sm font-bold">사진 갤러리</h2>
                 <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
                 <div className="flex flex-wrap gap-2">
@@ -295,7 +310,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             );
           }
           case "reviews": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">고객 이야기</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
@@ -319,7 +334,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "banner": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">띠 배너</h2>
               <Field label="문구"><input className={inp} value={s.text} maxLength={80} onChange={(e) => patchSection(i, { text: e.target.value })} /></Field>
               <Field label="연결 주소 (선택)"><input className={inp} value={s.link ?? ""} placeholder="https://…" inputMode="url"
@@ -327,7 +342,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "portfolioGallery": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">시공 사례</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
@@ -365,7 +380,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             </section>
           );
           case "menuPrice": return (
-            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+            <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">메뉴판</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
@@ -388,10 +403,56 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
               )}
             </section>
           );
-          default: return null;
+          default: return (
+            // 모르는 타입도 숨기지 않는다 — 숨기면 저장 실패(zod 검증)의 원인을 화면에서 찾을 수 없음
+            <section className="rounded-2xl border border-neutral-200 p-4">
+              <h2 className="text-sm font-bold">알 수 없는 섹션</h2>
+              <p className="mt-1 text-xs text-neutral-400">
+                이 에디터가 지원하지 않는 섹션이에요 (타입: {(s as { type?: string }).type ?? "없음"}). 저장이 실패하면 이 섹션이 원인일 수 있어요.
+              </p>
+            </section>
+          );
         }
+        })();
+        return (
+          <div key={i} className="relative">
+            {s.type !== "hero" && (
+              <div className="absolute right-3 top-3 flex gap-1">
+                <button disabled={i === 0 || doc.sections[i - 1].type === "hero"} onClick={() => moveSection(i, -1)}
+                  className="h-6 w-6 rounded border border-neutral-200 bg-white text-xs text-neutral-500 disabled:opacity-30" aria-label="위로 이동">↑</button>
+                <button disabled={i === doc.sections.length - 1} onClick={() => moveSection(i, 1)}
+                  className="h-6 w-6 rounded border border-neutral-200 bg-white text-xs text-neutral-500 disabled:opacity-30" aria-label="아래로 이동">↓</button>
+              </div>
+            )}
+            {card}
+          </div>
+        );
       })}
-      <p className="text-center text-xs text-neutral-400">섹션 추가·순서 변경은 곧 열려요.</p>
+
+      {/* 섹션 추가 — 없는 타입만. gallery·portfolioGallery는 zod min(1) 제약 때문에 첫 사진과 함께 삽입 */}
+      <section className="rounded-2xl border-2 border-dashed border-neutral-300 p-4">
+        <h2 className="text-sm font-bold">섹션 추가</h2>
+        {missing.length === 0 ? (
+          <p className="mt-1 text-xs text-neutral-400">추가할 수 있는 섹션이 모두 들어가 있어요.</p>
+        ) : (
+          <>
+            <p className="mt-1 text-xs text-neutral-400">맨 아래에 추가돼요 — ↑ 버튼으로 원하는 위치로 옮기세요. 사진 갤러리·시공 사례는 첫 사진을 고르면 추가돼요.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {missing.map((m) => m.needsPhoto ? (
+                <label key={m.type} className="cursor-pointer rounded-full border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold">
+                  {uploading ? "올리는 중…" : `＋ ${m.name}`}
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) addSection(m.type, url); e.target.value = ""; }} />
+                </label>
+              ) : (
+                <button key={m.type} onClick={() => addSection(m.type)}
+                  className="rounded-full border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold">＋ {m.name}</button>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+      <p className="text-center text-xs text-neutral-400">섹션 삭제는 곧 열려요.</p>
     </div>
   );
 }
