@@ -85,7 +85,8 @@ export function EditUi({ slug }: { slug: string }) {
   if (denied) return (
     <main className="mx-auto max-w-md px-6 py-24 text-center">
       <h1 className="text-xl font-bold">수정 권한이 없어요</h1>
-      <p className="mt-2 text-sm text-neutral-500">이 홈페이지를 만든 기기(브라우저)에서 열어주세요.<br />운영자라면 <a className="text-teal-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
+      <p className="mt-2 text-sm text-neutral-500">이 홈페이지 주인이라면 로그인 후 수정할 수 있어요.<br />운영자라면 <a className="text-teal-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
+      <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="mt-6 inline-block rounded-full bg-teal-700 px-6 py-3 text-sm font-semibold text-white">로그인하기</a>
     </main>
   );
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;

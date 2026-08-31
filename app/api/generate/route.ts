@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sbAdmin } from "@/lib/db-admin";
+import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
 
 export const maxDuration = 60; // LLM 호출 여유
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
 
   const started = Date.now();
   try {
+    const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
     const { doc, industry, category, copy, inferred } = await generateSite(input as GenerateInput);
 
     const trialEnds = new Date(Date.now() + 30 * 24 * 3600 * 1000); // 1개월 무료 (당근 트랙 정책)
@@ -44,7 +46,8 @@ export async function POST(req: Request) {
       .from("sites")
       .insert({
         slug: input.slug,
-        anon_id: input.anonId ?? null,
+        owner_id: user?.id ?? null,
+        anon_id: user ? null : input.anonId ?? null,
         business_name: input.businessName,
         industry: industry.id,
         category: category.id,
