@@ -41,9 +41,9 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
         <div className="mt-2 flex gap-2">
           <input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()}
             placeholder="https://onstori.com/niv 또는 niv"
-            className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-600" />
+            className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm outline-none focus:border-teal-600" />
           <button onClick={add} disabled={busy || !url}
-            className="whitespace-nowrap rounded-full bg-blue-700 px-5 text-sm font-semibold text-white disabled:opacity-40">
+            className="whitespace-nowrap rounded-full bg-teal-700 px-5 text-sm font-semibold text-white disabled:opacity-40">
             {busy ? "확인 중…" : "등록"}
           </button>
         </div>
@@ -53,7 +53,7 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
       <ul className="space-y-2">
         {rows.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-3">
-            <a href={`/${r.slug}`} target="_blank" className="font-mono text-sm font-semibold text-blue-700">/{r.slug}</a>
+            <a href={`/${r.slug}`} target="_blank" className="font-mono text-sm font-semibold text-teal-700">/{r.slug}</a>
             <select value={r.tag} onChange={(e) => patch(r.id, { tag: e.target.value })}
               className="rounded-full border border-neutral-300 px-2.5 py-1 text-xs">
               {TAGS.map((t) => <option key={t} value={t}>{t}</option>)}

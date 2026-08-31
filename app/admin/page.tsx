@@ -18,12 +18,12 @@ export default async function AdminHome() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <p className="text-xs font-semibold tracking-[0.25em] text-blue-700">ONSTORI ADMIN</p>
+      <p className="text-xs font-semibold tracking-[0.25em] text-teal-700">ONSTORI ADMIN</p>
       <h1 className="mt-2 text-2xl font-bold">운영자 콘솔</h1>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {menus.map((m) => (
           <Link key={m.title} href={m.href}
-            className={`rounded-2xl border p-5 ${m.ready ? "border-neutral-200 hover:border-blue-600" : "pointer-events-none border-dashed border-neutral-200 opacity-50"}`}>
+            className={`rounded-2xl border p-5 ${m.ready ? "border-neutral-200 hover:border-teal-600" : "pointer-events-none border-dashed border-neutral-200 opacity-50"}`}>
             <h2 className="font-bold">{m.title}</h2>
             <p className="mt-1 text-sm text-neutral-500">{m.desc}</p>
           </Link>

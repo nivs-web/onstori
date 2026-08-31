@@ -8,7 +8,7 @@ import { PortfolioTabs } from "./portfolio-ui";
  */
 export type ShowcaseItem = { slug: string; tag: string; featured: boolean; name: string };
 
-async function loadShowcase(): Promise<ShowcaseItem[]> {
+export async function loadShowcase(): Promise<ShowcaseItem[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return [];
@@ -32,16 +32,16 @@ async function loadShowcase(): Promise<ShowcaseItem[]> {
   }
 }
 
-export async function Portfolio() {
-  const items = await loadShowcase();
-  if (items.length === 0) return null;
+export async function Portfolio({ items }: { items?: ShowcaseItem[] }) {
+  const list = items ?? (await loadShowcase());
+  if (list.length === 0) return null;
   return (
-    <section id="portfolio" className="mt-20">
-      <h2 className="text-xl font-bold sm:text-2xl">이미 온스토리로 만든 가게들</h2>
-      <p className="mt-1.5 text-sm text-neutral-500">
-        전부 실제로 작동하는 홈페이지예요 — 화면 안을 <b>직접 스크롤</b>해보세요.
+    <section id="portfolio">
+      <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ textWrap: "balance" }}>이미 온스토리로 만든 가게들</h2>
+      <p className="mt-2 text-[15px]" style={{ color: "var(--muted)" }}>
+        전부 실제로 작동하는 홈페이지예요 — 화면 안을 <b style={{ color: "var(--ink)" }}>직접 스크롤</b>해보세요.
       </p>
-      <PortfolioTabs items={items} />
+      <PortfolioTabs items={list} />
     </section>
   );
 }

@@ -69,7 +69,7 @@ export default function NewSitePage() {
         <p className="text-5xl">🎉</p>
         <h1 className="mt-4 text-2xl font-bold">홈페이지가 완성됐어요</h1>
         <p className="mt-2 text-neutral-500">이제 이야기를 쌓아갈 차례입니다.</p>
-        <a href={result.url} className="mt-8 rounded-full bg-blue-700 px-8 py-4 text-lg font-semibold text-white shadow-lg">
+        <a href={result.url} className="mt-8 rounded-full bg-teal-700 px-8 py-4 text-lg font-semibold text-white shadow-lg">
           {result.url.replace("https://", "")} 열기 →
         </a>
         <p className="mt-6 text-sm text-neutral-400">1개월 무료 체험 중 · 언제든 해지 가능</p>
@@ -79,7 +79,7 @@ export default function NewSitePage() {
 
   return (
     <main className="mx-auto max-w-xl px-6 py-14">
-      <p className="text-xs font-semibold tracking-[0.2em] text-blue-700">ONSTORI</p>
+      <p className="text-xs font-semibold tracking-[0.2em] text-teal-700">ONSTORI</p>
       <h1 className="mt-2 text-2xl font-bold leading-snug">
         사진만 보내면 되는 홈페이지,<br />먼저 뼈대부터 만들어 드릴게요
       </h1>
@@ -108,7 +108,7 @@ export default function NewSitePage() {
           <div className="grid grid-cols-2 gap-2">
             {MOODS.map((m) => (
               <button key={m.id} type="button" onClick={() => setMood(m.id)}
-                className={`rounded-xl border p-3 text-left text-sm transition ${mood === m.id ? "border-blue-700 bg-blue-50" : "border-neutral-200"}`}>
+                className={`rounded-xl border p-3 text-left text-sm transition ${mood === m.id ? "border-teal-700 bg-teal-50" : "border-neutral-200"}`}>
                 <span className="font-semibold">{m.name}</span>
                 <span className="block text-xs text-neutral-400">{m.desc}</span>
               </button>
@@ -125,13 +125,13 @@ export default function NewSitePage() {
         {state === "error" && <p className="text-sm text-red-500">{errMsg}</p>}
 
         <button disabled={!canSubmit} onClick={submit}
-          className="w-full rounded-full bg-blue-700 py-4 text-lg font-semibold text-white shadow-lg disabled:opacity-40">
+          className="w-full rounded-full bg-teal-700 py-4 text-lg font-semibold text-white shadow-lg disabled:opacity-40">
           {state === "loading" ? "홈페이지를 만들고 있어요… (30초 정도)" : "홈페이지 만들기 — 무료"}
         </button>
         <p className="text-center text-xs text-neutral-400">1개월 무료 체험 · 이후 월 9,900원 · 언제든 해지</p>
       </div>
 
-      <style>{`.inp{width:100%;border:1px solid #e5e5e5;border-radius:12px;padding:12px 14px;font-size:15px;outline:none}.inp:focus{border-color:#1d4ed8}`}</style>
+      <style>{`.inp{width:100%;border:1px solid #e5e5e5;border-radius:12px;padding:12px 14px;font-size:15px;outline:none}.inp:focus{border-color:#0e7365}`}</style>
     </main>
   );
 }

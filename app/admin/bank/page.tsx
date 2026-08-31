@@ -31,7 +31,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
     if (v) params.set(k, v);
     return (
       <Link key={`${k}-${label}`} href={`/admin/bank?${params.toString()}`}
-        className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-blue-700 text-white" : "border border-neutral-300"}`}>
+        className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-teal-700 text-white" : "border border-neutral-300"}`}>
         {label}
       </Link>
     );

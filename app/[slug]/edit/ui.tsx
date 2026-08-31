@@ -84,7 +84,7 @@ export function EditUi({ slug }: { slug: string }) {
   if (denied) return (
     <main className="mx-auto max-w-md px-6 py-24 text-center">
       <h1 className="text-xl font-bold">수정 권한이 없어요</h1>
-      <p className="mt-2 text-sm text-neutral-500">이 홈페이지를 만든 기기(브라우저)에서 열어주세요.<br />운영자라면 <a className="text-blue-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
+      <p className="mt-2 text-sm text-neutral-500">이 홈페이지를 만든 기기(브라우저)에서 열어주세요.<br />운영자라면 <a className="text-teal-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
     </main>
   );
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;
@@ -96,24 +96,24 @@ export function EditUi({ slug }: { slug: string }) {
         <div className="flex items-center justify-between gap-3">
           <div data-tour="score-bar" className="min-w-0">
             <p className="truncate text-sm font-bold">{data.businessName}</p>
-            <p className="text-xs text-neutral-500">완성도 <b className="text-blue-700">{data.score}점</b> / 100</p>
+            <p className="text-xs text-neutral-500">완성도 <b className="text-teal-700">{data.score}점</b> / 100</p>
           </div>
           <div className="flex gap-2">
             <button onClick={save} disabled={!!busy} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
               {busy === "save" ? "저장 중…" : "저장"}
             </button>
-            <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+            <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
               {busy === "publish" ? "반영 중…" : "사이트 반영"}
             </button>
           </div>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-          <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${data.score}%` }} />
+          <div className="h-full rounded-full bg-teal-600 transition-all" style={{ width: `${data.score}%` }} />
         </div>
       </header>
 
       {/* 점수 올리기 힌트 */}
-      <section className="mt-4 rounded-xl bg-blue-50 p-3 text-xs leading-relaxed text-blue-900">
+      <section className="mt-4 rounded-xl bg-teal-50 p-3 text-xs leading-relaxed text-teal-900">
         {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo", "widget_1"].includes(r.id)).slice(0, 3).map((r) => (
           <p key={r.id}>＋{r.pts}점 · <b>{r.label}</b> — {r.hint}</p>
         ))}
@@ -126,7 +126,7 @@ export function EditUi({ slug }: { slug: string }) {
         <button data-tour="story-new" onClick={() => setTab("story")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "story" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
           이야기 쓰기 <span className="opacity-60">({data.storyCount})</span>
         </button>
-        <a href={`/${slug}`} target="_blank" className="ml-auto self-center text-sm text-blue-700 underline underline-offset-4">내 사이트 보기 ↗</a>
+        <a href={`/${slug}`} target="_blank" className="ml-auto self-center text-sm text-teal-700 underline underline-offset-4">내 사이트 보기 ↗</a>
       </nav>
 
       {tab === "content" ? (
@@ -154,7 +154,7 @@ function addressOf(doc: SiteDocT): string | null {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-1 block text-xs font-semibold text-neutral-500">{label}</span>{children}</label>;
 }
-const inp = "w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-blue-600";
+const inp = "w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-teal-600";
 
 function ContentTab({ doc, slug, patchSection, setDoc }: {
   doc: SiteDocT; slug: string;
@@ -182,7 +182,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
         <div className="mt-2 flex gap-2">
           {MOODS.map((m) => (
             <button key={m.id} onClick={() => setDoc({ ...doc, theme: { ...doc.theme, palette: m.id } })}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${doc.theme.palette === m.id ? "bg-blue-700 text-white" : "border border-neutral-300"}`}>
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${doc.theme.palette === m.id ? "bg-teal-700 text-white" : "border border-neutral-300"}`}>
               {m.name}
             </button>
           ))}
@@ -305,7 +305,7 @@ function StoryTab({ slug, onDone }: { slug: string; onDone: (score: number) => v
       <div className="flex flex-wrap gap-1.5">
         {STORY_TYPES.map((t) => (
           <button key={t.id} onClick={() => setType(t.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${type === t.id ? "bg-blue-700 text-white" : "border border-neutral-300"}`}>{t.name}</button>
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${type === t.id ? "bg-teal-700 text-white" : "border border-neutral-300"}`}>{t.name}</button>
         ))}
       </div>
       <Field label="제목"><input className={inp} value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="예: 강동구 34평 입주청소" /></Field>
@@ -325,7 +325,7 @@ function StoryTab({ slug, onDone }: { slug: string; onDone: (score: number) => v
         </div>
       </div>
       <button onClick={submit} disabled={busy || !title}
-        className="w-full rounded-full bg-blue-700 py-3.5 font-semibold text-white disabled:opacity-40">
+        className="w-full rounded-full bg-teal-700 py-3.5 font-semibold text-white disabled:opacity-40">
         {busy ? "올리는 중…" : "이야기 올리기 (+15점)"}
       </button>
     </div>

@@ -26,7 +26,7 @@ export default async function SitesAdmin() {
           <tbody>
             {(rows ?? []).map((s) => (
               <tr key={s.slug} className="border-t border-neutral-100">
-                <td className="px-3 py-2"><a className="text-blue-700 underline underline-offset-2" href={`/${s.slug}`} target="_blank">/{s.slug}</a></td>
+                <td className="px-3 py-2"><a className="text-teal-700 underline underline-offset-2" href={`/${s.slug}`} target="_blank">/{s.slug}</a></td>
                 <td className="px-3 py-2">{s.business_name}</td>
                 <td className="px-3 py-2">{s.industry}</td>
                 <td className="px-3 py-2">{s.template}</td>

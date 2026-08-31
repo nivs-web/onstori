@@ -17,7 +17,7 @@ export function AdminLogin() {
         onKeyDown={(e) => e.key === "Enter" && submit()}
         className="mt-4 w-full rounded-xl border border-neutral-300 px-4 py-3" placeholder="ADMIN KEY" />
       {err && <p className="mt-2 text-sm text-red-500">키가 올바르지 않아요</p>}
-      <button onClick={submit} className="mt-4 rounded-full bg-blue-700 py-3 font-semibold text-white">입장</button>
+      <button onClick={submit} className="mt-4 rounded-full bg-teal-700 py-3 font-semibold text-white">입장</button>
     </main>
   );
 }
