@@ -2,6 +2,10 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-01 · P4 로그인 방식 = 카카오 OAuth + 이메일 6자리 OTP(매직링크 불채택) · 소상공인은 폰 메일앱에서 링크를 열면 세션이 로그인 시도한 브라우저와 분리됨 — 코드 입력은 어디서든 동작. 필요한 대시보드 설정(카카오 앱·프로바이더·Redirect URL·OTP 템플릿)은 `docs/auth-setup.md` 체크리스트로 관리
+- 2026-09-01 · P4 API 구조 = service-role + 서버 세션 검증 유지(anon-key 클라이언트 데이터 접근으로 전환 안 함) · 최소 변경으로 `loadOwnedSite` 한 곳만 고쳐 게이트 API 5곳 전환. RLS는 계속 심층 방어. 세션 갱신은 미들웨어 재도입 없이(MIDDLEWARE_INVOCATION_FAILED 전력) Route Handler의 `@supabase/ssr` 서버 클라이언트가 쿠키를 다시 쓰는 방식
+- 2026-09-01 · P4 소유 판정 = owner_id 있으면 세션 uid 일치 필수, 무주인(owner_id null) 사이트만 anonId 폴백 유지 · 가입 없이 만들고 바로 편집하는 기존 흐름 보존. claim(로그인 직후) 시 owner_id 부여 + **anon_id 소거**(재claim 방지·상태 명확화). 로그인 상태 생성은 처음부터 owner_id 저장
+- 2026-09-01 · globals.css @import 순서 수정(Pretendard를 tailwind 앞으로) · CSS 명세상 @import는 다른 규칙보다 앞이어야 함 — Turbopack dev 서버가 이걸로 기동 실패(빌드는 통과라 그동안 안 보였음)
 - 2026-09-01 · 마이그레이션은 원격 `supabase db push`로 진행 (`db reset` 로컬 검증 생략) · 작업 머신에 Docker 미설치로 로컬 Supabase 스택 실행 불가 — 적용 전 `migration list --linked`로 순서 확인, 적용 후 RPC 호출로 검증
 - 2026-09-01 · [중대] 주소 체계 전면 전환: 서브도메인 → 경로 방식(onstori.com/{slug}) · 네이버 서치어드바이저는 캡차로 대량 자동 등록 불가 — 서브도메인이면 고객 수만큼 수동 등록+사이트맵 제출+~2주 수집 대기, 경로면 도메인 1회 등록+통합 사이트맵 1개+도메인 권위 승계. 서브도메인은 본사 내부 기능 전용으로 보류(어드민 '서브도메인 만들기' 자리만). 구 서브도메인 링크는 301 경로 리다이렉트. 예약 슬러그 261개 선점
 - 2026-09-01 · [사실 확인] Gemini API 무료 티어의 이미지 모델 일일 쿼터 = 0 (첫 호출부터 429·FreeTier 위반 3종 동시) · Google AI Pro 구독은 Gemini 앱 혜택이지 API 쿼터와 무관 — 이미지뱅크 실생성은 API 결제 연결(종량제) 후 가능. fal.ai 불채택(사용자 결정), 나노바나나(gemini-3-pro-image 히어로 / 3.1-flash-image 갤러리 병행) 확정

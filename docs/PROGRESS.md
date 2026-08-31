@@ -1,6 +1,6 @@
 # PROGRESS.md — 작업 인수인계 (2026-09-01 기준)
 
-> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준: 로컬 main — origin/main보다 앞서 있음(**미푸시**). 푸시 = 프로덕션 자동 배포이므로 푸시 전에 에디터 E2E 확인 권장.
+> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준: 브랜치 `phase-4-auth`(P4 진행 중) — main은 origin/main보다 앞서 있음(**미푸시**). 푸시 = 프로덕션 자동 배포이므로 푸시 전에 에디터 E2E 확인 권장.
 > 프로덕션: https://onstori.com (Vercel 프로젝트 `onstori-pwk2`, 푸시 = 자동 배포).
 > 로컬 실행: `npm run dev` (2026-09-01 정상 기동 확인 — 안 뜨면 `npm run build && npm run start` 폴백).
 > 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, GEMINI_API_KEY, ADMIN_KEY.
@@ -44,23 +44,39 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 ---
 
-## P4 시작 시 알아야 할 것 (계정·세션)
+## P4 (계정·세션) — 진행 중 (2026-09-01 착수, 브랜치 `phase-4-auth`)
 
-PLAN의 P4 정의는 "계정·쿠키(.onstori.com) 세션 공유"였으나, **주소 체계가 경로 방식(onstori.com/{slug})으로 전환**되어(DECISIONS 2026-08-31) 크로스 서브도메인 쿠키 공유는 더 이상 필요 없다 — 단일 오리진이라 일반 세션 쿠키면 충분. 서브도메인은 본사 내부 전용 보류 상태.
+방식 확정: **카카오 OAuth + 이메일 6자리 OTP**. 아키텍처는 service-role + 서버 세션 검증 유지(RLS는 심층 방어), 미들웨어 재도입 없음 — 결정 이유 3건은 DECISIONS 2026-09-01 참조. 스키마 변경 없음(`sites.owner_id`·owner RLS는 core 마이그레이션에 이미 존재).
 
-**이미 되어 있는 것 (스키마 마이그레이션 불필요):**
-- `sites.owner_id uuid references auth.users` 컬럼·인덱스가 core 마이그레이션에 처음부터 존재 (`supabase/migrations/20260831120000_core.sql:17`). null = 익명 생성.
-- owner 기반 RLS 정책 일습도 이미 있음: `sites_owner_all`, `stories_owner_all`, versions/progress/inquiries/events의 owner_read (같은 파일 :109~138). 단 **현재 앱은 전부 service-role(`lib/db-admin.ts`)로 접근해 RLS를 안 탄다** — RLS는 심층 방어로만 동작 중.
+### 완료 (코드)
 
-**만들어야 하는 것:**
-1. Supabase Auth 로그인. 방식 미정(이메일 매직링크 vs 카카오 OAuth — 소상공인 타깃이면 카카오 우선 검토). Auth 설정은 대시보드에서만 가능 → 변경 시 DECISIONS.md 한 줄 기록(불변 규칙 1).
-2. 세션 클라이언트: 현재 `@supabase/ssr` 미설치, 클라이언트측 Supabase 사용처 0, **미들웨어 없음**. 미들웨어 기반 토큰 리프레시 패턴은 Vercel MIDDLEWARE_INVOCATION_FAILED 전력(DECISIONS 2026-08-31, 그래서 rewrites 전환) 때문에 재도입 시 재검증 필수 — Route Handler/서버 컴포넌트에서 쿠키 갱신하는 패턴을 먼저 검토.
-3. `lib/site-owner.ts` 교체: 소유 판정 anonId 매칭 → `auth.uid() == owner_id`. **운영자(ADMIN_KEY) 우회는 유지**(세션 결정 1 — 컨시어지 필수). 이 함수만 고치면 소유권 게이트 API 5곳(get/update/publish/story/upload)이 전부 따라온다. 에디터(`ui.tsx`)의 `anon()` 전송부와 거부 화면 문구("만든 기기에서 열어주세요" → 로그인 유도)도 함께 교체.
-4. **anon claim 흐름**: 가입/로그인 직후 localStorage `onstori:anonId`를 서버로 보내 `sites.anon_id` 일치 사이트에 `owner_id = auth.uid` 부여. claim 후 `anon_id`를 비울지(재claim 방지) 결정하고 DECISIONS에 기록. `/api/generate`는 로그인 상태면 처음부터 `owner_id`로 저장하도록.
-5. 아키텍처 결정 1건: API는 service-role + 서버 세션 검증 유지(현 구조 최소 변경 — 권장) vs anon-key 사용자 클라이언트로 전환해 RLS 실사용. 전자를 택하면 RLS는 계속 심층 방어.
+| 무엇 | 어디 |
+|---|---|
+| `@supabase/ssr` 세션 클라이언트 — 서버(쿠키 갱신 포함, Route Handler 전용 갱신)·브라우저(로그인 UI 전용) | `lib/supabase/server.ts`, `lib/supabase/browser.ts` |
+| 로그인 페이지: 카카오 버튼 + 이메일 OTP 2단계(주소 → 6자리 코드). 성공 시 claim 후 `?next=`로 이동 | `app/login/page.tsx`, `app/login/ui.tsx` |
+| 카카오 OAuth 콜백 (code→세션 교환 → `/login` 복귀, claim은 로그인 페이지가 마무리) | `app/auth/callback/route.ts` |
+| anon claim: 로그인 직후 anonId 일치·무주인 사이트에 `owner_id` 부여 + `anon_id` 소거 | `app/api/auth/claim/route.ts` |
+| 소유 판정 교체: owner_id 있으면 세션 일치 필수, 무주인만 anonId 폴백, 운영자(ADMIN_KEY) 우회 유지 | `lib/site-owner.ts` (게이트 API 5곳 자동 적용) |
+| 로그인 상태 생성 시 처음부터 `owner_id` 저장 (anon_id는 null) | `app/api/generate/route.ts` |
+| 에디터 거부 화면 → 로그인 유도 버튼(`/login?next=/{slug}/edit`) | `app/[slug]/edit/ui.tsx` |
+| dev 서버 기동 실패 원인이던 CSS `@import` 순서 수정 | `app/globals.css` |
 
-**시작 전 정리하면 좋은 것:**
-- 프로덕션 테스트 데이터 `dbtest`·`hanbit-test` — 계정 귀속 시작 전이 삭제 적기 (`barun-electric`은 쇼케이스라 유지).
+검증(2026-09-01 로컬): `npm run build` 통과 · `/login` 렌더 확인 · 무세션/오류 anonId → `/api/site/get` 403 · 무세션 claim 401 · 운영자 쿠키 우회 정상. **로그인 실동작 E2E는 대시보드 설정 후에만 가능.**
+
+### 차단 — Supabase 대시보드 설정 (운영자 담당, `docs/auth-setup.md` 체크리스트)
+
+카카오 개발자 앱(REST 키·시크릿·Redirect URI) + Supabase 프로바이더 활성화 + Redirect URL 등록 + OTP 이메일 템플릿(`{{ .Token }}`) 교체. 이 설정 전까지 `/login`은 "메일 발송 실패 / 카카오 시작 실패"가 정상이다.
+
+### P4 남은 코드 작업
+
+1. 대시보드 설정 후 로그인 E2E (auth-setup.md 5절 시나리오 4종)
+2. 에디터 내 로그인 유도 배너: anonId로만 접근 중인 사용자에게 "로그인하면 다른 기기에서도 수정할 수 있어요" — claim 유입 경로가 `/login`뿐이라 필요. `/api/site/get` 응답에 소유 상태 추가 필요
+3. 운영자 인증 교체 검토: ADMIN_KEY → Supabase Auth 이메일 화이트리스트(docs/admin.md) — P4에서 할지 P7로 이월할지 결정
+4. 로그아웃 UI (현재 없음 — `/login`에 로그인 상태 표시 + 로그아웃 버튼이 최소형)
+
+### 시작 전 정리 (미처리)
+
+- 프로덕션 테스트 데이터 `dbtest`·`hanbit-test` — 계정 귀속 전이 삭제 적기 (`barun-electric`은 쇼케이스라 유지). **삭제는 사용자 확인 후.**
 - 로컬 잔재 브랜치 `phase-1-renderer`·`debug/full-middleware` 삭제 가능.
 
 ---
