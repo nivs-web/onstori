@@ -23,7 +23,7 @@ export async function pickImage(industry: string, mood: string, role: "hero" | "
       const chosen = data[Math.floor(Math.random() * data.length)];
       await sb.rpc("bump_bank_used", { bank_id: chosen.id }).then(
         () => {},
-        () => {}, // rpc 미존재 시 무시 (다음 마이그레이션에서 추가 가능)
+        () => {}, // 카운터는 best-effort — 실패해도 이미지 선택은 진행
       );
       return chosen.url;
     }
