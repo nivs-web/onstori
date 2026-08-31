@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { geminiJson } from "./gemini";
 import { INDUSTRIES, matchIndustry, categoryOf, type Industry } from "@/config/industries";
-import { placeholderFor } from "@/config/placeholder-images";
+import { pickImage } from "./bank";
 import { SiteDoc, type SiteDocT } from "./schema";
 
 /**
@@ -84,8 +84,10 @@ JSON으로만 답하라:
 export async function generateSite(input: GenerateInput) {
   const { industry, confidence, method } = await classify(input);
   const cat = categoryOf(industry);
-  const copy = await generateCopy(input, industry);
-  const img = placeholderFor(industry.id);
+  const [copy, heroImage] = await Promise.all([
+    generateCopy(input, industry),
+    pickImage(industry.id, input.mood, "hero"), // 뱅크 승인 이미지 우선, 없으면 플레이스홀더
+  ]);
 
   const sections: SiteDocT["sections"] = [
     {
@@ -93,7 +95,7 @@ export async function generateSite(input: GenerateInput) {
       eyebrow: copy.eyebrow,
       headline: copy.headline,
       sub: copy.sub,
-      image: img.hero,
+      image: heroImage,
       cta: { label: cat.template === "quote" ? "견적 문의" : "전화 문의", action: cat.cta === "quote" ? "quote" : "call" },
     },
     { type: "about", title: copy.aboutTitle, body: copy.aboutBody },
