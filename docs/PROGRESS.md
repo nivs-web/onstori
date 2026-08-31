@@ -74,10 +74,10 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 3. 운영자 인증 교체 검토: ADMIN_KEY → Supabase Auth 이메일 화이트리스트(docs/admin.md) — P4에서 할지 P7로 이월할지 결정
 4. 로그아웃 UI (현재 없음 — `/login`에 로그인 상태 표시 + 로그아웃 버튼이 최소형)
 
-### 시작 전 정리 (미처리)
+### 시작 전 정리
 
-- 프로덕션 테스트 데이터 `dbtest`·`hanbit-test` — 계정 귀속 전이 삭제 적기 (`barun-electric`은 쇼케이스라 유지). **삭제는 사용자 확인 후.**
-- 로컬 잔재 브랜치 `phase-1-renderer`·`debug/full-middleware` 삭제 가능.
+- ~~프로덕션 테스트 데이터 `dbtest`·`hanbit-test`~~ — **삭제 완료(2026-09-01, 사용자 승인·실행)**: sites cascade + storage(파일 없었음) + showcase(등록 없었음), `barun-electric` 유지 검증됨. 일회성 스크립트는 실행 후 제거.
+- 로컬 잔재 브랜치 `phase-1-renderer`·`debug/full-middleware` 삭제 가능 (미처리).
 
 ---
 
@@ -152,7 +152,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 - `config/tours.ts` — 투어 스텝 3개가 현 에디터 구조와 불일치 (위 앵커 표 참조).
 - 로컬 git 브랜치 `phase-1-renderer`, `debug/full-middleware` — 병합 완료된 잔재. 삭제해도 됨 (full-middleware는 미들웨어 원본 보관용이었으나 경로 방식 전환으로 무의미).
 - ~~`next dev`가 이 Windows 환경에서 Ready에 도달하지 않는 현상~~ — 2026-09-01 재시도에서 정상 기동 (Ready 2.8s). 원인은 여전히 미규명이라 재발 시 `npm run build && npm run start` 폴백.
-- 테스트 데이터가 프로덕션 DB에 있음: `dbtest`(DB 경로 검증용), `hanbit-test`(생성 E2E). 실사용 전 삭제 or 유지 결정 필요 (`barun-electric`은 쇼케이스로 승격되어 유지).
 
 ---
 
