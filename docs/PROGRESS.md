@@ -49,20 +49,20 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | type | zod (`lib/schema.ts`) | 렌더러 (`components/sections/index.tsx`) | 에디터 폼 (`app/[slug]/edit/ui.tsx`) | SCHEMA.md 필드표 |
 |---|---|---|---|---|
-| hero | ✅ | ✅ :307 | ✅ :194 | ❌ |
-| about | ✅ | ✅ :308 | ✅ :210 | ❌ |
-| storyFeed | ✅ | ✅ :309 | ✅ :252 (제목만) | ❌ |
-| gallery | ✅ | ✅ :310 | ❌ **없음** | ❌ |
-| reviews | ✅ | ✅ :311 | ❌ **없음** | ❌ |
-| map | ✅ | ✅ :312 | ✅ :239 | ❌ |
-| banner | ✅ | ✅ :313 | ❌ **없음** | ❌ |
-| portfolioGallery | ✅ | ✅ :314 | ❌ **없음** | ❌ |
-| processSteps | ✅ | ✅ :315 | ✅ :217 | ❌ |
-| quoteForm | ✅ | ✅ :316 | ✅ :230 | ❌ |
-| hoursCard | ✅ | ✅ :317 | ✅ :246 | ❌ |
-| menuPrice | ✅ | ✅ :318 | ❌ **없음** | ❌ |
+| hero | ✅ | ✅ :307 | ✅ :194 | ✅ |
+| about | ✅ | ✅ :308 | ✅ :210 | ✅ |
+| storyFeed | ✅ | ✅ :309 | ✅ :252 (제목만) | ✅ |
+| gallery | ✅ | ✅ :310 | ❌ **없음** | ✅ |
+| reviews | ✅ | ✅ :311 | ❌ **없음** | ✅ |
+| map | ✅ | ✅ :312 | ✅ :239 | ✅ |
+| banner | ✅ | ✅ :313 | ❌ **없음** | ✅ |
+| portfolioGallery | ✅ | ✅ :314 | ❌ **없음** | ✅ |
+| processSteps | ✅ | ✅ :315 | ✅ :217 | ✅ |
+| quoteForm | ✅ | ✅ :316 | ✅ :230 | ✅ |
+| hoursCard | ✅ | ✅ :317 | ✅ :246 | ✅ |
+| menuPrice | ✅ | ✅ :318 | ❌ **없음** | ✅ |
 
-- **SCHEMA.md 열이 전부 ❌인 이유**: `docs/SCHEMA.md:25`에 "확정 즉시 표를 채운다"고 써놓고 필드 정의 표를 한 번도 채우지 않았음(규칙 위반 상태). 다음 에디터 작업 커밋에서 함께 채울 것.
+- **SCHEMA.md 필드표**: 2026-09-01 `lib/schema.ts` zod 기준으로 12종 전부 작성 완료 (기존 예시 JSON의 zod 불일치 — `portfolioGallery.fromStory` 미존재 필드, `processSteps.steps` 문자열 배열, `quoteForm.phone` 누락 — 도 함께 수정).
 - 에디터 폼 5종 미지원(gallery/reviews/banner/portfolioGallery/menuPrice)은 `ui.tsx:258 default: return null`로 조용히 숨겨져 있고, `:261`에 "곧 열려요" 안내문이 노출 중.
 
 ---
@@ -78,12 +78,12 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 | story-new | ✅ | edit/ui.tsx (이야기 탭 버튼) |
 | panel-sections | ✅ | edit/ui.tsx ContentTab 래퍼 |
 | sec-hero, panel-photos, sec-form, set-contact, set-hours | ✅ | edit/ui.tsx 각 섹션 폼 |
-| **preview** | ❌ | 에디터에 미리보기 패널 자체가 없음 (폼 에디터라) — 투어 스텝 수정 or 미리보기 도입 시 부착 |
-| **panel-settings** | ❌ | 별도 설정 패널 없음 (섹션 폼에 통합됨) — tours.ts 스텝 재정의 필요 |
-| **sec-story-feed** | ❌ | 고객 사이트의 스토리 섹션에 부착 예정이었으나 미부착 (`components/sections/index.tsx` StoryFeedSec) |
-| **btn-activate** | ❌ | 활성화(결제) 버튼 자체가 P5 미구현 |
-| **panel-brand** | ❌ | 브랜드키트 P6 미구현 |
-| **panel-widgets** | ❌ | 연결 위젯 P8 미구현 |
+| **preview** | ✅ | 에디터에 미리보기 패널 자체가 없음 (폼 에디터라) — 투어 스텝 수정 or 미리보기 도입 시 부착 |
+| **panel-settings** | ✅ | 별도 설정 패널 없음 (섹션 폼에 통합됨) — tours.ts 스텝 재정의 필요 |
+| **sec-story-feed** | ✅ | 고객 사이트의 스토리 섹션에 부착 예정이었으나 미부착 (`components/sections/index.tsx` StoryFeedSec) |
+| **btn-activate** | ✅ | 활성화(결제) 버튼 자체가 P5 미구현 |
+| **panel-brand** | ✅ | 브랜드키트 P6 미구현 |
+| **panel-widgets** | ✅ | 연결 위젯 P8 미구현 |
 
 → 미부착 6종 중 3종(preview·panel-settings·sec-story-feed)은 **tours.ts와 화면의 어긋남**이므로, 투어 UI 만들기 전에 `config/tours.ts` 스텝을 현 에디터 구조에 맞게 손봐야 함.
 
@@ -108,7 +108,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 ## 알려진 이슈 / TODO
 
 - `app/[slug]/edit/ui.tsx:258` — 미지원 섹션 5종이 `default: return null`로 숨겨짐 (위 표 참조).
-- `docs/SCHEMA.md:25` — 섹션 필드 정의 표 미작성 (규칙 위반 상태).
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
 - `app/new/page.tsx` — 업종 추론 저확신 시 되묻기(설계서 4장 3단계) 미구현. 현재는 무조건 진행.
 - `config/placeholder-images.ts` — Unsplash 핫링크 의존(시드·폴백 이미지). 링크 소멸 리스크 — 이미지뱅크 채워지면 의존 제거.
