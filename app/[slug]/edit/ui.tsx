@@ -5,7 +5,7 @@ import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 
 /**
- * 에디터 v1 (클라이언트) — 문구·연락처·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
+ * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
  * 저장(draft)과 사이트 반영(발행)은 분리 — 반영해야 손님에게 보인다.
  */
 
@@ -163,15 +163,20 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
 }) {
   const [uploading, setUploading] = useState(false);
 
-  async function uploadHero(idx: number, file: File) {
+  async function upload(file: File): Promise<string | null> {
     setUploading(true);
     const fd = new FormData();
     fd.set("slug", slug); fd.set("anonId", anon()); fd.set("file", file);
     const r = await fetch("/api/site/upload", { method: "POST", body: fd });
     const d = await r.json();
     setUploading(false);
-    if (r.ok) patchSection(idx, { image: d.url } as Partial<SectionT>);
-    else alert(d.error ?? "업로드 실패");
+    if (!r.ok) { alert(d.error ?? "업로드 실패"); return null; }
+    return d.url as string;
+  }
+
+  async function uploadHero(idx: number, file: File) {
+    const url = await upload(file);
+    if (url) patchSection(idx, { image: url } as Partial<SectionT>);
   }
 
   return (
@@ -255,10 +260,138 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
               <Field label="코너 제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
             </section>
           );
+          case "gallery": {
+            const mv = (j: number, d: number) => {
+              const a = [...s.photos]; const [x] = a.splice(j, 1); a.splice(j + d, 0, x);
+              patchSection(i, { photos: a });
+            };
+            return (
+              <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+                <h2 className="text-sm font-bold">사진 갤러리</h2>
+                <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+                <div className="flex flex-wrap gap-2">
+                  {s.photos.map((p, j) => (
+                    <div key={`${p}-${j}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p} alt="" className="h-24 w-28 rounded-lg object-cover" />
+                      <div className="mt-1 flex justify-center gap-1 text-xs">
+                        <button disabled={j === 0} onClick={() => mv(j, -1)} className="rounded border border-neutral-200 px-1.5 disabled:opacity-30" aria-label="앞으로">←</button>
+                        <button disabled={j === s.photos.length - 1} onClick={() => mv(j, 1)} className="rounded border border-neutral-200 px-1.5 disabled:opacity-30" aria-label="뒤로">→</button>
+                        <button disabled={s.photos.length <= 1} onClick={() => patchSection(i, { photos: s.photos.filter((_, k) => k !== j) })}
+                          className="rounded border border-neutral-200 px-1.5 text-red-500 disabled:opacity-30" aria-label="삭제">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                  {s.photos.length < 30 && (
+                    <label className="flex h-24 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 text-2xl text-neutral-300">
+                      {uploading ? "…" : "＋"}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { photos: [...s.photos, url] }); e.target.value = ""; }} />
+                    </label>
+                  )}
+                </div>
+                <p className="text-xs text-neutral-400">사진은 최소 1장 필요해요. 최대 30장.</p>
+              </section>
+            );
+          }
+          case "reviews": return (
+            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+              <h2 className="text-sm font-bold">고객 이야기</h2>
+              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              {s.items.map((it, j) => (
+                <div key={j} className="space-y-2 rounded-xl bg-neutral-50 p-3">
+                  <div className="flex gap-2">
+                    <input className={inp} value={it.title} maxLength={60} placeholder="한 줄 요약 (예: 꼼꼼한 시공 감사해요)"
+                      onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, title: e.target.value } : x) })} />
+                    <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
+                      className="flex-shrink-0 rounded-full border border-neutral-200 px-2.5 text-xs text-red-500 disabled:opacity-30" aria-label="후기 삭제">✕</button>
+                  </div>
+                  <textarea className={inp} rows={2} value={it.body} maxLength={300} placeholder="손님이 남긴 말"
+                    onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, body: e.target.value } : x) })} />
+                  <input className={inp} value={it.source ?? ""} maxLength={30} placeholder="출처 (선택, 예: 네이버 영수증 리뷰)"
+                    onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, source: e.target.value } : x) })} />
+                </div>
+              ))}
+              {s.items.length < 20 && (
+                <button onClick={() => patchSection(i, { items: [...s.items, { title: "", body: "" }] })}
+                  className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold">＋ 후기 추가</button>
+              )}
+            </section>
+          );
+          case "banner": return (
+            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+              <h2 className="text-sm font-bold">띠 배너</h2>
+              <Field label="문구"><input className={inp} value={s.text} maxLength={80} onChange={(e) => patchSection(i, { text: e.target.value })} /></Field>
+              <Field label="연결 주소 (선택)"><input className={inp} value={s.link ?? ""} placeholder="https://…" inputMode="url"
+                onChange={(e) => patchSection(i, { link: e.target.value.trim() || undefined })} /></Field>
+            </section>
+          );
+          case "portfolioGallery": return (
+            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+              <h2 className="text-sm font-bold">시공 사례</h2>
+              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              {s.items.map((it, j) => (
+                <div key={j} className="space-y-2 rounded-xl bg-neutral-50 p-3">
+                  <div className="flex items-start gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={it.image} alt="" className="h-20 w-24 flex-shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <input className={inp} value={it.title} maxLength={60} placeholder="사례 이름 (예: 강동구 34평 전체 조명)"
+                        onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, title: e.target.value } : x) })} />
+                      <div className="flex gap-2">
+                        <input className={inp} value={it.date ?? ""} maxLength={20} placeholder="날짜 (선택)"
+                          onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, date: e.target.value } : x) })} />
+                        <input className={inp} value={it.tag ?? ""} maxLength={20} placeholder="태그 (선택)"
+                          onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, tag: e.target.value } : x) })} />
+                      </div>
+                    </div>
+                    <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
+                      className="flex-shrink-0 rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-red-500 disabled:opacity-30" aria-label="사례 삭제">✕</button>
+                  </div>
+                  <label className="inline-block cursor-pointer rounded-full border border-neutral-300 px-3.5 py-1 text-xs font-semibold">
+                    {uploading ? "올리는 중…" : "사진 교체"}
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, image: url } : x) }); e.target.value = ""; }} />
+                  </label>
+                </div>
+              ))}
+              {s.items.length < 30 && (
+                <label className="inline-block cursor-pointer rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold">
+                  {uploading ? "올리는 중…" : "＋ 사례 추가 (사진 선택)"}
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { items: [...s.items, { title: "", image: url }] }); e.target.value = ""; }} />
+                </label>
+              )}
+            </section>
+          );
+          case "menuPrice": return (
+            <section key={i} className="space-y-3 rounded-2xl border border-neutral-200 p-4">
+              <h2 className="text-sm font-bold">메뉴판</h2>
+              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              {s.items.map((it, j) => (
+                <div key={j} className="space-y-2 rounded-xl bg-neutral-50 p-3">
+                  <div className="flex gap-2">
+                    <input className={inp} value={it.name} maxLength={40} placeholder="메뉴 이름"
+                      onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, name: e.target.value } : x) })} />
+                    <input className={`${inp} w-28 flex-shrink-0`} value={it.price} maxLength={20} placeholder="가격"
+                      onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, price: e.target.value } : x) })} />
+                    <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
+                      className="flex-shrink-0 rounded-full border border-neutral-200 px-2.5 text-xs text-red-500 disabled:opacity-30" aria-label="메뉴 삭제">✕</button>
+                  </div>
+                  <input className={inp} value={it.desc ?? ""} maxLength={80} placeholder="설명 (선택)"
+                    onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} />
+                </div>
+              ))}
+              {s.items.length < 40 && (
+                <button onClick={() => patchSection(i, { items: [...s.items, { name: "", price: "" }] })}
+                  className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold">＋ 메뉴 추가</button>
+              )}
+            </section>
+          );
           default: return null;
         }
       })}
-      <p className="text-center text-xs text-neutral-400">사진 갤러리·메뉴판 등 더 많은 편집은 곧 열려요.</p>
+      <p className="text-center text-xs text-neutral-400">섹션 추가·순서 변경은 곧 열려요.</p>
     </div>
   );
 }

@@ -21,6 +21,7 @@
 | 에디터 초기 데이터 로드 | `app/api/site/get/route.ts` |
 | 소유권 게이트(임시): 브라우저 anonId ↔ `sites.anon_id` 매칭 + 운영자(ADMIN_KEY 쿠키)는 전체 사이트 우회 | `lib/site-owner.ts` |
 | 완성도 점수 실계산 + `site_progress` 캐시 + funnel 이정표(first_edit/first_story/published) | `lib/score.ts` (규칙표는 `config/completeness.ts`) |
+| 나머지 섹션 폼 5종: 갤러리(다중 업로드·삭제·순서)·후기·배너·시공사례·메뉴판 → 섹션 12종 전부 편집 가능 | `app/[slug]/edit/ui.tsx` `ContentTab` switch (업로드는 `/api/site/upload` 재사용) |
 
 E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·사진 3장 업로드·스토리 작성 → 점수 60→75 상승, 라이브 반영 (프로덕션에서 무권한 API 403 확인).
 
@@ -31,9 +32,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | 항목 | 건드릴 파일 (예상) |
 |---|---|
-| 갤러리 편집 (사진 다중 업로드·삭제·순서) | `app/[slug]/edit/ui.tsx` `ContentTab`의 switch에 `case "gallery"` 추가 (업로드는 기존 `/api/site/upload` 재사용) |
-| 메뉴판(menuPrice) 편집 (항목 추가·삭제·가격) | 같은 파일 `case "menuPrice"` 추가 |
-| 후기(reviews)·배너(banner)·portfolioGallery 편집 | 같은 파일 각 case 추가 — `ui.tsx:258`의 `default: return null` 이 현재 미지원 타입을 숨기고 있음 |
 | 섹션 추가 (없는 섹션 타입을 doc.sections에 삽입) | `ui.tsx`에 "섹션 추가" 패널 신설 + `lib/schema.ts`의 타입별 기본값 팩토리 함수 신설 권장 (`lib/section-defaults.ts` 등) |
 | 섹션 순서 변경 (위/아래 이동, hero 고정) | `ui.tsx` 섹션 카드에 ↑↓ 버튼 → `doc.sections` 배열 재배열 (드래그는 후순위) |
 | 섹션 삭제 | 동일 지점, hero·quoteForm 삭제 방지 가드 필요 |
@@ -49,21 +47,21 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | type | zod (`lib/schema.ts`) | 렌더러 (`components/sections/index.tsx`) | 에디터 폼 (`app/[slug]/edit/ui.tsx`) | SCHEMA.md 필드표 |
 |---|---|---|---|---|
-| hero | ✅ | ✅ :307 | ✅ :194 | ✅ |
-| about | ✅ | ✅ :308 | ✅ :210 | ✅ |
-| storyFeed | ✅ | ✅ :309 | ✅ :252 (제목만) | ✅ |
-| gallery | ✅ | ✅ :310 | ❌ **없음** | ✅ |
-| reviews | ✅ | ✅ :311 | ❌ **없음** | ✅ |
-| map | ✅ | ✅ :312 | ✅ :239 | ✅ |
-| banner | ✅ | ✅ :313 | ❌ **없음** | ✅ |
-| portfolioGallery | ✅ | ✅ :314 | ❌ **없음** | ✅ |
-| processSteps | ✅ | ✅ :315 | ✅ :217 | ✅ |
-| quoteForm | ✅ | ✅ :316 | ✅ :230 | ✅ |
-| hoursCard | ✅ | ✅ :317 | ✅ :246 | ✅ |
-| menuPrice | ✅ | ✅ :318 | ❌ **없음** | ✅ |
+| hero | ✅ | ✅ :307 | ✅ :199 | ✅ |
+| about | ✅ | ✅ :308 | ✅ :215 | ✅ |
+| storyFeed | ✅ | ✅ :309 | ✅ :257 (제목만) | ✅ |
+| gallery | ✅ | ✅ :310 | ✅ :263 | ✅ |
+| reviews | ✅ | ✅ :311 | ✅ :297 | ✅ |
+| map | ✅ | ✅ :312 | ✅ :244 | ✅ |
+| banner | ✅ | ✅ :313 | ✅ :321 | ✅ |
+| portfolioGallery | ✅ | ✅ :314 | ✅ :329 | ✅ |
+| processSteps | ✅ | ✅ :315 | ✅ :222 | ✅ |
+| quoteForm | ✅ | ✅ :316 | ✅ :235 | ✅ |
+| hoursCard | ✅ | ✅ :317 | ✅ :251 | ✅ |
+| menuPrice | ✅ | ✅ :318 | ✅ :367 | ✅ |
 
 - **SCHEMA.md 필드표**: 2026-09-01 `lib/schema.ts` zod 기준으로 12종 전부 작성 완료 (기존 예시 JSON의 zod 불일치 — `portfolioGallery.fromStory` 미존재 필드, `processSteps.steps` 문자열 배열, `quoteForm.phone` 누락 — 도 함께 수정).
-- 에디터 폼 5종 미지원(gallery/reviews/banner/portfolioGallery/menuPrice)은 `ui.tsx:258 default: return null`로 조용히 숨겨져 있고, `:261`에 "곧 열려요" 안내문이 노출 중.
+- 에디터 폼 12종 전부 지원 (2026-09-01, 폼 5종 추가로 완료). 항목 삭제는 zod min(1)에 맞춰 마지막 1개에서 버튼 비활성화. `banner.link`는 빈 입력 시 `undefined`로 변환(zod url 검증 통과용). 스키마 자체는 변경 없음 — 불변 규칙 2(4곳 동시 수정) 미발동.
 
 ---
 
@@ -107,7 +105,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 ## 알려진 이슈 / TODO
 
-- `app/[slug]/edit/ui.tsx:258` — 미지원 섹션 5종이 `default: return null`로 숨겨짐 (위 표 참조).
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
 - `app/new/page.tsx` — 업종 추론 저확신 시 되묻기(설계서 4장 3단계) 미구현. 현재는 무조건 진행.
 - `config/placeholder-images.ts` — Unsplash 핫링크 의존(시드·폴백 이미지). 링크 소멸 리스크 — 이미지뱅크 채워지면 의존 제거.
