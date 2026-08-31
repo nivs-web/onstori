@@ -62,8 +62,17 @@ export const INDUSTRIES: Industry[] = [
   { id: "restaurant", name: "식당", categoryId: 1, keywords: ["식당", "맛집", "한식", "중식", "일식", "양식", "고기", "곱창", "국밥", "분식"], bankTags: ["restaurant", "food"], defaultMood: "warm" },
 ];
 
-/** 랜딩 포트폴리오 탭 — 카테고리가 아닌 전시용 태그 (showcase.portfolio_tag) */
+/** 랜딩 포트폴리오 탭 — 카테고리가 아닌 전시용 태그 (showcase.tag) */
 export const PORTFOLIO_TABS = ["전체", "인테리어", "시공·건설", "서비스·출장", "카페·식당"] as const;
+export type PortfolioTag = Exclude<(typeof PORTFOLIO_TABS)[number], "전체">;
+
+/** 업종 → 기본 전시 태그 (어드민 등록 시 자동 제안, 수정 가능) */
+export function portfolioTagFor(industryId: string): PortfolioTag {
+  if (industryId === "interior") return "인테리어";
+  if (["cafe", "restaurant"].includes(industryId)) return "카페·식당";
+  if (["cleaning", "moving", "repair", "rental"].includes(industryId)) return "서비스·출장";
+  return "시공·건설";
+}
 
 export function categoryOf(industry: Industry): Category {
   return CATEGORIES.find((c) => c.id === industry.categoryId)!;

@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Portfolio } from "@/components/portfolio";
 
-/** 본사 랜딩 v0 — 선판매(당근) 트랙용 최소판. 본격 랜딩은 쇼케이스 채워진 뒤 P2 후반. */
+export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영 (어드민 등록 → 바로 랜딩)
+
+/** 본사 랜딩 v1 — 히어로 + 라이브 포트폴리오(폰 프레임) + 가치 제안 + 가격 */
 export default function Home() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-20">
-      <p className="text-xs font-semibold tracking-[0.25em] text-blue-700">ONSTORI</p>
+    <main className="min-h-svh bg-white text-neutral-900"><div className="mx-auto max-w-5xl px-6 py-20">
+      <div className="max-w-2xl"><p className="text-xs font-semibold tracking-[0.25em] text-blue-700">ONSTORI</p>
       <h1 className="mt-3 text-3xl font-bold leading-snug sm:text-4xl" style={{ textWrap: "balance" }}>
         시공 사례가 쌓일수록,<br />견적 문의가 늘어납니다
       </h1>
@@ -16,10 +19,12 @@ export default function Home() {
         <Link href="/new" className="rounded-full bg-blue-700 px-7 py-3.5 font-semibold text-white shadow-lg">
           내 가게 홈페이지 미리 보기 — 무료
         </Link>
-        <a href="/niv" className="text-sm font-medium text-blue-700 underline underline-offset-4">
-          완성 예시 보기 ↗
+        <a href="#portfolio" className="text-sm font-medium text-blue-700 underline underline-offset-4">
+          완성 예시 보기 ↓
         </a>
-      </div>
+      </div></div>
+
+      <Portfolio />
 
       <section className="mt-16 grid gap-4 sm:grid-cols-3">
         {[
@@ -45,6 +50,6 @@ export default function Home() {
       <footer className="mt-16 border-t border-neutral-200 pt-6 text-xs text-neutral-400">
         © {new Date().getFullYear()} 온스토리 · 문의: 카카오톡 채널 (준비 중)
       </footer>
-    </main>
+    </div></main>
   );
 }

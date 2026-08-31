@@ -9,6 +9,7 @@ export default async function AdminHome() {
 
   const menus = [
     { href: "/admin/bank", title: "이미지뱅크 관리", desc: "생성 이미지 검수·점수·삭제 — 품질은 선별에서 나온다", ready: true },
+    { href: "/admin/showcase", title: "랜딩 포트폴리오 관리", desc: "URL 등록·태그·순서·추천 — 첫 화면 전시 지정", ready: true },
     { href: "/admin/sites", title: "사이트 관리", desc: "전체 고객 사이트 목록·상태", ready: true },
     { href: "/admin/subdomains", title: "서브도메인 만들기", desc: "본사 내부 기능 전용 (추후 사용, 공간만)", ready: true },
     { href: "#", title: "신청 접수함", desc: "당근·지인 무료 제작 신청 (P3 예정 — 지금은 시트)", ready: false },
