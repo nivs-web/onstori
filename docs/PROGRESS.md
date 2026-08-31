@@ -81,6 +81,22 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 ---
 
+## Gemini 크레딧 — 현 상태 (2026-09-01 진단)
+
+이미지 생성이 **크레딧 소진으로 차단**. 코드·환경변수 문제가 아님을 확인했다.
+
+- 환경변수 이름 일치: `.env.local`의 `GEMINI_API_KEY` ↔ 코드 3곳(`lib/gemini.ts:15`, `scripts/bank-generate.ts`, `scripts/bench-image.mjs`). 값 형식도 정상(따옴표·공백·개행 잔재 없음).
+- 키 자체는 유효: `models.list` 200, 이미지 모델 6종 노출.
+- 그러나 모든 생성 호출이 429 — 텍스트는 `prepayment credits are depleted`(선불 크레딧 소진), 이미지는 `FreeTier limit: 0`(크레딧 소진 후 무료 티어로 강등된 결과).
+- **AI Studio 계정 불일치 의심**: 로그인된 `info@nivs.com`의 AI Studio에는 결제 계정이 **없고**, 키도 `…tf1w`(Default Gemini Project, 제한됨) 하나뿐 — `.env.local`의 `…TIaA`와 **다른 키**. 즉 실제 사용 중인 키의 프로젝트는 이 계정 화면에 안 보인다(가져오기 안 됨 or 다른 계정 소유).
+- Cloud Console에서 프로젝트(`project-e8a34e87-a445-4701-af4`) 직접 확인은 재인증(비밀번호) 요구로 미실시 — **사장님이 직접 로그인해서 확인 필요.**
+
+**확인 순서**: ① 그 키가 어느 Google 계정·프로젝트 소속인지 ② 그 프로젝트에 선불 크레딧 충전 ③ `scripts/gemini-preflight.ts` 통과(무과금) ④ `bank-generate --limit 5`.
+
+참고: Gemini API 키는 서비스 계정에 바인딩되는 자격증명이 아니다(서비스 계정은 Vertex AI의 OAuth/JSON 방식). `?key=` 방식은 프로젝트 귀속 API 키다 — 키 발급 위치를 다시 확인할 것.
+
+---
+
 ## 스키마 정합성 현황
 
 섹션 type 12종 기준 (`lib/schema.ts`의 `Section` discriminatedUnion):
@@ -169,6 +185,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | 항목 | 상태 | 풀리면 할 일 |
 |---|---|---|
-| **Gemini API 결제 인증** (최대 2일 소요 중) | 대기 — 무료 티어는 이미지 모델 일일 쿼터 0 확정 (텍스트는 무료로 동작 중) | "결제됐어" 수신 → `scripts/bank-generate.ts`로 3-pro vs 3.1-flash 벤치 10장 → `/admin/bank` 검수 → 승자 모델로 500장 웨이브 → 검수·승인하면 신규 생성 사이트에 자동 반영 |
+| **Gemini 선불 크레딧 충전** | **차단 — 크레딧 소진(2026-09-01 확인).** 키(`GEMINI_API_KEY`, `…TIaA`)는 유효(models.list 200)하나 텍스트·이미지 모두 429 `prepayment credits are depleted`. 텍스트도 이제 안 됨(무료 티어 때와 다른 상태). 아래 "Gemini 크레딧" 절 참조 | 충전 → `npx tsx --env-file=.env.local scripts/gemini-preflight.ts` 통과 확인 → `bank-generate --limit 5`로 소량 검증 → 3-pro vs 3.1-flash 벤치 10장 → `/admin/bank` 검수 → 승자 모델로 500장 웨이브 |
 | **통신판매업 신고 + 토스페이먼츠 가맹** | 미착수 | P5(결제) 착수 조건. 1개월 무료 종료 시점에 첫 결제가 발생하므로 지금 시작해야 타이밍 맞음 |
 | **당근 비즈프로필 개설 + 홍보글 게시** | 보류 (사용자 결정) | `docs/presale.md`의 글 초안·응대 템플릿 사용. 게이트: 사진 수신 5건/2주 → P3 확정, 유료 전환 30% → P5 |
