@@ -1,17 +1,20 @@
 /**
  * 이미지뱅크 배치 생성 — 고품질·비중복 파이프라인
  * 실행: npx tsx --env-file=.env.local scripts/bank-generate.ts [옵션]
+ *   --limit 5             [필수] 이 실행에서 허용할 최대 API 호출(=과금) 수. 처음은 5로 돌려
+ *                         결과 확인 후 늘릴 것. 중복 스킵도 호출은 과금되므로 등록 장수가 아니라 호출 수를 제한.
  *   --model gemini-3-pro-image | gemini-3.1-flash-image  (기본 3.1-flash-image)
- *   --count 20            생성 목표 장수
+ *   --count 20            생성 목표 장수 (뱅크 등록 기준 — limit보다 먼저 차면 거기서 종료)
+ *   --cost 0.039          장당 예상 단가 USD (기본: 모델별 추정표 — 실제 단가 확인 후 조정)
  *   --industries interior,cafe   (기본: 전체 14)
  *   --roles hero,gallery  (기본: hero,gallery,about,process)
  *   --moods clean,warm    (기본: 4종)
  *   --sleep 7000          호출 간격 ms (레이트리밋 보호)
- *   --dry                 API 호출 없이 프롬프트만 출력
+ *   --dry                 API 호출 없이 프롬프트만 출력 (--limit 없이 실행 가능)
  *
  * 파이프라인: 프롬프트 조합(셔플) → 생성 → dHash 중복검사(해밍≤6 스킵)
  *   → WebP 변환(hero 1920w/기타 1200w, q85) → bank 버킷 업로드 → 카탈로그(검수 대기) 등록
- * 429(쿼터 소진) 3연속 시 우아하게 중단하고 요약 출력.
+ * 안전장치: --limit 호출 상한 · 연속 실패 5회 즉시 중단 · 429 3연속 중단 · 매 호출 누적 장수/예상 비용 출력.
  */
 import sharp from "sharp";
 import { randomUUID } from "crypto";
@@ -33,6 +36,21 @@ const INDS = arg("industries", INDUSTRIES.map((i) => i.id).join(",")).split(",")
 const SLEEP = parseInt(arg("sleep", "7000"), 10);
 const DRY = has("dry");
 const BATCH = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+
+// 안전장치 1: 실행당 API 호출(과금) 상한 — 명시 필수 (dry 제외)
+const LIMIT = parseInt(arg("limit", ""), 10);
+if (!DRY && (!Number.isFinite(LIMIT) || LIMIT <= 0)) {
+  console.error("--limit N 이 필요해요 (이 실행에서 허용할 최대 API 호출 수). 처음은 --limit 5 로 돌려 결과를 확인한 뒤 늘리세요.");
+  process.exit(1);
+}
+
+// 장당 예상 단가 USD — 추정표. 실제 청구 단가 확인 후 --cost 로 조정할 것.
+const COST_TABLE: Record<string, number> = {
+  "gemini-3.1-flash-image": 0.039,
+  "gemini-3-pro-image": 0.134,
+};
+const COST = parseFloat(arg("cost", String(COST_TABLE[MODEL] ?? 0.05)));
+const MAX_CONSEC_FAILS = 5;
 
 const key = process.env.GEMINI_API_KEY!;
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -76,29 +94,45 @@ async function main() {
   // 기존 해시 로드 (중복 방지)
   const { data: existing } = await sb.from("image_bank").select("phash").not("phash", "is", null).eq("deleted", false);
   const hashes: string[] = (existing ?? []).map((r) => r.phash as string);
-  console.log(`기존 뱅크 해시 ${hashes.length}개 로드 · 목표 ${COUNT}장 · 모델 ${MODEL}`);
+  console.log(`기존 뱅크 해시 ${hashes.length}개 로드 · 목표 ${COUNT}장 · 호출 상한 ${DRY ? "-(dry)" : LIMIT} · 모델 ${MODEL} · 장당 추정 $${COST}`);
 
-  let created = 0, dups = 0, fails = 0, quotaStrikes = 0;
+  let created = 0, dups = 0, fails = 0, quotaStrikes = 0, apiCalls = 0, consecFails = 0;
+  let abort = ""; // 채워지면 즉시 중단
+  // 안전장치 3: 매 호출마다 누적 현황 — 등록/호출/예상 비용
+  const tally = () => `등록 ${created} · 호출 ${apiCalls}/${LIMIT} · 예상 누적 $${(apiCalls * COST).toFixed(2)}`;
+  // 안전장치 2: 생성·업로드·DB 실패가 연속 5회면 중단 (성공·중복 시 리셋)
+  const noteFail = (msg: string) => {
+    fails++; consecFails++;
+    console.log(`실패: ${msg} · ${tally()}`);
+    if (consecFails >= MAX_CONSEC_FAILS) abort = `연속 실패 ${MAX_CONSEC_FAILS}회`;
+  };
+
   for (const j of jobs) {
     if (created >= COUNT) break;
+    if (!DRY && apiCalls >= LIMIT) { abort = `호출 상한 --limit ${LIMIT} 도달`; break; }
     const prompt = buildPrompt(j.ind, j.mood, j.role, j.scene, j.vari);
     if (DRY) { console.log(`[dry] ${j.ind}/${j.mood}/${j.role} :: ${prompt.slice(0, 110)}…`); created++; continue; }
 
     const r = await generateOne(prompt);
+    if ("err" in r && r.quota) {
+      quotaStrikes++; console.log(`429 쿼터 (${quotaStrikes}/3)`);
+      if (quotaStrikes >= 3) { abort = "429 쿼터 3연속"; break; }
+      await new Promise((s) => setTimeout(s, 30000)); continue;
+    }
+    apiCalls++; // 429 외에는 과금으로 간주 (no-image 응답 포함 — 보수적 추정)
     if ("err" in r) {
-      if (r.quota) { quotaStrikes++; console.log(`429 쿼터 (${quotaStrikes}/3)`); if (quotaStrikes >= 3) break; await new Promise((s) => setTimeout(s, 30000)); continue; }
-      fails++; console.log(`실패: ${j.ind}/${j.role} — ${r.err}`);
+      noteFail(`${j.ind}/${j.role} — ${r.err}`);
     } else {
       quotaStrikes = 0;
       const hash = await dhash(r.buf);
-      if (hashes.some((h) => hamming(h, hash) <= 6)) { dups++; console.log(`중복 스킵: ${j.ind}/${j.mood}/${j.role}`); }
+      if (hashes.some((h) => hamming(h, hash) <= 6)) { dups++; consecFails = 0; console.log(`중복 스킵: ${j.ind}/${j.mood}/${j.role} · ${tally()}`); }
       else {
         const meta = await sharp(r.buf).metadata();
         const width = j.role === "hero" ? 1920 : 1200;
         const webp = await sharp(r.buf).resize({ width, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
         const path = `${j.ind}/${j.mood}/${j.role}/${randomUUID()}.webp`;
         const { error: upErr } = await sb.storage.from("bank").upload(path, webp, { contentType: "image/webp" });
-        if (upErr) { fails++; console.log(`업로드 실패: ${upErr.message}`); }
+        if (upErr) { noteFail(`업로드 — ${upErr.message}`); }
         else {
           const { data: pub } = sb.storage.from("bank").getPublicUrl(path);
           const orientation = (meta.width ?? 0) >= (meta.height ?? 0) ? "landscape" : "portrait";
@@ -108,14 +142,16 @@ async function main() {
             tags: [j.ind, j.mood, j.role], prompt, model: MODEL, phash: hash,
             width: meta.width, height: meta.height, batch_id: BATCH,
           });
-          if (dbErr) { fails++; console.log(`DB 실패: ${dbErr.message}`); }
-          else { hashes.push(hash); created++; console.log(`✓ ${created}/${COUNT} ${j.ind}/${j.mood}/${j.role} (${meta.width}x${meta.height})`); }
+          if (dbErr) { noteFail(`DB — ${dbErr.message}`); }
+          else { hashes.push(hash); created++; consecFails = 0; console.log(`✓ ${created}/${COUNT} ${j.ind}/${j.mood}/${j.role} (${meta.width}x${meta.height}) · ${tally()}`); }
         }
       }
     }
+    if (abort) break;
     await new Promise((s) => setTimeout(s, SLEEP));
   }
-  console.log(JSON.stringify({ batch: BATCH, model: MODEL, created, dups, fails, quotaExhausted: quotaStrikes >= 3 }));
+  if (abort) console.log(`중단: ${abort}`);
+  console.log(JSON.stringify({ batch: BATCH, model: MODEL, created, dups, fails, apiCalls, estCostUsd: +(apiCalls * COST).toFixed(2), abort: abort || null }));
 }
 
 main();
