@@ -1,0 +1,78 @@
+{
+  "status": "trial",
+  "doc": {
+    "schemaVersion": 1,
+    "template": "quote",
+    "businessName": "니브인테리어",
+    "theme": { "palette": "clean", "font": "pretendard" },
+    "sections": [
+      {
+        "type": "hero",
+        "eyebrow": "주거 리모델링 · 서울 전지역",
+        "headline": "10년의 현장이\n말합니다",
+        "sub": "아파트·빌라 전체 리모델링부터 부분 시공까지. 견적은 정직하게, 마감은 꼼꼼하게.",
+        "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+        "cta": { "label": "견적 문의", "action": "quote" }
+      },
+      {
+        "type": "about",
+        "title": "니브인테리어는",
+        "body": "현장 10년, 직영 시공으로 운영합니다.\n중간 마진 없이 견적을 드리고, 약속한 일정과 금액을 지킵니다.\n공사가 끝나도 AS로 끝까지 책임집니다.",
+        "stats": [
+          { "label": "현장 경력", "value": "10년" },
+          { "label": "직영 시공", "value": "100%" },
+          { "label": "AS 보증", "value": "1년" }
+        ]
+      },
+      {
+        "type": "portfolioGallery",
+        "title": "시공 사례",
+        "items": [
+          { "title": "광진구 32평 아파트 전체 리모델링", "image": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80", "date": "2026.08", "tag": "전체" },
+          { "title": "성동구 신혼집 주방·욕실", "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1200&q=80", "date": "2026.07", "tag": "부분" },
+          { "title": "중곡동 카페 상가 인테리어", "image": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1200&q=80", "date": "2026.06", "tag": "상가" },
+          { "title": "자양동 24평 올수리", "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80", "date": "2026.05", "tag": "전체" }
+        ]
+      },
+      {
+        "type": "processSteps",
+        "title": "진행 과정",
+        "steps": [
+          { "name": "상담", "desc": "전화·카톡으로 상황을 듣고 방향을 잡아드려요" },
+          { "name": "실측·견적", "desc": "현장을 직접 보고 항목별 견적서를 드려요" },
+          { "name": "시공", "desc": "일정표대로 진행하고 매일 사진으로 공유해요" },
+          { "name": "검수·AS", "desc": "함께 확인하고, 1년간 보증해요" }
+        ]
+      },
+      { "type": "storyFeed", "title": "니브의 현장 이야기", "showCount": 5 },
+      {
+        "type": "reviews",
+        "title": "고객 이야기",
+        "items": [
+          { "title": "광진구 아파트 전체 리모델링", "body": "매일 저녁 현장 사진을 보내주셔서 멀리서도 안심이 됐어요. 마감 디테일이 특히 만족스럽습니다.", "source": "시공 고객" },
+          { "title": "주방 부분 시공", "body": "견적서에 없던 추가 비용이 정말 없었어요. 일정도 하루도 안 밀렸습니다.", "source": "시공 고객" }
+        ]
+      },
+      {
+        "type": "quoteForm",
+        "title": "견적 문의",
+        "sub": "부담 없이 물어보세요. 견적은 무료입니다.",
+        "phone": "010-0000-0000",
+        "allowPhotos": true
+      },
+      {
+        "type": "map",
+        "title": "오시는 길",
+        "address": "서울 광진구 자양로 00 1층",
+        "phone": "010-0000-0000",
+        "note": "상담은 예약제로 운영합니다"
+      }
+    ]
+  },
+  "stories": [
+    { "id": "s4", "entryType": "work", "title": "광진구 32평 — 3주간의 기록", "body": "철거부터 마감까지. 안방 몰딩은 사모님이 고르신 우드톤으로, 주방은 무광 화이트로 마무리했습니다.", "photos": ["https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=70"], "entryDate": "2026-08-21" },
+    { "id": "s3", "entryType": "news", "title": "8월 시공 일정 마감 안내", "body": "8월 일정이 모두 찼습니다. 9월 첫째 주부터 상담 가능합니다. 미리 문의 주시면 순서대로 안내드려요.", "photos": [], "entryDate": "2026-08-10" },
+    { "id": "s2", "entryType": "work", "title": "성동구 신혼집 주방 — 이틀의 변화", "body": "15년 된 주방을 걷어내고 상판까지 교체했습니다. 예산 안에서 최선의 조합을 찾는 게 저희 일입니다.", "photos": ["https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=800&q=70"], "entryDate": "2026-07-18" },
+    { "id": "s1", "entryType": "milestone", "title": "니브인테리어, 온라인에 집을 짓다", "body": "10년 동안 소개로만 일해왔습니다. 이제 저희가 해온 현장들을 이곳에 차곡차곡 기록합니다.", "photos": [], "entryDate": "2026-07-01" }
+  ]
+}

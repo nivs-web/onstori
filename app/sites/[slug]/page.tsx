@@ -1,30 +1,71 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { getSiteBySlug } from "@/lib/sites";
+import { PALETTES, RenderSection } from "@/components/sections";
 
 /**
- * 고객 사이트 렌더러 자리 (P1에서 구현).
- * 라우팅은 next.config.ts의 host 기반 rewrites가 담당:
- * {slug}.onstori.com → /sites/{slug}. 본사 도메인에서 /sites/* 직접 접근은 홈으로 돌려보낸다.
+ * 고객 사이트 렌더러 — site JSON → 페이지.
+ * 라우팅은 next.config.ts의 host 기반 rewrites: {slug}.onstori.com → /sites/{slug}
  */
-export default async function SitePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
 
+type Props = { params: Promise<{ slug: string }> };
+
+async function guardHost(slug: string) {
   const host = (await headers()).get("host")?.split(":")[0] ?? "";
-  const viaSubdomain =
-    host === `${slug}.onstori.com` || host === `${slug}.localhost`;
-  if (!viaSubdomain) redirect("/");
+  const ok = host === `${slug}.onstori.com` || host === `${slug}.localhost`;
+  if (!ok) redirect("/");
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const site = await getSiteBySlug(slug);
+  if (!site) return {};
+  const hero = site.doc.sections.find((s) => s.type === "hero");
+  return {
+    title: site.doc.businessName,
+    description: (hero && "sub" in hero && hero.sub) || `${site.doc.businessName} 공식 홈페이지`,
+    robots: site.status === "trial" ? { index: false, follow: false } : undefined,
+    openGraph: {
+      title: site.doc.businessName,
+      description: (hero && "sub" in hero && hero.sub) || undefined,
+      images: hero && "image" in hero && hero.image ? [hero.image] : undefined,
+    },
+  };
+}
+
+export default async function SitePage({ params }: Props) {
+  const { slug } = await params;
+  await guardHost(slug);
+
+  const site = await getSiteBySlug(slug);
+  if (!site) notFound();
+
+  const p = PALETTES[site.doc.theme.palette];
+  const accent = site.doc.theme.accent ?? p.accent;
+  const vars = {
+    "--s-bg": p.bg, "--s-ink": p.ink, "--s-muted": p.muted, "--s-line": p.line,
+    "--s-accent": accent, "--s-soft": p.soft, "--s-on-accent": p.onAccent,
+  } as React.CSSProperties;
 
   return (
-    <main style={{ fontFamily: "sans-serif", padding: "4rem 2rem", textAlign: "center" }}>
-      <p style={{ color: "#888", fontSize: 14, letterSpacing: 2 }}>ONSTORI · P0</p>
-      <h1 style={{ fontSize: 28, margin: "0.5rem 0" }}>{slug}.onstori.com</h1>
-      <p style={{ color: "#555" }}>
-        고객 사이트 렌더러 자리입니다. P1에서 site JSON → 페이지 렌더링이 여기에 들어옵니다.
-      </p>
-    </main>
+    <div style={vars}>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+      <main
+        className="min-h-svh"
+        style={{
+          background: "var(--s-bg)",
+          fontFamily: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`,
+        }}
+      >
+        {site.doc.sections.map((s, i) => (
+          <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories }} />
+        ))}
+        <footer className="px-5 py-10 text-center text-[12.5px]" style={{ color: "var(--s-muted)" }}>
+          © {new Date().getFullYear()} {site.doc.businessName} ·{" "}
+          <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
+        </footer>
+      </main>
+    </div>
   );
 }

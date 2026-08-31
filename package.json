@@ -12,7 +12,8 @@
     "@swc/helpers": "^0.5.23",
     "next": "^16.1.6",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

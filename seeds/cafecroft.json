@@ -1,0 +1,74 @@
+{
+  "status": "trial",
+  "doc": {
+    "schemaVersion": 1,
+    "template": "visit",
+    "businessName": "카페크로프트",
+    "theme": { "palette": "warm", "font": "pretendard" },
+    "sections": [
+      {
+        "type": "hero",
+        "eyebrow": "구의동 골목의 스페셜티 카페",
+        "headline": "느리게 내려도,\n제대로 내립니다",
+        "sub": "매주 직접 로스팅하는 원두, 매일 아침 굽는 스콘. 골목 안쪽이지만 찾아올 이유는 충분해요.",
+        "image": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1600&q=80",
+        "cta": { "label": "오시는 길", "action": "call" }
+      },
+      {
+        "type": "banner",
+        "text": "8월 한정 — 아이스 크림라떼 500원 할인 중"
+      },
+      {
+        "type": "menuPrice",
+        "title": "메뉴",
+        "items": [
+          { "name": "핸드드립 (오늘의 원두)", "price": "6,000", "desc": "매주 로스팅 원두 중 추천" },
+          { "name": "크림라떼", "price": "6,500", "desc": "크로프트 시그니처" },
+          { "name": "아메리카노", "price": "4,500" },
+          { "name": "수제 스콘", "price": "4,000", "desc": "매일 아침 굽습니다 · 조기 마감" },
+          { "name": "바스크 치즈케이크", "price": "6,500" }
+        ]
+      },
+      {
+        "type": "gallery",
+        "title": "공간",
+        "photos": [
+          "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=75",
+          "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=75",
+          "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=900&q=75",
+          "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=900&q=75",
+          "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=75",
+          "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=900&q=75"
+        ]
+      },
+      { "type": "storyFeed", "title": "크로프트 일기", "showCount": 5 },
+      {
+        "type": "hoursCard",
+        "title": "영업시간",
+        "hours": "평일 10:00 – 21:00\n주말 11:00 – 22:00",
+        "holidayNote": "매주 화요일 휴무"
+      },
+      {
+        "type": "reviews",
+        "title": "손님 이야기",
+        "items": [
+          { "title": "핸드드립이 좋았어요", "body": "원두 설명을 이렇게 정성껏 해주는 곳은 처음이었어요. 조용해서 책 읽기에도 좋아요.", "source": "방문 손님" },
+          { "title": "스콘 맛집", "body": "스콘은 오후엔 없어요. 일찍 가세요. 두 번 실패하고 깨달았습니다.", "source": "단골 손님" }
+        ]
+      },
+      {
+        "type": "map",
+        "title": "오시는 길",
+        "address": "서울 광진구 구의로 00길 00 1층",
+        "phone": "010-0000-0000",
+        "note": "구의역 2번 출구 도보 6분 · 골목 안쪽 파란 문"
+      }
+    ]
+  },
+  "stories": [
+    { "id": "s4", "entryType": "news", "title": "이번 주 원두: 에티오피아 구지", "body": "복숭아 같은 산미가 예쁘게 나왔어요. 핸드드립으로 드시는 걸 추천합니다.", "photos": ["https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=70"], "entryDate": "2026-08-25" },
+    { "id": "s3", "entryType": "work", "title": "스콘 반죽을 바꿨습니다", "body": "버터 비율을 조금 올렸어요. 단골 손님 세 분이 먼저 알아채셨습니다.", "photos": [], "entryDate": "2026-08-14" },
+    { "id": "s2", "entryType": "guest", "title": "매일 오시는 할아버지 손님", "body": "아메리카노를 '그거'라고 부르시는 단골 어르신. 오늘은 스콘을 처음 드셨는데, 내일도 달라고 하셨어요.", "photos": [], "entryDate": "2026-08-05" },
+    { "id": "s1", "entryType": "milestone", "title": "크로프트, 문을 열다", "body": "골목 안쪽 작은 가게지만, 커피만큼은 어디에도 지고 싶지 않습니다. 이곳에 크로프트의 하루하루를 기록할게요.", "photos": [], "entryDate": "2026-07-20" }
+  ]
+}
