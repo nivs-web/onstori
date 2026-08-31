@@ -4,8 +4,8 @@
 
 ## 현재 상태
 
-- **Phase: P0 (환경 구축)** — 완료 조건: onstori.com / test.onstori.com이 다른 페이지를 보여주고 정책 3파일이 저장소에 있다.
-- 다음: P1 (렌더러 + 데이터 모델 + 서브도메인 라우팅)
+- **P3 (에디터) 완료 — 2026-09-01.** 진행 위치의 단일 출처는 `docs/PLAN.md`.
+- 다음: P4 (계정·세션) — 착수 전 `docs/PROGRESS.md`의 "P4 시작 시 알아야 할 것" 필독.
 
 ## 스택
 
@@ -16,8 +16,8 @@
 
 ## 폴더 역할
 
-- `app/` 페이지 + API Route Handlers. `app/_sites/[slug]/` = 고객 사이트(서브도메인이 미들웨어로 재작성됨)
-- `middleware.ts` 서브도메인 → `/_sites/{slug}` 재작성. 본사 도메인(onstori.com, www)은 그대로
+- `app/` 페이지 + API Route Handlers. `app/[slug]/` = 고객 사이트 — 주소 체계는 경로 방식 `onstori.com/{slug}` (2026-08-31 전환, DECISIONS 참조)
+- 미들웨어 없음 — 과거 서브도메인 링크는 `next.config.ts` redirects로 호환. 서브도메인은 본사 내부 전용 보류
 - `config/` **제품 정책의 단일 출처** — industries.ts(업종→카테고리→템플릿 매핑), completeness.ts(완성도 100점 규칙), tours.ts(가이드 투어 스텝)
 - `components/sections/` 섹션 렌더러 컴포넌트 (에디터 미리보기와 공유)
 - `lib/` schema.ts(zod), ai.ts, billing.ts, track.ts 등

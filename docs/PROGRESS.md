@@ -1,13 +1,15 @@
 # PROGRESS.md — 작업 인수인계 (2026-09-01 기준)
 
-> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준 커밋: `055dde8` (main = origin/main, 클린).
+> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준: 로컬 main — origin/main보다 앞서 있음(**미푸시**). 푸시 = 프로덕션 자동 배포이므로 푸시 전에 에디터 E2E 확인 권장.
 > 프로덕션: https://onstori.com (Vercel 프로젝트 `onstori-pwk2`, 푸시 = 자동 배포).
 > 로컬 실행: `npm run dev` (2026-09-01 정상 기동 확인 — 안 뜨면 `npm run build && npm run start` 폴백).
 > 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, GEMINI_API_KEY, ADMIN_KEY.
 
 ---
 
-## P3 (에디터) 진행 상태
+## P3 (에디터) — 완료 (2026-09-01)
+
+섹션 삭제·앵커 스크롤·투어 최소 동작은 P3 범위에서 이월(아래 표). 그 외 전부 완료.
 
 ### 완료
 
@@ -22,22 +24,44 @@
 | 소유권 게이트(임시): 브라우저 anonId ↔ `sites.anon_id` 매칭 + 운영자(ADMIN_KEY 쿠키)는 전체 사이트 우회 | `lib/site-owner.ts` |
 | 완성도 점수 실계산 + `site_progress` 캐시 + funnel 이정표(first_edit/first_story/published) | `lib/score.ts` (규칙표는 `config/completeness.ts`) |
 | 나머지 섹션 폼 5종: 갤러리(다중 업로드·삭제·순서)·후기·배너·시공사례·메뉴판 → 섹션 12종 전부 편집 가능 | `app/[slug]/edit/ui.tsx` `ContentTab` switch (업로드는 `/api/site/upload` 재사용) |
+| 섹션 추가 패널 (없는 타입만 맨 아래 삽입, gallery·portfolioGallery는 zod min(1) 때문에 첫 사진 업로드와 함께 삽입) + 타입별 기본값 팩토리. 사실 정보(주소·전화·영업시간)는 날조 대신 "입력해 주세요" 안내 문구 | `ui.tsx` `ContentTab` 하단 패널, `lib/section-defaults.ts` (신설) |
+| 섹션 순서 변경: 카드 우상단 ↑↓ 버튼, hero 맨 위 고정(hero 위로 이동 불가·hero엔 버튼 없음) | `ui.tsx` `ContentTab` — 카드가 wrapper div로 감싸짐, `moveSection` |
+| ContentTab switch의 `default: return null` → 보이는 폴백 카드("알 수 없는 섹션")로 교체. 모르는 타입을 숨기면 저장 실패(zod) 원인을 찾을 수 없어서 | `ui.tsx` `ContentTab` switch default |
 
 E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·사진 3장 업로드·스토리 작성 → 점수 60→75 상승, 라이브 반영 (프로덕션에서 무권한 API 403 확인).
 
-### 진행 중
-- 없음 (슬라이스 1 완결 상태에서 멈춤 — 다음 슬라이스 미착수).
+섹션 추가·순서 변경(2026-09-01) 검증 수준: `npm run build` 통과 + 기본값 11종 전부 `Section` zod 통과(임시 스크립트로 확인 후 삭제). **에디터 실사용 E2E는 미실시** — 프로덕션 푸시 전에 `/barun-electric/edit`에서 추가→이동→저장→발행 한 번 돌려볼 것.
 
-### 남은 항목 (다음 슬라이스)
+### P3에서 이월한 항목 (미구현 — P4 차단 아님)
 
 | 항목 | 건드릴 파일 (예상) |
 |---|---|
-| 섹션 추가 (없는 섹션 타입을 doc.sections에 삽입) | `ui.tsx`에 "섹션 추가" 패널 신설 + `lib/schema.ts`의 타입별 기본값 팩토리 함수 신설 권장 (`lib/section-defaults.ts` 등) |
-| 섹션 순서 변경 (위/아래 이동, hero 고정) | `ui.tsx` 섹션 카드에 ↑↓ 버튼 → `doc.sections` 배열 재배열 (드래그는 후순위) |
-| 섹션 삭제 | 동일 지점, hero·quoteForm 삭제 방지 가드 필요 |
+| 섹션 삭제 | `ui.tsx` 카드 wrapper의 ↑↓ 버튼 옆, hero·quoteForm 삭제 방지 가드 필요 |
 | 앵커 스크롤("＋N점" 클릭→해당 폼으로 이동) | `ui.tsx` 점수 힌트 영역에서 `document.querySelector('[data-tour=...]')`.scrollIntoView — 앵커는 이미 붙어 있음 |
+| 투어 최소 동작 | `config/tours.ts` 스텝 3개가 현 에디터 구조와 불일치(아래 앵커 표) — 투어 UI 전에 스텝 재정의 필요. P9 투어 폴리시와 묶어도 됨 |
 
 ⚠ 섹션 편집을 추가할 때 CLAUDE.md 불변 규칙 2: **zod(`lib/schema.ts`) + 렌더러(`components/sections/index.tsx`) + 에디터 폼(`ui.tsx`) + `docs/SCHEMA.md` 4곳 한 커밋**.
+
+---
+
+## P4 시작 시 알아야 할 것 (계정·세션)
+
+PLAN의 P4 정의는 "계정·쿠키(.onstori.com) 세션 공유"였으나, **주소 체계가 경로 방식(onstori.com/{slug})으로 전환**되어(DECISIONS 2026-08-31) 크로스 서브도메인 쿠키 공유는 더 이상 필요 없다 — 단일 오리진이라 일반 세션 쿠키면 충분. 서브도메인은 본사 내부 전용 보류 상태.
+
+**이미 되어 있는 것 (스키마 마이그레이션 불필요):**
+- `sites.owner_id uuid references auth.users` 컬럼·인덱스가 core 마이그레이션에 처음부터 존재 (`supabase/migrations/20260831120000_core.sql:17`). null = 익명 생성.
+- owner 기반 RLS 정책 일습도 이미 있음: `sites_owner_all`, `stories_owner_all`, versions/progress/inquiries/events의 owner_read (같은 파일 :109~138). 단 **현재 앱은 전부 service-role(`lib/db-admin.ts`)로 접근해 RLS를 안 탄다** — RLS는 심층 방어로만 동작 중.
+
+**만들어야 하는 것:**
+1. Supabase Auth 로그인. 방식 미정(이메일 매직링크 vs 카카오 OAuth — 소상공인 타깃이면 카카오 우선 검토). Auth 설정은 대시보드에서만 가능 → 변경 시 DECISIONS.md 한 줄 기록(불변 규칙 1).
+2. 세션 클라이언트: 현재 `@supabase/ssr` 미설치, 클라이언트측 Supabase 사용처 0, **미들웨어 없음**. 미들웨어 기반 토큰 리프레시 패턴은 Vercel MIDDLEWARE_INVOCATION_FAILED 전력(DECISIONS 2026-08-31, 그래서 rewrites 전환) 때문에 재도입 시 재검증 필수 — Route Handler/서버 컴포넌트에서 쿠키 갱신하는 패턴을 먼저 검토.
+3. `lib/site-owner.ts` 교체: 소유 판정 anonId 매칭 → `auth.uid() == owner_id`. **운영자(ADMIN_KEY) 우회는 유지**(세션 결정 1 — 컨시어지 필수). 이 함수만 고치면 소유권 게이트 API 5곳(get/update/publish/story/upload)이 전부 따라온다. 에디터(`ui.tsx`)의 `anon()` 전송부와 거부 화면 문구("만든 기기에서 열어주세요" → 로그인 유도)도 함께 교체.
+4. **anon claim 흐름**: 가입/로그인 직후 localStorage `onstori:anonId`를 서버로 보내 `sites.anon_id` 일치 사이트에 `owner_id = auth.uid` 부여. claim 후 `anon_id`를 비울지(재claim 방지) 결정하고 DECISIONS에 기록. `/api/generate`는 로그인 상태면 처음부터 `owner_id`로 저장하도록.
+5. 아키텍처 결정 1건: API는 service-role + 서버 세션 검증 유지(현 구조 최소 변경 — 권장) vs anon-key 사용자 클라이언트로 전환해 RLS 실사용. 전자를 택하면 RLS는 계속 심층 방어.
+
+**시작 전 정리하면 좋은 것:**
+- 프로덕션 테스트 데이터 `dbtest`·`hanbit-test` — 계정 귀속 시작 전이 삭제 적기 (`barun-electric`은 쇼케이스라 유지).
+- 로컬 잔재 브랜치 `phase-1-renderer`·`debug/full-middleware` 삭제 가능.
 
 ---
 
@@ -47,18 +71,18 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | type | zod (`lib/schema.ts`) | 렌더러 (`components/sections/index.tsx`) | 에디터 폼 (`app/[slug]/edit/ui.tsx`) | SCHEMA.md 필드표 |
 |---|---|---|---|---|
-| hero | ✅ | ✅ :307 | ✅ :199 | ✅ |
-| about | ✅ | ✅ :308 | ✅ :215 | ✅ |
-| storyFeed | ✅ | ✅ :309 | ✅ :257 (제목만) | ✅ |
-| gallery | ✅ | ✅ :310 | ✅ :263 | ✅ |
-| reviews | ✅ | ✅ :311 | ✅ :297 | ✅ |
-| map | ✅ | ✅ :312 | ✅ :244 | ✅ |
-| banner | ✅ | ✅ :313 | ✅ :321 | ✅ |
-| portfolioGallery | ✅ | ✅ :314 | ✅ :329 | ✅ |
-| processSteps | ✅ | ✅ :315 | ✅ :222 | ✅ |
-| quoteForm | ✅ | ✅ :316 | ✅ :235 | ✅ |
-| hoursCard | ✅ | ✅ :317 | ✅ :251 | ✅ |
-| menuPrice | ✅ | ✅ :318 | ✅ :367 | ✅ |
+| hero | ✅ | ✅ :307 | ✅ :214 | ✅ |
+| about | ✅ | ✅ :308 | ✅ :230 | ✅ |
+| storyFeed | ✅ | ✅ :309 | ✅ :272 (제목만) | ✅ |
+| gallery | ✅ | ✅ :310 | ✅ :278 | ✅ |
+| reviews | ✅ | ✅ :311 | ✅ :312 | ✅ |
+| map | ✅ | ✅ :312 | ✅ :259 | ✅ |
+| banner | ✅ | ✅ :313 | ✅ :336 | ✅ |
+| portfolioGallery | ✅ | ✅ :314 | ✅ :344 | ✅ |
+| processSteps | ✅ | ✅ :315 | ✅ :237 | ✅ |
+| quoteForm | ✅ | ✅ :316 | ✅ :250 | ✅ |
+| hoursCard | ✅ | ✅ :317 | ✅ :266 | ✅ |
+| menuPrice | ✅ | ✅ :318 | ✅ :382 | ✅ |
 
 - **SCHEMA.md 필드표**: 2026-09-01 `lib/schema.ts` zod 기준으로 12종 전부 작성 완료 (기존 예시 JSON의 zod 불일치 — `portfolioGallery.fromStory` 미존재 필드, `processSteps.steps` 문자열 배열, `quoteForm.phone` 누락 — 도 함께 수정).
 - 에디터 폼 12종 전부 지원 (2026-09-01, 폼 5종 추가로 완료). 항목 삭제는 zod min(1)에 맞춰 마지막 1개에서 버튼 비활성화. `banner.link`는 빈 입력 시 `undefined`로 변환(zod url 검증 통과용). 스키마 자체는 변경 없음 — 불변 규칙 2(4곳 동시 수정) 미발동.
