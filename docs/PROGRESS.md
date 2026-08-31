@@ -107,7 +107,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 ## 알려진 이슈 / TODO
 
-- `lib/bank.ts:24` — `bump_bank_used` RPC를 호출하지만 **DB에 함수 미생성**(호출 실패 무시됨). 마이그레이션으로 `create function bump_bank_used(bank_id uuid)` 추가 필요 — 안 하면 used_count가 안 올라 이미지 배분 균등화가 동작 안 함.
 - `app/[slug]/edit/ui.tsx:258` — 미지원 섹션 5종이 `default: return null`로 숨겨짐 (위 표 참조).
 - `docs/SCHEMA.md:25` — 섹션 필드 정의 표 미작성 (규칙 위반 상태).
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
