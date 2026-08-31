@@ -32,9 +32,17 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 - [ ] P8 위젯·후기·배너·챗봇
 - [ ] P9 투어 UI 폴리시·법무·Pro 전환·런칭
 
-## P0 남은 항목 (사용자 계정 필요)
+## P0 남은 항목
 
-- [ ] onstori.com 구매 → Vercel 프로젝트 연결 → 네임서버 Vercel 이전 → `*.onstori.com` 와일드카드 추가
-- [ ] GitHub 원격 저장소 생성 + push (gh CLI 미설치 — 웹에서 생성 후 `git remote add`)
-- [ ] Supabase 프로젝트 생성 (무료 티어) → `npx supabase link`
-- [ ] 토스페이먼츠 가맹 신청 (사업자등록 필요, 리드타임 김 — 지금)
+- [x] onstori.com 구매 → Vercel 연결 → 와일드카드 (2026-08-31 완료)
+- [x] GitHub: github.com/nivs-web/onstori (main 푸시됨)
+- [x] Supabase 프로젝트 생성 — ref: `wpsrfjqfbhmeriscdacu` (무료 티어)
+- [ ] `.env.local` 채우기(.env.example 참고: anon key, service role key) + Vercel 환경변수 등록
+- [ ] `npx supabase login` 후 `npx supabase link --project-ref wpsrfjqfbhmeriscdacu` (P1 첫 마이그레이션 전까지)
+- [ ] 토스페이먼츠 가맹 신청 — 보류: 통신판매업 신고 후 진행 (P5 전까지만 완료하면 됨)
+
+## 알려진 이슈
+
+- Next 16.2+ 미들웨어를 Vercel이 번들링할 때 `@swc/helpers/esm/*` 누락으로
+  MIDDLEWARE_INVOCATION_FAILED 발생(vercel/next.js#93850) → `@swc/helpers`를
+  직접 의존성으로 고정해 해결(커밋 31dadd2). Next 업그레이드 시 재발 여부 확인할 것.
