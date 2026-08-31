@@ -2,7 +2,7 @@
 
 > 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준 커밋: `055dde8` (main = origin/main, 클린).
 > 프로덕션: https://onstori.com (Vercel 프로젝트 `onstori-pwk2`, 푸시 = 자동 배포).
-> 로컬 실행: `npm run build && npm run start` (dev 서버는 이 Windows 환경에서 간헐적으로 안 뜸 — start 사용).
+> 로컬 실행: `npm run dev` (2026-09-01 정상 기동 확인 — 안 뜨면 `npm run build && npm run start` 폴백).
 > 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, GEMINI_API_KEY, ADMIN_KEY.
 
 ---
@@ -111,7 +111,7 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 - `seeds/*.json` — 쇼케이스 시드 3종의 스토리 사진도 Unsplash 핫링크. 동일 리스크.
 - `config/tours.ts` — 투어 스텝 3개가 현 에디터 구조와 불일치 (위 앵커 표 참조).
 - 로컬 git 브랜치 `phase-1-renderer`, `debug/full-middleware` — 병합 완료된 잔재. 삭제해도 됨 (full-middleware는 미들웨어 원본 보관용이었으나 경로 방식 전환으로 무의미).
-- `next dev`가 이 Windows 환경에서 Ready에 도달하지 않는 현상 (원인 미규명) — `npm run build && npm run start`로 작업 중. dev HMR이 필요하면 조사 필요.
+- ~~`next dev`가 이 Windows 환경에서 Ready에 도달하지 않는 현상~~ — 2026-09-01 재시도에서 정상 기동 (Ready 2.8s). 원인은 여전히 미규명이라 재발 시 `npm run build && npm run start` 폴백.
 - 테스트 데이터가 프로덕션 DB에 있음: `dbtest`(DB 경로 검증용), `hanbit-test`(생성 E2E). 실사용 전 삭제 or 유지 결정 필요 (`barun-electric`은 쇼케이스로 승격되어 유지).
 
 ---
