@@ -22,7 +22,7 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 ## Phase 체크리스트
 
 - [x] **P0 환경 구축(완료 2026-08-31)**: 도메인 구매·Vercel 연결·와일드카드 / 저장소·스캐폴드 / CLAUDE.md·정책 3파일 / Supabase 프로젝트 / 토스 가맹 신청
-- [ ] P1 렌더러+데이터 모델+서브도메인 (심장) — 섹션 스키마 v1(zod), {slug} 렌더러, 시드 3종, RLS
+- [~] **P1 진행 중** — 완료: 스키마 v1(zod)·렌더러 12섹션·시드 3종(niv/cleanhaus/cafecroft 프로덕션 라이브)·코어 마이그레이션 SQL+RLS 작성 / 남음: supabase link 후 db push, DB 데이터 소스 전환(lib/sites.ts), 사이트별 sitemap·robots
 - [ ] P2 위저드(무질문 추론)+AI 생성+이미지 뱅크+쇼케이스 10~12개
 - [ ] P3 에디터+스토리 UX+점수·앵커 스크롤
 - [ ] P4 계정·쿠키(.onstori.com) 세션 공유
@@ -38,7 +38,7 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 - [x] GitHub: github.com/nivs-web/onstori (main 푸시됨)
 - [x] Supabase 프로젝트 생성 — ref: `wpsrfjqfbhmeriscdacu` (무료 티어)
 - [ ] `.env.local` 채우기(.env.example 참고: anon key, service role key) + Vercel 환경변수 등록
-- [ ] `npx supabase login` 후 `npx supabase link --project-ref wpsrfjqfbhmeriscdacu` (P1 첫 마이그레이션 전까지)
+- [ ] (다음 작업) `npx supabase login` 후 `npx supabase link --project-ref wpsrfjqfbhmeriscdacu` (P1 첫 마이그레이션 전까지)
 - [ ] 토스페이먼츠 가맹 신청 — 보류: 통신판매업 신고 후 진행 (P5 전까지만 완료하면 됨)
 
 ## 남은 정리 · 알려진 이슈
