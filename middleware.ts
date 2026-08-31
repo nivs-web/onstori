@@ -52,6 +52,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // 정적 자원·내부 경로 제외
-  matcher: ["/((?!_next/|api/|favicon.ico|.*\\.(?:png|jpg|jpeg|webp|svg|ico|mp4|webm|woff2)$).*)"],
+  // 정적 자원·내부 경로 제외 — Vercel 멀티테넌트 스타터에서 검증된 패턴
+  // (루트의 파일명.확장자 형태와 api/_next/_static/_vercel 제외)
+  matcher: ["/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)"],
 };
