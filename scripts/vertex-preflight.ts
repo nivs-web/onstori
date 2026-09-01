@@ -2,24 +2,22 @@
  * Vertex AI 프리플라이트 — 500장 웨이브 전에 인증·API·모델을 최소 비용으로 확인.
  * 실행: npx tsx --env-file=.env.local scripts/vertex-preflight.ts [--image]
  *
- * [1] env  [2] 서비스 계정 토큰(무과금)  [3] 텍스트 1콜(수 원 미만)
+ * [1] 인증 모드·프로젝트  [2] 토큰(무과금)  [3] 텍스트 1콜(수 원 미만)
  * --image 를 붙이면 이미지 모델 후보를 1장씩 실제 생성해 사용 가능 모델을 가려낸다(장당 ~$0.04).
  */
-import { vertexProject, vertexLocation, vertexToken, vertexGenerate, textOf, imageOf } from "../lib/vertex";
+import { vertexProject, vertexLocation, vertexToken, vertexGenerate, textOf, imageOf, authMode } from "../lib/vertex";
 
 const PROBE_IMAGE = process.argv.includes("--image");
 const TEXT_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash"];
 const IMAGE_MODELS = ["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-2.5-flash-image"];
 
 async function main() {
-  console.log("[1] env");
-  for (const k of ["GOOGLE_CLOUD_PROJECT", "GOOGLE_SERVICE_ACCOUNT_JSON"]) {
-    const v = process.env[k];
-    console.log(`  ${k}: ${v ? `설정됨(${v.length}자)` : "❌ 없음"}`);
-  }
-  console.log(`  project=${vertexProject()} location=${vertexLocation()}`);
+  console.log("[1] 인증");
+  const mode = authMode();
+  console.log(`  모드: ${mode === "adc" ? "ADC (gcloud application-default)" : "서비스 계정 JSON"}`);
+  console.log(`  project=${await vertexProject()} location=${vertexLocation()}`);
 
-  console.log("\n[2] 서비스 계정 토큰");
+  console.log("\n[2] 토큰");
   const tok = await vertexToken();
   console.log(`  ✅ 발급됨 (${tok.slice(0, 8)}…)`);
 

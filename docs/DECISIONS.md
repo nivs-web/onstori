@@ -2,6 +2,7 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-01 · 로컬 Vertex 인증은 서비스 계정 키가 아니라 **ADC**(`gcloud auth application-default login`) · 장기 자격증명 파일을 만들지 않는 편이 안전. `lib/vertex.ts`는 ADC 우선, `GOOGLE_SERVICE_ACCOUNT_JSON` 있으면 그걸 사용(ADC가 안 되는 Vercel용). gcloud 바이너리가 PATH에 없어 `getProjectId()`가 실패하므로 ADC 파일의 `quota_project_id`를 폴백으로 읽음
 - 2026-09-01 · [중대] AI 접근 경로를 Gemini API(`?key=`) → **Vertex AI(서비스 계정 인증)**로 이관 · 이 지역 Gemini API는 GCP 결제와 별개인 **선불 크레딧 충전**을 요구해서, 보유한 GCP 무료 체험판 이월 크레딧 ₩435,523(2026-12-01 만료)이 놀게 됨. Vertex는 일반 GCP 결제라 크레딧 소진 가능. 벤더는 여전히 Gemini 모델(2026-08-31 결정 유지) — 바뀐 건 전송·인증 계층뿐. `lib/vertex.ts` 신설, `geminiJson()` 시그니처 유지해 `lib/generate.ts`는 무수정. **리스크: 체험판 크레딧은 "특정 사용량에 적용"이라 Vertex 적용 여부는 첫 비용 리포트로 확인해야 함** — 크레딧이 안 붙으면 500장 웨이브 전에 재검토 (docs/vertex-setup.md 7절)
 - 2026-09-01 · GCP 결제 계정 무료 체험판 → 유료 계정 업그레이드 · 체험판 상태로는 유료 API 호출 자체가 불가. 크레딧 ₩435,523은 업그레이드 후에도 이월돼 2026-12-01까지 유효. 체험판 "청구 없음" 보호막이 사라지므로 예산 알림 설정 필요
 

@@ -127,10 +127,22 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 
 검증: `npm run build` + `tsc --noEmit` 통과, 프리플라이트·`--dry` 실행 정상(env 미설정을 정확히 보고). **실호출 검증은 콘솔 설정 후.**
 
-**차단 — 콘솔 설정 (운영자 담당, `docs/vertex-setup.md` 체크리스트)**
-① Vertex AI API 사용 설정 ② `onstori-gemini-sa`에 `roles/aiplatform.user` ③ JSON 키 발급 ④ `.env.local` 3개 변수 ⑤ **Vercel Production 동일 3개** ⑥ 프리플라이트 → `--image` → `bank-generate --limit 1`
+**설정·검증 — ✅ 완료 (2026-09-01)**
 
-**⚠ 첫 호출 후 반드시 확인**: 비용 리포트에서 Vertex 사용분에 크레딧이 실제로 적용됐는지. 체험판 크레딧은 "특정 사용량에 적용"이라 범위 제한 가능성 — 카드로 청구되면 500장 웨이브 전에 방침 재검토.
+| 단계 | 상태 |
+|---|---|
+| Vertex AI API(`aiplatform.googleapis.com`, 콘솔 표기 "Agent Platform API") 사용 설정 | ✅ |
+| `onstori-gemini-sa`에 **Agent Platform 사용자**(=`roles/aiplatform.user`) 부여 — 그 전엔 역할 0개 | ✅ |
+| 로컬 인증 = **ADC**(`gcloud auth application-default login`) — 서비스 계정 키 파일 미생성 | ✅ |
+| 프리플라이트: 텍스트 `gemini-3.5-flash` 200 | ✅ |
+| 이미지 모델 실측 — **3종 모두 가능**: `gemini-3.1-flash-image` / `gemini-3-pro-image` / `gemini-2.5-flash-image` | ✅ |
+| 파이프라인 E2E 1장 (생성→dHash→WebP→bank 버킷→`image_bank` 등록) | ✅ `construction/warm/gallery` 1200x896, 공개 URL 200 image/webp 188KB |
+
+**남은 것**
+1. **⚠ 크레딧 적용 확인 (최우선)** — 비용 리포트에서 Vertex 사용분에 ₩435,523 크레딧이 실제로 붙는지. 반영에 몇 시간~24시간. 체험판 크레딧은 "특정 사용량에 적용"이라 범위 제한 가능성 — 카드로 청구되면 500장 웨이브 전에 방침 재검토. https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports
+2. **Vercel 환경변수** — ADC는 로컬 전용. 프로덕션 `/api/generate`를 살리려면 서비스 계정 키 JSON을 발급해 `GOOGLE_SERVICE_ACCOUNT_JSON`+`GOOGLE_CLOUD_PROJECT`로 등록해야 함. **미완 — 배포 전 필수** (이미지 웨이브는 로컬 실행이라 이것 없이 진행 가능)
+3. 예산 및 알림 설정 (체험판 보호막 소멸)
+4. 3-pro vs 3.1-flash 벤치 10장 → `/admin/bank` 검수 → 승자 모델로 500장 웨이브
 
 **비용 감각**: 500장 웨이브 실비는 flash 기준 ~$20, pro 기준 ~$67. 크레딧 아끼려고 스택을 바꿀 규모가 아니다.
 **Vertex AI 전환은 보류**: GCP 크레딧(₩435,523)을 이미지 생성에 쓸 가능성은 있으나 엔드포인트·인증(서비스 계정)·모델명이 모두 달라 코드 변경 필요. 사장님이 만든 `onstori-gemini-sa`는 이 경로용으로 보인다. 비용이 실제로 커지면(월 수십 달러) 그때 검토.

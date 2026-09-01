@@ -15,47 +15,39 @@
 `onstori-gemini-sa@project-e8a34e87-a445-4701-af4.iam.gserviceaccount.com` 에
 **Agent Platform 사용자**(= `roles/aiplatform.user`, 콘솔 표기가 리브랜딩됨) 부여. 최소 권한.
 
-## 3. 서비스 계정 키(JSON) 발급 — 운영자 직접
+## 3. 로컬 인증 = ADC — ✅ 완료 (2026-09-01)
 
-키 발급은 **장기 자격증명을 새로 만드는 작업**이라(콘솔도 "위험한 서비스 계정 기능"으로 분류) 본인이 진행.
+`gcloud auth application-default login` 으로 해결. **서비스 계정 키 파일을 만들지 않는다** — 장기 자격증명이 안 생기는 게 보안상 낫다.
 
-- [ ] https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-e8a34e87-a445-4701-af4
-- [ ] `onstori-gemini-sa` 클릭 > **키** 탭 > **키 추가** > 새 키 만들기 > **JSON** > 만들기
-- [ ] 내려받은 파일은 **저장소 밖에 보관** (Downloads 등). 다 쓰면 삭제
+- ADC 파일: `%APPDATA%\gcloud\application_default_credentials.json` (type `authorized_user`, quota_project 지정됨)
+- `.env.local`에 Google 관련 변수 **불필요** — 프로젝트는 ADC에서 추론
+- ⚠ `gcloud` 바이너리가 PATH에 없어도 동작한다(라이브러리가 ADC 파일을 직접 읽음). 다만 `getProjectId()`가 실패하므로 `lib/vertex.ts`가 ADC 파일의 `quota_project_id`를 폴백으로 읽는다
+- 기존 `GEMINI_API_KEY`는 이제 안 쓴다 — 지워도 되고, 롤백 대비로 남겨둬도 무방
 
-## 4. `.env.local` 주입 — 스크립트 1줄
+## 4. Vercel 환경변수 (Production) — ⛔ 미완, 배포 전 필수
 
-```bash
-npx tsx scripts/set-sa-env.ts "C:\Users\ariancepc\Downloads\받은키.json"
-```
+**ADC는 로컬 전용이라 Vercel에서는 동작하지 않는다.** 프로덕션 `/api/generate`(사이트 생성 시 카피 생성)를 살리려면 서비스 계정 키가 필요하다.
 
-`GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` / `GOOGLE_SERVICE_ACCOUNT_JSON`(base64) 3개를
-자동으로 넣거나 교체한다. **키 내용은 화면에 출력하지 않는다.**
+- [ ] 서비스 계정 키 발급: [서비스 계정](https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-e8a34e87-a445-4701-af4) > `onstori-gemini-sa` > 키 탭 > 키 추가 > JSON
+- [ ] Vercel Production에 `GOOGLE_SERVICE_ACCOUNT_JSON`(JSON 원문 또는 base64) + `GOOGLE_CLOUD_PROJECT` 등록
+- [ ] 로컬에도 넣어 테스트하려면: `npx tsx scripts/set-sa-env.ts "<키파일 경로>"` (키 내용 미출력)
+- 이미지 웨이브(500장)는 **로컬 스크립트**로 도니 이 단계 없이도 진행 가능
 
-기존 `GEMINI_API_KEY`는 이제 안 쓴다 — 지워도 되고, 롤백 대비로 남겨둬도 무방.
-
-## 5. Vercel 환경변수 (Production)
-
-- [ ] `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_SERVICE_ACCOUNT_JSON` 3개 등록
-- [ ] 빼먹으면 프로덕션 `/api/generate`(사이트 생성)가 죽는다 — 배포 전 필수
-
-## 6. 검증
+## 5. 검증 — ✅ 통과 (2026-09-01)
 
 ```bash
-npx tsx --env-file=.env.local scripts/vertex-preflight.ts
+npx tsx --env-file=.env.local scripts/vertex-preflight.ts          # 인증→토큰→텍스트
+npx tsx --env-file=.env.local scripts/vertex-preflight.ts --image  # 이미지 모델 실측
 ```
 
-`[1] env` → `[2] 토큰` → `[3] 텍스트 1콜` 순으로 통과해야 한다. 텍스트까지 되면:
+결과: ADC 모드 / project `project-e8a34e87-a445-4701-af4` / `gemini-3.5-flash` 텍스트 200,
+이미지 **3종 모두 사용 가능** — `gemini-3.1-flash-image`(1274KB) · `gemini-3-pro-image`(1192KB) · `gemini-2.5-flash-image`(913KB).
 
+파이프라인 E2E 1장도 통과:
 ```bash
-npx tsx --env-file=.env.local scripts/vertex-preflight.ts --image
+npx tsx --env-file=.env.local scripts/bank-generate.ts --model gemini-3.1-flash-image --limit 1 --count 1
 ```
-
-이미지 모델 후보 3종을 1장씩 실제 생성해 **Vertex에서 실제로 되는 모델 ID**를 가려낸다(장당 ~$0.04). 통과한 모델로:
-
-```bash
-npx tsx --env-file=.env.local scripts/bank-generate.ts --model <승자> --limit 1 --count 1
-```
+→ `construction/warm/gallery` 1200x896 등록, bank 버킷 공개 URL `200 image/webp 188KB`, `image_bank` 행 생성 확인.
 
 ## 7. 크레딧 소진 확인 (중요)
 
