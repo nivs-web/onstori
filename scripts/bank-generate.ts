@@ -10,6 +10,7 @@
  *   --industries interior,cafe   (기본: 전체 14)
  *   --roles hero,gallery  (기본: hero,gallery,about,process)
  *   --moods clean,warm    (기본: 4종)
+ *   --seed 42             조합 셔플 고정 — 두 모델에 같은 seed를 주면 동일 프롬프트로 A/B 비교 가능
  *   --sleep 7000          호출 간격 ms (레이트리밋 보호)
  *   --dry                 API 호출 없이 프롬프트만 출력 (--limit 없이 실행 가능)
  *
@@ -54,6 +55,19 @@ const COST_TABLE: Record<string, number> = {
 const COST = parseFloat(arg("cost", String(COST_TABLE[MODEL] ?? 0.05)));
 const MAX_CONSEC_FAILS = 5;
 
+// --seed: 조합 셔플을 결정적으로 만들어 모델 A/B를 같은 프롬프트로 비교할 때 사용
+const seedArg = arg("seed", "");
+const SEED = seedArg === "" ? null : parseInt(seedArg, 10);
+/** mulberry32 — 작고 결정적인 PRNG */
+function mulberry32(a: number) {
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
 /* dHash 64bit — 9x8 그레이스케일 인접 비교 */
@@ -94,7 +108,12 @@ async function main() {
     const scenes = INDUSTRY_SCENES[ind]?.length ?? 3;
     for (let s = 0; s < scenes; s++) for (let v = 0; v < VARIATIONS.length; v++) jobs.push({ ind, mood, role, scene: s, vari: v });
   }
-  jobs.sort(() => Math.random() - 0.5);
+  // Fisher-Yates. --seed 를 주면 순서가 결정적이라 모델 간 "같은 프롬프트" 비교가 가능하다.
+  const rand = SEED === null ? Math.random : mulberry32(SEED);
+  for (let i = jobs.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [jobs[i], jobs[j]] = [jobs[j], jobs[i]];
+  }
 
   // 기존 해시 로드 (중복 방지)
   const { data: existing } = await sb.from("image_bank").select("phash").not("phash", "is", null).eq("deleted", false);
@@ -118,12 +137,17 @@ async function main() {
     const prompt = buildPrompt(j.ind, j.mood, j.role, j.scene, j.vari);
     if (DRY) { console.log(`[dry] ${j.ind}/${j.mood}/${j.role} :: ${prompt.slice(0, 110)}…`); created++; continue; }
 
-    const r = await generateOne(prompt);
-    if ("err" in r && r.quota) {
-      quotaStrikes++; console.log(`429 쿼터 (${quotaStrikes}/3)`);
-      if (quotaStrikes >= 3) { abort = "429 쿼터 3연속"; break; }
-      await new Promise((s) => setTimeout(s, 30000)); continue;
+    // 429는 분당 레이트리밋인 경우가 대부분 — 다음 조합으로 넘기지 말고 같은 조합을 재시도해야
+    // seed를 고정한 모델 A/B에서 두 실행의 조합 순서가 어긋나지 않는다.
+    let r = await generateOne(prompt);
+    while ("err" in r && r.quota) {
+      quotaStrikes++;
+      console.log(`429 (${quotaStrikes}/3) — 30초 후 같은 조합 재시도`);
+      if (quotaStrikes >= 3) { abort = "429 3연속"; break; }
+      await new Promise((s) => setTimeout(s, 30000));
+      r = await generateOne(prompt);
     }
+    if (abort) break;
     apiCalls++; // 429 외에는 과금으로 간주 (no-image 응답 포함 — 보수적 추정)
     if ("err" in r) {
       noteFail(`${j.ind}/${j.role} — ${r.err}`);
