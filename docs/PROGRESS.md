@@ -272,6 +272,19 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 
 ---
 
+## `/new` "Unexpected token 'A'" 진단 (2026-09-01)
+
+증상: 위저드에서 `Unexpected token 'A', "An error o"... is not valid JSON`.
+
+- **발생 지점**: `app/new/page.tsx`의 `/api/generate` 호출. `r.json()`을 `r.ok` 검사보다 **먼저** 불러서, 응답이 JSON이 아니면 파싱 예외가 그대로 catch로 가고 `setErrMsg(e.message)`로 화면에 노출됐다. (슬러그 검사 쪽도 같은 패턴이지만 catch가 조용히 무시해서 안 보였음)
+- **비-JSON 본문의 정체**: `An error occurred with this application.` — Vercel의 **플랫폼 레벨 에러 페이지**다. 라우트의 try/catch가 돌기 전에 함수가 죽거나 타임아웃하면 이게 나간다. 라우트 자체는 정상이면 JSON을 준다(실측: slug-check 200 JSON, generate 409 JSON).
+- **왜 죽는가**: 프로덕션 생성 1회 실측이 **20.9초**. `maxDuration = 60`인데 LLM 재시도(모델 2종 × 재시도 1회)가 겹치면 한도를 넘을 수 있다. 간헐적으로만 터지는 이유.
+- **수정**: `readJson()` 헬퍼 추가 — content-type이 JSON일 때만 파싱하고, 아니면 상태코드에 맞는 한국어 문구로 바꾼다. 원문은 `non_json_response` 로그로 남긴다. 평문 500을 흉내내 검증: 화면에 "만드는 데 시간이 너무 오래 걸렸어요"가 뜨는 것 확인.
+- ⚠ **이 수정은 아직 프로덕션에 없다** — `origin/main`이 `f2d5a91`이라 **P4·Vertex·뱅크 작업 전부 미푸시**. 프로덕션은 여전히 구 Gemini API 경로로 돌고 있고, Vercel의 `GEMINI_API_KEY`는 로컬 `.env.local`의 죽은 키와 **다른 키**다(생성이 실제로 성공함).
+- 근본 해소는 생성 시간 단축 or 타임아웃 상향. 진단용으로 만든 `zz-diag-1` 사이트는 삭제 완료.
+
+---
+
 ## 알려진 이슈 / TODO
 
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.

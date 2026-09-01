@@ -11,6 +11,25 @@ const MOODS = [
   { id: "lively", name: "활기찬", desc: "생기있는 코랄 포인트" },
 ] as const;
 
+/**
+ * 응답이 JSON일 때만 파싱한다.
+ * 서버가 죽거나 함수 타임아웃이 나면 Vercel이 "An error occurred with this application." 같은
+ * 평문 에러 페이지를 돌려주는데, 바로 res.json()을 부르면 그 파싱 오류
+ * ("Unexpected token 'A', \"An error o\"...")가 사장님 화면에 그대로 노출된다.
+ */
+async function readJson(r: Response): Promise<Record<string, unknown>> {
+  if ((r.headers.get("content-type") ?? "").includes("application/json")) {
+    return (await r.json()) as Record<string, unknown>;
+  }
+  const body = (await r.text()).slice(0, 200);
+  console.error(JSON.stringify({ evt: "non_json_response", status: r.status, body }));
+  throw new Error(
+    r.status === 504 || r.status === 502 || r.status === 500
+      ? "만드는 데 시간이 너무 오래 걸렸어요. 잠시 후 다시 시도해주세요."
+      : `서버 응답을 읽지 못했어요 (${r.status})`,
+  );
+}
+
 export default function NewSitePage() {
   const [name, setName] = useState("");
   const [oneLiner, setOneLiner] = useState("");
@@ -31,8 +50,8 @@ export default function NewSitePage() {
     timer.current = setTimeout(async () => {
       try {
         const r = await fetch(`/api/slug-check?slug=${encodeURIComponent(slug)}`);
-        const d = await r.json();
-        setSlugMsg(d.available ? { ok: true, msg: "사용 가능한 주소예요" } : { ok: false, msg: d.reason });
+        const d = await readJson(r);
+        setSlugMsg(d.available ? { ok: true, msg: "사용 가능한 주소예요" } : { ok: false, msg: String(d.reason ?? "") });
       } catch { setSlugMsg(null); }
     }, 400);
   }, [slug]);
@@ -53,9 +72,9 @@ export default function NewSitePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ businessName: name, oneLiner, phone, slug, mood, address: address || undefined, whyStarted: why || undefined, anonId: anonId || undefined }),
       });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error ?? "생성 실패");
-      setResult(d);
+      const d = await readJson(r);
+      if (!r.ok) throw new Error(String(d.error ?? "생성 실패"));
+      setResult(d as { url: string });
       setState("done");
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : "생성에 실패했어요");
