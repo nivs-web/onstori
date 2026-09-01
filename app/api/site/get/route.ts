@@ -7,7 +7,12 @@ import { getSessionUser } from "@/lib/supabase/server";
 export async function POST(req: Request) {
   const { slug, anonId } = await req.json().catch(() => ({}));
   const r = await loadOwnedSite(String(slug ?? ""), anonId);
-  if ("error" in r) return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });
+  if ("error" in r) {
+    // 거부 화면이 "로그인하세요"로 잘못 안내하지 않도록 요청자 본인의 세션 유무만 같이 준다.
+    // 요청자가 이미 아는 자기 상태라 사이트·타인에 대한 정보는 새로 나가지 않는다.
+    const signedIn = r.error === "forbidden" && !!(await getSessionUser().catch(() => null));
+    return NextResponse.json({ error: r.error, signedIn }, { status: r.error === "forbidden" ? 403 : 404 });
+  }
 
   const { data: progress } = await sbAdmin()
     .from("site_progress").select("score, rules_done").eq("site_id", r.site.id).maybeSingle();

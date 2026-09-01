@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
@@ -41,7 +42,9 @@ export function EditUi({ slug }: { slug: string }) {
   const router = useRouter();
   const [data, setData] = useState<GetRes | null>(null);
   const [doc, setDoc] = useState<SiteDocT | null>(null);
-  const [denied, setDenied] = useState(false);
+  /** 거부 상태 — 서버가 준 error·signedIn으로 문구와 CTA를 가른다.
+   *  notFound(404)에 로그인 CTA를 주면 /login이 세션을 발견해 되돌려보내 같은 화면으로 돈다. */
+  const [denied, setDenied] = useState<{ signedIn: boolean; notFound: boolean } | null>(null);
   const [tab, setTab] = useState<"content" | "story">("content");
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
@@ -49,9 +52,17 @@ export function EditUi({ slug }: { slug: string }) {
 
   useEffect(() => {
     fetch("/api/site/get", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, anonId: anon() }) })
-      .then(async (r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d: GetRes) => { setData(d); setDoc(d.draft); })
-      .catch(() => setDenied(true));
+      .then(async (r) => {
+        if (r.ok) return { ok: true as const, d: (await r.json()) as GetRes };
+        const body = (await r.json().catch(() => ({}))) as { signedIn?: boolean; error?: string };
+        return { ok: false as const, signedIn: !!body.signedIn, notFound: body.error !== "forbidden" };
+      })
+      .then((res) => {
+        if (res.ok) { setData(res.d); setDoc(res.d.draft); }
+        else setDenied({ signedIn: res.signedIn, notFound: res.notFound });
+      })
+      // 네트워크·서버 오류는 권한 문제가 아니므로 로그인으로 유도하지 않는다
+      .catch(() => setDenied({ signedIn: false, notFound: true }));
   }, [slug]);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2500); };
@@ -121,11 +132,35 @@ export function EditUi({ slug }: { slug: string }) {
     router.push(`/login?next=${encodeURIComponent(`/${slug}/edit`)}`);
   }
 
+  // 로그인한 사람에게 "로그인하세요"라고 하면 /login이 세션을 발견해 곧장 되돌려보내 같은 화면으로 돈다.
+  // 이 계정에 안 붙은 사이트라는 사실을 알려주고 연결 경로(처음 만든 기기 / 내 홈페이지)로 보낸다.
   if (denied) return (
     <main className="mx-auto max-w-md px-6 py-24 text-center">
-      <h1 className="text-xl font-bold">수정 권한이 없어요</h1>
-      <p className="mt-2 text-sm text-neutral-500">이 홈페이지 주인이라면 로그인 후 수정할 수 있어요.<br />운영자라면 <a className="text-teal-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
-      <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="mt-6 inline-block rounded-full bg-teal-700 px-6 py-3 text-sm font-semibold text-white">로그인하기</a>
+      <h1 className="text-xl font-bold">{denied.notFound ? "홈페이지를 찾지 못했어요" : "수정 권한이 없어요"}</h1>
+      {denied.notFound ? (
+        <>
+          {/* 주소가 없거나 서버가 응답하지 못한 경우 — 권한 문제가 아니므로 로그인 안내를 하지 않는다 */}
+          <p className="mt-2 text-sm text-neutral-500">주소를 다시 확인해주세요. 잠시 후에도 같으면 다시 시도해주세요.</p>
+          <Link href="/my" className="mt-6 inline-block rounded-full bg-teal-700 px-6 py-3 text-sm font-semibold text-white">내 홈페이지 보기</Link>
+        </>
+      ) : denied.signedIn ? (
+        <>
+          {/* 미claim 사이트일 수도, 다른 계정이 이미 가진 사이트일 수도 있다.
+              후자에선 [내 계정에 연결하기] 버튼이 아예 렌더되지 않으므로 계정 전환 경로도 함께 알려준다. */}
+          <p className="mt-2 text-sm text-neutral-500">
+            이 홈페이지는 지금 로그인한 계정에 연결돼 있지 않아요.<br />
+            처음 만든 기기에서 이 화면을 열어 <b>[내 계정에 연결하기]</b>를 누르거나,<br />
+            다른 계정으로 로그인했다면 <b>[내 홈페이지 보기]</b>에서 로그아웃한 뒤 처음 쓰던 방법으로 다시 로그인해주세요.
+          </p>
+          <Link href="/my" className="mt-6 inline-block rounded-full bg-teal-700 px-6 py-3 text-sm font-semibold text-white">내 홈페이지 보기</Link>
+        </>
+      ) : (
+        <>
+          <p className="mt-2 text-sm text-neutral-500">이 홈페이지 주인이라면 로그인 후 수정할 수 있어요.</p>
+          <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="mt-6 inline-block rounded-full bg-teal-700 px-6 py-3 text-sm font-semibold text-white">로그인하기</a>
+        </>
+      )}
+      <p className="mt-4 text-xs text-neutral-500">운영자라면 <a className="text-teal-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
     </main>
   );
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;
