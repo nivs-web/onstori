@@ -49,8 +49,9 @@ npx tsx --env-file=.env.local scripts/bank-generate.ts --model gemini-3.1-flash-
 ```
 → `construction/warm/gallery` 1200x896 등록, bank 버킷 공개 URL `200 image/webp 188KB`, `image_bank` 행 생성 확인.
 
-## 7. 크레딧 소진 확인 (중요)
+## 7. 크레딧 소진 확인 — ✅ 완료 (2026-09-01)
 
-첫 호출 후 몇 시간~24시간 뒤 [비용 보고서](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports)에서 **Vertex AI 사용분에 크레딧이 적용됐는지** 확인할 것. 무료 체험판 크레딧은 "특정 사용량에 적용"이라 적용 범위에 제한이 있을 수 있다 — 크레딧이 안 붙고 카드로 청구되면 500장 웨이브 전에 방침을 다시 정한다.
+[비용 보고서](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports) 실확인: **₩435,523 중 ₩25,243.93 사용, 잔액 ₩410,279.** Vertex AI 사용분에 크레딧이 정상 적용된다 — 카드 청구가 아니다. 적용 범위 밖일 수 있다는 리스크는 해소됐고, 남은 이미지 웨이브를 진행해도 된다. 만료 **2026-12-01**.
 
-- [ ] **예산 및 알림** 설정 (체험판 보호막이 사라졌으므로) — https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/budgets
+- [x] **예산 및 알림** 설정 (체험판 보호막이 사라졌으므로) — https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/budgets
+  - `gemini_onstori_예산` (결제 계정 전체, 50/90/100%, ₩100,000) · `onstori-gemini-예산` (Vertex AI 서비스 한정, 50/80/100%, ₩100,000)
