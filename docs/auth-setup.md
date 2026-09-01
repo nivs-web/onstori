@@ -117,8 +117,11 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 
 - [x] **처음 쓰는 이메일**로 `/login` → 인증번호 메일이 오는지 (링크 메일이 오면 Confirm sign up 템플릿 미교체) — 2026-09-01 통과
 - [x] **같은 이메일로 다시** `/login` → 이번에도 인증번호인지 (Magic Link 템플릿 확인) — 2026-09-01 통과
-- [ ] 시크릿 창에서 `/login` → 이메일 코드 로그인 → 남의 사이트 `/barun-electric/edit` 접근이 "수정 권한이 없어요"인지 (차단 확인)
-- [ ] 로그인 상태로 `/new` 생성 → 다른 브라우저에서 같은 계정 로그인 → 그 사이트 편집 가능한지 (owner_id 귀속)
-- [ ] 로그아웃 상태로 생성 → 같은 브라우저에서 `/login` 로그인 → 그 사이트가 계정에 귀속되는지 (anon claim)
+- [x] 시크릿 창에서 `/login` → 이메일 코드 로그인 → 남의 사이트 `/barun-electric/edit` 접근이 "수정 권한이 없어요"인지 (차단 확인) — **2026-09-01 통과(프로덕션)**
+- [x] 로그인 상태로 `/new` 생성 → 다른 브라우저에서 같은 계정 로그인 → 그 사이트 편집 가능한지 (owner_id 귀속) — **2026-09-01 통과(프로덕션)**
+- [x] 로그아웃 상태로 생성 → 같은 브라우저에서 `/login` 로그인 → 그 사이트가 계정에 귀속되는지 (anon claim) — **2026-09-01 통과(프로덕션)**
 - [x] 카카오 버튼 → `/auth/kakao` → 동의(닉네임만) → `/auth/callback` 복귀 → 로그인 완료 — 2026-09-01 통과(`iss=kauth.kakao.com`, 중복 계정 없음, claim 정상)
   - 실패 시 `/login?error=auth`로 되돌아온다. 원인은 **Vercel 함수 로그의 `[kakao]` 줄**을 볼 것 (KOE205=OpenID Connect 미활성/동의항목, KOE006=Redirect URI 미등록, `invalid_client`=시크릿 불일치)
+
+⚠ 검증 환경 주의: **운영자 쿠키(`onstori_admin`)가 없는 브라우저**로 해야 한다. 남아 있으면 소유 판정이 전부 `admin`으로 우회돼 차단이 안 보인다(지우는 라우트가 없다 — PROGRESS "P4 남은 코드 작업" 6번). 2026-09-01엔 쿠키가 분리된 별도 브라우저를 써서 해결했다.
+

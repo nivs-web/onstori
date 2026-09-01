@@ -5,7 +5,8 @@
 ## 현재 상태
 
 - **P4 (계정·세션) 진행 중 — 2026-09-01 착수, `phase-4-auth` → `main` 머지·배포 완료.** 로그인 2종 모두 E2E 통과(로컬·프로덕션): 이메일 OTP + **카카오는 OIDC 직결**(Supabase 프로바이더는 scope에 `account_email`이 하드코딩돼 KOE205로 막힘 — DECISIONS 2026-09-01, `lib/kakao.ts`). claim·소유 게이트 실동작 확인. 진행 위치의 단일 출처는 `docs/PLAN.md`.
-- 다음: 남은 E2E 시나리오(소유권 차단·다른 기기 owner_id 귀속) → 403 거부화면 문구 루프 → 운영자 인증 교체 검토. 목록은 `docs/PROGRESS.md` "P4 남은 코드 작업".
+- **남은 로그인 E2E 3종(소유권 차단·다른 기기 owner_id 귀속·anon claim) 프로덕션 통과 (2026-09-01).** 403 거부화면도 두 갈래(로그인/비로그인) 모두 실화면 확인.
+- 다음: 운영자 인증 교체 검토(ADMIN_KEY → Supabase Auth 화이트리스트, P4에서 할지 P7 이월할지 결정) → P5(결제) 진입 전 WIF 전환. 목록은 `docs/PROGRESS.md` "P4 남은 코드 작업".
 
 ## 스택
 
