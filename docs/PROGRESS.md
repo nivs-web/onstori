@@ -1,9 +1,32 @@
 # PROGRESS.md — 작업 인수인계 (2026-09-01 기준)
 
-> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서. 기준: 브랜치 `phase-4-auth`(P4 진행 중) — main은 origin/main보다 앞서 있음(**미푸시**). 푸시 = 프로덕션 자동 배포이므로 푸시 전에 에디터 E2E 확인 권장.
-> 프로덕션: https://onstori.com (Vercel 프로젝트 `onstori-pwk2`, 푸시 = 자동 배포).
-> 로컬 실행: `npm run dev` (2026-09-01 정상 기동 확인 — 안 뜨면 `npm run build && npm run start` 폴백).
-> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, GEMINI_API_KEY, ADMIN_KEY.
+> 이 파일만 읽고 작업을 이어받는 사람을 위한 문서.
+> 작업 브랜치: **`phase-4-auth`** (P4 진행 중). 프로덕션: https://onstori.com (Vercel `onstori-pwk2`, 푸시 = 자동 배포).
+> 로컬 실행: `npm run dev` (안 뜨면 `npm run build && npm run start` 폴백).
+> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY. **AI 인증은 이제 키가 아니라 ADC**(아래 Vertex 절).
+
+## ⚠ 배포 상태 — 프로덕션이 21커밋 뒤처져 있다
+
+`origin/main` = `f2d5a91`(P3 완료 시점). **오늘 한 작업 전부가 미푸시**다.
+
+- 프로덕션은 아직 **구 Gemini API(`?key=`) 경로**로 돈다. Vercel의 `GEMINI_API_KEY`는 로컬에서 죽은 키와 **다른 키**라 생성은 실제로 동작 중(실측 20.9초 성공).
+- 즉 오늘 고친 것들(생성 시간 5.8초, `/new` 에러 문구, OTP 자릿수, 뱅크 기능)은 **아직 손님에게 반영 안 됨**.
+- **푸시 전 필수 선행 작업**: Vercel Production에 `GOOGLE_SERVICE_ACCOUNT_JSON` + `GOOGLE_CLOUD_PROJECT` 등록. ADC는 로컬 전용이라, 이게 없으면 배포 즉시 프로덕션 `/api/generate`가 죽는다. 서비스 계정 키 발급 → `scripts/set-sa-env.ts` 참고(`docs/vertex-setup.md` 4절).
+- 푸시 순서 제안: ① Vercel 환경변수 등록 → ② 푸시 → ③ `/new`에서 실제 생성 1건 확인.
+
+---
+
+## 오늘(2026-09-01) 한 일 요약
+
+| 영역 | 결과 |
+|---|---|
+| 이미지뱅크 관리 4종 | 일괄승인 · 자유태그(+매칭 가중치) · "사용 중" 배지 · 히어로 재고 경고 |
+| AI 접근 경로 | Gemini API → **Vertex AI(ADC)** 이관 완료, 실호출 검증 통과 |
+| 이미지 모델 확정 | **히어로=`gemini-3-pro-image`, 그 외=`gemini-3.1-flash-image`** (동일 프롬프트 실측 근거) |
+| 히어로 웨이브 | **100장 등록**(실패·중복 0, $13.40). 검수 대기 상태 |
+| P4 인증 | 카카오 OAuth + 이메일 OTP 코드 완료, **이메일 로그인 E2E 통과** |
+| 버그 수정 4건 | OTP 자릿수 · `/new` JSON 파싱 · 429 조합 건너뛰기 · bench top-level await |
+| 성능 | 생성 20.9초 → **평균 5.8초** (thinking 토큰 병목 제거) |
 
 ---
 
@@ -76,9 +99,25 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 
 테스트 사용자·일회성 스크립트는 정리 완료. 남은 검증은 소유권 차단·claim·카카오(auth-setup 5절).
 
-### 차단 — Supabase 대시보드 설정 (운영자 담당, `docs/auth-setup.md` 체크리스트)
+### 대시보드 설정 현황 (`docs/auth-setup.md` 체크리스트)
 
-카카오 개발자 앱(REST 키·시크릿·Redirect URI) + Supabase 프로바이더 활성화 + Redirect URL 등록 + OTP 이메일 템플릿(`{{ .Token }}`) 교체. 이 설정 전까지 `/login`은 "메일 발송 실패 / 카카오 시작 실패"가 정상이다.
+| 항목 | 상태 |
+|---|---|
+| Resend 커스텀 SMTP (무료 티어: 월 3,000 / 일 100) | ✅ 완료 — 내장 SMTP는 시간당 2통이라 테스트도 템플릿 편집도 불가였다 |
+| 이메일 템플릿 **2종** 교체 (`{{ .Token }}`) | ✅ 완료 |
+| 이메일 OTP 로그인 | ✅ E2E 통과 (위) |
+| **카카오** 개발자 앱 + Supabase 프로바이더 + Redirect URL | ❌ **미완 — 카카오 버튼은 아직 동작 안 함** |
+
+⚠ **템플릿은 반드시 2종을 모두 고쳐야 한다** — 오늘 실제로 이걸로 막혔다.
+
+메일 종류를 가르는 건 코드가 아니라 **템플릿 내용**이다: `{{ .ConfirmationURL }}`이 있으면 링크가, `{{ .Token }}`이 있으면 인증번호가 나간다. 그리고 Supabase는 상황에 따라 다른 템플릿을 쓴다.
+
+| 상황 | 템플릿 |
+|---|---|
+| **처음 보는 이메일** (신규 가입 — `shouldCreateUser: true`) | **Confirm sign up** |
+| 이미 가입된 이메일 | **Magic Link** |
+
+초기에는 전원이 신규라 사실상 **Confirm sign up만 탄다.** 처음에 Magic Link만 고쳐서 "Confirm your email address" 링크 메일이 갔고, 앱은 인증번호를 기다리니 로그인이 불가능했다. 참고: `verifyOtp`의 `type`은 신규·기존 모두 `'email'`이 맞다(가입 여부로 바꿀 필요 없음).
 
 ### P4 남은 코드 작업
 
@@ -110,103 +149,74 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 검증(실데이터): 사용 판정이 시드 히어로를 3개 사이트 공유로 정확히 집계 · 태그 "브런치" 적중 시 6/6 선택, 불일치 텍스트에서도 정상 폴백 · 재고 부족 시 경고 로그 발생 후 진행 · 일괄승인/태그 PATCH 무권한 401 · `tsc`·`build` 통과. 검증 스크립트는 실행 후 삭제.
 `BankCardActions`(구 카드 액션)는 `BankGrid`로 대체되어 제거.
 
----
-
-## Gemini 크레딧 — 현 상태 (2026-09-01 진단)
-
-이미지 생성이 **크레딧 소진으로 차단**. 코드·환경변수 문제가 아님을 확인했다.
-
-- 환경변수 이름 일치: `.env.local`의 `GEMINI_API_KEY` ↔ 코드 3곳(`lib/gemini.ts:15`, `scripts/bank-generate.ts`, `scripts/bench-image.mjs`). 값 형식도 정상(따옴표·공백·개행 잔재 없음).
-- 키 자체는 유효: `models.list` 200, 이미지 모델 6종 노출.
-- 그러나 모든 생성 호출이 429 — 텍스트는 `prepayment credits are depleted`(선불 크레딧 소진), 이미지는 `FreeTier limit: 0`(크레딧 소진 후 무료 티어로 강등된 결과).
-### [근본 원인 확정] Google Cloud 무료 체험판 계정
-
-키의 프로젝트 `project-e8a34e87-a445-4701-af4`("My First Project")는 **`jachung18@gmail.com`** 소속이 맞다(`info@nivs.com` 아님 — 그 계정에선 검색 결과 없음). AI Studio 키 목록에 안 보였던 건 **AI Studio로 "가져오기" 하지 않은 프로젝트**라서.
-
-진행 경과 (같은 날 순차 확인):
-
-| 단계 | 상태 |
-|---|---|
-| 계정 정리 — `jachung18@gmail.com` 단독 로그인 | ✅ 완료 |
-| GCP 결제 계정 무료 체험판 → **유료 계정** 업그레이드 | ✅ 완료 (배너 소멸, "유료 계정" 표시) |
-| AI Studio가 결제 계정 인식 (`유료 1 · US$250 등급 한도`) | ✅ 완료 |
-| **선불 결제 수단 설정 + 크레딧 충전** | ❌ **미완 — 현재 차단 지점** |
-| Gemini API 결제에 프로젝트 연결 | ❌ 미완 (`프로젝트 0개`) |
-
-원래 상태였던 무료 체험판(크레딧 ₩435,523 / 종료 2026-12-01 / 청구액 ₩0)은 업그레이드로 해소됨. 단, **GCP 유료 전환만으로는 Gemini API가 열리지 않는다** — 이 지역은 Gemini API가 별도 **선불(prepay) 크레딧** 모델이라 AI Studio에서 결제 수단 등록 + 충전이 따로 필요.
-
-**핵심: GCP 무료 체험판 크레딧은 Gemini API(`generativelanguage.googleapis.com`) 유료 등급에 쓸 수 없다.** 콘솔 안내문 그대로 "유료 Cloud Billing 계정으로 업그레이드하지 않는 한 요금이 청구되지 않는다" = 유료 호출 자체가 불가. 그래서 API는 선불 잔액 0으로 보고 `prepayment credits are depleted`를 반환한다. 크레딧이 "소진"된 게 아니라 **애초에 Gemini API용 잔액이 0**인 것.
-
-**→ 이 경로는 폐기.** 선불 충전 대신 **Vertex AI로 이관**해 보유 크레딧을 쓰기로 결정 (아래).
+**현재 뱅크 재고**: 전체 131장(hero 124) · 검수 대기 56장 · hero 승인 68장. 히어로 100장 웨이브 결과는 아래 "AI 스택" 절 참조.
 
 ---
 
-## Vertex AI 이관 (2026-09-01) — 코드 완료, 콘솔 설정 대기
+## AI 스택 — Gemini API → Vertex AI 이관 (2026-09-01)
 
-Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,523**(업그레이드 후에도 이월 확인, **2026-12-01 만료**)을 쓰기 위해 접근 경로를 Vertex AI로 교체. 결정 이유·리스크는 DECISIONS 2026-09-01.
+### 왜 옮겼나
 
-**코드 (완료)**
+Gemini API(`?key=`)가 이 지역에서 **GCP 결제와 별개인 선불(prepay) 크레딧**을 요구한다. 보유한 GCP 크레딧 **₩435,523**(2026-12-01 만료)이 놀게 되므로, 일반 GCP 결제를 쓰는 **Vertex AI**로 전송·인증 계층만 교체했다. 벤더는 그대로 Gemini 모델. 결정 이유·리스크는 DECISIONS 2026-09-01.
+
+경위(참고): 무료 체험판 계정 → 유료 업그레이드까지 했으나 그것만으로는 Gemini API가 열리지 않았고, AI Studio에서 선불 결제 수단을 따로 등록해야 하는 구조였다. 그 경로는 폐기.
+
+### 코드
 
 | 무엇 | 어디 |
 |---|---|
-| Vertex 전송 계층 — 서비스 계정 토큰(캐시) + generateContent + 텍스트/이미지 파트 추출 | `lib/vertex.ts` (신설) |
-| 텍스트 호출 이관 — `geminiJson()` **시그니처·폴백·zod 계약 그대로**, 전송만 Vertex | `lib/gemini.ts` (`lib/generate.ts`는 무수정) |
-| 이미지 배치 생성 이관 (안전장치 3종 유지) | `scripts/bank-generate.ts` |
-| 이미지 벤치 — mjs→ts 이관 (Vertex 사용 위해) | `scripts/bench-image.ts` (`bench-image.mjs` 삭제) |
-| 프리플라이트 교체 — env→토큰→텍스트 순 확인, `--image`로 **실제 되는 이미지 모델 ID 판별** | `scripts/vertex-preflight.ts` (`gemini-preflight.ts` 삭제) |
-| 서비스 계정 키 커밋 방지 패턴 + `bench-out/` | `.gitignore` |
+| Vertex 전송 계층 — 토큰(캐시)·generateContent·텍스트/이미지 파트 추출 | `lib/vertex.ts` (신설) |
+| 텍스트 호출 — `geminiJson()` 시그니처·폴백·zod 계약 **그대로**, 전송만 교체 | `lib/gemini.ts` (`lib/generate.ts` 무수정) |
+| 이미지 배치 생성 (안전장치 3종 유지) | `scripts/bank-generate.ts` |
+| 프리플라이트 — 인증→토큰→텍스트, `--image`로 실제 되는 모델 ID 판별 | `scripts/vertex-preflight.ts` |
+| 동일 프롬프트 모델 A/B (파일 저장) | `scripts/bench-image.ts` |
+| 서비스 계정 키 JSON → `.env.local` 주입(내용 미출력) | `scripts/set-sa-env.ts` |
 
-검증: `npm run build` + `tsc --noEmit` 통과, 프리플라이트·`--dry` 실행 정상(env 미설정을 정확히 보고). **실호출 검증은 콘솔 설정 후.**
+### 인증 = ADC (로컬)
 
-**설정·검증 — ✅ 완료 (2026-09-01)**
+`gcloud auth application-default login`으로 해결. **서비스 계정 키 파일을 만들지 않았다** — 장기 자격증명이 안 생기는 게 안전하다.
 
-| 단계 | 상태 |
-|---|---|
-| Vertex AI API(`aiplatform.googleapis.com`, 콘솔 표기 "Agent Platform API") 사용 설정 | ✅ |
-| `onstori-gemini-sa`에 **Agent Platform 사용자**(=`roles/aiplatform.user`) 부여 — 그 전엔 역할 0개 | ✅ |
-| 로컬 인증 = **ADC**(`gcloud auth application-default login`) — 서비스 계정 키 파일 미생성 | ✅ |
-| 프리플라이트: 텍스트 `gemini-3.5-flash` 200 | ✅ |
-| 이미지 모델 실측 — **3종 모두 가능**: `gemini-3.1-flash-image` / `gemini-3-pro-image` / `gemini-2.5-flash-image` | ✅ |
-| 파이프라인 E2E 1장 (생성→dHash→WebP→bank 버킷→`image_bank` 등록) | ✅ `construction/warm/gallery` 1200x896, 공개 URL 200 image/webp 188KB |
+- `gcloud` 바이너리가 PATH에 없어도 동작(라이브러리가 ADC 파일을 직접 읽음). 단 `getProjectId()`는 실패하므로 `lib/vertex.ts`가 ADC 파일의 `quota_project_id`를 폴백으로 읽는다.
+- `.env.local`에 Google 관련 변수 불필요.
+- ⚠ **Vercel은 ADC를 못 쓴다** → 배포 시 서비스 계정 키 필요(맨 위 "배포 상태" 참조).
 
-**남은 것**
-1. **⚠ 크레딧 적용 확인 (최우선)** — 비용 리포트에서 Vertex 사용분에 ₩435,523 크레딧이 실제로 붙는지. 반영에 몇 시간~24시간. 체험판 크레딧은 "특정 사용량에 적용"이라 범위 제한 가능성 — 카드로 청구되면 500장 웨이브 전에 방침 재검토. https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports
-2. **Vercel 환경변수** — ADC는 로컬 전용. 프로덕션 `/api/generate`를 살리려면 서비스 계정 키 JSON을 발급해 `GOOGLE_SERVICE_ACCOUNT_JSON`+`GOOGLE_CLOUD_PROJECT`로 등록해야 함. **미완 — 배포 전 필수** (이미지 웨이브는 로컬 실행이라 이것 없이 진행 가능)
-3. 예산 및 알림 설정 (체험판 보호막 소멸)
-4. 500장 웨이브를 **역할별로 분리 실행** — `--roles hero`는 `gemini-3-pro-image`, 나머지 역할은 `gemini-3.1-flash-image`. `--limit`을 20→50→나머지로 단계적으로. 이후 `/admin/bank` 검수
+콘솔 설정 완료분: Vertex AI API(콘솔 표기 "Agent Platform API") 사용 설정 · `onstori-gemini-sa`에 `roles/aiplatform.user`(콘솔 표기 "Agent Platform 사용자") 부여.
 
-**모델 벤치 1차 (2026-09-01, 총 12장 · 약 $1.04)**
+### 모델 확정 — 히어로=Pro, 그 외=Flash
 
-`bank-generate --limit 5`로 각 5장(같은 업종·역할·무드 범위) + `bench-image.ts`로 **동일 프롬프트 1:1** 각 1장.
+`--seed`로 셔플을 고정해 **완전히 같은 프롬프트**를 두 모델에 먹여 비교(1차 갤러리 1쌍 + 2차 히어로 5쌍).
 
-| 모델 | 장당 | 500장 실비 | 추론 토큰 |
-|---|---|---|---|
-| `gemini-3.1-flash-image` | $0.039 | ≈$19.5 | 없음 |
-| `gemini-3-pro-image` | $0.134 | ≈$67.0 | 358 |
+| 모델 | 장당 | 강점 | 약점 | 배치 |
+|---|---|---|---|---|
+| `gemini-3.1-flash-image` | $0.039 | 프롬프트 이행 정확, 피사체 선명 | 여백 없이 꽉 참 | 갤러리·시공사례·about·process |
+| `gemini-3-pro-image` | $0.134 | **한쪽을 비우는 구도**, 빛 처리 | 지시보다 분위기 우선 | **히어로** |
 
-1차(갤러리) 결론: Flash가 피사체를 분명히 잡음(장갑 낀 손·렌치·비계 클램프), Pro는 먼지 덮개가 화면을 지배해 주제 흐림.
-
-**모델 벤치 2차 — 히어로 한정 (2026-09-01, 20장 · $1.73). 누적 32장 · 약 $2.77**
-
-`--seed 42`로 셔플을 고정해 두 모델에 같은 프롬프트를 먹임. 각 10장 중 **프롬프트 완전일치 5쌍**을 비교.
-
-**→ 확정: 히어로=Pro, 그 외=Flash** (DECISIONS 2026-09-01 참조)
-- Pro는 **화면 한쪽을 비우는 구도**를 반복 생성 — 히어로엔 상호명·헤드라인이 얹히므로 여백이 실용성이 됨 (카페 쌍에서 왼쪽 벽면을 통째로 비운 것이 대표적)
-- Flash는 **프롬프트 이행이 정확**("매입 천장등"에서 조명 그리드를 주인공으로)하고 프레임을 꽉 채움 → 갤러리·시공사례에 적합
-
+히어로엔 상호명·헤드라인이 얹히므로 Pro의 여백이 곧 실용성이다. 반대로 "매입 천장등" 같은 지시 이행은 Flash가 정확했다. 설계서 2026-08-31 원안과 같은 배치이나 이번엔 근거가 있다.
 리포트(이미지 포함): https://claude.ai/code/artifact/3cbb3ccb-fe41-4ce2-8fc3-7b48e1313c09
 
-**벤치 중 고친 것 2건 (`scripts/`)**
-1. `bench-image.ts` — mjs→ts 이관 시 남은 top-level await가 CJS에서 깨짐 → `main()` 래핑
-2. `bank-generate.ts` — **429에서 해당 조합을 재시도 없이 건너뛰던 버그**. 모델 A/B에서 두 실행의 조합 순서가 어긋나는 원인이었음(10장 중 5장만 일치). 같은 조합 재시도로 수정. 함께 `--seed` 추가(결정적 셔플) + 셔플을 편향된 `sort(()=>Math.random()-0.5)`에서 Fisher-Yates로 교체.
+### 히어로 100장 웨이브 — ✅ 완료 (batch `202609010247`)
 
-**비용 감각**: 500장 웨이브 실비는 flash 기준 ~$20, pro 기준 ~$67. 크레딧 아끼려고 스택을 바꿀 규모가 아니다.
-**Vertex AI 전환은 보류**: GCP 크레딧(₩435,523)을 이미지 생성에 쓸 가능성은 있으나 엔드포인트·인증(서비스 계정)·모델명이 모두 달라 코드 변경 필요. 사장님이 만든 `onstori-gemini-sa`는 이 경로용으로 보인다. 비용이 실제로 커지면(월 수십 달러) 그때 검토.
+```
+model gemini-3-pro-image · created 100 · dups 0 · fails 0 · apiCalls 100 · estCostUsd 13.4
+```
 
-**충전 후 순서**: `.env.local`(+ Vercel Production) 키 확인 → `scripts/gemini-preflight.ts` 통과 → `bank-generate --limit 1` → `--limit 5` → 벤치 → 500장.
-**업그레이드 직후 `예산 및 알림` 설정 권장** — 체험판 보호막이 사라지므로.
+- 등록 100/100 (DB 확인), 공개 URL 정상(`200 image/webp`, 1376x768)
+- 분포: cafe 15 / interior 13 / wallpaper 12 / electric 10 … · premium 34 / warm 25 / clean 21 / lively 20
+- **429가 91회 났지만 한 장도 안 잃었다** — 아래 "429 조합 건너뛰기" 버그를 미리 고쳐둔 덕. 대신 30초 대기가 겹쳐 실행이 길어졌다.
+- 뱅크 현황: 전체 131장(hero 124) · **검수 대기 56장** · hero 승인 68장
 
-참고: Gemini API 키는 서비스 계정에 바인딩되는 자격증명이 아니다(서비스 계정은 Vertex AI의 OAuth/JSON 방식). `?key=` 방식은 프로젝트 귀속 API 키다 — 키 발급 위치를 다시 확인할 것.
+**다음**: `/admin/bank`에서 "검수 대기만 선택 → 일괄 승인"으로 검수. 그 뒤 재고를 보고 빈 조합만 좁혀서 보충(현재 hero 승인이 36개 조합에 걸쳐 있고 그중 **33개 조합이 5장 미만**, 전체 조합은 14업종×4무드=56).
+
+### 벤치 중 고친 것
+
+1. `bank-generate.ts` — **429에서 해당 조합을 재시도 없이 건너뛰던 버그**. 모델 A/B의 조합 순서가 어긋나는 원인이었다(10장 중 5장만 일치). 같은 조합 재시도로 수정 + `--seed`(결정적 셔플) 추가 + 편향된 `sort(()=>Math.random()-0.5)`를 Fisher-Yates로 교체.
+2. `bench-image.ts` — mjs→ts 이관 때 남은 top-level await가 CJS에서 깨짐 → `main()` 래핑.
+
+### ⚠ 아직 확인 안 된 것 — 크레딧이 실제로 붙는가
+
+오늘 누적 사용 **약 $16**. 이게 ₩435,523 크레딧에서 차감되는지, 카드로 청구되는지 **아직 모른다.** 체험판 크레딧은 "특정 사용량에 적용"이라 Vertex가 범위 밖일 가능성이 남아 있다. 반영에 최대 24시간.
+→ [비용 리포트](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports) 확인. **카드로 청구된다면 나머지 웨이브 전에 방침 재검토.**
+→ 체험판의 "청구 없음" 보호막이 사라졌으므로 **예산 및 알림 설정**도 아직 미완.
 
 ---
 
@@ -280,7 +290,7 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 - **비-JSON 본문의 정체**: `An error occurred with this application.` — Vercel의 **플랫폼 레벨 에러 페이지**다. 라우트의 try/catch가 돌기 전에 함수가 죽거나 타임아웃하면 이게 나간다. 라우트 자체는 정상이면 JSON을 준다(실측: slug-check 200 JSON, generate 409 JSON).
 - **왜 죽는가**: 프로덕션 생성 1회 실측이 **20.9초**. `maxDuration = 60`인데 LLM 재시도(모델 2종 × 재시도 1회)가 겹치면 한도를 넘을 수 있다. 간헐적으로만 터지는 이유.
 - **수정**: `readJson()` 헬퍼 추가 — content-type이 JSON일 때만 파싱하고, 아니면 상태코드에 맞는 한국어 문구로 바꾼다. 원문은 `non_json_response` 로그로 남긴다. 평문 500을 흉내내 검증: 화면에 "만드는 데 시간이 너무 오래 걸렸어요"가 뜨는 것 확인.
-- ⚠ **이 수정은 아직 프로덕션에 없다** — `origin/main`이 `f2d5a91`이라 **P4·Vertex·뱅크 작업 전부 미푸시**. 프로덕션은 여전히 구 Gemini API 경로로 돌고 있고, Vercel의 `GEMINI_API_KEY`는 로컬 `.env.local`의 죽은 키와 **다른 키**다(생성이 실제로 성공함).
+- ⚠ **이 수정은 아직 프로덕션에 없다** (맨 위 "배포 상태" 참조).
 - 진단용으로 만든 `zz-diag-1` 사이트는 삭제 완료.
 
 ### 생성 시간 단축 — 20.9초 → 평균 5.8초 (2026-09-01)
@@ -305,8 +315,27 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 
 ## 알려진 이슈 / TODO
 
+### 🔴 표시광고법 리스크 — 폴백 모델의 근거 없는 경력 표현
+
+`thinkingBudget: 0` 적용 후 폴백 모델 `gemini-2.5-flash`가 **"오랜 경험과 기술력으로"** 같은 문구를 생성하는 것을 관찰했다(주 모델 `gemini-3.5-flash`는 깨끗했다). 입력에 없는 경력을 만들어낸 것으로, **CLAUDE.md 불변 규칙(사실 날조 금지) + 표시광고법 위반**이다.
+
+- 폴백은 주 모델 실패 시에만 쓰이므로 빈도는 낮지만, **터지면 법적 리스크**다.
+- 표본 1건이라 경향 확정은 아니다. thinking을 끈 것이 원인인지, 원래 2.5-flash의 성향인지 미확인.
+- **할 일**: ① 폴백 경로로 생성된 사이트를 식별할 방법 마련(현재 `inferred`에 모델명이 안 남는다) ② 카피 프롬프트의 날조 금지 규칙을 폴백에서도 지켜지는지 별도 검증 ③ 안 되면 폴백 모델 교체 or 폴백 시 경력 표현 후처리 필터.
+
+### 🔴 v1 범위 밖 업종 입력 시 온보딩 처리 — 방식 확인 필요
+
+v1 활성 범위는 **시공·출장 12업종 + 카페·식당 2업종 = 14종**(DECISIONS 2026-08-31)인데, 범위 밖 업종이 들어와도 **그냥 진행된다.**
+
+- 실측: "몽 필라테스 / 1:1 맞춤 자세교정 수업" → LLM 분류가 **`repair`(수리)** 로 매핑. 필라테스에 맞는 칸이 없어서 가장 가까운 걸 고른 것.
+- 코드 확인 결과 **`confidence`는 계산·저장만 되고 분기에 전혀 안 쓰인다**(`lib/generate.ts:43`, `inferred`에 담겨 DB로 갈 뿐). 저확신 되묻기(설계서 4장 3단계)는 미구현.
+- 게다가 LLM이 목록에 없는 id를 뱉으면 `?? INDUSTRIES[0]`으로 **조용히 첫 업종으로 떨어진다**(`lib/generate.ts:42`).
+- 결과적으로 엉뚱한 템플릿·이미지·진행단계가 붙은 사이트가 만들어질 수 있다. 당근 홍보로 불특정 업종이 들어오기 시작하면 바로 드러날 문제.
+- **결정이 필요한 지점**: (a) 저확신·범위 밖이면 되묻기 UI를 띄울지 (b) "아직 지원하지 않는 업종입니다" 안내로 막을지 (c) 범용 템플릿으로 받아줄지. **사장님 판단 필요 — 사업 범위 문제라 코드로 정할 수 없다.**
+
+### 그 외
+
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
-- `app/new/page.tsx` — 업종 추론 저확신 시 되묻기(설계서 4장 3단계) 미구현. 현재는 무조건 진행.
 - `config/placeholder-images.ts` — Unsplash 핫링크 의존(시드·폴백 이미지). 링크 소멸 리스크 — 이미지뱅크 채워지면 의존 제거.
 - `seeds/*.json` — 쇼케이스 시드 3종의 스토리 사진도 Unsplash 핫링크. 동일 리스크.
 - `config/tours.ts` — 투어 스텝 3개가 현 에디터 구조와 불일치 (위 앵커 표 참조).
@@ -321,7 +350,8 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 2. **`docs/PLAN.md`** — Phase 로드맵과 현재 위치(P2~P3 진행 중), 빌드 게이트, 사장님 담당 할일. "지금 어디까지 왔나"의 단일 출처.
 3. **`lib/schema.ts`** — 제품의 심장인 섹션 JSON 약속. 여기 바뀌면 4곳이 같이 바뀌어야 함.
 4. **`app/[slug]/edit/ui.tsx`** — P3의 나머지 작업이 전부 이 파일에서 일어남 (남은 항목 표 참조).
-5. **`docs/DECISIONS.md`** — 왜 경로 방식인지, 왜 Gemini 단일화인지 등 뒤집으면 안 되는 결정들의 이유.
+5. **`docs/DECISIONS.md`** — 왜 경로 방식인지, 왜 Vertex AI인지 등 뒤집으면 안 되는 결정들의 이유.
+6. **`docs/vertex-setup.md`** / **`docs/auth-setup.md`** — 대시보드에서만 되는 설정의 체크리스트. 배포·로그인이 안 되면 여기부터.
 
 ---
 
@@ -329,6 +359,12 @@ Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,5
 
 | 항목 | 상태 | 풀리면 할 일 |
 |---|---|---|
-| **Vertex AI 콘솔 설정** | **차단 — 코드는 이관 완료, 설정 대기.** GCP 유료 업그레이드·크레딧 이월(₩435,523)까지 확인됨. `docs/vertex-setup.md` 6단계 | API 사용 설정 → SA 역할 → JSON 키 → `.env.local`+Vercel → `scripts/vertex-preflight.ts` → `--image`로 모델 판별 → `bank-generate --limit 1` → 벤치 → `/admin/bank` 검수 → 500장 웨이브 |
+| **크레딧 적용 확인** | ⚠ **최우선 · 미확인.** 오늘 약 $16 사용분이 크레딧 차감인지 카드 청구인지 | [비용 리포트](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports) 확인 → 카드 청구면 나머지 웨이브 전에 방침 재검토 |
+| **예산 및 알림 설정** | 미착수 (체험판 "청구 없음" 보호막 소멸됨) | Cloud Console 예산 알림 등록 |
+| **Vercel 환경변수 등록** | 미착수 — **푸시 전 필수** | 서비스 계정 키 발급 → `GOOGLE_SERVICE_ACCOUNT_JSON`+`GOOGLE_CLOUD_PROJECT` 등록 (`docs/vertex-setup.md` 4절) |
+| **카카오 로그인 설정** | 미착수 (이메일 OTP는 완료) | `docs/auth-setup.md` 1~3절 — 개발자 앱·프로바이더·Redirect URL |
+| **이미지뱅크 검수** | 대기 56장 | `/admin/bank` → "검수 대기만 선택" → 일괄 승인. 이후 빈 조합 보충 |
+| **v1 범위 밖 업종 정책 결정** | 미결정 | 위 TODO 참조 — 되묻기 / 차단 / 범용 수용 중 택1 |
+| ~~Vertex AI 콘솔 설정~~ | ✅ 완료 (API 사용 설정 · SA 역할 · ADC) | — |
 | **통신판매업 신고 + 토스페이먼츠 가맹** | 미착수 | P5(결제) 착수 조건. 1개월 무료 종료 시점에 첫 결제가 발생하므로 지금 시작해야 타이밍 맞음 |
 | **당근 비즈프로필 개설 + 홍보글 게시** | 보류 (사용자 결정) | `docs/presale.md`의 글 초안·응대 템플릿 사용. 게이트: 사진 수신 5건/2주 → P3 확정, 유료 전환 30% → P5 |
