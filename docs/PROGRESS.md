@@ -3,7 +3,7 @@
 > 이 파일만 읽고 작업을 이어받는 사람을 위한 문서.
 > 브랜치: **`main`** (`phase-4-auth`를 fast-forward 머지 후 푸시 완료). 프로덕션: https://onstori.com (Vercel `onstori-pwk2`, 푸시 = 자동 배포).
 > 로컬 실행: `npm run dev` (안 뜨면 `npm run build && npm run start` 폴백).
-> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY, `GOOGLE_SERVICE_ACCOUNT_JSON`, **`KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`**(카카오 OIDC 직결). 로컬은 ADC로도 동작(아래 Vertex 절).
+> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY, **`KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`**(카카오 OIDC 직결). **`GOOGLE_SERVICE_ACCOUNT_JSON`은 로컬에 두지 않는다** — 로컬 Vertex 인증은 ADC(아래 Vertex 절), 장기 키는 Vercel Production에만 존재한다.
 
 ## 배포 상태 — ✅ 2026-09-01 배포 완료
 
@@ -12,9 +12,9 @@
 오후 10커밋 요약: 카카오 OIDC 직결 전환(`61c7666`) → 프로덕션 E2E 통과 → 마이페이지·로그아웃(`cdc5ef9`) → 에디터 로그인 유도 배너 + `ownership` 필드(`9410470`) → 거부 화면 루프 수정(`5138c4a`). **Vercel 환경변수에 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET` 추가됨**(Production). 환경변수는 배포 시점에 주입되므로 값만 저장하고 재배포하지 않으면 반영되지 않는다 — 오늘 실제로 걸렸다.
 
 - 프로덕션 검증: `/login` 200(신규 경로) · **사이트 생성 200 / 7.67초** (이관 전 20.9초). Vercel이 서비스 계정으로 Vertex를 호출하는 경로가 실제로 도는 것을 확인.
-- Vercel 환경변수: `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production.
+- Vercel 환경변수: `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production. 현재 값은 **2026-09-01 교체한 새 키 `520195620d…`** (구 키 `a29494b9…`는 삭제됨).
 - `GEMINI_API_KEY`는 **지우지 말 것** — 이제 코드가 안 읽지만, 문제 발생 시 이전 배포로 롤백하면 구 코드가 이 키를 쓴다.
-- 롤백: Vercel 대시보드에서 이전 배포로 되돌리거나 `git reset --hard f2d5a91` 후 강제 푸시.
+- 롤백: Vercel 대시보드에서 이전 배포로 되돌리거나 `git reset --hard f2d5a91` 후 강제 푸시. ⚠ **되돌린 뒤 반드시 Redeploy** — 환경변수는 배포 시점에 주입되므로 오늘 이전 배포는 **삭제된 구 서비스 계정 키**를 들고 있어 그대로 두면 Vertex 호출이 전부 실패한다.
 
 ---
 
@@ -30,6 +30,7 @@
 | 버그 수정 4건 | OTP 자릿수 · `/new` JSON 파싱 · 429 조합 건너뛰기 · bench top-level await |
 | 성능 | 생성 20.9초 → 로컬 평균 5.8초 · **프로덕션 실측 7.67초** (thinking 토큰 병목 제거) |
 | 배포 | ✅ `main` 푸시 완료, 프로덕션 생성 E2E 통과 |
+| 서비스 계정 키 | 로그 노출 → **교체·구 키 삭제 완료**. 로컬은 ADC로 전환(`.env.local`에서 제거) |
 
 ---
 
@@ -269,7 +270,7 @@ Gemini API(`?key=`)가 이 지역에서 **GCP 결제와 별개인 선불(prepay)
 | 이미지 배치 생성 (안전장치 3종 유지) | `scripts/bank-generate.ts` |
 | 프리플라이트 — 인증→토큰→텍스트, `--image`로 실제 되는 모델 ID 판별 | `scripts/vertex-preflight.ts` |
 | 동일 프롬프트 모델 A/B (파일 저장) | `scripts/bench-image.ts` |
-| 서비스 계정 키 JSON → `.env.local` 주입(내용 미출력) | `scripts/set-sa-env.ts` |
+| 서비스 계정 키 JSON → Vercel용 base64를 클립보드로(내용 미출력) | `scripts/sa-key-to-clipboard.ts` |
 
 ### 인증 = ADC (로컬)
 
@@ -414,18 +415,6 @@ model gemini-3-pro-image · created 100 · dups 0 · fails 0 · apiCalls 100 · 
 
 ## 알려진 이슈 / TODO
 
-### ⚠️ GOOGLE_SERVICE_ACCOUNT_JSON 키 교체 필요 — 로그 노출 이력, 최우선 처리
-
-2026-09-01 작업 중 `.env.local` 확인 과정에서 **서비스 계정 개인키(`GOOGLE_SERVICE_ACCOUNT_JSON` base64)가 세션 로그에 그대로 출력**됐다. 로컬 기록에만 남았고 외부 전송은 없었지만, 장기 자격증명이라 노출 이력이 있는 키는 교체하는 것이 원칙이다.
-
-처리 순서:
-1. GCP → IAM → 서비스 계정 `onstori-gemini-sa` → 새 키 발급
-2. `.env.local`의 `GOOGLE_SERVICE_ACCOUNT_JSON` 교체 + **Vercel Production 환경변수 교체** (배포 시점 주입이므로 저장 후 **Redeploy** 필요)
-3. 프로덕션에서 사이트 생성 1건으로 Vertex 호출 확인 → **구 키 삭제**
-4. 이 항목 삭제
-
-참고: 이 키는 원래도 한시 조치였다 — WIF 전환 시 폐기 예정(DECISIONS 2026-09-01, 아래 "백로그 — P5 진입 전 검토: 장기 키 대신 WIF로 전환"). WIF 전환을 앞당기면 교체와 폐기를 한 번에 끝낼 수 있다.
-
 ### 🔴 표시광고법 리스크 — 폴백 모델의 근거 없는 경력 표현
 
 `thinkingBudget: 0` 적용 후 폴백 모델 `gemini-2.5-flash`가 **"오랜 경험과 기술력으로"** 같은 문구를 생성하는 것을 관찰했다(주 모델 `gemini-3.5-flash`는 깨끗했다). 입력에 없는 경력을 만들어낸 것으로, **CLAUDE.md 불변 규칙(사실 날조 금지) + 표시광고법 위반**이다.
@@ -458,7 +447,7 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 
 **착수 전 확인**: 조직에 `iam.workloadIdentityPoolProviders`(허용 발급자 제한) 정책이 걸려 있는지. 걸려 있으면 Vercel 발급자를 허용 목록에 넣어야 한다.
 
-**전환 완료 시 되돌릴 것**: ① 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제 ② 발급했던 SA 키 삭제 ③ Vercel의 `GOOGLE_SERVICE_ACCOUNT_JSON` 제거.
+**전환 완료 시 되돌릴 것**: ① 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제 ② SA 키 `520195620d…` 삭제(현재 유일한 사용자 관리 키) ③ Vercel의 `GOOGLE_SERVICE_ACCOUNT_JSON` 제거.
 
 참고: [Vercel OIDC](https://vercel.com/docs/oidc) · [Vercel→GCP(Vertex 예제 포함)](https://vercel.com/docs/oidc/gcp)
 
@@ -511,7 +500,7 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 | 항목 | 결과 |
 |---|---|
 | Vertex AI 콘솔 설정 | ✅ API 사용 설정 · `onstori-gemini-sa`에 `roles/aiplatform.user` · 로컬 ADC |
-| 서비스 계정 키 (임시) | ✅ 조직 정책 예외로 발급 → `.env.local`·Vercel 주입 → **다운로드 파일 삭제 완료**. WIF 전환 시 폐기 (DECISIONS 2026-09-01) |
+| 서비스 계정 키 (임시) | ✅ 조직 정책 예외로 발급 → 로그 노출로 **같은 날 교체 완료** (신 `520195620d…` 활성 / 구 `a29494b9…` 영구 삭제). 로컬엔 두지 않고 Vercel Production에만. WIF 전환 시 폐기 (DECISIONS 2026-09-01) |
 | Vercel 환경변수 | ✅ `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production |
 | 프로덕션 배포 | ✅ `main` fast-forward 푸시 → 배포 반영 → **생성 E2E 200/7.67초** 확인 |
 | **예산 및 알림** | ✅ **2개 설정** — `gemini_onstori_예산`(결제 계정 전체, 50/90/100%, ₩100,000) · `onstori-gemini-예산`(My First Project → Vertex AI 서비스 한정, 50/80/100%, ₩100,000) |

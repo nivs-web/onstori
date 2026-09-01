@@ -7,11 +7,11 @@ import { GoogleAuth } from "google-auth-library";
  * Vertex AI 호출 공통 — generateContent + 인증.
  * Gemini API(`?key=`)에서 이관: GCP 크레딧을 쓰기 위함. DECISIONS 2026-09-01 참조.
  *
- * 인증 (우선순위):
- *   1) ADC — 로컬 기본. `gcloud auth application-default login` 한 번이면 키 파일이 필요 없다.
+ * 인증 (우선순위 — 코드 순서 그대로):
+ *   1) GOOGLE_SERVICE_ACCOUNT_JSON — 있으면 무조건 이걸 쓴다. Vercel처럼 ADC를 쓸 수 없는 곳 전용.
+ *      서비스 계정 키 JSON(원문 1줄 또는 base64). 장기 자격증명이라 로컬 `.env.local`에는 두지 않는다.
+ *   2) ADC — 로컬 기본. `gcloud auth application-default login` 한 번이면 키 파일이 필요 없다.
  *      프로젝트·quota project도 gcloud 설정에서 따라오므로 env 없이 동작.
- *   2) GOOGLE_SERVICE_ACCOUNT_JSON — Vercel처럼 ADC를 쓸 수 없는 곳에서만.
- *      서비스 계정 키 JSON(원문 1줄 또는 base64).
  *
  * 선택 env: GOOGLE_CLOUD_PROJECT(미설정 시 ADC에서 추론) · GOOGLE_CLOUD_LOCATION(기본 global)
  */

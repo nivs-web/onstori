@@ -24,13 +24,13 @@
 - ⚠ `gcloud` 바이너리가 PATH에 없어도 동작한다(라이브러리가 ADC 파일을 직접 읽음). 다만 `getProjectId()`가 실패하므로 `lib/vertex.ts`가 ADC 파일의 `quota_project_id`를 폴백으로 읽는다
 - 기존 `GEMINI_API_KEY`는 이제 안 쓴다 — 지워도 되고, 롤백 대비로 남겨둬도 무방
 
-## 4. Vercel 환경변수 (Production) — ⛔ 미완, 배포 전 필수
+## 4. Vercel 환경변수 (Production) — ✅ 완료 (2026-09-01)
 
 **ADC는 로컬 전용이라 Vercel에서는 동작하지 않는다.** 프로덕션 `/api/generate`(사이트 생성 시 카피 생성)를 살리려면 서비스 계정 키가 필요하다.
 
-- [ ] 서비스 계정 키 발급: [서비스 계정](https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-e8a34e87-a445-4701-af4) > `onstori-gemini-sa` > 키 탭 > 키 추가 > JSON
-- [ ] Vercel Production에 `GOOGLE_SERVICE_ACCOUNT_JSON`(JSON 원문 또는 base64) + `GOOGLE_CLOUD_PROJECT` 등록
-- [ ] 로컬에도 넣어 테스트하려면: `npx tsx scripts/set-sa-env.ts "<키파일 경로>"` (키 내용 미출력)
+- [x] 서비스 계정 키 발급: [서비스 계정](https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-e8a34e87-a445-4701-af4) > `onstori-gemini-sa` > 키 탭 > 키 추가 > JSON. CLI가 더 빠르다 — `gcloud iam service-accounts keys create <파일> --iam-account=onstori-gemini-sa@...`
+- [x] Vercel Production에 `GOOGLE_SERVICE_ACCOUNT_JSON`(JSON 원문 또는 base64) + `GOOGLE_CLOUD_PROJECT` 등록. 붙여넣을 base64는 `npx tsx scripts/sa-key-to-clipboard.ts "<키파일 경로>"`가 클립보드로 넘겨준다(키 내용 미출력)
+- ⛔ **로컬 `.env.local`에는 넣지 않는다** — 로컬 인증은 ADC(3절). 장기 키는 Vercel Production에만 둔다 (DECISIONS 2026-09-01, 키 유출이 `.env.local`을 읽다 났다)
 - 이미지 웨이브(500장)는 **로컬 스크립트**로 도니 이 단계 없이도 진행 가능
 
 ## 5. 검증 — ✅ 통과 (2026-09-01)

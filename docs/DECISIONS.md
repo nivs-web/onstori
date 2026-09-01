@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-01 · 로그에 노출된 서비스 계정 키를 **교체**하고 `.env.local`에서는 **아예 제거** · 노출 이력이 있는 장기 자격증명은 폐기가 원칙. 신 키 `520195620d…` 발급 → Vercel Production 교체·Redeploy → **구 키를 먼저 비활성화한 상태에서** 프로덕션 사이트 생성 200/6.6초 확인(비활성 키는 토큰을 발급할 수 없으므로, 이것이 "Vercel 환경변수가 실제로 갱신됐는가"를 가리는 유일한 검사다) → 구 키 `a29494b9…` 영구 삭제. 로컬은 ADC로 도는 것을 실증했으므로 `.env.local`에 장기 키를 두지 않는다 — 이번 유출도 그 파일을 읽다 났다. ⚠ **이전 배포로 롤백하면 Redeploy 필수** — 그 배포엔 삭제된 구 키가 주입돼 있다
+
 - 2026-09-01 · [중대] 카카오 로그인을 **Supabase 프로바이더 → 카카오 OIDC 직결**로 변경 · Supabase(GoTrue)의 카카오 프로바이더는 scope에 `account_email`이 하드코딩돼 있고 요청 scope는 **덧붙기만** 된다(실측: `scopes=profile_nickname`을 보내면 `account_email profile_image profile_nickname profile_nickname`으로 나감). 이메일 동의항목은 비즈 앱 전환 없이는 못 켜서 카카오가 **KOE205**로 막았다. 그래서 `/auth/kakao`가 카카오 authorize를 직접 열어 `openid profile_nickname`만 요청하고, `/auth/callback`이 code→id_token 교환 후 `signInWithIdToken({provider:'kakao'})`로 세션을 만든다(`lib/kakao.ts`). ⚠ **Supabase의 카카오 프로바이더는 계속 켜둬야 한다** — id_token의 `aud`를 프로바이더 Client ID와 대조하기 때문. state는 httpOnly 쿠키로 검증, nonce는 요청하지 않는다. 새 환경변수 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`
 
 - 2026-09-01 · Vercel→Vertex 인증용 **서비스 계정 키를 임시로 발급**하고 조직 정책(`iam.disableServiceAccountKeyCreation`, 상위 조직 상속·적용 중) 예외를 프로젝트 단위로 사용 · 오늘 배포를 막지 않기 위한 한시 조치. **WIF 전환 시 이 키는 폐기 예정** — 전환 완료 시 ① 정책 예외 해제 ② 키 삭제 ③ Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거. 백로그는 PROGRESS "P5 진입 전 검토" 항목(예상 2~3시간)
