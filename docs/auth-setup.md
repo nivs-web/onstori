@@ -123,5 +123,5 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 - [x] 카카오 버튼 → `/auth/kakao` → 동의(닉네임만) → `/auth/callback` 복귀 → 로그인 완료 — 2026-09-01 통과(`iss=kauth.kakao.com`, 중복 계정 없음, claim 정상)
   - 실패 시 `/login?error=auth`로 되돌아온다. 원인은 **Vercel 함수 로그의 `[kakao]` 줄**을 볼 것 (KOE205=OpenID Connect 미활성/동의항목, KOE006=Redirect URI 미등록, `invalid_client`=시크릿 불일치)
 
-⚠ 검증 환경 주의: **운영자 쿠키(`onstori_admin`)가 없는 브라우저**로 해야 한다. 남아 있으면 소유 판정이 전부 `admin`으로 우회돼 차단이 안 보인다(지우는 라우트가 없다 — PROGRESS "P4 남은 코드 작업" 6번). 2026-09-01엔 쿠키가 분리된 별도 브라우저를 써서 해결했다.
+⚠ 검증 환경 주의: **운영자 쿠키(`onstori_admin`)가 없는 브라우저**로 해야 한다. 남아 있으면 소유 판정이 전부 `admin`으로 우회돼 차단이 안 보인다(지우는 라우트가 없다 — PROGRESS "P4 코드 작업" 6번, P7 이월). 2026-09-01엔 쿠키가 분리된 별도 브라우저를 써서 해결했다.
 
