@@ -3,11 +3,13 @@
 > 이 파일만 읽고 작업을 이어받는 사람을 위한 문서.
 > 브랜치: **`main`** (`phase-4-auth`를 fast-forward 머지 후 푸시 완료). 프로덕션: https://onstori.com (Vercel `onstori-pwk2`, 푸시 = 자동 배포).
 > 로컬 실행: `npm run dev` (안 뜨면 `npm run build && npm run start` 폴백).
-> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY, `GOOGLE_SERVICE_ACCOUNT_JSON`. 로컬은 ADC로도 동작(아래 Vertex 절).
+> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY, `GOOGLE_SERVICE_ACCOUNT_JSON`, **`KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`**(카카오 OIDC 직결). 로컬은 ADC로도 동작(아래 Vertex 절).
 
 ## 배포 상태 — ✅ 2026-09-01 배포 완료
 
-`origin/main` = `ace9ced`. 오늘 작업 23커밋이 프로덕션에 반영됐다.
+`origin/main` = **`5138c4a`**(+ 이 문서 커밋). 오늘 작업 33커밋이 프로덕션에 반영됐다 — 오전 23커밋(이미지뱅크·Vertex 이관·성능) + **오후 10커밋(P4 인증 마무리)**.
+
+오후 10커밋 요약: 카카오 OIDC 직결 전환(`61c7666`) → 프로덕션 E2E 통과 → 마이페이지·로그아웃(`cdc5ef9`) → 에디터 로그인 유도 배너 + `ownership` 필드(`9410470`) → 거부 화면 루프 수정(`5138c4a`). **Vercel 환경변수에 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET` 추가됨**(Production). 환경변수는 배포 시점에 주입되므로 값만 저장하고 재배포하지 않으면 반영되지 않는다 — 오늘 실제로 걸렸다.
 
 - 프로덕션 검증: `/login` 200(신규 경로) · **사이트 생성 200 / 7.67초** (이관 전 20.9초). Vercel이 서비스 계정으로 Vertex를 호출하는 경로가 실제로 도는 것을 확인.
 - Vercel 환경변수: `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production.
@@ -219,7 +221,9 @@ E2E 검증(로컬 실동작): 비로그인 헤더=로그인 버튼 → `/login?n
 5. ~~403 거부화면 문구 루프~~ — ✅ 완료 (2026-09-01). **루프의 정체**: 로그인한 사람에게 "로그인하세요"라고 하면 `/login`이 세션을 발견해 곧장 `next`로 되돌려보내 같은 거부 화면으로 돌아온다. 문은 두 개였다 — `/api/site/get`이 거부 응답에 **요청자 본인의 세션 유무** `signedIn`을 주고(403일 때만 세션 조회), 클라이언트가 응답의 `error`까지 읽어 세 갈래로 가른다: ①**not-found/bad-slug/네트워크 오류** → "홈페이지를 찾지 못했어요" + `/my` (로그인 CTA 없음 — 권한 문제가 아니다) ②**403 + 로그인** → "이 계정에 연결돼 있지 않아요" + 연결 경로 안내 + `/my` ③**403 + 비로그인** → 기존 로그인 유도. 검증(로컬): 403/404/bad-slug 응답 본문 실측 + 404 화면 실렌더 확인.
    - ⚠ **로그인 403은 두 경우를 구분하지 못한다**(미claim 사이트 vs 이미 다른 계정 소유). 후자에선 안내하는 `[내 계정에 연결하기]` 버튼이 `owner_id`가 있어 **어느 기기에서도 렌더되지 않으므로**, 문구를 양쪽에서 참인 표현으로 낮추고 계정 전환 경로(`/my` → 로그아웃 → 원래 로그인 수단)를 함께 안내하는 것으로 처리했다. 정확히 가르려면 403 본문에 `claimed: !!owner_id` 같은 사유 코드가 필요하다 — 필요해지면 그때.
    - 이 두 가지(404 문 미차단·403 두 경우 뭉갬)는 **적대적 검증 워크플로가 잡았다.** 처음 구현은 403 문 하나만 닫고 완료로 적었었다.
-6. **[P7 이월]** **운영자 로그아웃 라우트 부재**: `onstori_admin`은 httpOnly + `secure`로 심기는데(`app/api/admin/login/route.ts`) 지우는 경로가 어디에도 없다. `/admin`에도 로그아웃 UI가 없어 한 번 인증하면 30일간 그 브라우저의 모든 소유 판정이 admin으로 고정된다 — 검증할 때마다 사람을 헷갈리게 하고(2026-09-01 실제로 겪음), 공용 PC에서는 권한이 남는 문제이기도 하다. 최소 수정: `POST /api/admin/logout`이 `res.cookies.delete("onstori_admin")` 하고 `/admin`에 버튼 하나. **운영자 인증 교체(P7)와 함께 처리하기로 결정(2026-09-01, 사용자 지시).** 그때까지는 검증 시 운영자 쿠키를 먼저 확인할 것.
+   - ⏸ **`403 + signedIn:true` 실화면만 미확인 — P7로 이월**(6번과 함께). 서버 절반은 증명돼 있다: 같은 라우트의 200 경로가 동일한 `getSessionUser()`로 `anon-signedin`을 판정하고 그건 실화면으로 확인됐다. 남은 건 클라이언트의 `!!body.signedIn` 분기 렌더뿐이다.
+     재현하려면 **운영자 쿠키가 없는 브라우저**가 필요하다(작업용 브라우저엔 `onstori_admin`이 남아 있어 admin 우회로 200이 나온다 — 지우는 라우트가 없다, 6번). 절차: 시크릿 창 → 로그인 → 익명으로 만든 미claim 사이트의 `/{slug}/edit` 열기 → `403 {"error":"forbidden","signedIn":true}` 와 "이 계정에 연결돼 있지 않아요" + `/my` CTA 확인.
+6. **[P7 이월]** **운영자 로그아웃 라우트 부재**: `onstori_admin`은 httpOnly + `secure`로 심기는데(`app/api/admin/login/route.ts`) 지우는 경로가 어디에도 없다. `/admin`에도 로그아웃 UI가 없어 한 번 인증하면 30일간 그 브라우저의 모든 소유 판정이 admin으로 고정된다 — 검증할 때마다 사람을 헷갈리게 하고(2026-09-01 실제로 겪음), 공용 PC에서는 권한이 남는 문제이기도 하다. 최소 수정: `POST /api/admin/logout`이 `res.cookies.delete("onstori_admin")` 하고 `/admin`에 버튼 하나. **운영자 인증 교체(P7)와 함께 처리하기로 결정(2026-09-01, 사용자 지시).** 그때까지는 검증 시 운영자 쿠키를 먼저 확인할 것. **이 항목이 5번의 마지막 검증(`403 + signedIn:true` 실화면)을 막고 있다** — 로그아웃 라우트가 생기면 그 확인도 같이 끝난다.
 
 ### 시작 전 정리
 
