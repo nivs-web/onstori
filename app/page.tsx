@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Portfolio, loadShowcase } from "@/components/portfolio";
 import { PhoneFrame } from "@/components/phone-frame";
+import { getSessionUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
 export default async function Home() {
   const items = await loadShowcase();
   const heroSite = items.find((i) => i.featured) ?? items[0];
+  const user = await getSessionUser(); // 헤더: 로그인 상태면 마이페이지, 아니면 로그인
 
   return (
     <main className="min-h-svh" style={{ background: "var(--paper)", color: "var(--ink)" }}>
@@ -21,6 +23,15 @@ export default async function Home() {
           <nav className="flex items-center gap-5 text-[13.5px] font-medium">
             <a href="#portfolio" className="hidden sm:inline" style={{ color: "var(--muted)" }}>완성 예시</a>
             <a href="#pricing" className="hidden sm:inline" style={{ color: "var(--muted)" }}>가격</a>
+            {user ? (
+              <Link href="/my" className="font-semibold" style={{ color: "var(--accent-strong)" }}>
+                마이페이지
+              </Link>
+            ) : (
+              <Link href="/login?next=%2Fmy" className="rounded-full border px-4 py-2" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>
+                로그인
+              </Link>
+            )}
             <Link href="/new" className="rounded-full px-5 py-2 font-semibold text-white" style={{ background: "var(--accent)" }}>
               무료로 시작
             </Link>

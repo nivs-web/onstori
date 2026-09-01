@@ -5,7 +5,7 @@
 ## 현재 상태
 
 - **P4 (계정·세션) 진행 중 — 2026-09-01 착수, `phase-4-auth` → `main` 머지·배포 완료.** 로그인 2종 모두 E2E 통과(로컬·프로덕션): 이메일 OTP + **카카오는 OIDC 직결**(Supabase 프로바이더는 scope에 `account_email`이 하드코딩돼 KOE205로 막힘 — DECISIONS 2026-09-01, `lib/kakao.ts`). claim·소유 게이트 실동작 확인. 진행 위치의 단일 출처는 `docs/PLAN.md`.
-- 다음: 로그아웃 UI(현재 없음) → 에디터 내 로그인 유도 배너 → 남은 E2E 시나리오(소유권 차단·다른 기기 owner_id 귀속). 목록은 `docs/PROGRESS.md` "P4 남은 코드 작업".
+- 다음: 에디터 내 로그인 유도 배너 → 남은 E2E 시나리오(소유권 차단·다른 기기 owner_id 귀속). 목록은 `docs/PROGRESS.md` "P4 남은 코드 작업".
 
 ## 스택
 
