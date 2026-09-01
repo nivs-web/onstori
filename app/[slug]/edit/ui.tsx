@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
@@ -24,6 +25,8 @@ type GetRes = {
   slug: string; businessName: string; status: string;
   draft: SiteDocT; settings: Record<string, unknown>;
   score: number; rulesDone: string[]; storyCount: number; isAdmin: boolean;
+  /** 소유 상태 — 서버가 판정한 값(규칙 4). anon* = 이 브라우저 anonId로만 접근 중 */
+  ownership: "admin" | "account" | "anon" | "anon-signedin";
 };
 
 function anon(): string {
@@ -35,6 +38,7 @@ function anon(): string {
 }
 
 export function EditUi({ slug }: { slug: string }) {
+  const router = useRouter();
   const [data, setData] = useState<GetRes | null>(null);
   const [doc, setDoc] = useState<SiteDocT | null>(null);
   const [denied, setDenied] = useState(false);
@@ -82,6 +86,41 @@ export function EditUi({ slug }: { slug: string }) {
     flash("사이트에 반영됐어요! 손님에게 보입니다 🎉");
   }
 
+  /** 로그인은 했는데 사이트가 아직 계정에 안 붙은 경우 — 로그인 왕복 없이 기존 claim으로 귀속.
+   *  귀속 여부는 서버 재조회 값으로만 갱신한다(규칙 4). 편집 중인 draft는 건드리지 않는다. */
+  async function claimSite() {
+    setBusy("claim");
+    const fail = () => flash("연결하지 못했어요. 잠시 후 다시 시도해주세요");
+    try {
+      const c = await fetch("/api/auth/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ anonId: anon() }) });
+      // 401 = 세션 만료·다른 탭 로그아웃. 재시도로는 안 풀리므로 배너를 로그인 유도로 되돌린다(서버가 준 사실만 반영)
+      if (c.status === 401) {
+        setData((p) => p && { ...p, ownership: "anon" });
+        flash("로그인이 풀렸어요. 다시 로그인해주세요");
+        return;
+      }
+      if (!c.ok) { fail(); return; }
+      const { claimed = [] } = (await c.json()) as { claimed?: string[] };
+      const g = await fetch("/api/site/get", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, anonId: anon() }) });
+      if (!g.ok) { fail(); return; }
+      const d: GetRes = await g.json();
+      setData((p) => p && { ...p, ownership: d.ownership });
+      // claim은 slug가 아니라 브라우저 anonId 단위라 여러 개가 함께 붙는다 — 문구를 실제 동작에 맞춘다
+      if (d.ownership === "account") {
+        flash(claimed.length > 1
+          ? `이 브라우저에서 만든 홈페이지 ${claimed.length}개를 계정에 연결했어요`
+          : "계정에 연결했어요. 다른 기기에서도 수정할 수 있어요");
+      } else fail();
+    } catch { fail(); } finally { setBusy(""); }
+  }
+
+  /** 로그인 페이지로 이동 — 저장 안 한 편집분이 있으면 먼저 저장한다(실패하면 이동하지 않는다).
+   *  배너가 전체 페이지 이동이라 가드가 없으면 수정 중이던 draft가 그대로 사라진다. */
+  async function goLogin() {
+    if (dirty && !(await save())) return;
+    router.push(`/login?next=${encodeURIComponent(`/${slug}/edit`)}`);
+  }
+
   if (denied) return (
     <main className="mx-auto max-w-md px-6 py-24 text-center">
       <h1 className="text-xl font-bold">수정 권한이 없어요</h1>
@@ -113,6 +152,32 @@ export function EditUi({ slug }: { slug: string }) {
           <div className="h-full rounded-full bg-teal-600 transition-all" style={{ width: `${data.score}%` }} />
         </div>
       </header>
+
+      {/* 로그인/계정 연결 유도 — 이 브라우저 anonId로만 접근 중일 때만. 조건은 서버 판정값 하나로만 본다(규칙 4).
+          투어 앵커 목록(config/tours.ts·completeness.ts)에 없는 요소라 data-tour는 붙이지 않는다(규칙 3). */}
+      {(data.ownership === "anon" || data.ownership === "anon-signedin") && (
+        <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-200 bg-white p-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold">
+              {data.ownership === "anon" ? "지금은 이 기기에서만 수정할 수 있어요" : "이 홈페이지가 아직 계정에 연결되지 않았어요"}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
+              {data.ownership === "anon"
+                ? "로그인하면 휴대폰·컴퓨터 어디서든 이어서 고칠 수 있어요."
+                : "내 계정에 연결하면 다른 기기에서도 이어서 고칠 수 있어요."}
+            </p>
+          </div>
+          {data.ownership === "anon" ? (
+            <button onClick={goLogin} disabled={!!busy} className="shrink-0 rounded-full bg-teal-700 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+              {busy === "save" ? "저장 중…" : "로그인하기"}
+            </button>
+          ) : (
+            <button onClick={claimSite} disabled={!!busy} className="shrink-0 rounded-full bg-teal-700 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+              {busy === "claim" ? "연결 중…" : "내 계정에 연결하기"}
+            </button>
+          )}
+        </section>
+      )}
 
       {/* 점수 올리기 힌트 */}
       <section className="mt-4 rounded-xl bg-teal-50 p-3 text-xs leading-relaxed text-teal-900">
