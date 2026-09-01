@@ -6,35 +6,31 @@
 - 프로젝트: `project-e8a34e87-a445-4701-af4` ("My First Project")
 - 결제 계정: 유료 계정 (무료 체험판에서 업그레이드 완료)
 
-## 1. Vertex AI API 사용 설정
+## 1. Vertex AI API 사용 설정 — ✅ 완료 (2026-09-01 확인)
 
-- [ ] https://console.cloud.google.com/apis/library/aiplatform.googleapis.com?project=project-e8a34e87-a445-4701-af4
-- [ ] **사용** 버튼 클릭 (이용약관 동의 포함이라 본인이 눌러야 함)
+콘솔 표기는 **"Agent Platform API"**지만 `서비스 이름: aiplatform.googleapis.com` = Vertex AI. "API 사용 설정됨" 확인.
 
-## 2. 서비스 계정 역할 부여
+## 2. 서비스 계정 역할 부여 — ✅ 완료 (2026-09-01)
 
-- [ ] https://console.cloud.google.com/iam-admin/iam?project=project-e8a34e87-a445-4701-af4
-- [ ] `onstori-gemini-sa` 에 **Vertex AI 사용자**(`roles/aiplatform.user`) 역할 추가
-  - 서비스 계정이 없으면 IAM > 서비스 계정에서 새로 만들 것
+`onstori-gemini-sa@project-e8a34e87-a445-4701-af4.iam.gserviceaccount.com` 에
+**Agent Platform 사용자**(= `roles/aiplatform.user`, 콘솔 표기가 리브랜딩됨) 부여. 최소 권한.
 
-## 3. 서비스 계정 키(JSON) 발급
+## 3. 서비스 계정 키(JSON) 발급 — 운영자 직접
 
-- [ ] IAM > 서비스 계정 > `onstori-gemini-sa` > **키** 탭 > 키 추가 > 새 키 만들기 > **JSON**
-- [ ] 내려받은 파일은 **저장소 안에 두지 말 것** (`.gitignore`에 패턴은 넣어뒀지만 원칙적으로 밖에 보관)
+키 발급은 **장기 자격증명을 새로 만드는 작업**이라(콘솔도 "위험한 서비스 계정 기능"으로 분류) 본인이 진행.
 
-## 4. `.env.local` 에 추가
+- [ ] https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-e8a34e87-a445-4701-af4
+- [ ] `onstori-gemini-sa` 클릭 > **키** 탭 > **키 추가** > 새 키 만들기 > **JSON** > 만들기
+- [ ] 내려받은 파일은 **저장소 밖에 보관** (Downloads 등). 다 쓰면 삭제
 
+## 4. `.env.local` 주입 — 스크립트 1줄
+
+```bash
+npx tsx scripts/set-sa-env.ts "C:\Users\ariancepc\Downloads\받은키.json"
 ```
-GOOGLE_CLOUD_PROJECT=project-e8a34e87-a445-4701-af4
-GOOGLE_CLOUD_LOCATION=global
-GOOGLE_SERVICE_ACCOUNT_JSON=<아래 명령의 출력값>
-```
 
-JSON을 한 줄로 넣기 어려우니 **base64 권장** (코드가 원문·base64 둘 다 인식):
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\경로\키파일.json"))
-```
+`GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` / `GOOGLE_SERVICE_ACCOUNT_JSON`(base64) 3개를
+자동으로 넣거나 교체한다. **키 내용은 화면에 출력하지 않는다.**
 
 기존 `GEMINI_API_KEY`는 이제 안 쓴다 — 지워도 되고, 롤백 대비로 남겨둬도 무방.
 
