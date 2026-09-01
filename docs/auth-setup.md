@@ -8,23 +8,41 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 
 ## 1. 카카오 개발자 앱 (https://developers.kakao.com)
 
-- [ ] 애플리케이션 생성 (앱 이름: 온스토리)
-- [ ] 앱 키 → **REST API 키** 복사 (= Supabase의 Client ID)
-- [ ] 보안 탭 → **Client Secret** 생성·활성화 후 복사
-- [ ] 제품 설정 → 카카오 로그인 **활성화(ON)**
-- [ ] Redirect URI 등록: `https://wpsrfjqfbhmeriscdacu.supabase.co/auth/v1/callback`
-- [ ] 동의항목: 닉네임(선택 동의). **이메일 수집은 비즈 앱 전환 필요** — 없어도 로그인은 동작(계정 식별은 카카오 ID)
+> **이 절은 2026-09-01에 방식이 바뀌었다.** Supabase의 카카오 프로바이더 경로(`/auth/v1/authorize`)는 쓰지 않는다 —
+> scope에 `account_email`이 하드코딩돼 있고 요청 scope는 덧붙기만 되어서(실측), 이메일 동의항목을 못 켜는 개인 앱은
+> **KOE205**로 막힌다. 대신 앱이 카카오 authorize를 직접 열고(`/auth/kakao`) 콜백에서 id_token으로 세션을 만든다(`lib/kakao.ts`).
+>
+> ⚠ **그래도 Supabase의 카카오 프로바이더는 켠 채로 둘 것** — `signInWithIdToken`이 id_token의 `aud`를
+> 프로바이더에 설정된 Client ID와 대조한다. 끄거나 Client ID를 바꾸면 카카오 로그인이 통째로 죽는다.
 
-## 2. Supabase — 카카오 프로바이더
+- [x] 애플리케이션 생성 (앱 이름: 온스토리)
+- [x] 앱 키 → **REST API 키** = `KAKAO_REST_API_KEY` (Supabase 프로바이더의 Client ID와 같은 값)
+- [x] 보안 탭 → **Client Secret** 생성·활성화
+- [x] 제품 설정 → 카카오 로그인 **활성화(ON)**
+- [x] 제품 설정 → 카카오 로그인 → **OpenID Connect 활성화(ON)** ← **새로 필요.** 없으면 `scope=openid`가 거부돼 id_token이 안 나온다
+- [x] Redirect URI **추가** ← **새로 필요.** 이제 카카오가 우리 도메인으로 직접 돌려보낸다
+  - `https://onstori.com/auth/callback`
+  - `http://localhost:3000/auth/callback` (로컬 테스트용)
+  - 기존 `https://wpsrfjqfbhmeriscdacu.supabase.co/auth/v1/callback`은 지우지 않아도 무해
+- [x] 동의항목: **닉네임(profile_nickname) 선택 동의 ON**. 이메일은 요청하지 않으므로 비즈 앱 전환 불필요
+- ⚠ 카카오는 redirect_uri·scope 오류를 **로그인 화면 다음에** 낸다(2026-09-01 실측: 등록도 안 한 URI로도 로그인 화면까지는 뜬다). 즉 설정 누락은 **실제 로그인 시도로만** 확인된다
 
-- [ ] Authentication → Sign In / Providers → **Kakao 활성화**
-- [ ] Client ID = REST API 키, Client Secret = 위에서 만든 시크릿
+## 2. 환경변수 (`.env.local` + Vercel Production)
 
-## 3. Supabase — Redirect URL
+| 변수 | 값 | 비고 |
+|---|---|---|
+| `KAKAO_REST_API_KEY` | 카카오 앱 키 → REST API 키 | authorize URL에 그대로 실려나가는 공개 식별자 |
+| `KAKAO_CLIENT_SECRET` | 카카오 보안 탭 → Client Secret | 콘솔에서 시크릿을 "사용함"으로 켜뒀다면 **토큰 교환에 필수** |
 
-- [ ] Authentication → URL Configuration
-  - Site URL: `https://onstori.com`
-  - Redirect URLs 추가: `https://onstori.com/auth/callback`, `http://localhost:3000/auth/callback`
+- [x] `.env.local` — `KAKAO_REST_API_KEY` 기입
+- [x] `.env.local` — `KAKAO_CLIENT_SECRET` 기입
+- [x] **Vercel** Production에 두 변수 등록 (없으면 프로덕션에서 카카오 버튼이 `/login?error=auth`로 되돌아온다)
+
+## 3. Supabase — Site URL / Redirect URL
+
+- [x] Authentication → URL Configuration → Site URL: `https://onstori.com` (2026-09-01 실측 확인)
+- [ ] Redirect URLs: `https://onstori.com/auth/callback`, `http://localhost:3000/auth/callback`
+  - 카카오는 이제 이 목록을 타지 않는다(우리가 직접 콜백을 받는다). 이메일 링크 등 다른 흐름을 위해 남겨두는 값
 
 ## 4. Supabase — 이메일 인증번호(OTP) 템플릿
 
@@ -102,4 +120,5 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 - [ ] 시크릿 창에서 `/login` → 이메일 코드 로그인 → 남의 사이트 `/barun-electric/edit` 접근이 "수정 권한이 없어요"인지 (차단 확인)
 - [ ] 로그인 상태로 `/new` 생성 → 다른 브라우저에서 같은 계정 로그인 → 그 사이트 편집 가능한지 (owner_id 귀속)
 - [ ] 로그아웃 상태로 생성 → 같은 브라우저에서 `/login` 로그인 → 그 사이트가 계정에 귀속되는지 (anon claim)
-- [ ] 카카오 버튼 → 동의 → `/auth/callback` 복귀 → 로그인 완료되는지
+- [x] 카카오 버튼 → `/auth/kakao` → 동의(닉네임만) → `/auth/callback` 복귀 → 로그인 완료 — 2026-09-01 통과(`iss=kauth.kakao.com`, 중복 계정 없음, claim 정상)
+  - 실패 시 `/login?error=auth`로 되돌아온다. 원인은 **Vercel 함수 로그의 `[kakao]` 줄**을 볼 것 (KOE205=OpenID Connect 미활성/동의항목, KOE006=Redirect URI 미등록, `invalid_client`=시크릿 불일치)

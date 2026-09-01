@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-01 · [중대] 카카오 로그인을 **Supabase 프로바이더 → 카카오 OIDC 직결**로 변경 · Supabase(GoTrue)의 카카오 프로바이더는 scope에 `account_email`이 하드코딩돼 있고 요청 scope는 **덧붙기만** 된다(실측: `scopes=profile_nickname`을 보내면 `account_email profile_image profile_nickname profile_nickname`으로 나감). 이메일 동의항목은 비즈 앱 전환 없이는 못 켜서 카카오가 **KOE205**로 막았다. 그래서 `/auth/kakao`가 카카오 authorize를 직접 열어 `openid profile_nickname`만 요청하고, `/auth/callback`이 code→id_token 교환 후 `signInWithIdToken({provider:'kakao'})`로 세션을 만든다(`lib/kakao.ts`). ⚠ **Supabase의 카카오 프로바이더는 계속 켜둬야 한다** — id_token의 `aud`를 프로바이더 Client ID와 대조하기 때문. state는 httpOnly 쿠키로 검증, nonce는 요청하지 않는다. 새 환경변수 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`
+
 - 2026-09-01 · Vercel→Vertex 인증용 **서비스 계정 키를 임시로 발급**하고 조직 정책(`iam.disableServiceAccountKeyCreation`, 상위 조직 상속·적용 중) 예외를 프로젝트 단위로 사용 · 오늘 배포를 막지 않기 위한 한시 조치. **WIF 전환 시 이 키는 폐기 예정** — 전환 완료 시 ① 정책 예외 해제 ② 키 삭제 ③ Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거. 백로그는 PROGRESS "P5 진입 전 검토" 항목(예상 2~3시간)
 
 - 2026-09-01 · [실측 확정] 이미지 모델 **역할별 병행**: 히어로=`gemini-3-pro-image`, 그 외(갤러리·시공사례·about·process)=`gemini-3.1-flash-image` · 동일 프롬프트 히어로 5쌍 + 갤러리 1쌍 실측 결과. **Pro는 화면 한쪽을 비우는 구도**를 반복 생성 — 히어로엔 상호명·헤드라인이 얹히므로 여백이 곧 실용성. **Flash는 프롬프트 이행이 정확**("매입 천장등" 지시에서 조명을 주인공으로) 하고 프레임을 꽉 채워 갤러리에 적합. 설계서 2026-08-31 원안과 같은 배치이나 이번엔 근거가 있음. 비용($0.134 vs $0.039)은 히어로가 소수라 결정 변수 아님. 리포트: https://claude.ai/code/artifact/3cbb3ccb-fe41-4ce2-8fc3-7b48e1313c09

@@ -24,7 +24,7 @@
 | AI 접근 경로 | Gemini API → **Vertex AI(ADC)** 이관 완료, 실호출 검증 통과 |
 | 이미지 모델 확정 | **히어로=`gemini-3-pro-image`, 그 외=`gemini-3.1-flash-image`** (동일 프롬프트 실측 근거) |
 | 히어로 웨이브 | **100장 등록**(실패·중복 0, $13.40) → **39장 일괄 승인 완료** |
-| P4 인증 | 카카오 OAuth + 이메일 OTP 코드 완료, **이메일 로그인 E2E 통과** |
+| P4 인증 | 이메일 OTP **E2E 통과** · 카카오는 KOE205로 막혀 **OIDC 직결로 전환** → **카카오 로그인 E2E 통과** |
 | 버그 수정 4건 | OTP 자릿수 · `/new` JSON 파싱 · 429 조합 건너뛰기 · bench top-level await |
 | 성능 | 생성 20.9초 → 로컬 평균 5.8초 · **프로덕션 실측 7.67초** (thinking 토큰 병목 제거) |
 | 배포 | ✅ `main` 푸시 완료, 프로덕션 생성 E2E 통과 |
@@ -78,7 +78,8 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 |---|---|
 | `@supabase/ssr` 세션 클라이언트 — 서버(쿠키 갱신 포함, Route Handler 전용 갱신)·브라우저(로그인 UI 전용) | `lib/supabase/server.ts`, `lib/supabase/browser.ts` |
 | 로그인 페이지: 카카오 버튼 + 이메일 OTP 2단계(주소 → 6자리 코드). 성공 시 claim 후 `?next=`로 이동 | `app/login/page.tsx`, `app/login/ui.tsx` |
-| 카카오 OAuth 콜백 (code→세션 교환 → `/login` 복귀, claim은 로그인 페이지가 마무리) | `app/auth/callback/route.ts` |
+| **카카오 OIDC 직결** — Supabase 프로바이더 우회(account_email 하드코딩 → KOE205). authorize URL 직접 생성 + code→id_token 교환 | `lib/kakao.ts`, `app/auth/kakao/route.ts` |
+| 카카오 콜백 (state 검증 → id_token → `signInWithIdToken` → `/login` 복귀, claim은 로그인 페이지가 마무리) | `app/auth/callback/route.ts` |
 | anon claim: 로그인 직후 anonId 일치·무주인 사이트에 `owner_id` 부여 + `anon_id` 소거 | `app/api/auth/claim/route.ts` |
 | 소유 판정 교체: owner_id 있으면 세션 일치 필수, 무주인만 anonId 폴백, 운영자(ADMIN_KEY) 우회 유지 | `lib/site-owner.ts` (게이트 API 5곳 자동 적용) |
 | 로그인 상태 생성 시 처음부터 `owner_id` 저장 (anon_id는 null) | `app/api/generate/route.ts` |
@@ -107,7 +108,10 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 | Resend 커스텀 SMTP (무료 티어: 월 3,000 / 일 100) | ✅ 완료 — 내장 SMTP는 시간당 2통이라 테스트도 템플릿 편집도 불가였다 |
 | 이메일 템플릿 **2종** 교체 (`{{ .Token }}`) | ✅ 완료 |
 | 이메일 OTP 로그인 | ✅ E2E 통과 (위) |
-| **카카오** 개발자 앱 + Supabase 프로바이더 + Redirect URL | ❌ **미완 — 카카오 버튼은 아직 동작 안 함** |
+| **카카오** 개발자 앱 + Supabase 프로바이더 | ✅ 완료 (2026-09-01 실측: authorize 302 정상, Client ID 실림) |
+| **카카오** OpenID Connect 활성화 + Redirect URI(`/auth/callback`) + 닉네임 동의항목 | ✅ 완료 |
+| **카카오** 환경변수 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET` (`.env.local` + Vercel Production) | ✅ 완료 |
+| **카카오 로그인 E2E** | ✅ 통과 (2026-09-01 로컬 실로그인) |
 
 ⚠ **템플릿은 반드시 2종을 모두 고쳐야 한다** — 오늘 실제로 이걸로 막혔다.
 
@@ -120,9 +124,34 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 
 초기에는 전원이 신규라 사실상 **Confirm sign up만 탄다.** 처음에 Magic Link만 고쳐서 "Confirm your email address" 링크 메일이 갔고, 앱은 인증번호를 기다리니 로그인이 불가능했다. 참고: `verifyOtp`의 `type`은 신규·기존 모두 `'email'`이 맞다(가입 여부로 바꿀 필요 없음).
 
+### 카카오 로그인 — OIDC 직결로 전환 (2026-09-01)
+
+카카오 버튼이 KOE205(설정하지 않은 동의항목)로 막혔다. 원인은 **Supabase 카카오 프로바이더가 scope에 `account_email`을 하드코딩**해두고 요청 scope를 덧붙이기만 하는 것 — 실측으로 확인했고(`scopes=profile_nickname` → `account_email profile_image profile_nickname profile_nickname`) 빼는 방법이 없다. 이메일 동의항목은 비즈 앱 전환 없이는 못 켠다.
+
+그래서 카카오 authorize를 **직접** 열고(`openid profile_nickname`만 요청) 받은 code를 카카오에서 id_token으로 바꿔 `signInWithIdToken({ provider: 'kakao' })`로 세션을 만든다. 흐름: `/login` → `/auth/kakao`(state 쿠키 발급) → 카카오 동의 → `/auth/callback`(state 검증 → 토큰 교환 → 세션) → `/login`(claim → next).
+
+**Supabase 카카오 프로바이더는 계속 켜둬야 한다** — id_token의 `aud`를 프로바이더 Client ID와 대조한다.
+
+**E2E 통과 (2026-09-01, 로컬 실로그인).**
+
+| 확인 | 결과 |
+|---|---|
+| `/auth/callback?code=…&state=…` | 307 정상, `[kakao]` 실패 로그 없음 |
+| `POST /api/auth/claim` | 200 |
+| `iss` 클레임 | `kauth.kakao.com` — OIDC 경로로 들어온 증거(구 프로바이더 경로는 `kapi.kakao.com`) |
+| 중복 계정 | 안 생김. 같은 `sub`이라 기존 사용자에 연결, `last_sign_in`만 갱신 |
+| claim | 익명 사이트 4건에 `owner_id` 부여 + `anon_id` 소거 |
+| 소유 게이트 | 로그인 세션으로 `/{slug}/edit` 정상 진입 |
+
+그 전 단계 검증: `npm run build` 통과 · `/auth/kakao` → `scope=openid+profile_nickname`으로 302(이메일 빠진 것 확인) · state 불일치·토큰 교환 실패 시 `/login?error=auth` 복귀.
+
+**함정 하나 기록:** 카카오 콘솔 설정 후 구경로(프로덕션)로 로그인하면 이메일까지 받아지며 성공한다 — 하지만 카카오는 **앱이 개발 중이거나 동의항목이 검수 전이면 관리자·팀원만** 통과시킨다. 관리자 계정의 성공은 고객의 성공을 뜻하지 않는다. OIDC 경로는 검수가 필요 없는 `openid`+닉네임만 쓰므로 이 문제에서 자유롭다 — 구경로로 되돌리지 말 것.
+
+**남은 부작용:** 관리자 계정은 구경로로 먼저 로그인한 이력이 있어 `user_metadata`에 이메일이 남아 있다(metadata는 병합됨). 신규 고객은 이메일 없이 생성되므로 계정 식별·복구 수단이 카카오뿐이다 — 마이페이지 이메일 선택 입력은 P4 이후 검토.
+
 ### P4 남은 코드 작업
 
-1. 대시보드 설정 후 로그인 E2E (auth-setup.md 5절 시나리오 4종)
+1. 남은 로그인 E2E 시나리오 (auth-setup.md 5절): 소유권 차단·다른 기기 owner_id 귀속
 2. 에디터 내 로그인 유도 배너: anonId로만 접근 중인 사용자에게 "로그인하면 다른 기기에서도 수정할 수 있어요" — claim 유입 경로가 `/login`뿐이라 필요. `/api/site/get` 응답에 소유 상태 추가 필요
 3. 운영자 인증 교체 검토: ADMIN_KEY → Supabase Auth 이메일 화이트리스트(docs/admin.md) — P4에서 할지 P7로 이월할지 결정
 4. 로그아웃 UI (현재 없음 — `/login`에 로그인 상태 표시 + 로그아웃 버튼이 최소형)
@@ -391,7 +420,7 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 | 항목 | 상태 | 풀리면 할 일 |
 |---|---|---|
 | **크레딧 적용 확인** | ⏳ **내일 확인** — 비용 반영에 최대 24시간. 2026-09-01 사용분 약 $16(로컬 웨이브 + 프로덕션) | [비용 리포트](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports)에서 크레딧 차감인지 카드 청구인지 확인 → **카드 청구면 나머지 이미지 웨이브 전에 방침 재검토** |
-| **카카오 로그인 설정** | 미착수 (이메일 OTP는 완료·E2E 통과) | `docs/auth-setup.md` 1~3절 — 개발자 앱·프로바이더·Redirect URL |
+| **카카오 로그인 설정** | ✅ 완료 (OIDC 직결, E2E 통과) | `docs/auth-setup.md` 1~3절 |
 | **v1 범위 밖 업종 정책 결정** | 미결정 | 위 TODO 참조 — 되묻기 / 차단 / 범용 수용 중 택1 |
 | **통신판매업 신고 + 토스페이먼츠 가맹** | 미착수 | P5(결제) 착수 조건. 1개월 무료 종료 시점에 첫 결제가 발생하므로 지금 시작해야 타이밍 맞음 |
 | **당근 비즈프로필 개설 + 홍보글 게시** | 보류 (사용자 결정) | `docs/presale.md`의 글 초안·응대 템플릿 사용. 게이트: 사진 수신 5건/2주 → P3 확정, 유료 전환 30% → P5 |
