@@ -414,6 +414,18 @@ model gemini-3-pro-image · created 100 · dups 0 · fails 0 · apiCalls 100 · 
 
 ## 알려진 이슈 / TODO
 
+### ⚠️ GOOGLE_SERVICE_ACCOUNT_JSON 키 교체 필요 — 로그 노출 이력, 최우선 처리
+
+2026-09-01 작업 중 `.env.local` 확인 과정에서 **서비스 계정 개인키(`GOOGLE_SERVICE_ACCOUNT_JSON` base64)가 세션 로그에 그대로 출력**됐다. 로컬 기록에만 남았고 외부 전송은 없었지만, 장기 자격증명이라 노출 이력이 있는 키는 교체하는 것이 원칙이다.
+
+처리 순서:
+1. GCP → IAM → 서비스 계정 `onstori-gemini-sa` → 새 키 발급
+2. `.env.local`의 `GOOGLE_SERVICE_ACCOUNT_JSON` 교체 + **Vercel Production 환경변수 교체** (배포 시점 주입이므로 저장 후 **Redeploy** 필요)
+3. 프로덕션에서 사이트 생성 1건으로 Vertex 호출 확인 → **구 키 삭제**
+4. 이 항목 삭제
+
+참고: 이 키는 원래도 한시 조치였다 — WIF 전환 시 폐기 예정(DECISIONS 2026-09-01, 아래 "백로그 — P5 진입 전 검토: 장기 키 대신 WIF로 전환"). WIF 전환을 앞당기면 교체와 폐기를 한 번에 끝낼 수 있다.
+
 ### 🔴 표시광고법 리스크 — 폴백 모델의 근거 없는 경력 표현
 
 `thinkingBudget: 0` 적용 후 폴백 모델 `gemini-2.5-flash`가 **"오랜 경험과 기술력으로"** 같은 문구를 생성하는 것을 관찰했다(주 모델 `gemini-3.5-flash`는 깨끗했다). 입력에 없는 경력을 만들어낸 것으로, **CLAUDE.md 불변 규칙(사실 날조 금지) + 표시광고법 위반**이다.
