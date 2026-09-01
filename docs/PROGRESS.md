@@ -1,18 +1,18 @@
 # PROGRESS.md — 작업 인수인계 (2026-09-01 기준)
 
 > 이 파일만 읽고 작업을 이어받는 사람을 위한 문서.
-> 작업 브랜치: **`phase-4-auth`** (P4 진행 중). 프로덕션: https://onstori.com (Vercel `onstori-pwk2`, 푸시 = 자동 배포).
+> 브랜치: **`main`** (`phase-4-auth`를 fast-forward 머지 후 푸시 완료). 프로덕션: https://onstori.com (Vercel `onstori-pwk2`, 푸시 = 자동 배포).
 > 로컬 실행: `npm run dev` (안 뜨면 `npm run build && npm run start` 폴백).
-> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY. **AI 인증은 이제 키가 아니라 ADC**(아래 Vertex 절).
+> 비밀키: `.env.local` (git 미포함) — Supabase URL/anon/service, ADMIN_KEY, `GOOGLE_SERVICE_ACCOUNT_JSON`. 로컬은 ADC로도 동작(아래 Vertex 절).
 
-## ⚠ 배포 상태 — 프로덕션이 21커밋 뒤처져 있다
+## 배포 상태 — ✅ 2026-09-01 배포 완료
 
-`origin/main` = `f2d5a91`(P3 완료 시점). **오늘 한 작업 전부가 미푸시**다.
+`origin/main` = `ace9ced`. 오늘 작업 23커밋이 프로덕션에 반영됐다.
 
-- 프로덕션은 아직 **구 Gemini API(`?key=`) 경로**로 돈다. Vercel의 `GEMINI_API_KEY`는 로컬에서 죽은 키와 **다른 키**라 생성은 실제로 동작 중(실측 20.9초 성공).
-- 즉 오늘 고친 것들(생성 시간 5.8초, `/new` 에러 문구, OTP 자릿수, 뱅크 기능)은 **아직 손님에게 반영 안 됨**.
-- **푸시 전 필수 선행 작업**: Vercel Production에 `GOOGLE_SERVICE_ACCOUNT_JSON` + `GOOGLE_CLOUD_PROJECT` 등록. ADC는 로컬 전용이라, 이게 없으면 배포 즉시 프로덕션 `/api/generate`가 죽는다. 서비스 계정 키 발급 → `scripts/set-sa-env.ts` 참고(`docs/vertex-setup.md` 4절).
-- 푸시 순서 제안: ① Vercel 환경변수 등록 → ② 푸시 → ③ `/new`에서 실제 생성 1건 확인.
+- 프로덕션 검증: `/login` 200(신규 경로) · **사이트 생성 200 / 7.67초** (이관 전 20.9초). Vercel이 서비스 계정으로 Vertex를 호출하는 경로가 실제로 도는 것을 확인.
+- Vercel 환경변수: `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production.
+- `GEMINI_API_KEY`는 **지우지 말 것** — 이제 코드가 안 읽지만, 문제 발생 시 이전 배포로 롤백하면 구 코드가 이 키를 쓴다.
+- 롤백: Vercel 대시보드에서 이전 배포로 되돌리거나 `git reset --hard f2d5a91` 후 강제 푸시.
 
 ---
 
@@ -23,10 +23,11 @@
 | 이미지뱅크 관리 4종 | 일괄승인 · 자유태그(+매칭 가중치) · "사용 중" 배지 · 히어로 재고 경고 |
 | AI 접근 경로 | Gemini API → **Vertex AI(ADC)** 이관 완료, 실호출 검증 통과 |
 | 이미지 모델 확정 | **히어로=`gemini-3-pro-image`, 그 외=`gemini-3.1-flash-image`** (동일 프롬프트 실측 근거) |
-| 히어로 웨이브 | **100장 등록**(실패·중복 0, $13.40). 검수 대기 상태 |
+| 히어로 웨이브 | **100장 등록**(실패·중복 0, $13.40) → **39장 일괄 승인 완료** |
 | P4 인증 | 카카오 OAuth + 이메일 OTP 코드 완료, **이메일 로그인 E2E 통과** |
 | 버그 수정 4건 | OTP 자릿수 · `/new` JSON 파싱 · 429 조합 건너뛰기 · bench top-level await |
-| 성능 | 생성 20.9초 → **평균 5.8초** (thinking 토큰 병목 제거) |
+| 성능 | 생성 20.9초 → 로컬 평균 5.8초 · **프로덕션 실측 7.67초** (thinking 토큰 병목 제거) |
+| 배포 | ✅ `main` 푸시 완료, 프로덕션 생성 E2E 통과 |
 
 ---
 
@@ -351,6 +352,18 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 
 참고: [Vercel OIDC](https://vercel.com/docs/oidc) · [Vercel→GCP(Vertex 예제 포함)](https://vercel.com/docs/oidc/gcp)
 
+### 백로그 — 네이버 플레이스 자동 불러오기 (P4 이후 검토)
+
+가게 이름/주소만 받아 **네이버 플레이스의 영업시간·주소·전화·사진 등을 자동으로 끌어와** 온보딩 입력을 줄이는 안. 사장님이 타이핑할 게 4개→1~2개로 줄어 위저드 이탈이 크게 낮아질 수 있다.
+
+**착수 전 반드시 해소할 것 2가지**
+1. **약관 그레이존** — 스크래핑은 네이버 이용약관 위반 소지가 있다. 소상공인 대상 상용 서비스라 리스크를 감수할 수 없다.
+2. **공식 API 조사 필요** — 네이버 지역/검색 계열 공식 API로 필요한 필드(영업시간·사진 등)를 합법적으로 얻을 수 있는지 확인. 얻을 수 없으면 이 기능은 **불채택**이 기본값이다.
+
+**주의**: 불러온 정보는 사실 정보(주소·전화·영업시간)라 **틀리면 그대로 고객 피해**가 된다. CLAUDE.md 불변 규칙(사실 날조 금지)과 같은 선상에서, 자동 입력하더라도 사장님 확인 단계를 반드시 거치게 설계할 것.
+
+**검토 시점**: P4 마무리 후. P5(결제)보다 뒤여도 무방하다 — 있으면 좋은 기능이지 차단 요소는 아니다.
+
 ### 그 외
 
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
@@ -377,12 +390,19 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 
 | 항목 | 상태 | 풀리면 할 일 |
 |---|---|---|
-| **크레딧 적용 확인** | ⚠ **최우선 · 미확인.** 오늘 약 $16 사용분이 크레딧 차감인지 카드 청구인지 | [비용 리포트](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports) 확인 → 카드 청구면 나머지 웨이브 전에 방침 재검토 |
-| **예산 및 알림 설정** | 미착수 (체험판 "청구 없음" 보호막 소멸됨) | Cloud Console 예산 알림 등록 |
-| **Vercel 환경변수 등록** | 미착수 — **푸시 전 필수** | 서비스 계정 키 발급 → `GOOGLE_SERVICE_ACCOUNT_JSON`+`GOOGLE_CLOUD_PROJECT` 등록 (`docs/vertex-setup.md` 4절) |
-| **카카오 로그인 설정** | 미착수 (이메일 OTP는 완료) | `docs/auth-setup.md` 1~3절 — 개발자 앱·프로바이더·Redirect URL |
-| **이미지뱅크 검수** | 대기 56장 | `/admin/bank` → "검수 대기만 선택" → 일괄 승인. 이후 빈 조합 보충 |
+| **크레딧 적용 확인** | ⏳ **내일 확인** — 비용 반영에 최대 24시간. 2026-09-01 사용분 약 $16(로컬 웨이브 + 프로덕션) | [비용 리포트](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports)에서 크레딧 차감인지 카드 청구인지 확인 → **카드 청구면 나머지 이미지 웨이브 전에 방침 재검토** |
+| **카카오 로그인 설정** | 미착수 (이메일 OTP는 완료·E2E 통과) | `docs/auth-setup.md` 1~3절 — 개발자 앱·프로바이더·Redirect URL |
 | **v1 범위 밖 업종 정책 결정** | 미결정 | 위 TODO 참조 — 되묻기 / 차단 / 범용 수용 중 택1 |
-| ~~Vertex AI 콘솔 설정~~ | ✅ 완료 (API 사용 설정 · SA 역할 · ADC) | — |
 | **통신판매업 신고 + 토스페이먼츠 가맹** | 미착수 | P5(결제) 착수 조건. 1개월 무료 종료 시점에 첫 결제가 발생하므로 지금 시작해야 타이밍 맞음 |
 | **당근 비즈프로필 개설 + 홍보글 게시** | 보류 (사용자 결정) | `docs/presale.md`의 글 초안·응대 템플릿 사용. 게이트: 사진 수신 5건/2주 → P3 확정, 유료 전환 30% → P5 |
+
+### 완료 (2026-09-01)
+
+| 항목 | 결과 |
+|---|---|
+| Vertex AI 콘솔 설정 | ✅ API 사용 설정 · `onstori-gemini-sa`에 `roles/aiplatform.user` · 로컬 ADC |
+| 서비스 계정 키 (임시) | ✅ 조직 정책 예외로 발급 → `.env.local`·Vercel 주입 → **다운로드 파일 삭제 완료**. WIF 전환 시 폐기 (DECISIONS 2026-09-01) |
+| Vercel 환경변수 | ✅ `GOOGLE_CLOUD_PROJECT`(Config) + `GOOGLE_SERVICE_ACCOUNT_JSON`(Secret), 둘 다 Production |
+| 프로덕션 배포 | ✅ `main` fast-forward 푸시 → 배포 반영 → **생성 E2E 200/7.67초** 확인 |
+| **예산 및 알림** | ✅ **2개 설정** — `gemini_onstori_예산`(결제 계정 전체, 50/90/100%, ₩100,000) · `onstori-gemini-예산`(My First Project → Vertex AI 서비스 한정, 50/80/100%, ₩100,000) |
+| **이미지뱅크 검수** | ✅ **39장 일괄 승인** — 이제 신규 생성 사이트에 뱅크 이미지가 붙는다(승인 전에는 Unsplash 플레이스홀더로 폴백했음) |
