@@ -63,6 +63,19 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 검증(2026-09-01 로컬): `npm run build` 통과 · `/login` 렌더 확인 · 무세션/오류 anonId → `/api/site/get` 403 · 무세션 claim 401 · 운영자 쿠키 우회 정상. **로그인 실동작 E2E는 대시보드 설정 후에만 가능.**
 
+### 이메일 OTP E2E — ✅ 통과 (2026-09-01)
+
+Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모두 인증번호 발송 → `verifyOtp` → 세션 발급까지 확인.**
+
+| 경로 | 템플릿 | 결과 |
+|---|---|---|
+| 처음 보는 이메일 (`+otp1` 플러스 주소) | Confirm sign up | 인증번호 메일 ✅ → 검증 ✅ 세션 발급, `email_confirmed_at` 기록 |
+| 이미 가입된 이메일 | Magic Link | 인증번호 메일 ✅ → 검증 ✅ 세션 발급 |
+
+**이 과정에서 잡은 버그: OTP가 8자리인데 앱은 6자리만 받고 있었다.** Supabase의 `Email OTP Length`(Authentication → Providers → Email)는 6~10자리 설정값이고 이 프로젝트는 8자리. `app/login/ui.tsx`가 입력을 6자로 자르고 `length !== 6`으로 제출을 막아 **실제로는 로그인이 불가능한 상태**였다. 자릿수를 하드코딩하지 않고 `OTP_MIN 6 ~ OTP_MAX 10`으로 받도록 수정 — 대시보드 설정이 바뀌어도 안 깨진다.
+
+테스트 사용자·일회성 스크립트는 정리 완료. 남은 검증은 소유권 차단·claim·카카오(auth-setup 5절).
+
 ### 차단 — Supabase 대시보드 설정 (운영자 담당, `docs/auth-setup.md` 체크리스트)
 
 카카오 개발자 앱(REST 키·시크릿·Redirect URI) + Supabase 프로바이더 활성화 + Redirect URL 등록 + OTP 이메일 템플릿(`{{ .Token }}`) 교체. 이 설정 전까지 `/login`은 "메일 발송 실패 / 카카오 시작 실패"가 정상이다.

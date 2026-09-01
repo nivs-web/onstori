@@ -9,6 +9,10 @@ function safeNext(raw: string | null): string {
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 }
 
+/** Supabase Email OTP Length 허용 범위 — 대시보드 설정에 따라 달라지므로 자릿수를 고정하지 않는다 */
+const OTP_MIN = 6;
+const OTP_MAX = 10;
+
 /** 로그인 — 카카오 OAuth + 이메일 6자리 인증번호(OTP). 성공 시 익명 생성 사이트 귀속(claim) 후 next로 이동 */
 export function LoginUi() {
   const router = useRouter();
@@ -136,21 +140,23 @@ export function LoginUi() {
       ) : (
         <form onSubmit={verify} className="space-y-3">
           <p className="text-sm">
-            <b>{email}</b> 로 보낸 인증번호 6자리를 입력해주세요.
+            <b>{email}</b> 로 보낸 인증번호를 입력해주세요.
           </p>
+          {/* Supabase의 Email OTP Length는 대시보드에서 6~10자리로 바뀔 수 있다(현재 8자리).
+              자릿수를 하드코딩하면 설정만 바뀌어도 로그인이 막히므로 범위로 받는다. */}
           <input
             inputMode="numeric"
             autoComplete="one-time-code"
             required
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="123456"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_MAX))}
+            placeholder="인증번호"
             className="w-full rounded-xl border bg-white px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:border-teal-600"
             style={{ borderColor: "var(--line)" }}
           />
           <button
             type="submit"
-            disabled={busy || code.length !== 6}
+            disabled={busy || code.length < OTP_MIN}
             className="w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--accent)" }}
           >

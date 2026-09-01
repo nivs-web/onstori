@@ -1,6 +1,6 @@
 # Supabase Auth 설정 체크리스트 (대시보드 전용 — 운영자 담당)
 
-P4 로그인(카카오 OAuth + 이메일 6자리 인증번호)이 동작하려면 아래 대시보드 설정이 필요하다.
+P4 로그인(카카오 OAuth + 이메일 인증번호)이 동작하려면 아래 대시보드 설정이 필요하다.
 코드는 이미 들어가 있고, 이 설정 전까지 `/login`은 "메일 발송 실패 / 카카오 시작 실패"로 동작하지 않는다.
 완료하면 각 항목 체크 + DECISIONS.md에 한 줄 기록(불변 규칙 1).
 
@@ -28,9 +28,11 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 
 ## 4. Supabase — 이메일 인증번호(OTP) 템플릿
 
-앱은 매직링크가 아니라 **6자리 코드**(`verifyOtp type: 'email'`)를 쓴다.
+앱은 매직링크가 아니라 **숫자 인증번호**(`verifyOtp type: 'email'`)를 쓴다.
 
-**메일 종류를 가르는 건 템플릿 내용이다** — 템플릿에 `{{ .ConfirmationURL }}`이 있으면 **링크**가, `{{ .Token }}`이 있으면 **6자리 코드**가 나간다. 기본 템플릿은 전부 링크형이라 교체해야 한다.
+⚠ **자릿수는 고정이 아니다.** Authentication → Providers → Email의 **Email OTP Length**로 6~10자리를 정한다. 이 프로젝트는 현재 **8자리**(2026-09-01 실측). 그래서 `app/login/ui.tsx`는 자릿수를 하드코딩하지 않고 6~10자리를 받는다 — 대시보드 설정만 바꿔도 로그인이 막히는 걸 피하려는 것.
+
+**메일 종류를 가르는 건 템플릿 내용이다** — 템플릿에 `{{ .ConfirmationURL }}`이 있으면 **링크**가, `{{ .Token }}`이 있으면 **인증번호**가 나간다. 기본 템플릿은 전부 링크형이라 교체해야 한다.
 
 ⚠ **템플릿 2개를 모두 고쳐야 한다.** Supabase는 상황에 따라 다른 템플릿을 쓴다:
 
@@ -39,7 +41,7 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 | **처음 보는 이메일** (신규 가입 — `shouldCreateUser: true`라 계정이 새로 만들어짐) | **Confirm sign up** |
 | 이미 가입된 이메일로 로그인 | **Magic Link** |
 
-초기에는 **모든 사용자가 신규**라 Confirm sign up만 타게 된다. 이것만 빠뜨리면 "Confirm your email address" 링크 메일이 가고, 앱은 6자리 코드를 기다리므로 로그인이 불가능하다. (2026-09-01 실제로 이 증상 발생)
+초기에는 **모든 사용자가 신규**라 Confirm sign up만 타게 된다. 이것만 빠뜨리면 "Confirm your email address" 링크 메일이 가고, 앱은 인증번호를 기다리므로 로그인이 불가능하다. (2026-09-01 실제로 이 증상 발생)
 
 - [ ] Authentication → Emails → **Confirm sign up** 템플릿 교체 ← **가장 중요**
 - [ ] Authentication → Emails → **Magic Link** 템플릿 교체 (재로그인용)
@@ -48,7 +50,7 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
   - 본문:
     ```html
     <h2>온스토리 로그인 인증번호</h2>
-    <p>아래 6자리 숫자를 로그인 화면에 입력해주세요.</p>
+    <p>아래 인증번호를 로그인 화면에 입력해주세요.</p>
     <p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>
     <p>본인이 요청하지 않았다면 이 메일은 무시해도 됩니다.</p>
     ```
@@ -95,8 +97,8 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 
 ## 5. 완료 후 검증 시나리오 (E2E)
 
-- [ ] **처음 쓰는 이메일**로 `/login` → 6자리 코드 메일이 오는지 (링크 메일이 오면 Confirm sign up 템플릿 미교체)
-- [ ] **같은 이메일로 다시** `/login` → 이번에도 6자리 코드인지 (Magic Link 템플릿 확인)
+- [x] **처음 쓰는 이메일**로 `/login` → 인증번호 메일이 오는지 (링크 메일이 오면 Confirm sign up 템플릿 미교체) — 2026-09-01 통과
+- [x] **같은 이메일로 다시** `/login` → 이번에도 인증번호인지 (Magic Link 템플릿 확인) — 2026-09-01 통과
 - [ ] 시크릿 창에서 `/login` → 이메일 코드 로그인 → 남의 사이트 `/barun-electric/edit` 접근이 "수정 권한이 없어요"인지 (차단 확인)
 - [ ] 로그인 상태로 `/new` 생성 → 다른 브라우저에서 같은 계정 로그인 → 그 사이트 편집 가능한지 (owner_id 귀속)
 - [ ] 로그아웃 상태로 생성 → 같은 브라우저에서 `/login` 로그인 → 그 사이트가 계정에 귀속되는지 (anon claim)
