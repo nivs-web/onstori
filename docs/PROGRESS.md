@@ -88,13 +88,30 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 - 환경변수 이름 일치: `.env.local`의 `GEMINI_API_KEY` ↔ 코드 3곳(`lib/gemini.ts:15`, `scripts/bank-generate.ts`, `scripts/bench-image.mjs`). 값 형식도 정상(따옴표·공백·개행 잔재 없음).
 - 키 자체는 유효: `models.list` 200, 이미지 모델 6종 노출.
 - 그러나 모든 생성 호출이 429 — 텍스트는 `prepayment credits are depleted`(선불 크레딧 소진), 이미지는 `FreeTier limit: 0`(크레딧 소진 후 무료 티어로 강등된 결과).
-- **[확정] 계정 불일치**: 키의 프로젝트(`project-e8a34e87-a445-4701-af4`)는 `info@nivs.com` 소속이 **아니다** — AI Studio "프로젝트 가져오기"에서 검색 시 "일치하는 프로젝트 없음"(이 계정의 다른 Cloud 프로젝트 mylibrary-family·croft-coffee 등은 정상 노출됨). 이 계정의 AI Studio에는 결제 계정이 없고 키도 `…tf1w`(Default Gemini Project, 제한됨) 하나뿐.
-- Cloud Console 직접 확인은 재인증(비밀번호) 요구로 미실시. `info@nivs.com`은 Workspace 조직 관리 계정("조직에서 본인 확인") — 결제·API에 조직 정책이 걸릴 수 있음.
+### [근본 원인 확정] Google Cloud 무료 체험판 계정
 
-**방침(권장): 미상 계정을 추적하지 말고 사업용 계정에서 키를 새로 발급.** 지금이 교체 최적기(유료 고객 0, 키 사용처가 `.env.local`+Vercel뿐). 사업 자산인 API 키는 본인이 결제·모니터링·폐기할 수 있는 계정에 있어야 한다.
-순서: ① 사업용 계정 확정 → ② AI Studio 결제 설정 + 선불 충전 → ③ 새 키 발급 → ④ `.env.local` **및 Vercel 환경변수(Production)** 교체 → ⑤ 구 키(`…TIaA`) 폐기 → ⑥ `scripts/gemini-preflight.ts` 통과 → ⑦ `bank-generate --limit 5`.
+키의 프로젝트 `project-e8a34e87-a445-4701-af4`("My First Project")는 **`jachung18@gmail.com`** 소속이 맞다(`info@nivs.com` 아님 — 그 계정에선 검색 결과 없음). AI Studio 키 목록에 안 보였던 건 **AI Studio로 "가져오기" 하지 않은 프로젝트**라서.
 
-참고: Vertex AI(`aiplatform.googleapis.com`, 서비스 계정 인증)로 가면 선불 크레딧이 아니라 일반 GCP 후불 결제를 쓸 수 있으나 **엔드포인트·인증·모델명이 모두 달라 코드 변경 필요**. 현 코드는 Gemini API(`?key=`) 전제이므로 P5 이후로 미룰 것.
+Cloud Console에서 확인한 결제 상태:
+
+| 항목 | 값 |
+|---|---|
+| 결제 계정 유형 | **무료 체험판 계정** |
+| 무료 체험판 크레딧 | ₩435,523 (총액 = 잔액, **한 푼도 안 씀**) |
+| 남은 기간 | 90일 · 종료 2026-12-01 |
+| 누적 청구액 | ₩0 |
+
+**핵심: GCP 무료 체험판 크레딧은 Gemini API(`generativelanguage.googleapis.com`) 유료 등급에 쓸 수 없다.** 콘솔 안내문 그대로 "유료 Cloud Billing 계정으로 업그레이드하지 않는 한 요금이 청구되지 않는다" = 유료 호출 자체가 불가. 그래서 API는 선불 잔액 0으로 보고 `prepayment credits are depleted`를 반환한다. 크레딧이 "소진"된 게 아니라 **애초에 Gemini API용 잔액이 0**인 것.
+
+**해결 경로(권장): AI Studio `Default Gemini Project`(gen-lang-client-0603984488)에 결제를 붙인다.**
+`jachung18@gmail.com` AI Studio에 이미 가져와져 있고 키 3개(`…RSuw`/`…rXZw`/`…b4Tw`)가 있으나 전부 **무료 등급**. 여기에 결제 설정 + 선불 충전 → 그 프로젝트 키를 `.env.local`·Vercel에 넣으면 끝. 90일 뒤 만료되는 체험판 프로젝트에 프로덕션을 묶지 않는 이점도 있다.
+대안(현 키 `…TIaA` 유지): 체험판 → 유료 업그레이드 + AI Studio로 프로젝트 가져오기 + 선불 충전 3단계.
+
+**비용 감각**: 500장 웨이브 실비는 flash 기준 ~$20, pro 기준 ~$67. 크레딧 아끼려고 스택을 바꿀 규모가 아니다.
+**Vertex AI 전환은 보류**: GCP 크레딧(₩435,523)을 이미지 생성에 쓸 가능성은 있으나 엔드포인트·인증(서비스 계정)·모델명이 모두 달라 코드 변경 필요. 사장님이 만든 `onstori-gemini-sa`는 이 경로용으로 보인다. 비용이 실제로 커지면(월 수십 달러) 그때 검토.
+
+**충전 후 순서**: `.env.local`(+ Vercel Production) 키 확인 → `scripts/gemini-preflight.ts` 통과 → `bank-generate --limit 1` → `--limit 5` → 벤치 → 500장.
+**업그레이드 직후 `예산 및 알림` 설정 권장** — 체험판 보호막이 사라지므로.
 
 참고: Gemini API 키는 서비스 계정에 바인딩되는 자격증명이 아니다(서비스 계정은 Vertex AI의 OAuth/JSON 방식). `?key=` 방식은 프로젝트 귀속 API 키다 — 키 발급 위치를 다시 확인할 것.
 
