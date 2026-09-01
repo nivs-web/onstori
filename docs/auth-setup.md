@@ -40,7 +40,44 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
     <p>본인이 요청하지 않았다면 이 메일은 무시해도 됩니다.</p>
     ```
   - `{{ .ConfirmationURL }}` 링크는 필요 없음
-- [ ] 참고: 기본(내장) SMTP는 시간당 발송 제한이 매우 낮아 테스트용. **실사용 전 커스텀 SMTP(Resend 등) 연결 검토** — 공개 홍보 전 결정
+- ⚠ **템플릿 편집은 커스텀 SMTP를 붙여야 열린다.** 아래 4-1을 먼저 할 것.
+
+## 4-1. 커스텀 SMTP = Resend (무료 티어)
+
+기본(내장) SMTP는 **시간당 2통**이라 테스트도 안 되고 템플릿 편집도 잠긴다. Resend 무료 티어(월 3,000통 / 일 100통 / 도메인 3개)면 초기 규모에 충분하다.
+
+**① Resend 가입 + 도메인 인증**
+- [ ] https://resend.com 가입
+- [ ] Domains → Add Domain → `onstori.com`
+- [ ] 화면에 뜨는 DNS 레코드(SPF TXT · DKIM TXT · MX)를 **onstori.com의 DNS에 추가**
+  - 도메인이 Vercel에 붙어 있으니 네임서버가 어디인지부터 확인(Vercel DNS인지 등록기관인지)
+  - 전파에 보통 몇 분~1시간. Resend 화면이 **Verified**로 바뀌어야 다음 단계
+- 루트 도메인(`onstori.com`)으로 인증하면 발신 주소가 `noreply@onstori.com`이 되어 신뢰도가 높다. 나중에 이 도메인에 Google Workspace 등 메일을 붙이면 **SPF 레코드를 병합**해야 한다(TXT 2개 두면 안 됨)
+
+**② API 키 발급**
+- [ ] API Keys → Create API Key → 권한 **Sending access**
+- [ ] `re_`로 시작하는 키 복사 — 이게 SMTP 비밀번호다. **저장소·문서에 쓰지 말 것**(불변 규칙 6), Supabase 대시보드에만 입력
+
+**③ Supabase SMTP 설정** — https://supabase.com/dashboard/project/wpsrfjqfbhmeriscdacu/auth/smtp
+
+| 항목 | 값 |
+|---|---|
+| Enable Custom SMTP | 켜기 |
+| Sender email | `noreply@onstori.com` (인증한 도메인이어야 함) |
+| Sender name | `온스토리` |
+| Host | `smtp.resend.com` |
+| Port | `465` (암호화 즉시 연결). STARTTLS를 쓰려면 `587` |
+| Username | `resend` ← 계정 이메일이 아니라 이 리터럴 문자열 |
+| Password | 위 `re_...` API 키 |
+
+**④ 발송 한도 올리기 (놓치기 쉬움)**
+- [ ] 커스텀 SMTP를 붙이면 Supabase가 평판 보호용으로 **시간당 30통**으로 묶는다
+- [ ] Authentication → Rate Limits에서 필요한 값으로 상향. 초기엔 30통도 충분하지만 당근 홍보로 가입이 몰리면 막힌다
+
+**⑤ 확인**
+- [ ] SMTP 저장 후 `/login`에서 본인 이메일로 인증번호 받아보기
+- [ ] 위 4의 템플릿 편집 화면이 열리는지 (SMTP 연결 후 잠금 해제)
+- [ ] 메일이 스팸함으로 가면 DKIM·SPF 인증 상태부터 재확인
 
 ## 5. 완료 후 검증 시나리오 (E2E)
 
