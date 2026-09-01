@@ -1,9 +1,10 @@
 /**
- * 이미지뱅크 배치 생성 — 고품질·비중복 파이프라인
+ * 이미지뱅크 배치 생성 — 고품질·비중복 파이프라인 (Vertex AI 경유, GCP 크레딧 사용)
  * 실행: npx tsx --env-file=.env.local scripts/bank-generate.ts [옵션]
+ *   사전조건: GOOGLE_CLOUD_PROJECT · GOOGLE_SERVICE_ACCOUNT_JSON — docs/vertex-setup.md
  *   --limit 5             [필수] 이 실행에서 허용할 최대 API 호출(=과금) 수. 처음은 5로 돌려
  *                         결과 확인 후 늘릴 것. 중복 스킵도 호출은 과금되므로 등록 장수가 아니라 호출 수를 제한.
- *   --model gemini-3-pro-image | gemini-3.1-flash-image  (기본 3.1-flash-image)
+ *   --model gemini-3-pro-image | gemini-3.1-flash-image  (기본 3.1-flash-image, Vertex 게시자 모델 ID)
  *   --count 20            생성 목표 장수 (뱅크 등록 기준 — limit보다 먼저 차면 거기서 종료)
  *   --cost 0.039          장당 예상 단가 USD (기본: 모델별 추정표 — 실제 단가 확인 후 조정)
  *   --industries interior,cafe   (기본: 전체 14)
@@ -19,6 +20,7 @@
 import sharp from "sharp";
 import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { vertexGenerate, imageOf } from "../lib/vertex";
 import { buildPrompt, INDUSTRY_SCENES, VARIATIONS } from "../config/bank-prompts";
 import { INDUSTRIES } from "../config/industries";
 
@@ -52,7 +54,6 @@ const COST_TABLE: Record<string, number> = {
 const COST = parseFloat(arg("cost", String(COST_TABLE[MODEL] ?? 0.05)));
 const MAX_CONSEC_FAILS = 5;
 
-const key = process.env.GEMINI_API_KEY!;
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
 /* dHash 64bit — 9x8 그레이스케일 인접 비교 */
@@ -69,16 +70,20 @@ function hamming(a: string, b: string): number {
 }
 
 async function generateOne(prompt: string): Promise<{ buf: Buffer } | { err: string; quota?: boolean }> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ["IMAGE"] } }),
+  const r = await vertexGenerate(MODEL, {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { responseModalities: ["IMAGE"] },
   });
-  if (res.status === 429) return { err: "quota", quota: true };
-  const data = await res.json().catch(() => null);
-  const b64 = data?.candidates?.[0]?.content?.parts?.find((p: { inlineData?: { data: string } }) => p.inlineData)?.inlineData?.data;
-  if (!b64) return { err: `no-image (${res.status} ${data?.error?.message?.slice(0, 100) ?? data?.candidates?.[0]?.finishReason ?? ""})` };
-  return { buf: Buffer.from(b64, "base64") };
+  if (!r.ok) {
+    if (r.status === 429) return { err: "quota", quota: true };
+    return { err: `HTTP ${r.status} ${r.error.slice(0, 120)}` };
+  }
+  const buf = imageOf(r.data);
+  if (!buf) {
+    const reason = (r.data as { candidates?: { finishReason?: string }[] })?.candidates?.[0]?.finishReason;
+    return { err: `no-image (${reason ?? "unknown"})` };
+  }
+  return { buf };
 }
 
 async function main() {

@@ -43,3 +43,11 @@ next-env.d.ts
 # db dumps
 backups/
 next-start.log
+
+# GCP 서비스 계정 키 (절대 커밋 금지 — .env.local/Vercel 환경변수로만)
+*-service-account*.json
+gcp-key*.json
+*.sa.json
+
+# 이미지 벤치 산출물
+bench-out/

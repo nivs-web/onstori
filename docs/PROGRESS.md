@@ -106,13 +106,31 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 **핵심: GCP 무료 체험판 크레딧은 Gemini API(`generativelanguage.googleapis.com`) 유료 등급에 쓸 수 없다.** 콘솔 안내문 그대로 "유료 Cloud Billing 계정으로 업그레이드하지 않는 한 요금이 청구되지 않는다" = 유료 호출 자체가 불가. 그래서 API는 선불 잔액 0으로 보고 `prepayment credits are depleted`를 반환한다. 크레딧이 "소진"된 게 아니라 **애초에 Gemini API용 잔액이 0**인 것.
 
-**남은 작업 (사장님 — 결제 행위라 대행 불가)**: AI Studio → 결제 → **`선불 결제 설정`** 클릭 → 카드 등록 + 충전. 그 다음 같은 화면의 `프로젝트 0개` 드롭다운에서 프로젝트를 연결한다.
+**→ 이 경로는 폐기.** 선불 충전 대신 **Vertex AI로 이관**해 보유 크레딧을 쓰기로 결정 (아래).
 
-연결할 프로젝트 선택 — **먼저 `My First Project`(project-e8a34e87…)가 목록에 있는지 볼 것.**
-- 있으면 그걸 연결 → 현 키 `…TIaA` 그대로 동작, **`.env.local`·Vercel 무수정** (최소 작업)
-- 없으면 `Default Gemini Project`(gen-lang-client-0603984488) 연결 → 그 프로젝트 키(`…RSuw`/`…rXZw`/`…b4Tw` 중 1개)로 `.env.local` **및 Vercel Production** 교체
+---
 
-충전액은 소액부터 — 500장 웨이브 실비가 flash ~$20 / pro ~$67이라 $30~50이면 충분.
+## Vertex AI 이관 (2026-09-01) — 코드 완료, 콘솔 설정 대기
+
+Gemini API의 선불 크레딧을 사서 쓰는 대신, GCP 크레딧 **₩435,523**(업그레이드 후에도 이월 확인, **2026-12-01 만료**)을 쓰기 위해 접근 경로를 Vertex AI로 교체. 결정 이유·리스크는 DECISIONS 2026-09-01.
+
+**코드 (완료)**
+
+| 무엇 | 어디 |
+|---|---|
+| Vertex 전송 계층 — 서비스 계정 토큰(캐시) + generateContent + 텍스트/이미지 파트 추출 | `lib/vertex.ts` (신설) |
+| 텍스트 호출 이관 — `geminiJson()` **시그니처·폴백·zod 계약 그대로**, 전송만 Vertex | `lib/gemini.ts` (`lib/generate.ts`는 무수정) |
+| 이미지 배치 생성 이관 (안전장치 3종 유지) | `scripts/bank-generate.ts` |
+| 이미지 벤치 — mjs→ts 이관 (Vertex 사용 위해) | `scripts/bench-image.ts` (`bench-image.mjs` 삭제) |
+| 프리플라이트 교체 — env→토큰→텍스트 순 확인, `--image`로 **실제 되는 이미지 모델 ID 판별** | `scripts/vertex-preflight.ts` (`gemini-preflight.ts` 삭제) |
+| 서비스 계정 키 커밋 방지 패턴 + `bench-out/` | `.gitignore` |
+
+검증: `npm run build` + `tsc --noEmit` 통과, 프리플라이트·`--dry` 실행 정상(env 미설정을 정확히 보고). **실호출 검증은 콘솔 설정 후.**
+
+**차단 — 콘솔 설정 (운영자 담당, `docs/vertex-setup.md` 체크리스트)**
+① Vertex AI API 사용 설정 ② `onstori-gemini-sa`에 `roles/aiplatform.user` ③ JSON 키 발급 ④ `.env.local` 3개 변수 ⑤ **Vercel Production 동일 3개** ⑥ 프리플라이트 → `--image` → `bank-generate --limit 1`
+
+**⚠ 첫 호출 후 반드시 확인**: 비용 리포트에서 Vertex 사용분에 크레딧이 실제로 적용됐는지. 체험판 크레딧은 "특정 사용량에 적용"이라 범위 제한 가능성 — 카드로 청구되면 500장 웨이브 전에 방침 재검토.
 
 **비용 감각**: 500장 웨이브 실비는 flash 기준 ~$20, pro 기준 ~$67. 크레딧 아끼려고 스택을 바꿀 규모가 아니다.
 **Vertex AI 전환은 보류**: GCP 크레딧(₩435,523)을 이미지 생성에 쓸 가능성은 있으나 엔드포인트·인증(서비스 계정)·모델명이 모두 달라 코드 변경 필요. 사장님이 만든 `onstori-gemini-sa`는 이 경로용으로 보인다. 비용이 실제로 커지면(월 수십 달러) 그때 검토.
@@ -212,6 +230,6 @@ E2E 검증됨: 운영자 로그인 → `/barun-electric/edit` 수정·발행·�
 
 | 항목 | 상태 | 풀리면 할 일 |
 |---|---|---|
-| **Gemini 선불 크레딧 충전** | **차단 — 크레딧 소진(2026-09-01 확인).** 키(`GEMINI_API_KEY`, `…TIaA`)는 유효(models.list 200)하나 텍스트·이미지 모두 429 `prepayment credits are depleted`. 텍스트도 이제 안 됨(무료 티어 때와 다른 상태). 아래 "Gemini 크레딧" 절 참조 | 충전 → `npx tsx --env-file=.env.local scripts/gemini-preflight.ts` 통과 확인 → `bank-generate --limit 5`로 소량 검증 → 3-pro vs 3.1-flash 벤치 10장 → `/admin/bank` 검수 → 승자 모델로 500장 웨이브 |
+| **Vertex AI 콘솔 설정** | **차단 — 코드는 이관 완료, 설정 대기.** GCP 유료 업그레이드·크레딧 이월(₩435,523)까지 확인됨. `docs/vertex-setup.md` 6단계 | API 사용 설정 → SA 역할 → JSON 키 → `.env.local`+Vercel → `scripts/vertex-preflight.ts` → `--image`로 모델 판별 → `bank-generate --limit 1` → 벤치 → `/admin/bank` 검수 → 500장 웨이브 |
 | **통신판매업 신고 + 토스페이먼츠 가맹** | 미착수 | P5(결제) 착수 조건. 1개월 무료 종료 시점에 첫 결제가 발생하므로 지금 시작해야 타이밍 맞음 |
 | **당근 비즈프로필 개설 + 홍보글 게시** | 보류 (사용자 결정) | `docs/presale.md`의 글 초안·응대 템플릿 사용. 게이트: 사진 수신 5건/2주 → P3 확정, 유료 전환 30% → P5 |
