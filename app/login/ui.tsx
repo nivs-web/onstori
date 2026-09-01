@@ -50,17 +50,13 @@ export function LoginUi() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function kakao() {
+  /** 카카오는 서버 라우트가 시작한다 — Supabase 프로바이더는 account_email 스코프 때문에 KOE205로 막힌다(lib/kakao.ts) */
+  function kakao() {
     setBusy(true);
     setErr("");
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "kakao",
-      options: { redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
-    });
-    if (error) {
-      setBusy(false);
-      setErr("카카오 로그인을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
-    }
+    // 페이지가 아니라 서버 리다이렉트를 내는 Route Handler로 나가야 해서 클라이언트 라우터를 쓸 수 없다
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    location.href = `/auth/kakao?next=${encodeURIComponent(next)}`;
   }
 
   async function sendCode(e: React.FormEvent) {
