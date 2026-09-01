@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-01 · Vercel→Vertex 인증용 **서비스 계정 키를 임시로 발급**하고 조직 정책(`iam.disableServiceAccountKeyCreation`, 상위 조직 상속·적용 중) 예외를 프로젝트 단위로 사용 · 오늘 배포를 막지 않기 위한 한시 조치. **WIF 전환 시 이 키는 폐기 예정** — 전환 완료 시 ① 정책 예외 해제 ② 키 삭제 ③ Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거. 백로그는 PROGRESS "P5 진입 전 검토" 항목(예상 2~3시간)
+
 - 2026-09-01 · [실측 확정] 이미지 모델 **역할별 병행**: 히어로=`gemini-3-pro-image`, 그 외(갤러리·시공사례·about·process)=`gemini-3.1-flash-image` · 동일 프롬프트 히어로 5쌍 + 갤러리 1쌍 실측 결과. **Pro는 화면 한쪽을 비우는 구도**를 반복 생성 — 히어로엔 상호명·헤드라인이 얹히므로 여백이 곧 실용성. **Flash는 프롬프트 이행이 정확**("매입 천장등" 지시에서 조명을 주인공으로) 하고 프레임을 꽉 채워 갤러리에 적합. 설계서 2026-08-31 원안과 같은 배치이나 이번엔 근거가 있음. 비용($0.134 vs $0.039)은 히어로가 소수라 결정 변수 아님. 리포트: https://claude.ai/code/artifact/3cbb3ccb-fe41-4ce2-8fc3-7b48e1313c09
 - 2026-09-01 · 로컬 Vertex 인증은 서비스 계정 키가 아니라 **ADC**(`gcloud auth application-default login`) · 장기 자격증명 파일을 만들지 않는 편이 안전. `lib/vertex.ts`는 ADC 우선, `GOOGLE_SERVICE_ACCOUNT_JSON` 있으면 그걸 사용(ADC가 안 되는 Vercel용). gcloud 바이너리가 PATH에 없어 `getProjectId()`가 실패하므로 ADC 파일의 `quota_project_id`를 폴백으로 읽음
 - 2026-09-01 · [중대] AI 접근 경로를 Gemini API(`?key=`) → **Vertex AI(서비스 계정 인증)**로 이관 · 이 지역 Gemini API는 GCP 결제와 별개인 **선불 크레딧 충전**을 요구해서, 보유한 GCP 무료 체험판 이월 크레딧 ₩435,523(2026-12-01 만료)이 놀게 됨. Vertex는 일반 GCP 결제라 크레딧 소진 가능. 벤더는 여전히 Gemini 모델(2026-08-31 결정 유지) — 바뀐 건 전송·인증 계층뿐. `lib/vertex.ts` 신설, `geminiJson()` 시그니처 유지해 `lib/generate.ts`는 무수정. **리스크: 체험판 크레딧은 "특정 사용량에 적용"이라 Vertex 적용 여부는 첫 비용 리포트로 확인해야 함** — 크레딧이 안 붙으면 500장 웨이브 전에 재검토 (docs/vertex-setup.md 7절)

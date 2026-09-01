@@ -333,6 +333,24 @@ v1 활성 범위는 **시공·출장 12업종 + 카페·식당 2업종 = 14종**
 - 결과적으로 엉뚱한 템플릿·이미지·진행단계가 붙은 사이트가 만들어질 수 있다. 당근 홍보로 불특정 업종이 들어오기 시작하면 바로 드러날 문제.
 - **결정이 필요한 지점**: (a) 저확신·범위 밖이면 되묻기 UI를 띄울지 (b) "아직 지원하지 않는 업종입니다" 안내로 막을지 (c) 범용 템플릿으로 받아줄지. **사장님 판단 필요 — 사업 범위 문제라 코드로 정할 수 없다.**
 
+### 백로그 — P5(결제) 진입 전 검토: 장기 키 대신 WIF로 전환 (예상 2~3시간)
+
+Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Workload Identity Federation으로** 옮긴다.
+
+**왜**: 조직 정책 `iam.disableServiceAccountKeyCreation`이 상위 조직에서 상속·적용 중인데, 지금은 **프로젝트 단위 예외로 그 정책을 끄고** 키를 만들어 쓰는 상태다. 정책의 취지(장기 키 금지)를 우회한 것이라 부채로 남는다. WIF는 키를 아예 만들지 않는다.
+
+**방식**: Vercel OIDC → GCP STS → **기존 `onstori-gemini-sa` 가장(impersonation)**. 키 파일 불필요, 정책 예외도 되돌릴 수 있다. 오늘 부여한 `roles/aiplatform.user`를 그대로 재사용한다. Vercel에 넣는 값은 전부 비밀이 아니다(프로젝트 번호·SA 이메일·풀/프로바이더 ID).
+
+**코드**: `lib/vertex.ts`의 `auth()`를 `getAuthClient(): Promise<AuthClient>`로 바꾸고 분기 3개(WIF → SA JSON → 로컬 ADC). `ExternalAccountClient.fromJSON({ ..., subject_token_supplier: { getSubjectToken: getVercelOidcToken } })` — **`google-auth-library`가 이미 지원**하므로 새 인증 라이브러리 불필요. 추가 의존성은 `@vercel/oidc` 하나. 약 40줄. 로컬 ADC 흐름은 그대로.
+
+**시간**: GCP 콘솔 30~45분 + Vercel 설정 10~15분 + 코드 30~45분 + 배포·디버깅 30~60분 = **2~3시간**. 난이도 중 — 코드는 쉽고 공식 예제가 있으나 STS 오류 메시지가 불친절하고 로컬 재현이 어려워 프리뷰 배포로 반복해야 한다. subject 문자열이 `owner:ianworld:project:onstori-pwk2:environment:production`으로 정확히 맞아야 한다.
+
+**착수 전 확인**: 조직에 `iam.workloadIdentityPoolProviders`(허용 발급자 제한) 정책이 걸려 있는지. 걸려 있으면 Vercel 발급자를 허용 목록에 넣어야 한다.
+
+**전환 완료 시 되돌릴 것**: ① 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제 ② 발급했던 SA 키 삭제 ③ Vercel의 `GOOGLE_SERVICE_ACCOUNT_JSON` 제거.
+
+참고: [Vercel OIDC](https://vercel.com/docs/oidc) · [Vercel→GCP(Vertex 예제 포함)](https://vercel.com/docs/oidc/gcp)
+
 ### 그 외
 
 - `app/api/generate/route.ts` — **rate limit 없음** (LLM 호출 API가 무방비). P9 예정이지만 공개 홍보 전에 최소한의 IP 제한 필요.
