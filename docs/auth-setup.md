@@ -20,7 +20,7 @@ Supabase 프로젝트: https://supabase.com/dashboard/project/wpsrfjqfbhmeriscda
 - [x] 보안 탭 → **Client Secret** 생성·활성화
 - [x] 제품 설정 → 카카오 로그인 **활성화(ON)**
 - [x] 제품 설정 → 카카오 로그인 → **OpenID Connect 활성화(ON)** ← **새로 필요.** 없으면 `scope=openid`가 거부돼 id_token이 안 나온다
-- [x] Redirect URI **추가** ← **새로 필요.** 이제 카카오가 우리 도메인으로 직접 돌려보낸다
+- [x] Redirect URI **추가** ← **새로 필요.** 이제 카카오가 우리 도메인으로 직접 돌려보낸다 (2026-09-01 프로덕션 실로그인으로 등록 실증)
   - `https://onstori.com/auth/callback`
   - `http://localhost:3000/auth/callback` (로컬 테스트용)
   - 기존 `https://wpsrfjqfbhmeriscdacu.supabase.co/auth/v1/callback`은 지우지 않아도 무해

@@ -136,6 +136,8 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 
 프로덕션(onstori.com) 실로그인: 도착지 `/`(error 없음) · `last_sign_in_at` 갱신 · `iss=kauth.kakao.com` · 중복 계정 없음 · `/login?next=/{slug}/edit` → 에디터 진입 성공. 이 성공 한 번이 Redirect URI 등록·`KAKAO_CLIENT_SECRET` 주입·OIDC 활성화 3가지를 동시에 증명한다(각각 실패하면 KOE006 / KOE010 / scope 거부).
 
+재확인(2026-09-01 07:50Z, 카카오 콘솔에 `https://onstori.com/auth/callback` 저장 확정 후): `/login?next=%2Fmy` → 카카오 → 동의 재요청 없이 `/my` 착지 · `sb-*` 쿠키 2개 · `last_sign_in_at` 갱신 · `iss=kauth.kakao.com` · 사용자 3명 그대로(중복 없음). **프로덕션 Redirect URI 등록이 실증됐다** — 미등록이면 콜백에서 KOE006으로 끊긴다. 참고: 카카오는 redirect_uri·scope 오류를 로그인 화면 *다음*에 내므로 등록 여부는 프로브가 아니라 실로그인으로만 확인된다.
+
 배포 중 겪은 것: 푸시 직후 프로덕션 `/auth/kakao`가 `?error=auth`로 되돌아왔다 — **Vercel 환경변수는 배포 시점에 주입**되므로 변수만 저장하고 재배포하지 않으면 반영되지 않는다. Redeploy 후 해결.
 
 로컬 실로그인 상세:
@@ -166,6 +168,8 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 **로그아웃에 API 라우트를 만들지 않았다.** `@supabase/ssr`는 세션 쿠키를 httpOnly 없이 심으므로(`DEFAULT_COOKIE_OPTIONS.httpOnly === false` — 브라우저 클라이언트가 읽어야 하니까) `sbBrowser().auth.signOut()`으로 지워진다. 이후 `router.refresh()`로 헤더(서버 컴포넌트)를 다시 그린다.
 
 E2E 검증(로컬 실동작): 비로그인 헤더=로그인 버튼 → `/login?next=%2Fmy` → 로그인 후 `/my` 착지 → 소유 사이트 4건 목록·편집 링크 정상 → 헤더가 "마이페이지"로 전환 → 로그아웃 시 `/`로 이동 + `sb-*` 쿠키 삭제 + 헤더 복귀 → 비로그인 `/my` 직접 접근은 서버에서 리다이렉트. 사이트 0건 빈 상태는 코드에만 있고 미확인(테스트 계정이 4건 보유).
+
+프로덕션 검증(2026-09-01 배포 후): 비로그인 `/my` → `307 /login?next=%2Fmy` · 비로그인 홈 헤더에 로그인 버튼 · 카카오 로그인 → `/my` 목록 4건 · 홈 헤더가 `link "마이페이지" href="/my"`로 전환. 관찰(미해결): 프로덕션 `/login`에서 콘솔에 `403`이 한 번 찍혔다 — 네트워크 기록에서 요청을 특정하지 못했고 페이지·로그인은 정상 동작. 세션 없는 상태의 Supabase 사용자 조회로 추정하나 확인 못 함. 반복되면 그때 확인할 것.
 
 ### P4 남은 코드 작업
 
