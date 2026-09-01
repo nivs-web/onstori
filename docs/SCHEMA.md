@@ -2,6 +2,8 @@
 
 > **규칙**: 이 문서 · `lib/schema.ts`(zod) · `components/sections/*`(렌더러) · 에디터 폼은 같은 약속의 네 표현이다.
 > 섹션을 바꾸는 커밋은 반드시 4곳을 함께 바꾼다. (CLAUDE.md 불변 규칙 2)
+>
+> ⚠ **이미지를 담는 필드를 추가하면 `lib/image-usage.ts`도 같이 고칠 것** — 아래 "이미지 필드와 사용 중 판정" 참조.
 
 ## 상태
 
@@ -161,3 +163,35 @@ VISIT 전용: `hoursCard` `menuPrice`
   ]
 }
 ```
+
+---
+
+## 이미지 필드와 "사용 중" 판정
+
+`lib/image-usage.ts`의 `loadImageUsage()`는 **발행본(`sites.published`)의 섹션을 훑어** "이 이미지를 지금 어느 사이트가 쓰는가"를 만든다. 어드민의 사용 중 배지와 `pickImage`의 히어로 중복 방지가 이 한 곳을 공유한다.
+
+훑는 필드는 아래 3개뿐이다:
+
+| 섹션 | 필드 | 판정 role |
+|---|---|---|
+| hero | `image` | `hero` |
+| gallery | `photos[]` | `gallery` |
+| portfolioGallery | `items[].image` | `portfolio` |
+
+- **draft는 세지 않는다.** 아직 손님에게 안 나간 상태라서. 발행해야 "사용 중"이 된다.
+- **누적이 아니라 현재 상태**다. 사장님이 히어로를 다른 사진으로 바꾸고 발행하면 이전 이미지는 자동으로 다시 후보가 된다 (`used_count`와 별개).
+- ⚠ **이미지를 담는 섹션·필드를 새로 만들면 `refsInSection()`에 추가해야 한다.** 빠뜨리면 그 이미지는 "안 쓰이는 것"으로 잘못 집계돼 히어로가 겹칠 수 있다.
+
+## 이미지뱅크 카탈로그 (`image_bank`) — 섹션 스키마 밖
+
+사이트 JSON이 아니라 DB 테이블이지만, 위 판정·매칭과 맞물리므로 관련 필드만 적는다. 정의는 `supabase/migrations/20260831150000_image_bank.sql` + `20260831190000_bank_quality.sql`.
+
+| 필드 | 타입 | 쓰임 |
+|---|---|---|
+| industry / mood / role | text | `pickImage` 1차 매칭 키. role은 `hero\|about\|gallery\|process` |
+| `tags` | `text[]` (기본 `'{}'`) | **자유 태그**(예: `베이커리`, `브런치`). 생성 시 업체명+소개 문장에 태그가 포함되면 그 이미지를 우선 선택. 빈 배열이면 기존과 동일하게 동작 — 태그 없는 이미지도 정상 후보다 |
+| `quality_ok` | boolean\|null | null=검수 대기, true=승인(매칭 대상), false=거부 |
+| `quality_score` | int 0~100 | 매칭 1순위 정렬 |
+| `used_count` | int | 매칭 2순위 정렬(적게 쓰인 것 우선). **hero 중복 방지는 이 값이 아니라 위 "사용 중" 판정을 쓴다** |
+
+`tags`는 처음부터 있던 컬럼이라 이번 작업에 마이그레이션이 필요 없었다.

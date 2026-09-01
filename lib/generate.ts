@@ -86,7 +86,8 @@ export async function generateSite(input: GenerateInput) {
   const cat = categoryOf(industry);
   const [copy, heroImage] = await Promise.all([
     generateCopy(input, industry),
-    pickImage(industry.id, input.mood, "hero"), // 뱅크 승인 이미지 우선, 없으면 플레이스홀더
+    // 뱅크 승인 이미지 우선, 없으면 플레이스홀더. text는 태그 매칭 가중치용(예: "브런치" 태그 ↔ 소개 문장)
+    pickImage(industry.id, input.mood, "hero", { text: `${input.businessName} ${input.oneLiner}` }),
   ]);
 
   const sections: SiteDocT["sections"] = [

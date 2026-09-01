@@ -21,28 +21,3 @@ export function AdminLogin() {
     </main>
   );
 }
-
-export function BankCardActions({ id, ok, score }: { id: string; ok: boolean | null; score: number }) {
-  const [state, setState] = useState<{ ok: boolean | null; score: number }>({ ok, score });
-  const [busy, setBusy] = useState(false);
-  async function patch(p: Record<string, unknown>) {
-    setBusy(true);
-    const r = await fetch("/api/admin/bank", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...p }) });
-    if (r.ok) setState((s) => ({ ...s, ...(p as typeof state) }));
-    setBusy(false);
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <button disabled={busy} onClick={() => patch({ quality_ok: true })}
-        className={`rounded-full px-2.5 py-1 font-semibold ${state.ok === true ? "bg-green-600 text-white" : "border border-neutral-300"}`}>승인</button>
-      <button disabled={busy} onClick={() => patch({ quality_ok: false })}
-        className={`rounded-full px-2.5 py-1 font-semibold ${state.ok === false ? "bg-red-500 text-white" : "border border-neutral-300"}`}>거부</button>
-      <select disabled={busy} value={state.score} onChange={(e) => patch({ quality_score: Number(e.target.value) })}
-        className="rounded-full border border-neutral-300 px-2 py-1">
-        {[90, 70, 50, 30].map((v) => <option key={v} value={v}>{v}점</option>)}
-      </select>
-      <button disabled={busy} onClick={() => { if (confirm("이미지를 목록에서 제거할까요?")) patch({ deleted: true, quality_ok: false }); }}
-        className="rounded-full border border-neutral-300 px-2.5 py-1 text-neutral-400">삭제</button>
-    </div>
-  );
-}
