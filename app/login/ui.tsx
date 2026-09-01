@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { sbBrowser } from "@/lib/supabase/browser";
 
@@ -88,7 +89,7 @@ export function LoginUi() {
 
   return (
     <main className="mx-auto w-full max-w-sm px-6 py-20">
-      <a href="/" className="text-sm font-bold" style={{ color: "var(--accent)" }}>온스토리</a>
+      <Link href="/" className="text-sm font-bold" style={{ color: "var(--accent)" }}>온스토리</Link>
       <h1 className="mt-4 text-2xl font-bold tracking-tight">로그인</h1>
       <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
         로그인하면 내 홈페이지를 어느 기기에서든 수정할 수 있어요.
