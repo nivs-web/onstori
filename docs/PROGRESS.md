@@ -132,7 +132,13 @@ Resend SMTP + 템플릿 2종 교체 후 실측. **신규·기존 두 경로 모�
 
 **Supabase 카카오 프로바이더는 계속 켜둬야 한다** — id_token의 `aud`를 프로바이더 Client ID와 대조한다.
 
-**E2E 통과 (2026-09-01, 로컬 실로그인).**
+**E2E 통과 (2026-09-01) — 로컬·프로덕션 모두.**
+
+프로덕션(onstori.com) 실로그인: 도착지 `/`(error 없음) · `last_sign_in_at` 갱신 · `iss=kauth.kakao.com` · 중복 계정 없음 · `/login?next=/{slug}/edit` → 에디터 진입 성공. 이 성공 한 번이 Redirect URI 등록·`KAKAO_CLIENT_SECRET` 주입·OIDC 활성화 3가지를 동시에 증명한다(각각 실패하면 KOE006 / KOE010 / scope 거부).
+
+배포 중 겪은 것: 푸시 직후 프로덕션 `/auth/kakao`가 `?error=auth`로 되돌아왔다 — **Vercel 환경변수는 배포 시점에 주입**되므로 변수만 저장하고 재배포하지 않으면 반영되지 않는다. Redeploy 후 해결.
+
+로컬 실로그인 상세:
 
 | 확인 | 결과 |
 |---|---|
