@@ -13,7 +13,8 @@
 - Next.js (App Router, TS, Tailwind) 단일 앱 — 배포 1개, Vercel
 - Supabase: Auth + Postgres(RLS) + Storage
 - 결제: 토스페이먼츠 (빌링키 정기결제 + 1회 결제)
-- AI: Claude API(카피·챗봇·업종 분류), 나노바나나(이미지), Seedance(히어로 무비, 수동 워크플로)
+- AI: **Vertex AI 경유 Gemini** — 텍스트(카피·업종 분류) `gemini-3.5-flash`(폴백 2.5-flash) · 이미지 히어로 `gemini-3-pro-image` / 그 외 `gemini-3.1-flash-image`. 인증은 로컬 ADC / Vercel 서비스 계정(`lib/vertex.ts`). Seedance(히어로 무비, P6 수동 워크플로)는 미착수
+  - ⚠ 설계 초안엔 "Claude API(카피)"로 적혀 있었으나 **코드에 Anthropic 의존성은 없다**(2026-09-02 확인). 의존성은 `google-auth-library` 하나
 
 ## 폴더 역할
 

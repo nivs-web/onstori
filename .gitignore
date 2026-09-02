@@ -54,3 +54,6 @@ bench-out/
 
 # 이미지뱅크 웨이브 로그 (러너 산출물)
 wave-*.log
+
+# 사업 설계도 대시보드 — prebuild 가 저장소 문서에서 매번 생성 (scripts/build-plandept.ts)
+public/onstoriplandept/

@@ -1,6 +1,6 @@
 # onstori.com — 로드맵 & 현재 위치
 
-전체 설계서(최종 기획안 v3.1)는 Claude 아티팩트 "온스토리 구축 설계서"에 있음.
+전체 설계서(최종 기획안 **v3.3**)의 원본은 이 저장소의 `docs/design/design-doc.html`이고, 같은 내용이 대시보드 `onstori.com/onstoriplandept`와 Claude 아티팩트 "온스토리 구축 설계서"에 발행된다.
 이 파일은 작업 중 참조용 요약. 갱신 규칙: Phase 전환 시 이 파일의 상태를 먼저 바꾼다.
 
 ## 제품 한 줄

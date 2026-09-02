@@ -1,0 +1,941 @@
+<title>온스토리 구축 설계서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FAFBFD;
+    --surface: #FFFFFF;
+    --ink: #1A2233;
+    --muted: #5A6478;
+    --line: #E3E8F0;
+    --accent: #2B5BD7;
+    --accent-ink: #1E43A8;
+    --accent-soft: #EBF0FC;
+    --warn: #92600A;
+    --warn-bg: #FDF4DC;
+    --ok: #15803D;
+    --ok-bg: #EAF6EE;
+    --danger: #B3261E;
+    --danger-bg: #FCEDEC;
+    --code-bg: #F1F4F9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1320;
+      --surface: #161D2E;
+      --ink: #E8ECF5;
+      --muted: #9AA5BC;
+      --line: #26304A;
+      --accent: #82A5F5;
+      --accent-ink: #A9C2FA;
+      --accent-soft: #1C2A4E;
+      --warn: #E5B458;
+      --warn-bg: #2C2410;
+      --ok: #63CE8A;
+      --ok-bg: #12291B;
+      --danger: #F2938C;
+      --danger-bg: #331512;
+      --code-bg: #1B2338;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0E1320;
+    --surface: #161D2E;
+    --ink: #E8ECF5;
+    --muted: #9AA5BC;
+    --line: #26304A;
+    --accent: #82A5F5;
+    --accent-ink: #A9C2FA;
+    --accent-soft: #1C2A4E;
+    --warn: #E5B458;
+    --warn-bg: #2C2410;
+    --ok: #63CE8A;
+    --ok-bg: #12291B;
+    --danger: #F2938C;
+    --danger-bg: #331512;
+    --code-bg: #1B2338;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1, h2, h3, h4 {
+    font-family: "IBM Plex Sans KR", "Noto Sans KR", sans-serif;
+    line-height: 1.35;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+  h2 { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+  h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; }
+  h4 { font-size: 15.5px; font-weight: 600; margin: 20px 0 6px; }
+  p { margin: 10px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .lede { font-size: 17.5px; color: var(--muted); max-width: 66ch; }
+  header.doc { padding-bottom: 28px; border-bottom: 2px solid var(--ink); margin-bottom: 8px; }
+  .meta-strip {
+    display: flex; flex-wrap: wrap; gap: 8px 20px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--muted);
+    margin-top: 18px;
+  }
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px 24px; margin: 28px 0 48px;
+  }
+  nav.toc .toc-title { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
+  nav.toc ol { margin: 0; padding-left: 0; list-style: none; columns: 2; column-gap: 36px; }
+  nav.toc li { margin: 4px 0; break-inside: avoid; font-size: 14.5px; }
+  nav.toc li .n { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); margin-right: 8px; }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } }
+  section.sec { margin: 56px 0; scroll-margin-top: 24px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 20px; }
+  .sec-head .num { font-family: "IBM Plex Mono", monospace; font-size: 14px; color: var(--accent); font-weight: 500; white-space: nowrap; }
+  .sec-sub { color: var(--muted); font-size: 14.5px; margin-top: 2px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px; margin: 14px 0; }
+  .callout { border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-size: 15px; border: 1px solid transparent; }
+  .callout .co-title { font-weight: 700; display: block; margin-bottom: 4px; }
+  .callout.warn { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .callout.ok { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+  .callout.danger { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .callout.info { background: var(--accent-soft); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .tbl-wrap { overflow-x: auto; margin: 14px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font-family: "IBM Plex Sans KR", sans-serif; font-size: 13px; letter-spacing: 0.3px; color: var(--muted); background: color-mix(in srgb, var(--line) 35%, var(--surface)); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip {
+    display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+    padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line);
+    color: var(--muted); background: var(--surface); margin: 2px 3px 2px 0; white-space: nowrap;
+  }
+  code, pre {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13.5px;
+  }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; line-height: 1.6; margin: 12px 0;
+  }
+  pre code { background: none; padding: 0; }
+  ul, ol { margin: 8px 0; padding-left: 24px; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--muted); }
+  .tight li { margin: 2px 0; }
+  .phase { display: grid; grid-template-columns: 56px 1fr; gap: 0 18px; margin: 22px 0; }
+  .phase .ph-rail { display: flex; flex-direction: column; align-items: center; }
+  .phase .ph-dot {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    background: var(--accent-soft); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 500;
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .phase .ph-line { width: 2px; flex: 1; background: var(--line); margin-top: 8px; }
+  .phase:last-of-type .ph-line { background: transparent; }
+  .phase .ph-body { padding-bottom: 8px; }
+  .phase h3 { margin-top: 6px; }
+  .ph-meta { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+  .dod {
+    border-left: 3px solid var(--ok); background: var(--ok-bg);
+    color: var(--ok); border-radius: 0 8px 8px 0;
+    padding: 8px 14px; font-size: 14px; margin-top: 10px;
+  }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .fact .f-k { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .fact .f-v { font-size: 15px; font-weight: 500; }
+  .fact .f-note { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  footer.doc-end { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="doc">
+    <div class="eyebrow">FINAL BLUEPRINT · V3.3 · 2026-09-02</div>
+    <h1>온스토리(onstori.com) 구축 설계서</h1>
+    <p class="lede">스토리가 살아있는 소상공인 홈페이지. 스토리·실적이 차곡차곡 쌓이는 구조 + 맞춤 제작 히어로 무비. <b>카테고리 7 × 템플릿 5 × 온보딩 무질문</b> 구조와 <b>게이미피케이션 기반 설계</b>를 확정한 최종 기획안.</p>
+    <div class="meta-strip">
+      <span>도메인 확정 · onstori.com/{slug} — 경로 방식</span>
+      <span>런칭 집중 업종 · 시공·출장 (인테리어 중심)</span>
+      <span>개발 · Claude Code / GitHub / Vercel / Supabase</span>
+      <span>AI · Vertex AI 경유 Gemini (텍스트·이미지)</span>
+    </div>
+  </header>
+
+  <div class="callout ok">
+    <b>현재 구축 상태 — 2026-09-02</b>
+    <p><b>P0·P1·P3·P4 완료 · P2 진행 중(잔여 1건) · P5~P9 미착수.</b> 프로덕션 <a href="https://onstori.com">onstori.com</a> 가동 중.
+    이 설계서는 <b>원안</b>이고, 착수 후 뒤집힌 결정의 단일 출처는 저장소의 <code>docs/DECISIONS.md</code>다. 둘이 어긋나면 DECISIONS가 최신이다.</p>
+    <ul class="tight">
+      <li><b>주소 체계</b> — 서브도메인 원안 → <b>경로 방식 onstori.com/{slug}</b> 전면 전환 (2026-09-01). 아래 07장은 전환 후 기준으로 갱신됨.</li>
+      <li><b>AI 접근 경로</b> — Gemini API 직접 호출 → <b>Vertex AI(서비스 계정/ADC)</b> 이관 (2026-09-01). 이유는 GCP 이월 크레딧 ₩435,523 소진. 크레딧 상쇄 실측 확인됨.</li>
+      <li><b>이미지 모델 확정</b> — 히어로 <code>gemini-3-pro-image</code>($0.134/장) · 그 외 <code>gemini-3.1-flash-image</code>($0.039/장). 동일 프롬프트 A/B 실측 근거.</li>
+      <li><b>이미지 뱅크</b> — <b>638장 전량 승인</b>(hero 124 · gallery 183 · about 167 · process 164). 네 역할 모두 생성 파이프라인에 배선 완료.</li>
+      <li><b>로그인</b> — 이메일 OTP + <b>카카오 OIDC 직결</b>(Supabase 프로바이더는 scope 하드코딩으로 KOE205 발생 → 우회). 소유권 차단·기기 간 귀속·anon claim E2E 프로덕션 통과.</li>
+      <li><b>다음</b> — P5(결제)는 <b>통신판매업 신고 → 토스 가맹</b>이 선행 조건. 코드로 지금 할 수 있는 것은 rate limit · WIF 전환 · P3 이월 3건.</li>
+    </ul>
+    <p class="tight">전체 진척·잔여 항목은 이 대시보드의 <b>PROGRESS</b> 문서를 볼 것.</p>
+  </div>
+
+  <nav class="toc" aria-label="목차">
+    <div class="toc-title">CONTENTS</div>
+    <ol>
+      <li><span class="n">00</span><a href="#s0">리스크 & 선검증 — 먼저 읽기</a></li>
+      <li><span class="n">01</span><a href="#s1">온스토리 컨셉 — 홈ON과 다른 점</a></li>
+      <li><span class="n">02</span><a href="#s2">히어로 무비 상품 설계</a></li>
+      <li><span class="n">03</span><a href="#s3">카테고리 7 × 템플릿 5 구조 (검토 완료)</a></li>
+      <li><span class="n">04</span><a href="#s4">온보딩 설계 — 카테고리를 묻지 않는 위저드</a></li>
+      <li><span class="n">05</span><a href="#s5">게이미피케이션 · 가이드 투어 기반 설계</a></li>
+      <li><span class="n">06</span><a href="#s6">주소 아키텍처 — 경로 방식</a></li>
+      <li><span class="n">07</span><a href="#s7">스택 · 비용 결정</a></li>
+      <li><span class="n">08</span><a href="#s8">이미지 뱅크 (시공 집중 개정)</a></li>
+      <li><span class="n">09</span><a href="#s9">데이터 모델 v3</a></li>
+      <li><span class="n">10</span><a href="#s10">섹션 JSON 스키마 입문</a></li>
+      <li><span class="n">11</span><a href="#s11">DB 마이그레이션 운영 규칙</a></li>
+      <li><span class="n">12</span><a href="#s12">구축 로드맵 Phase 0~9 (최종)</a></li>
+      <li><span class="n">13</span><a href="#s13">법 · 라이선스 · AI 고지 정책</a></li>
+      <li><span class="n">14</span><a href="#s14">예상 비용</a></li>
+      <li><span class="n">15</span><a href="#s15">홈ON 분석 요약 (참고 보관)</a></li>
+      <li><span class="n">16</span><a href="#s16">실패 방지 수칙 14</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 00 ============ -->
+  <section class="sec" id="s0">
+    <div class="sec-head"><span class="num">00</span>
+      <div><h2>리스크 & 선검증 — 먼저 읽기</h2>
+      <div class="sec-sub">투자자 관점의 비판적 분석 — 이 사업이 죽는다면 코드가 아니라 유통 때문이다</div></div>
+    </div>
+
+    <h3>치명적 결함 후보 4가지</h3>
+    <ol>
+      <li><b>이 제품은 손님을 데려오지 않는다 (최대 결함).</b> 사장님이 돈을 내는 이유는 홈페이지가 아니라 <b>문의(리드)</b>인데, 신규 서브도메인 사이트는 방문자 0에서 시작하고 네이버 검색에서 플레이스·블로그에 밀립니다. 시공 업종은 이미 숨고·집닥·오늘의집에서 리드를 돈 주고 삽니다 — "문의 1건 = 수백만 원"은 거꾸로 "리드 0인 홈페이지는 월 9,900원도 아깝다"로 작동합니다. 방문자 없는 3개월 = 해지. 홈ON의 두꺼운 전환 장치(카운트다운·혜택 배지)가 곧 "수요가 당기는 시장이 아니다"라는 방증.</li>
+      <li><b>핵심 차별화(스토리)가 사장님의 지속적 글쓰기에 베팅한다.</b> 가장 바쁘고 디지털과 먼 직군이 매주 콘텐츠를 올려야 차별화가 성립. 소상공인 블로그의 현실은 "3주 뒤 방치". 스토리가 안 쌓이면 온스토리는 기능 적은 홈ON이 됨. UI로 마찰을 줄여도 이것은 행동 문제라 완전 해결 불가.</li>
+      <li><b>히어로 무비는 SaaS가 아니라 프리랜서 외주업.</b> 199,000원 ÷ (재생성 API비 + 편집 3~6시간 + 수정 3회) = 시급 3~5만 원 이하 가능. 확장 = 인력 채용의 선형 비즈니스. 경쟁자는 크몽 영상 프리랜서와 매달 싸지는 AI 영상 툴 자체. "무비가 구독을 늘린다"도 미검증 가설 — 방문자가 0이면 무비가 있어도 해지함.</li>
+      <li><b>해자(moat)가 없다.</b> 이 기획서가 경쟁사 하루 관찰로 나왔다는 사실 = 진입장벽 부재의 증명. 스토리 피드가 통하면 홈ON이 한 스프린트에 복제 가능. 위로는 아임웹·카페24·Wix/Canva AI가 가격을 무료 쪽으로 압박. 남는 해자 후보: 쌓인 스토리의 이전 비용(단, ②가 성립해야) + 무비 제작 노하우(단, ③ 참조).</li>
+    </ol>
+
+    <h3>그 외 무시 못 할 리스크</h3>
+    <ul class="tight">
+      <li><b>1인 운영 부담:</b> 개발+영상 제작+전화 영업+CS(밤 10시 카톡 "사진이 안 올라가요") 동시 수행 — 구독 100개 전 번아웃 위험.</li>
+      <li><b>LTV vs CAC:</b> 자영업 폐업률 감안 시 LTV 12~20만 원 수준 — 전화 영업/광고 CAC가 이를 넘으면 성장할수록 손해.</li>
+      <li><b>네이버 플레이스 불러오기:</b> 약관·DB권 그레이존 — 네이버가 막으면 온보딩 편의성 하락.</li>
+      <li><b>무료 10건 캠페인의 순서 모순:</b> 런칭 시점 유료 고객 0명 → 첫 무비는 지인·베타에게 제공하는 것으로 수정.</li>
+    </ul>
+
+    <h3>살아남는 시나리오</h3>
+    <p>벤처 스케일은 어렵지만 <b>"인테리어 니치 + 전화 영업 + 제작 대행 하이브리드" 1인 사업</b>으로는 성립 가능. 조건은 포지셔닝 수정: 파는 것을 "홈페이지"가 아니라 <b>"견적 문의가 들어오는 상태"</b>로 — 숨고 프로필·네이버 플레이스·홈페이지·시공사례 아카이브를 한 덩어리로 세팅해 주는 상품이면 결함 ①을 정면으로 다루게 됨.</p>
+
+    <h3>선검증 3종 (코딩과 병행, 2~4주)</h3>
+    <ol>
+      <li><b>2주 선판매 테스트:</b> 랜딩 1장 + 무비 샘플 1개 → 인테리어 사장님 30명 전화 → "49,000원+월 9,900원, 예약금 내시면 1호 제작" → <b>실제 결제가 나오는지</b> 측정. 30명 중 2명 결제 = 청신호 / 0명 = 포지셔닝 재고.</li>
+      <li><b>컨시어지 MVP:</b> 첫 5곳은 시스템 없이 수제작 지원 — 사장님들이 진짜 원하는 게 스토리인지, 무비인지, 네이버 상위노출인지 청취.</li>
+      <li><b>스토리 가설 검증:</b> 베타 5곳에 "매주 사진 2장만 카톡으로 보내주세요, 올려드립니다" → 4주 지속률 측정. 지속 실패 시 "사장님이 쓴다" → <b>"우리가 대신 써준다(대필 구독)"</b>로 상품 전환 — 오히려 단가 인상 명분.</li>
+    </ol>
+
+    <div class="callout warn"><span class="co-title">빌드 게이트 (공수 투입 규칙)</span>
+    P0~P1은 비용이 거의 없으므로(1인 공수 3주, 현금 ~2만원) 선검증과 <b>병행</b>한다. 단 <b>P2(AI 생성·이미지 뱅크)와 P3(에디터) 진입 전에 선판매 테스트 결과를 확인</b>한다 — 결제 의사 0이면 멈추고 포지셔닝을 다시 잡는다. "만들면 팔린다"는 가정에 4개월을 걸지 않는다.</div>
+  </section>
+
+  <!-- ============ 01 ============ -->
+  <section class="sec" id="s1">
+    <div class="sec-head"><span class="num">01</span>
+      <div><h2>온스토리 컨셉 — 홈ON과 다른 점</h2>
+      <div class="sec-sub">"정보를 보여주는 홈페이지"가 아니라 "이야기가 쌓이는 홈페이지"</div></div>
+    </div>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr><th></th><th>홈ON (경쟁사)</th><th>온스토리 (우리)</th></tr></thead>
+      <tbody>
+        <tr><td><b>중심 구조</b></td><td>정적 섹션 (소개·갤러리·지도)</td><td>정적 섹션 + <b>스토리 피드</b> — 가게의 이야기·작업 실적이 시간순으로 계속 쌓임</td></tr>
+        <tr><td><b>시간이 지나면</b></td><td>처음 만든 모습 그대로</td><td>기록이 쌓일수록 홈페이지가 두꺼워지고 신뢰가 자람</td></tr>
+        <tr><td><b>프리미엄 상품</b></td><td>없음 (플랜 업그레이드뿐)</td><td><b>히어로 무비</b> — CF를 보는 듯한 맞춤 제작 영상 홈페이지 (건당 199,000원)</td></tr>
+        <tr><td><b>주소 체계</b></td><td>경로형 homon.co.kr/88368 (숫자)</td><td><b>경로형 onstori.com/cafecroft (가게명)</b> — 같은 경로형이되 이유를 알고 선택: 서치어드바이저 1회 등록·통합 사이트맵·도메인 권위</td></tr>
+        <tr><td><b>온보딩</b></td><td>업종 카드 고르기 등 11단계 질문</td><td><b>카테고리를 묻지 않음</b> — 시스템이 추론 (4장)</td></tr>
+        <tr><td><b>구독 유지 동력</b></td><td>호스팅 + 관리 도구</td><td>쌓인 스토리 아카이브 + 프리미엄 영상 = 떠나기 아까운 자산</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>"스토리가 쌓이는 구조"의 실제 구현</h3>
+    <ul>
+      <li><b>스토리 엔트리</b> = 날짜 + 제목 + 본문 + 사진 + 유형(<code>작업기록 | 소식 | 이정표 | 손님이야기</code>). 사장님이 카톡 보내듯 짧게 올리면 "우리 가게 이야기" 타임라인에 차곡차곡 쌓임. 시공 업종에서는 이것이 곧 <b>시공 사례 아카이브</b>가 됨 — 견적 문의를 부르는 최고의 영업 자산.</li>
+      <li><b>실적 카운터</b> — "시공 사례 127건", "함께한 고객 3년차" 같은 숫자가 엔트리에서 자동 집계되어 히어로·소개 섹션에 표시.</li>
+      <li><b>부가 효과</b> — 새 글이 계속 올라가는 사이트는 SEO에 유리하고, "이번 달 스토리 2건 작성 시 완성도 +10점" 넛지(5장)로 이어져 구독 유지 장치가 됨.</li>
+      <li><b>생성 시 첫 스토리</b> — 위저드에서 "가게를 시작한 이유" 한 줄을 받아 AI가 첫 엔트리를 써서 심어줌.</li>
+    </ul>
+
+    <div class="callout info"><span class="co-title">포지셔닝 문장 (랜딩 카피의 뼈대)</span>
+    "홈페이지는 만들고 끝이 아닙니다. 온스토리에는 사장님의 이야기와 실적이 매주 쌓입니다. 그리고 원하시면, 전문가가 하나하나 기획하고 다듬은 히어로 무비로 가게의 첫인상을 CF처럼 만들어 드립니다."</div>
+  </section>
+
+  <!-- ============ 02 ============ -->
+  <section class="sec" id="s2">
+    <div class="sec-head"><span class="num">02</span>
+      <div><h2>히어로 무비 상품 설계</h2>
+      <div class="sec-sub">가장 중요한 차별화 — 상품 구조 · 제작 워크플로 · 기술 구현 · 마케팅 표현 주의점</div></div>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="f-k">정가</div><div class="f-v">1건 199,000원</div><div class="f-note">수정 요청 3회 포함</div></div>
+      <div class="fact"><div class="f-k">런칭 캠페인</div><div class="f-v">유료 고객 10명 무료</div><div class="f-note">전화 영업 → 포트폴리오 확보</div></div>
+      <div class="fact"><div class="f-k">업그레이드 옵션</div><div class="f-v">+99,000원</div><div class="f-note">완성 홈페이지에 무비 장착 프로모션가</div></div>
+      <div class="fact"><div class="f-k">제작 도구</div><div class="f-v">Seedance(시댄스) + 편집</div><div class="f-note">사람이 기획·연출·편집하는 맞춤 제작</div></div>
+    </div>
+    <p>가격은 하나의 상품 3단계로 문서화: <b>정가 199,000 / 프로모션가 99,000 / 초기 10명 0원</b> — 약관·주문서에 명시해 "왜 나만 비싸냐" 분쟁 예방.</p>
+
+    <h3>주문 → 납품 워크플로</h3>
+    <ol class="tight">
+      <li><b>접수</b> — admin의 "히어로 무비 신청" → 브리프 폼(가게 사진 5~10장, 분위기, 강조점, 참고 링크)</li>
+      <li><b>제작</b> — Seedance 컷 생성 → 편집(컷·색·타이포·음악) → 10~20초 루프. <b>건당 API 비용·작업 시간 기록 필수</b>(원가 파악)</li>
+      <li><b>시안 검수</b> — 고객 전용 링크(사이트 미리보기에 시안 적용) → 승인/수정. <b>수정 횟수 DB 카운트</b> + "수정 2/3회 남음" 표시</li>
+      <li><b>장착</b> — 승인 시 <code>hero_movie</code> 필드 연결 → 발행. 상태: <code>접수 → 제작중 → 시안검토 → 수정중 → 완료</code></li>
+    </ol>
+
+    <h3>기술 구현 — 스크롤 반응형 히어로 무비</h3>
+    <ul class="tight">
+      <li><b>기본형(권장 시작):</b> <code>&lt;video autoplay muted loop playsinline&gt;</code> + 스크롤 패럴랙스/확대 + 텍스트 페이드. 무료 10건은 이걸로.</li>
+      <li><b>고급형(차후):</b> 스크롤 위치=재생 시점 "스크럽" 연출. iOS 사파리 호환 검증 후.</li>
+      <li><b>영상 규격:</b> 10~20초, H.264 MP4+WebM, <b>5~8MB 이하</b>, 포스터 필수, <code>prefers-reduced-motion</code>은 포스터만.</li>
+      <li><b>호스팅:</b> Supabase Storage로 시작 → 무비 30곳+ 시 Cloudflare Stream/Mux 검토.</li>
+    </ul>
+
+    <div class="callout danger"><span class="co-title">마케팅 표현 주의 — "수작업" 문구의 선</span>
+    Seedance는 AI 도구이므로 <b>"AI가 아닌 100% 수작업"은 거짓·과장 광고 리스크</b>. 안전하고 매력적인 표현: "템플릿으로 찍어내지 않습니다. 전문가가 사장님 가게만을 위해 <b>하나하나 기획하고 연출한 맞춤 제작 영상</b>입니다." — "AI를 쓰지 않았다"는 말만 피하면 됩니다.</div>
+
+    <div class="callout ok"><span class="co-title">무료 10명 캠페인 체크리스트</span>
+    ① 유료 전환 고객 우선, 시공·인테리어 위주로 업종 커버 ② <b>포트폴리오 게재+후기 동의 서면 확보</b> ③ 수정 3회 규칙 동일 적용 ④ 완성작마다 "제작 과정" 스토리 엔트리를 그 가게에 올려주기 — 상품이 컨셉을 증명.</div>
+  </section>
+
+  <!-- ============ 03 ============ -->
+  <section class="sec" id="s3">
+    <div class="sec-head"><span class="num">03</span>
+      <div><h2>카테고리 7 × 템플릿 5 구조 (검토 완료)</h2>
+      <div class="sec-sub">제안 구조 검토 결과: 승인 — 3층 모델로 확정 + 짚어야 할 4가지</div></div>
+    </div>
+
+    <h3>3층 모델 — 이 구조가 좋은 이유</h3>
+    <p>제안하신 구조는 사실상 <b>3개 층의 분리</b>이고, 이는 홈ON의 평면적 업종 목록보다 우수합니다:</p>
+    <pre><code>업종(무한)  →  카테고리 7 (내부 분류·마케팅용)  →  템플릿 5 (화면 구조·CTA)
+"도배·장판"      5. 시공·출장                        QUOTE (견적 문의)</code></pre>
+    <p>업종은 <b>콘텐츠의 말투와 이미지</b>를, 카테고리는 <b>분류·통계·포트폴리오 태그</b>를, 템플릿은 <b>화면 뼈대와 전환 버튼</b>을 결정합니다. 새 업종 추가 = 매핑 한 줄 추가일 뿐 코드 수정이 아닙니다.</p>
+
+    <h3>확정 카테고리 7 (문서 고정)</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th class="num">#</th><th>카테고리</th><th>대표 업종</th><th>핵심 행동(CTA)</th><th>템플릿</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>매장·로컬</td><td>카페, 식당, 베이커리, 소매점, 꽃집</td><td>방문 유도</td><td><b>VISIT</b></td></tr>
+        <tr><td class="num">2</td><td>예약·케어</td><td>미용실, 네일, 피부, 마사지, 필라테스, 요가, 헬스, 재활</td><td>예약</td><td><b>BOOK</b></td></tr>
+        <tr><td class="num">3</td><td>교육·레슨</td><td>외국어, 학원, 과외, 음악, 미술, 코칭</td><td>상담·체험신청</td><td><b>CONSULT</b> (체험신청 폼 변형)</td></tr>
+        <tr><td class="num">4</td><td>전문가·상담</td><td>변호사, 세무사, 회계사, 노무사, 컨설팅, 부동산 + 병원·의원·한의원·치과·약국</td><td>상담</td><td><b>CONSULT</b></td></tr>
+        <tr><td class="num">5</td><td>시공·출장 ★런칭 집중</td><td>인테리어, 건설, 도배, 타일, 전기, 설비, 가구제작, 청소, 이사, 수리, 설치, 렌탈</td><td>견적 문의</td><td><b>QUOTE</b></td></tr>
+        <tr><td class="num">6</td><td>공간·대관</td><td>스튜디오, 연습실, 회의실, 파티룸, 공유오피스, 숙박</td><td>날짜 예약</td><td><b>BOOK</b> (날짜 필드 변형)</td></tr>
+        <tr><td class="num">7</td><td>기업·브랜드·판매</td><td>제조, 유통, 온라인판매, 브랜드, 공방, B2B</td><td>상품 열람·문의</td><td><b>BROWSE</b></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>템플릿 5종 — 각각의 전용 섹션 구성</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>템플릿</th><th>전용 블록 (공통: hero · storyFeed · gallery · map · footer)</th><th>CTA</th></tr></thead>
+      <tbody>
+        <tr><td><b>VISIT</b></td><td>영업시간 카드, 전화 버튼, 메뉴·가격표, 오시는 길 강조</td><td>전화·길찾기</td></tr>
+        <tr><td><b>BOOK</b></td><td>시술·수업 목록(가격 포함), 담당자 소개·선택, 예약 신청 폼</td><td>예약 신청</td></tr>
+        <tr><td><b>QUOTE</b></td><td>포트폴리오 갤러리(시공 전후), 진행 프로세스(상담→실측→시공→AS), <b>사진 첨부 견적 폼</b></td><td>견적 문의</td></tr>
+        <tr><td><b>CONSULT</b></td><td>자격·경력 신뢰 블록, 취급 분야 목록, 상담 신청 폼</td><td>상담 신청</td></tr>
+        <tr><td><b>BROWSE</b></td><td>상품 그리드, 상품 상세(모달/페이지), 문의·구매 링크(스마트스토어 등 외부 연결)</td><td>상품 보기·문의</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>코드에 넣는 범위 (v1 enum)</h3>
+    <div class="callout info"><span class="co-title">해석 명시</span>
+    "코드의 업종 enum에는 5번만"을 <b>카테고리 5(시공·출장)의 업종들만 v1 코드에 등록</b>으로 확정합니다. 단, 랜딩 포트폴리오 탭에 [카페·식당]이 있으므로 <b>카테고리 1의 카페·식당 2업종만 예외로 함께 등록</b>합니다(전시용 시드 제작에 필요). 즉 v1 enum = 시공·출장 12업종 + 카페·식당 2업종 = <b>14업종, 템플릿은 QUOTE·VISIT 2종 먼저 완성</b>. 나머지 5카테고리·3템플릿은 문서로만 확정해 두고 <code>industries.ts</code>에 주석 상태로 대기 — 추가는 설정 한 줄입니다.</div>
+
+    <h3>랜딩 포트폴리오 탭 (확정)</h3>
+    <pre><code>[전체]  [인테리어]  [시공·건설]  [서비스·출장]  [카페·식당]</code></pre>
+    <ul class="tight">
+      <li>이 탭은 카테고리 자체가 아니라 <b>전시용 태그</b> — 쇼케이스 사이트에 <code>portfolio_tag</code>를 붙여 필터링(인테리어/시공·건설/서비스·출장은 모두 카테고리 5의 하위 태그).</li>
+      <li>탭마다 최소 2~3건은 있어야 하므로 <b>쇼케이스 시드 사이트 10~12개를 우리가 직접 제작</b>(P2 막바지): 인테리어 3, 시공·건설 3, 서비스·출장(청소·이사·수리) 3, 카페·식당 2~3. 홈ON의 "라이브 보기"에 해당하는 영업 자산.</li>
+      <li>히어로 무비 무료 10건이 완성되면 그중 베스트를 [전체] 탭 최상단에 고정 — 무비 상품의 쇼윈도.</li>
+    </ul>
+
+    <h3>검토에서 짚은 4가지 (구조는 승인, 디테일 보완)</h3>
+    <ol>
+      <li><b>카테고리 4의 병원·의원 — 의료법 주의.</b> 의료광고는 환자 치료경험담·후기 광고가 금지되고 사전심의 대상이 될 수 있습니다. v1 enum에 없으므로 당장 문제없지만, <b>추후 도입 시 의료 업종은 후기 섹션 자동 비활성화 + 의료광고 심의 안내 문구</b>를 정책으로 예약해 둡니다(13장에 반영).</li>
+      <li><b>카테고리 6 "날짜 예약"의 범위.</b> 실시간 빈자리 캘린더는 무거운 기능입니다. BOOK 템플릿 v1은 <b>희망 날짜를 적어 내는 "예약 신청 폼"</b>(사장님이 확인 후 확정)으로 정의 — 홈ON의 예약 접수도 이 방식입니다. 실시간 슬롯 예약은 백로그.</li>
+      <li><b>카테고리 3의 CTA "상담·체험신청".</b> CONSULT 템플릿에 폼 제목·필드만 바꾼 "체험신청 변형"으로 커버 — 템플릿을 6개로 늘리지 않습니다.</li>
+      <li><b>경계 업종(꽃집=방문+주문, 공방=판매+클래스).</b> 추론은 주 수익 활동 기준으로 하고, <b>에디터에서 템플릿 전환 가능</b>하게 설계해 흡수합니다(전환 시 전용 블록만 교체, 공통 블록·스토리는 유지).</li>
+    </ol>
+  </section>
+
+  <!-- ============ 04 ============ -->
+  <section class="sec" id="s4">
+    <div class="sec-head"><span class="num">04</span>
+      <div><h2>온보딩 설계 — 카테고리를 묻지 않는 위저드</h2>
+      <div class="sec-sub">"묻지 않아도 아무 문제 없음"을 성립시키는 추론 파이프라인 — 0단계 설계의 핵심</div></div>
+    </div>
+
+    <h3>위저드 화면 흐름 (질문 최소화)</h3>
+    <pre><code>onstori.com/new
+① 상호명            "니브인테리어"                       [필수 · 텍스트 1칸]
+② 하는 일 한 줄     "주거 인테리어 리모델링을 해요"       [필수 · 자유 문장]
+   └ (선택) 네이버 플레이스 불러오기 → 주소·전화·소개 자동 채움
+③ 주소(슬러그)      onstori.com/niv   [실시간 중복·예약어 검사 · 추천 3개 제시]
+④ 분위기            [깔끔] [따뜻] [프리미엄] [활기]      [카드 4개 · 탭 1번]
+⑤ 시작한 이유 한 줄  "아버지 밑에서 10년 배우고 독립했어요" [선택 · 첫 스토리 재료]
+→ 생성 (진행률 화면) → 완성본 미리보기</code></pre>
+    <p>사용자가 하는 일: <b>타이핑 3번 + 탭 2번.</b> 카테고리도, 템플릿도, 업종 카드도 묻지 않습니다.</p>
+
+    <h3>뒤에서 도는 추론 파이프라인 (이것이 "없어도 문제 없음"의 근거)</h3>
+    <ol>
+      <li><b>1차 — 키워드 사전 매칭 (0원, 즉시):</b> <code>industries.ts</code>의 업종별 키워드 사전("인테리어·리모델링·도배·장판·타일…" → cat5/QUOTE)과 ②번 문장을 대조. v1은 14업종이라 사전만으로 대부분 적중.</li>
+      <li><b>2차 — LLM 분류 (사전 미적중 시):</b> ①+②+플레이스 소개글을 Claude에 넘겨 <code>{industry, category, template, cta_type, confidence}</code> JSON으로 분류. 카피 생성 호출에 얹으면 추가 비용 ~0원.</li>
+      <li><b>3차 — 확신 낮을 때만 되묻기:</b> confidence 낮음 → 생성 직전에 딱 한 번 "혹시 이 중 어디에 가까운가요?" 카드 2~3개 제시(전체 7개를 보여주지 않음). 높으면 그냥 진행.</li>
+      <li><b>4차 — 에디터에서 교정 가능:</b> 추론이 틀렸어도 에디터 설정에서 템플릿 전환 1번이면 복구. 추론 결과와 사용자 교정 여부를 로깅해 키워드 사전을 계속 보강.</li>
+    </ol>
+    <div class="callout ok"><span class="co-title">왜 이 설계가 옳은가</span>
+    카테고리는 <b>우리의 내부 어휘</b>지 사장님의 어휘가 아닙니다. "당신은 예약·케어인가요 전문가·상담인가요"는 사장님에게 시험 문제일 뿐입니다. 사장님은 자기 일을 자기 말로 쓰고, 분류는 시스템의 일 — 이것이 홈ON의 11단계 대비 명확한 UX 우위가 됩니다.</div>
+  </section>
+
+  <!-- ============ 05 ============ -->
+  <section class="sec" id="s5">
+    <div class="sec-head"><span class="num">05</span>
+      <div><h2>게이미피케이션 · 가이드 투어 기반 설계</h2>
+      <div class="sec-sub">애니메이션·툴팁 UI는 나중에 입혀도, 데이터 구조와 DOM 뼈대는 P1부터 — 요청하신 그대로</div></div>
+    </div>
+
+    <h3>목표 퍼널</h3>
+    <p>신입 가입자가 혼자서 <b>생성 → 첫 수정 → 발행 → 결제</b>까지 완주하는 것. 이 4개 관문을 데이터로 추적하고, 완성도 점수와 투어가 다음 관문으로 밀어주는 구조입니다.</p>
+
+    <h3>① 완성도 점수 — 규칙표가 곧 데이터 구조</h3>
+    <p>점수는 <b>설정 파일 하나</b>(<code>config/completeness.ts</code>)로 정의합니다. 규칙 추가/조정이 코드 수정이 아니라 표 편집이 되게:</p>
+    <pre><code>// 합계 100점이 되도록 설계 (v1 초안)
+export const RULES = [
+  { id:'hero_text',    label:'대표 문구 다듬기',      pts:10, anchor:'sec-hero' },
+  { id:'photo_real',   label:'내 사진으로 교체(3장+)', pts:15, anchor:'panel-photos' },
+  { id:'hours',        label:'영업시간 입력',          pts:10, anchor:'set-hours' },
+  { id:'contact',      label:'전화·주소 확인',         pts:10, anchor:'set-contact' },
+  { id:'story_1',      label:'첫 스토리 작성',         pts:15, anchor:'story-new' },
+  { id:'cta_form',     label:'견적/예약 폼 켜기',      pts:10, anchor:'sec-form' },
+  { id:'logo',         label:'로고 정하기',            pts:5,  anchor:'panel-brand' },
+  { id:'published',    label:'사이트 반영(발행)',       pts:15, anchor:'btn-publish' },
+  { id:'widget_1',     label:'연결 버튼 1개 켜기',      pts:10, anchor:'panel-widgets' },
+];
+// 각 규칙의 충족 여부는 서버에서 site JSON을 검사해 판정 → site_progress에 캐시</code></pre>
+    <ul class="tight">
+      <li>점수 계산은 <b>서버에서</b>(저장 시마다 재계산) → <code>site_progress.score</code>에 캐시. 에디터 상단 바와 admin 대시보드가 같은 값을 읽음.</li>
+      <li>각 규칙의 <code>anchor</code>가 곧 투어의 목적지 — "이걸 채우면 +15점" 클릭 시 해당 요소로 스크롤·하이라이트. <b>점수표와 투어가 한 데이터로 연결</b>되는 것이 핵심.</li>
+      <li>홈ON의 "64점 → 거의 완성 → +N점 안내"와 같은 경험이지만, 우리는 <b>스토리 작성(+15점)이 최고 배점</b> — 게이미피케이션조차 컨셉을 강화.</li>
+    </ul>
+
+    <h3>② 가이드 투어 — DOM 앵커 규약 (P1부터 강제)</h3>
+    <p>투어 라이브러리(driver.js류)나 애니메이션은 P9에 붙여도 되지만, <b>앵커가 없는 화면에는 나중에 투어를 붙일 수 없습니다.</b> 그래서 규약을 CLAUDE.md에 명문화하고 처음부터 지킵니다:</p>
+    <pre><code>// CLAUDE.md 규칙 (발췌)
+- 에디터·admin의 모든 상호작용 허브 요소에는 data-tour="식별자"를 붙인다.
+  예: &lt;aside data-tour="panel-sections"&gt; &lt;button data-tour="btn-publish"&gt;
+- 식별자는 config/tours.ts 의 anchor 목록에서만 가져온다 (임의 작명 금지).
+- 레이아웃 대개편 시 data-tour 요소의 존재를 확인하는 테스트를 통과해야 한다.
+
+// config/tours.ts — 투어도 데이터
+export const TOURS = {
+  editorIntro: {                    // 첫 진입 시 1회
+    steps: [
+      { anchor:'panel-sections', title:'내용 추가',   body:'섹션을 더하고 순서를 바꿔요' },
+      { anchor:'preview',        title:'미리보기',     body:'수정이 바로 보여요' },
+      { anchor:'panel-settings', title:'기본 정보',    body:'전화·영업시간은 여기서' },
+      { anchor:'score-bar',      title:'완성도 점수',  body:'100점까지 안내해 드려요' },
+      { anchor:'btn-publish',    title:'사이트 반영',  body:'저장과 발행은 달라요' },
+    ]
+  },
+  storyIntro: { … },               // 스토리 첫 작성 유도
+  activateNudge: { … },            // 체험 만료 임박 시
+};</code></pre>
+    <ul class="tight">
+      <li><b>진행 상태 저장:</b> <code>site_progress.tours_seen</code>(jsonb)에 투어별 완료 스텝 기록 — 중간에 닫아도 이어보기, "나중에 볼게요" 존중.</li>
+      <li><b>DOM 뼈대 조건:</b> 에디터 3패널은 안정된 컨테이너(<code>data-tour</code> 요소가 조건부 렌더링으로 사라지지 않게), 앵커 요소는 <code>scrollIntoView</code> 가능해야 하고, 하이라이트용 오버레이가 덮을 수 있도록 z-index 층을 P3 레이아웃 때 예약(콘텐츠 z0~40 / 투어 오버레이 z50).</li>
+      <li><b>애니메이션 예산:</b> 점수 오를 때 카운트업, 규칙 완료 체크 애니메이션, 투어 스포트라이트 — 전부 P9 폴리시 단계에 CSS/모션으로 추가. <code>prefers-reduced-motion</code> 시 비활성.</li>
+    </ul>
+
+    <h3>③ 퍼널 이벤트 — 관문 통과를 데이터로</h3>
+    <pre><code>site_progress.funnel (jsonb)
+{ created_at, first_edit_at, first_story_at, published_at, activated_at }
+→ admin(운영자용) 화면에서 단계별 이탈률 확인 → 어느 관문에서 막히는지 보고 투어·넛지 보강</code></pre>
+    <div class="callout info"><span class="co-title">설계 원칙 요약</span>
+    점수 규칙·투어 스텝·퍼널 관문은 전부 <b>설정 데이터</b>이고, 화면은 <b>앵커 규약</b>만 지키면 됩니다. 이 두 가지를 P1~P3에 심어두면, 게이미피케이션 UI는 언제든 "덧입히는" 작업이 됩니다 — 요청하신 "나중에 붙여도 되게, 그러나 뼈대는 처음부터"가 정확히 이 구조입니다.</div>
+  </section>
+
+  <!-- ============ 06 ============ -->
+  <section class="sec" id="s6">
+    <div class="sec-head"><span class="num">06</span>
+      <div><h2>주소 아키텍처 — 경로 방식 (2026-09-01 전면 전환)</h2>
+      <div class="sec-sub">onstori.com/{slug} — 서브도메인을 버린 결정적 이유는 네이버다</div></div>
+    </div>
+
+    <div class="callout danger"><span class="co-title">전환 사유 (핵심)</span>
+    네이버 서치어드바이저는 사이트를 하나씩 등록하고 소유 확인(HTML 태그)을 해야 하며, <b>캡차로 프로그램 자동 등록을 차단</b>한다. 서브도메인 방식이면 고객 1,000명 = 등록 1,000번 = 캡차 1,000번 + 사이트맵 1,000회 제출 + 신규 도메인 수집 ~2주 대기. <b>경로 방식이면 도메인 1회 등록 + 통합 사이트맵 1개로 전 고객 자동 커버</b>이고, 신규 고객 사이트는 크롤러가 매일 오는 도메인에 페이지 하나 추가일 뿐이라 빠르게 잡힌다. 신규 서브도메인은 권위 0에서 시작하지만 경로는 도메인 신뢰를 승계한다 — 홈ON이 경로형인 진짜 이유.</div>
+
+    <h3>확정 URL 구조</h3>
+    <pre><code>onstori.com                랜딩 (포트폴리오·가격·무비 쇼케이스)
+onstori.com/new            생성 위저드
+onstori.com/my             내 사이트 목록 (P4)
+onstori.com/admin          운영자 콘솔 (이미지뱅크·사이트·서브도메인 만들기)
+onstori.com/{slug}         고객 사이트 (스토리 피드 포함)
+onstori.com/{slug}/edit    에디터 (P3)
+onstori.com/{slug}/admin   고객용 운영 대시보드 (P7)
+onstori.com/sitemap.xml    ★ 통합 사이트맵 — 활성 고객 자동 포함 (1회 제출로 끝)
+onstori.com/robots.txt     도메인 1개 파일 (체험 사이트는 페이지 meta noindex)</code></pre>
+
+    <h3>구현 포인트</h3>
+    <ol class="tight">
+      <li><b>루트 동적 세그먼트:</b> app/[slug] — 정적 라우트(/new, /admin…)가 파일시스템 우선. 미들웨어·재작성 불필요(가장 단순한 구조).</li>
+      <li><b>예약 슬러그 261개 선점:</b> 추후 본사 페이지가 될 만한 단어(admin·my·new·cal·calendar·map·sitemap·about·pay·shop·blog·help… 시스템/인증/기능/커머스/법무/도구 카테고리 전부)를 reserved_slugs로 막고, 위저드에서 "사용할 수 없는 주소예요" 안내. 검증은 항상 서버에서.</li>
+      <li><b>서브도메인은 보류(폐기 아님):</b> 본사 내부 기능 전용으로 어드민에 "서브도메인 만들기" 공간만 확보. 현재 모든 *.onstori.com은 onstori.com/* 로 301 — 과거 링크 호환.</li>
+      <li><b>세션 단순화:</b> 단일 오리진이라 서브도메인 쿠키 공유 이슈 자체가 소멸 (P4 부담 감소).</li>
+      <li><b>서치어드바이저 등록 절차(1회):</b> onstori.com 소유 확인 → sitemap.xml 제출 → 끝. 이후 신규 고객은 자동. 서치콘솔 동일.</li>
+    </ol>
+  </section>
+
+  <!-- ============ 07 ============ -->
+  <section class="sec" id="s7">
+    <div class="sec-head"><span class="num">07</span>
+      <div><h2>스택 · 비용 결정</h2></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th>결정</th><th>근거 · 주의점</th></tr></thead>
+      <tbody>
+        <tr><td><b>Vercel</b></td><td>무료(Hobby) → 첫 유료 고객 시 Pro</td><td>Hobby는 약관상 비상업용 한정 — 과금 시작 순간 Pro($20/월) 전환은 성능이 아니라 약관 문제.</td></tr>
+        <tr><td><b>Supabase</b></td><td>무료 → 첫 유료 고객 직전 Pro</td><td>무료 티어: 1주 미접속 시 일시정지 + <b>자동 백업 없음</b> → Pro 전까지 주 1회 <code>db dump</code> 수동 백업(11장 루프).</td></tr>
+        <tr><td><b>도메인</b></td><td>P0 즉시 구매 + Vercel 연결</td><td>와일드카드 서브도메인이 아키텍처의 뿌리. 연 ~2만원.</td></tr>
+        <tr><td><b>이미지 생성</b></td><td><b>Vertex AI 경유 Gemini 이미지</b> (2026-09-01 확정)</td><td>히어로 <code>gemini-3-pro-image</code> $0.134/장 · 그 외 <code>gemini-3.1-flash-image</code> $0.039/장 — 실측. <b>쿼터가 병목: 프로젝트당 분당 2회</b>(상향 신청 가능). 한글 텍스트 렌더 불안정 → 워드마크 로고는 폰트 조판 SVG, 심볼만 생성형.</td></tr>
+        <tr><td><b>영상 생성</b></td><td>Seedance (fal.ai/BytePlus 경유)</td><td>초기 10건은 수동 워크플로. 자동화는 주문 증가 후.</td></tr>
+        <tr><td><b>Sentry</b></td><td>미도입 → P9 베타 때 무료 티어</td><td>에러 모니터링 서비스. 개발 중엔 Vercel 로그로 충분. 유료($26/월)는 월 5천 에러 초과 시 — 한참 뒤.</td></tr>
+        <tr><td><b>폰트</b></td><td>무료(프리텐다드 중심)로 시작</td><td>13장 — 로고용은 BI/CI 허용 폰트만 목록화.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 08 ============ -->
+  <section class="sec" id="s8">
+    <div class="sec-head"><span class="num">08</span>
+      <div><h2>이미지 뱅크 (시공 집중 개정)</h2>
+      <div class="sec-sub">v1 enum 14업종에 맞춰 규모 축소 — 더 싸고 더 빠르게</div></div>
+    </div>
+    <h3>개념</h3>
+    <p>생성 때마다 이미지 API를 부르면 매번 비용·대기가 발생 → <b>미리 뽑아 검수해 둔 창고</b>에서 꺼내 쓰면 건당 원가 ~0원, 생성 즉시 완료. 카탈로그는 DB 테이블로:</p>
+    <pre><code>image_bank: id, industry, mood, role(hero|about|gallery|process),
+            orientation, storage_path, source('ai:nanobanana'|'stock:unsplash'),
+            tags text[], quality_ok bool, used_count int</code></pre>
+    <h3>v1 구축 규모 (14업종 기준)</h3>
+    <ul class="tight">
+      <li><s>시공·출장 12업종 × 분위기 4종 × 역할 3종 × 2~3장 ≈ 300~430장 + 카페·식당 2업종 ≈ 60장 → 총 ~400~500장, 약 2~3만원</s> → <b>실적(2026-09-02 완료): 638장 전량 승인</b> — hero 124 · gallery 183 · about 167 · process 164. 실비 히어로 100장 $13.40 + 비히어로 500장 $19.50 = <b>약 $33</b>(GCP 크레딧에서 차감).</li>
+      <li>시공 계열은 하위 업종끼리 시각 언어가 겹침(현장·공구·비포애프터) → 태그 공유로 실제 필요 장수는 더 적음</li>
+      <li><b>QUOTE 템플릿 주의:</b> 시공 "포트폴리오 갤러리"는 실사 느낌이 생명 — AI 생성 시공 사진은 어색할 수 있으니 <b>무료 스톡 실사 위주 + AI 보조</b>로 구성하고, 안내 문구로 "내 시공 사진으로 교체"를 강하게 유도(완성도 +15점 규칙과 연동)</li>
+    </ul>
+    <h3>절차 · 사용 로직 (요약)</h3>
+    <ol class="tight">
+      <li>Claude Code로 배치 생성 스크립트(프롬프트에 no text/no watermark 고정) → Storage 업로드 → 카탈로그 등록</li>
+      <li>반나절 눈 검수(<code>quality_ok</code>) — 이 반나절이 품질을 결정</li>
+      <li>생성 시: 업종+분위기+역할 매칭 & <code>used_count</code> 낮은 것 우선 랜덤(판박이 방지) → 사이트에 복사 기록</li>
+      <li>미적중 업종만 온디맨드 생성 → 좋은 결과는 뱅크 편입(스스로 자람)</li>
+    </ol>
+  </section>
+
+  <!-- ============ 09 ============ -->
+  <section class="sec" id="s9">
+    <div class="sec-head"><span class="num">09</span>
+      <div><h2>데이터 모델 v3</h2>
+      <div class="sec-sub">v2 + 카테고리·템플릿·추론·게이미피케이션 반영(굵게)</div></div>
+    </div>
+    <pre><code>profiles        id(=auth.users), name, phone, created_at
+sites           id, owner_id, slug(unique), business_name,
+                <b>industry, category(1~7), template(visit|book|quote|consult|browse),
+                cta_type, inferred jsonb(추론 결과·confidence·교정 이력)</b>,
+                mood, status, trial_ends_at, plan, theme jsonb, settings jsonb,
+                draft jsonb, published jsonb, published_at, hero_movie jsonb
+site_versions   site_id, snapshot jsonb, created_at
+<b>site_progress   site_id, score int, rules_done jsonb, tours_seen jsonb,
+                funnel jsonb(created/first_edit/first_story/published/activated)</b>
+story_entries   id, site_id, type(work|news|milestone|guest),
+                title, body, photos jsonb, entry_date, visible, created_at
+movie_orders    id, site_id, status, brief jsonb, price_paid,
+                revision_used int(0~3), draft_url, final_url, cost_log jsonb
+image_bank      (8장 참고)
+<b>showcase        id, site_id, portfolio_tag(인테리어|시공건설|서비스출장|카페식당),
+                featured bool, sort  -- 랜딩 포트폴리오 탭 전시 목록</b>
+assets          site_id, kind, storage_path
+subscriptions   site_id, plan, period, status, billing_key, current_period_end
+payments        subscription_id, amount, kind(setup|recurring|movie), toss_payment_key, status
+events          site_id, type(visit|call_click|sms|map|qr|inquiry|story_view|<b>quote_submit</b>),
+                referrer_class, session_hash, created_at
+inquiries       site_id, name, phone, message, <b>photos jsonb(견적 첨부)</b>, status
+reviews         site_id, title, body, source, visible     -- 별점 없음
+integrations    site_id, ga4_id, meta_pixel, kakao_pixel, verify…
+reserved_slugs  slug</code></pre>
+    <ul class="tight">
+      <li>전 테이블 RLS. 공개 렌더러는 published·visible만.</li>
+      <li>설정 파일(코드): <code>config/industries.ts</code>(업종→카테고리→템플릿 매핑+키워드 사전), <code>config/completeness.ts</code>(점수 규칙), <code>config/tours.ts</code>(투어 스텝) — 3개 파일이 제품 정책의 단일 출처.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 10 ============ -->
+  <section class="sec" id="s10">
+    <div class="sec-head"><span class="num">10</span>
+      <div><h2>섹션 JSON 스키마 입문 — 배우면서 만들기</h2>
+      <div class="sec-sub">스키마·zod·렌더러가 무엇이고 왜 한 몸인지</div></div>
+    </div>
+
+    <h3>① 섹션 JSON — 홈페이지를 데이터로 표현</h3>
+    <pre><code>{
+  "schemaVersion": 1,
+  "template": "quote",
+  "theme": { "palette": "clean", "accent": "#2B5BD7", "font": "pretendard" },
+  "sections": [
+    { "type": "hero", "headline": "10년의 현장이 말합니다",
+      "sub": "주거 인테리어 리모델링 · 니브인테리어",
+      "image": "bank/construction/clean/hero-02.webp",
+      "cta": { "label": "견적 문의", "action": "quote" } },
+    { "type": "portfolioGallery", "title": "시공 사례", "fromStory": true },
+    { "type": "processSteps", "steps": ["상담","실측","시공","AS"] },
+    { "type": "quoteForm", "allowPhotos": true },
+    { "type": "storyFeed", "title": "니브의 이야기", "showCount": 5 },
+    { "type": "map", "address": "…" }
+  ]
+}</code></pre>
+    <p>모든 섹션은 <code>type</code>을 갖고, type마다 들어갈 속성이 정해져 있습니다. 이 약속이 <b>스키마</b>입니다.</p>
+
+    <h3>② zod — 약속을 코드로 강제하는 검사기</h3>
+    <pre><code>const QuoteForm = z.object({
+  type: z.literal("quoteForm"),
+  title: z.string().default("견적 문의"),
+  allowPhotos: z.boolean().default(true),
+});
+export const Section = z.discriminatedUnion("type",
+  [Hero, StoryFeed, PortfolioGallery, ProcessSteps, QuoteForm, Gallery, Map /*…*/]);
+export const SiteDoc = z.object({
+  schemaVersion: z.literal(1),
+  template: z.enum(["visit","book","quote","consult","browse"]),
+  theme: ThemeSchema,
+  sections: z.array(Section).min(1),
+});
+export type SiteDocT = z.infer&lt;typeof SiteDoc&gt;;   // TS 타입 자동 생성</code></pre>
+    <p>AI는 가끔 약속을 어긴 JSON을 뱉으므로, 검사 지점 3곳에서 zod가 막습니다: ① AI 생성 결과 ② 에디터 저장 ③ 렌더러 읽기(안전망).</p>
+
+    <h3>③ 렌더러 — JSON을 화면으로</h3>
+    <pre><code>const registry = { hero: HeroSection, storyFeed: StoryFeedSection,
+  portfolioGallery: PortfolioSection, processSteps: ProcessSection,
+  quoteForm: QuoteFormSection, gallery: GallerySection, map: MapSection };
+
+// app/_sites/[slug]/page.tsx — 핵심은 이게 전부
+const doc = SiteDoc.parse(site.published);
+return doc.sections.map((s, i) => {
+  const Comp = registry[s.type];
+  return &lt;Comp key={i} {...s} theme={doc.theme} /&gt;;
+});</code></pre>
+
+    <h3>④ 왜 "한 커밋에서 같이"인가</h3>
+    <p>스키마 문서(SCHEMA.md)·zod·렌더러·에디터 폼은 <b>같은 약속의 네 표현</b>입니다. 하나만 고치면 어긋남이 쌓이고, 그게 "프로젝트가 꼬인다"의 정체. 규칙: <b>섹션 변경 = 4곳을 함께 고치는 하나의 커밋.</b> Claude Code에게도 그렇게 시키면 됩니다.</p>
+
+    <h3>⑤ 버전 마이그레이션</h3>
+    <p><code>schemaVersion</code> 필드 + 렌더러 입구의 변환 함수(<code>migrateV1toV2</code>)로 오래된 사이트도 안 깨지게.</p>
+
+    <div class="callout ok"><span class="co-title">"만들면서 배워도 될까?" — 네, 그게 정석</span>
+    P1 첫날 "hero·gallery·map 3섹션 최소 스키마+렌더러를 주석 달아 만들어줘"로 시작하면 반나절에 감이 옵니다. 당신의 역할은 코드가 아니라 <b>약속이 바뀔 때 4곳이 같이 바뀌었는지 확인</b>입니다.</div>
+  </section>
+
+  <!-- ============ 11 ============ -->
+  <section class="sec" id="s11">
+    <div class="sec-head"><span class="num">11</span>
+      <div><h2>DB 마이그레이션 운영 규칙</h2>
+      <div class="sec-sub">"대시보드에서 손대지 않기"를 실제로 지키는 4중 장치</div></div>
+    </div>
+    <pre><code># P0에서 1회
+supabase init && supabase link --project-ref &lt;ID&gt; && supabase start
+
+# 스키마 변경은 항상 이 4단계
+supabase migration new add_site_progress   # ① 파일 생성
+# ② Claude Code가 SQL 작성 (RLS 포함)
+supabase db reset                          # ③ 로컬 전체 재적용 테스트
+git commit                                 # ④ 코드와 함께 커밋
+supabase db push                           # 배포 시 원격 적용</code></pre>
+    <ol class="tight">
+      <li><b>CLAUDE.md 명문화</b> — "DB 변경은 migration new로만, RLS 동봉, 대시보드 수정 금지" → 코드를 짜는 게 Claude이므로 이것만으로 90% 해결.</li>
+      <li><b>주 1회 <code>supabase db diff --linked</code></b> — 로컬과 실서버의 어긋남(드리프트) 자동 감지.</li>
+      <li><b>대시보드는 조회 전용 습관</b> — SQL Editor로 고치고 싶으면 그 SQL을 마이그레이션 파일로 옮겨 적기.</li>
+      <li><b>주 1회 <code>supabase db dump</code></b> — Pro 전환 전 수동 백업 안전벨트.</li>
+    </ol>
+    <div class="callout warn"><span class="co-title">유일한 예외</span>
+    Auth 설정(OAuth 키 등)·Storage 버킷 설정은 대시보드에서만 가능 — 변경 시 <code>docs/DECISIONS.md</code>에 한 줄 기록.</div>
+  </section>
+
+  <!-- ============ 12 ============ -->
+  <section class="sec" id="s12">
+    <div class="sec-head"><span class="num">12</span>
+      <div><h2>구축 로드맵 Phase 0~9 (최종)</h2>
+      <div class="sec-sub">v3 변경: 템플릿 2종(QUOTE·VISIT) 우선 · 추론 파이프라인 P2 · 앵커 규약 P1부터 · 쇼케이스 시드 P2</div></div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P0</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>환경 구축 + 도메인 + 정책 파일</h3>
+        <div class="ph-meta">약 1주</div>
+        <ul class="tight">
+          <li>onstori.com 구매 → Vercel 연결 + 네임서버 이전 + <code>*.onstori.com</code></li>
+          <li>저장소 + Next.js + TS + Tailwind + Supabase CLI, CLAUDE.md(앵커 규약·마이그레이션 규칙 포함)</li>
+          <li><b>정책 3파일 뼈대 커밋:</b> <code>industries.ts</code>(7카테고리 문서화 + v1 14업종 활성) / <code>completeness.ts</code>(100점 규칙표) / <code>tours.ts</code>(투어 스텝 초안)</li>
+          <li>토스페이먼츠 가맹 신청, 사업자 준비 병행</li>
+        </ul>
+        <div class="dod"><b>완료:</b> onstori.com과 test.onstori.com이 다른 페이지를 보여주고, 정책 3파일이 저장소에 있다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P1</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>렌더러 + 데이터 모델 + 서브도메인 (심장)</h3>
+        <div class="ph-meta">약 2주</div>
+        <ul class="tight">
+          <li>sites·site_versions·story_entries·site_progress·reserved_slugs 마이그레이션 + RLS</li>
+          <li>섹션 스키마 v1: 공통(hero·storyFeed·gallery·map…) + <b>QUOTE 전용</b>(portfolioGallery·processSteps·quoteForm) + <b>VISIT 전용</b>(hoursCard·menuPrice)</li>
+          <li>{slug} 렌더러 + sitemap/robots/OG + 미공개 noindex + <b>data-tour 앵커 규약 적용 시작</b></li>
+          <li>시드 JSON 3종(인테리어 QUOTE / 청소 QUOTE / 카페 VISIT)으로 품질 기준 수립</li>
+        </ul>
+        <div class="dod"><b>완료:</b> JSON만 바꿔 서브도메인 3사이트가 렌더링, 스토리가 타임라인+실적 카운터로 표시, 완성도 점수가 서버에서 계산된다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P2</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>위저드(무질문 추론) + AI 생성 + 이미지 뱅크 + 쇼케이스</h3>
+        <div class="ph-meta">약 2주</div>
+        <ul class="tight">
+          <li>/new 위저드: 상호명 → 하는 일 한 줄(+플레이스 불러오기) → 슬러그 → 분위기 → 시작한 이유</li>
+          <li><b>추론 파이프라인:</b> 키워드 사전 → LLM 분류 → 低확신 시 1회 되묻기 → 에디터 교정 로깅</li>
+          <li>Claude 카피 생성(zod 검증+재시도) + 첫 스토리 자동 작성 + 이미지 뱅크 구축(~500장+검수)</li>
+          <li>익명 생성 + 체험 타이머 + <b>쇼케이스 시드 10~12개 직접 제작 → 랜딩 포트폴리오 탭 오픈</b></li>
+        </ul>
+        <div class="dod"><b>완료:</b> "도배 전문이에요" 입력만으로 QUOTE 템플릿 사이트가 60초 내 생성(10회 무실패), 랜딩 4개 탭에 전시물이 걸려 있다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P3</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>에디터 + 스토리 UX + 점수·투어 뼈대 가동</h3>
+        <div class="ph-meta">약 2~3주</div>
+        <ul class="tight">
+          <li>3패널 에디터(섹션 CRUD·이미지 교체·설정·테마) — <b>전 요소 data-tour 앵커, z-index 층 예약</b></li>
+          <li>스토리 작성 초간단 화면(폰 최적화: 사진+두 줄 3분 컷)</li>
+          <li>draft/발행/롤백 + <b>완성도 점수 바 + "+N점" 클릭 시 앵커로 스크롤·하이라이트(투어의 최소 동작형)</b></li>
+          <li>템플릿 전환 기능(경계 업종 대응)</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 비개발자가 설명 없이 수정·발행하고, 점수가 실시간으로 오르며, "+15점" 클릭이 해당 위치로 데려간다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P4</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>계정 · 세션 공유</h3>
+        <div class="ph-meta">약 1주</div>
+        <ul class="tight">
+          <li>Supabase Auth(이메일+카카오) + 익명 claim + onstori.com/my</li>
+          <li>RLS 침입 테스트 (경로 방식 전환으로 쿠키 공유 이슈는 소멸)</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 본사 로그인 → 서브도메인 /edit 바로 진입. 타인 사이트 접근 차단 증명.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P5</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>결제 + 플랜 게이팅</h3>
+        <div class="ph-meta">약 2주</div>
+        <ul class="tight">
+          <li>토스 빌링키: 제작비 1회 + 월/연 구독 + <b>무비 단건 결제(kind=movie)</b>, 웹훅 멱등, 실패 유예·재시도·정지</li>
+          <li>플랜 한도 서버 강제, 체험 만료 비공개 전환, <b>funnel.activated_at 기록</b></li>
+        </ul>
+        <div class="dod"><b>완료:</b> 테스트 카드로 활성화→정기결제→해지 + 무비 단건 결제가 돈다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P6</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>브랜드키트 + 히어로 무비 파이프라인</h3>
+        <div class="ph-meta">약 2~3주 · <b>무료 10명 캠페인 시작</b></div>
+        <ul class="tight">
+          <li>로고(워드마크 조판+나노바나나 심볼)·명함·QR·도장, "다운로드는 활성화 후"</li>
+          <li>무비 주문 플로우: 브리프 → movie_orders 상태 관리 → 시안 검수 링크 → 수정 카운트 → 장착</li>
+          <li>video hero 렌더링(규격·포스터·reduced-motion) + 스크롤 연출 기본형</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 실제 가게 1곳의 무비가 신청→시안→수정→장착 전 과정을 시스템 안에서 통과.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P7</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>대시보드 + 통계 + SEO 연동</h3>
+        <div class="ph-meta">약 2주</div>
+        <ul class="tight">
+          <li>{slug}/admin: 방문·클릭·유입·<b>견적 문의 수·스토리 조회수</b>·완성도·개선 제안</li>
+          <li>서치콘솔·서치어드바이저·GA4·픽셀 연동(발행 사이트에만 주입)</li>
+          <li><b>운영자용 퍼널 화면</b>(생성→수정→발행→결제 이탈률)</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 실방문·견적 문의가 숫자로 잡히고, 퍼널 이탈 지점이 보인다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P8</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>고객 접점 (상위 플랜 상품)</h3>
+        <div class="ph-meta">약 2주</div>
+        <ul class="tight">
+          <li>연결 위젯(전화·카톡·숨고·네이버 등), 후기 관리(별점 없음), 띠배너·팝업</li>
+          <li>견적/문의 관리함 고도화(사진 첨부 열람·상태 관리), 사이트별 챗봇(가게 정보+스토리 주입)</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 사진 첨부 견적 접수→관리 흐름 + 챗봇이 그 가게 스토리를 인용해 답한다.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="ph-rail"><div class="ph-dot">P9</div><div class="ph-line"></div></div>
+      <div class="ph-body">
+        <h3>마감 · 폴리시 · 런칭</h3>
+        <div class="ph-meta">약 2주+</div>
+        <ul class="tight">
+          <li><b>투어 UI 완성(스포트라이트·애니메이션)·점수 카운트업 등 게이미피케이션 폴리시</b> — 앵커가 이미 있으므로 "덧입히기"</li>
+          <li>약관·개인정보처리방침·AI 고지(13장), Sentry 무료 장착, rate limit·RLS 재점검</li>
+          <li>Vercel/Supabase Pro 전환, 커스텀 도메인 연결 기능, 무비 포트폴리오 페이지</li>
+          <li>베타(지인 시공업체 3~5곳) → 오픈. (런칭 후) BOOK·CONSULT·BROWSE 템플릿과 나머지 카테고리 순차 개방</li>
+        </ul>
+        <div class="dod"><b>완료:</b> 돈을 낸 첫 외부 고객 + 무비 포트폴리오 10건 + 신입 가입자가 투어만 따라 결제까지 완주한 기록 1건.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13 ============ -->
+  <section class="sec" id="s13">
+    <div class="sec-head"><span class="num">13</span>
+      <div><h2>법 · 라이선스 · AI 고지 정책</h2></div>
+    </div>
+
+    <h3>① 폰트 — 무료로 시작 (구매 절차 없음)</h3>
+    <ul class="tight">
+      <li>프리텐다드(SIL OFL — 상업·웹폰트·로고 모두 허용) 중심 + 눈누 상업용 무료 폰트. 라이선스 전문을 <code>docs/LICENSES.md</code>에 보관하면 끝.</li>
+      <li><b>함정 1개:</b> 로고(BI/CI) 사용이 금지된 무료 폰트 존재 — 워드마크 로고용 폰트는 눈누 "BI/CI 허용"만 목록화.</li>
+      <li>한글 웹폰트는 서브셋 woff2(프리텐다드 공식 서브셋). 유료(산돌구름 등)는 매출 후 "웹폰트 임베딩+고객사 사용" 범위 확인하고 추가.</li>
+      <li>스톡: Unsplash·Pexels 무료 라이선스로 충분, 출처는 image_bank.source에 기록. 유료 스톡은 당분간 미도입.</li>
+    </ul>
+
+    <h3>② 표시광고법 — 홈ON 방식 그대로 (안전 노선)</h3>
+    <ul class="tight">
+      <li>별점·평점 입력 기능 자체를 만들지 않음. 실제 후기+출처 필드만. 대가성 후기 "협찬" 표기 안내.</li>
+      <li>실적 카운터는 story_entries 실데이터 집계만 — 임의 숫자 입력 불가(컨셉과 일치).</li>
+      <li>무비 광고 문구는 2장의 "수작업 표현 가이드" 준수.</li>
+      <li><b>의료 업종 예약 정책(카테고리 4 확장 시):</b> 의료광고는 환자 치료경험담 광고 금지·사전심의 이슈 → 의료 업종 감지 시 후기 섹션 자동 비활성화 + 안내 문구. v1 enum에 없어 당장 해당 없음.</li>
+    </ul>
+
+    <h3>③ AI 생성물 고지 — 문구 초안</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>위치</th><th>문구 초안</th></tr></thead>
+      <tbody>
+        <tr><td>로고 다운로드</td><td>"AI의 도움을 받아 생성된 시안입니다. 상표 등록 전 키프리스(kipris.or.kr) 유사 상표 검색을 권장하며, 등록 가능성·제3자 권리 비침해를 보증하지 않습니다."</td></tr>
+        <tr><td>기본 이미지(에디터)</td><td>"기본 이미지는 AI 생성 또는 무료 스톡입니다. 실제 매장·시공 사진으로 교체하면 신뢰도가 크게 올라갑니다. (+15점)"</td></tr>
+        <tr><td>무비 주문서</td><td>"영상은 전문 제작자가 기획·연출·편집하며, 제작 과정에 AI 영상 기술이 활용됩니다. 완성 영상 사용권은 결제 완료 시 부여. (수정 3회 포함)"</td></tr>
+        <tr><td>약관 AI 조항</td><td>①생성물 사용권은 고객에게, 단 유사 생성물이 타 고객에 제공될 수 있음(이미지 뱅크) ②타인 상표·저작물 모방 지시 금지 ③제3자 분쟁 시 책임 범위 한정 ④문구 사실성은 고객 최종 확인</td></tr>
+        <tr><td>위저드 완료</td><td>"문구는 AI가 초안을 작성했습니다. 발행 전 가격·영업시간 등 사실 정보를 꼭 확인해 주세요."</td></tr>
+      </tbody>
+    </table></div>
+    <p>사장님이 직접 쓴 스토리에는 AI 고지를 붙이지 않음 — "이야기는 진짜"라는 신뢰의 디테일.</p>
+
+    <h3>④ 홈ON 관련</h3>
+    <p>홈ON 약관은 UI·디자인·문구·구조의 모방을 금지. 온스토리는 컨셉(스토리 축적)·주소 체계(서브도메인)·온보딩(무질문)·상품(히어로 무비)·화면 설계가 모두 다름 — 기능 개념 참고 수준을 유지하고 디자인·문구·템플릿은 전부 독자 제작.</p>
+  </section>
+
+  <!-- ============ 14 ============ -->
+  <section class="sec" id="s14">
+    <div class="sec-head"><span class="num">14</span>
+      <div><h2>예상 비용</h2></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th class="num">개발 기간</th><th class="num">상용 초기</th><th>전환 시점</th></tr></thead>
+      <tbody>
+        <tr><td>Vercel</td><td class="num">0원</td><td class="num">$20/월</td><td>첫 유료 고객 = 즉시 Pro(약관)</td></tr>
+        <tr><td>Supabase</td><td class="num">0원</td><td class="num">$25/월</td><td>첫 유료 고객 직전(백업)</td></tr>
+        <tr><td>도메인</td><td class="num" colspan="2">~2만원/년</td><td>P0 즉시</td></tr>
+        <tr><td>Claude API</td><td class="num" colspan="2">생성 1건 ~100원 · 챗봇 ~20원</td><td>처음부터 사용량 과금</td></tr>
+        <tr><td>Gemini 이미지(Vertex)</td><td class="num" colspan="2"><b>뱅크 구축 실비 약 $33</b>(638장, 크레딧 차감) · 이후 뱅크에서 꺼내 쓰므로 건당 ~0원</td><td>P2 완료</td></tr>
+        <tr><td>Seedance</td><td class="num" colspan="2">1건 원가 실측(수천원~수만원대 예상)</td><td>무료 10건에서 원가 축적 → 199,000원 마진 검증</td></tr>
+        <tr><td>Sentry</td><td class="num">0원(미도입)</td><td class="num">0원(무료 티어)</td><td>P9 베타</td></tr>
+        <tr><td>토스페이먼츠</td><td class="num" colspan="2">고정비 0 · 결제액 ~3%</td><td>가맹 신청만 P0</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>개발 기간 월 몇만 원 · 상용 초기 월 8~10만원.</b> 무비 1건(199,000원)이 한 달 인프라비를 넘는 구조.</p>
+  </section>
+
+  <!-- ============ 15 ============ -->
+  <section class="sec" id="s15">
+    <div class="sec-head"><span class="num">15</span>
+      <div><h2>홈ON 분석 요약 (참고 보관)</h2>
+      <div class="sec-sub">2026-08-31 로그인 실사 + 캡쳐 111장 — 벤치마크 압축본</div></div>
+    </div>
+    <ul class="tight">
+      <li><b>스택:</b> Next.js(App Router+Turbopack) + Vercel(서울) + Supabase + 토스페이먼츠(빌링키) + 네이버 지도/플레이스 + 카카오 채널. 사이트는 경로형(/s/88368) JSON 렌더링, 사이트별 sitemap/robots.</li>
+      <li><b>가격:</b> 제작비 49,000원 1회 + LIGHT 9,900 / PRO 19,900 / BUSINESS 39,900원/월. 1년 = 12+3개월. 첫 결제 예 58,900원.</li>
+      <li><b>게이팅:</b> 사진그룹·동영상·위젯 3/6/10, 챗봇·문의관리·고객DB·브랜딩 제거는 BUSINESS.</li>
+      <li><b>전환 장치:</b> 선체험(24h) 후결제, 완성도 점수(64점→+N점 안내), 카운트다운, "다운로드는 활성화 후", 14단계 에디터 투어 — <b>우리 5장 설계의 벤치마크.</b></li>
+      <li><b>AI 사용처:</b> 카피 LLM · 로고 이미지 생성(한글 경고) · 상담 챗봇 · 온디맨드 사진. 도장·명함·QR·점수는 규칙/템플릿 — AI 원가를 낮게 유지하는 구조.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 16 ============ -->
+  <section class="sec" id="s16">
+    <div class="sec-head"><span class="num">16</span>
+      <div><h2>실패 방지 수칙 14</h2></div>
+    </div>
+    <ol>
+      <li>렌더러(JSON→페이지)와 서브도메인 라우팅을 먼저. 나머지는 전부 그 다음.</li>
+      <li>카테고리 7은 문서로 고정, 코드는 14업종·템플릿 2종(QUOTE·VISIT)만 — 확장은 설정 한 줄.</li>
+      <li>온보딩에서 카테고리를 묻지 않는다. 추론 파이프라인 + 에디터 교정으로 흡수하고, 교정 로그로 사전을 보강한다.</li>
+      <li>data-tour 앵커 규약을 P1 첫 컴포넌트부터 — 투어는 나중에 붙여도 앵커는 소급이 안 된다.</li>
+      <li>완성도 규칙·투어 스텝·업종 매핑은 config 3파일이 단일 출처 — UI에 하드코딩 금지.</li>
+      <li>섹션 스키마 변경 = zod·렌더러·에디터 폼·SCHEMA.md 한 커밋.</li>
+      <li>DB 변경은 migration new로만 + 주 1회 db diff + db dump.</li>
+      <li>플랜 한도·금액·슬러그 검증은 서버에서만.</li>
+      <li>draft/published 분리 + 발행 스냅샷은 처음부터.</li>
+      <li>main 항상 배포 가능. Phase 브랜치 → 셀프 PR → /code-review → 머지. 되돌리기는 revert.</li>
+      <li>주소는 경로 방식 유지 — 서브도메인 부활 금지(서치어드바이저 자동화 불가 사유 기록됨).</li>
+      <li>무비: 수정 3회 시스템 강제, 건당 원가 기록, "AI 아님" 표현 금지.</li>
+      <li>AI 생성 실패율·비용 첫날부터 로깅. 퍼널 4관문(생성→수정→발행→결제)도 첫날부터 기록.</li>
+      <li>BOOK·CONSULT·BROWSE와 쇼핑몰형은 런칭 후에.</li>
+    </ol>
+  </section>
+
+  <footer class="doc-end">
+    v3 (최종 기획안) · 2026-08-31 · v1: homon.co.kr 로그인 실사+캡쳐 111장 분석 → v2: 온스토리 방향 확정 → v3: 카테고리 7×템플릿 5, 무질문 온보딩, 게이미피케이션 기반 설계 확정.
+    "추정" 표시 항목은 외부 관찰에 근거한 합리적 추론임.
+  </footer>
+</div>

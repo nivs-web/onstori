@@ -10,6 +10,21 @@ import type { NextConfig } from "next";
  * '서브도메인 만들기' 메뉴에서만 관리(공간만, 추후 사용). 고객 사이트에는 쓰지 않는다.
  */
 const nextConfig: NextConfig = {
+  /**
+   * 사업 설계도 대시보드(/onstoriplandept) — public/onstoriplandept/index.html 정적 파일.
+   * beforeFiles 로 앞세우지 않으면 app/[slug] 동적 라우트가 고객 사이트 슬러그로 가로챈다.
+   * 슬러그 자체는 reserved_slugs 에도 넣어 고객이 선점하지 못하게 했다.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/onstoriplandept", destination: "/onstoriplandept/index.html" },
+        { source: "/onstoriplandept/", destination: "/onstoriplandept/index.html" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   async redirects() {
     return [
       // www → apex
