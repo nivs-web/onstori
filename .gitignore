@@ -51,3 +51,6 @@ gcp-key*.json
 
 # 이미지 벤치 산출물
 bench-out/
+
+# 이미지뱅크 웨이브 로그 (러너 산출물)
+wave-*.log
