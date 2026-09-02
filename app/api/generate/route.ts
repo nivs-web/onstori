@@ -3,6 +3,7 @@ import { z } from "zod";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
+import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
 
 export const maxDuration = 60; // LLM 호출 여유
 
@@ -23,6 +24,17 @@ export async function POST(req: Request) {
     input = Input.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "입력값을 확인해주세요" }, { status: 400 });
+  }
+
+  // 비용 방어 — LLM 호출 전에 IP 한도를 본다. 입력 검증 뒤에 두어 오타 요청은 한도를 깎지 않는다.
+  const ip = clientIp(req);
+  const limit = await checkRateLimit("gen", ip, GENERATE_LIMITS);
+  if (!limit.ok) {
+    console.warn(JSON.stringify({ evt: "generate_rate_limited", ip, rule: limit.rule.label, slug: input.slug }));
+    return NextResponse.json(
+      { error: "잠시 후 다시 시도해주세요. 짧은 시간에 너무 많이 만들었어요." },
+      { status: 429, headers: { "Retry-After": String(limit.rule.window) } },
+    );
   }
 
   const sb = sbAdmin();
