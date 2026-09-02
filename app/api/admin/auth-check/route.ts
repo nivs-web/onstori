@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
-import { authMode, resolvedAuthMode, vertexToken } from "@/lib/vertex";
+import { authMode, resolvedAuthMode, vertexToken, probeWif } from "@/lib/vertex";
 
 /**
  * Vertex 인증 경로 진단 — 운영자 전용.
@@ -30,6 +30,19 @@ export async function GET(req: Request) {
     token = { ok: false, err: String(e).slice(0, 300) };
   }
 
+  // OIDC 토큰의 클레임을 그대로 읽어 GCP 가 기대하는 값과 대조한다.
+  // 서명 검증은 하지 않는다 — 진단 목적이고 검증은 GCP STS 가 한다.
+  let claims: Record<string, unknown> | { err: string } | null = null;
+  if (oidcHeader) {
+    try {
+      const p = JSON.parse(Buffer.from(oidcHeader.split(".")[1], "base64url").toString("utf8"));
+      claims = { iss: p.iss, aud: p.aud, sub: p.sub, owner: p.owner, project: p.project, environment: p.environment };
+    } catch (e) { claims = { err: String(e).slice(0, 120) }; }
+  }
+
+  // 캐시된 폴백 결과와 무관하게 WIF 를 새로 시도해 실패 사유를 그대로 받는다
+  const wif = new URL(req.url).searchParams.get("probe") === "wif" ? await probeWif() : null;
+
   return NextResponse.json({
     선언모드: authMode(),
     실제경로: resolvedAuthMode(),
@@ -48,5 +61,7 @@ export async function GET(req: Request) {
       GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON ? "(설정됨)" : null,
     },
     token,
+    토큰클레임: claims,
+    wif시도: wif,
   });
 }

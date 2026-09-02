@@ -74,6 +74,20 @@ function buildWifClient(): AuthClient {
   return c;
 }
 
+/**
+ * 진단용 — 캐시를 거치지 않고 WIF 를 새로 시도해 결과(또는 실패 사유)를 그대로 돌려준다.
+ * 운영 경로는 폴백 때문에 실패를 삼키므로, 전환 여부를 판단하려면 이런 창구가 필요하다.
+ */
+export async function probeWif(): Promise<{ ok: boolean; head?: string; err?: string }> {
+  try {
+    const c = buildWifClient();
+    const t = await c.getAccessToken();
+    return { ok: true, head: (t.token ?? "").slice(0, 8) + "…" };
+  } catch (e) {
+    return { ok: false, err: String(e).slice(0, 600) };
+  }
+}
+
 let clientCache: Promise<AuthClient> | null = null;
 /**
  * 실제 요청에 쓰는 클라이언트 — 세 경로를 하나의 AuthClient 로 수렴시킨다.
