@@ -81,7 +81,14 @@ function HeroSec({ s, ctx }: { s: Extract<SectionT, { type: "hero" }>; ctx: Ctx 
 function AboutSec({ s }: { s: Extract<SectionT, { type: "about" }> }) {
   return (
     <SectionShell title={s.title}>
-      <p className="whitespace-pre-line text-[15.5px] leading-8" style={{ color: "var(--s-ink)" }}>{s.body}</p>
+      {/* 사진이 있으면 본문 옆에 붙인다(모바일은 위). 뱅크 about 이미지는 3:2 중간 샷이라 비율을 유지한다 */}
+      <div className={s.image ? "flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6" : undefined}>
+        {s.image && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={s.image} alt="" className="aspect-[3/2] w-full rounded-2xl object-cover sm:w-56 sm:flex-shrink-0" />
+        )}
+        <p className="whitespace-pre-line text-[15.5px] leading-8" style={{ color: "var(--s-ink)" }}>{s.body}</p>
+      </div>
       {s.stats && s.stats.length > 0 && (
         <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {s.stats.map((st) => (

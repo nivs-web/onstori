@@ -32,6 +32,8 @@ export const About = z.object({
   type: z.literal("about"),
   title: z.string().max(40).default("소개"),
   body: z.string().min(1).max(600),
+  // 소개 사진 1장. optional — 이 필드가 생기기 전에 만들어진 발행본이 그대로 통과해야 한다
+  image: z.string().optional(),
   stats: z.array(z.object({ label: z.string().max(20), value: z.string().max(20) })).max(4).optional(),
 });
 

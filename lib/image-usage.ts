@@ -8,7 +8,7 @@ import { sbAdmin } from "./db-admin";
  * 이전 이미지는 자동으로 다시 후보가 된다.
  */
 
-export type UsageRole = "hero" | "gallery" | "portfolio";
+export type UsageRole = "hero" | "gallery" | "portfolio" | "about";
 export type UsageRef = { slug: string; businessName: string; role: UsageRole };
 
 type Section = {
@@ -22,6 +22,9 @@ type Section = {
 function refsInSection(s: Section): { url: string; role: UsageRole }[] {
   if (s?.type === "hero" && typeof s.image === "string" && s.image) {
     return [{ url: s.image, role: "hero" }];
+  }
+  if (s?.type === "about" && typeof s.image === "string" && s.image) {
+    return [{ url: s.image, role: "about" }];
   }
   if (s?.type === "gallery" && Array.isArray(s.photos)) {
     return s.photos.filter((u): u is string => typeof u === "string" && !!u).map((url) => ({ url, role: "gallery" as const }));

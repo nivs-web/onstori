@@ -276,7 +276,8 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
     return d.url as string;
   }
 
-  async function uploadHero(idx: number, file: File) {
+  /** image 필드를 가진 섹션(hero·about) 공용 — 해당 인덱스의 image를 교체한다 */
+  async function uploadSectionImage(idx: number, file: File) {
     const url = await upload(file);
     if (url) patchSection(idx, { image: url } as Partial<SectionT>);
   }
@@ -323,7 +324,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
                 {s.image && /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.image} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />}
                 <label className="inline-block cursor-pointer rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold">
                   {uploading ? "올리는 중…" : "내 사진으로 교체 (+15점 항목)"}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadHero(i, e.target.files[0])} />
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
                 </label>
               </div>
             </section>
@@ -333,6 +334,17 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
               <h2 className="text-sm font-bold">소개</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               <Field label="내용"><textarea className={inp} rows={5} value={s.body} maxLength={600} onChange={(e) => patchSection(i, { body: e.target.value })} /></Field>
+              <div>
+                <span className="mb-1 block text-xs font-semibold text-neutral-500">소개 사진 {s.image ? "" : "(없음)"}</span>
+                {s.image && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={s.image} alt="" className="mb-2 aspect-[3/2] w-40 rounded-lg object-cover" />
+                )}
+                <label className="inline-block cursor-pointer rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold">
+                  {uploading ? "올리는 중…" : s.image ? "사진 교체" : "사진 추가"}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
+                </label>
+              </div>
             </section>
           );
           case "processSteps": return (

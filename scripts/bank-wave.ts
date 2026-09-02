@@ -58,7 +58,10 @@ function finish(status: string, detail: string) {
   if (finished) return;
   finished = true;
   if (child && child.pid && child.exitCode === null) {
-    try { process.platform === "win32" ? spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true }) : child.kill("SIGTERM"); } catch {}
+    try {
+      if (process.platform === "win32") spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true });
+      else child.kill("SIGTERM");
+    } catch { /* 이미 죽었으면 무시 */ }
   }
   const mins = Math.round((Date.now() - started) / 60000);
   log("─".repeat(60));

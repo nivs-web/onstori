@@ -60,6 +60,7 @@ VISIT 전용: `hoursCard` `menuPrice`
 |---|---|---|---|
 | title | string | ⬜ | ≤40자, 기본값 `"소개"` |
 | body | string | ✅ | 1~600자 |
+| image | string | ⬜ | 소개 사진 1장(URL). 없으면 사진 없이 렌더 — 필드 도입 전 발행본 호환 |
 | stats | `{ label, value }[]` | ⬜ | ≤4개. label ≤20자, value ≤20자 |
 
 ### storyFeed
@@ -170,11 +171,12 @@ VISIT 전용: `hoursCard` `menuPrice`
 
 `lib/image-usage.ts`의 `loadImageUsage()`는 **발행본(`sites.published`)의 섹션을 훑어** "이 이미지를 지금 어느 사이트가 쓰는가"를 만든다. 어드민의 사용 중 배지와 `pickImage`의 히어로 중복 방지가 이 한 곳을 공유한다.
 
-훑는 필드는 아래 3개뿐이다:
+훑는 필드는 아래 4개다:
 
 | 섹션 | 필드 | 판정 role |
 |---|---|---|
 | hero | `image` | `hero` |
+| about | `image` | `about` |
 | gallery | `photos[]` | `gallery` |
 | portfolioGallery | `items[].image` | `portfolio` |
 

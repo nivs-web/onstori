@@ -88,11 +88,12 @@ export async function generateSite(input: GenerateInput) {
   const { industry, confidence, method } = await classify(input);
   const cat = categoryOf(industry);
   const matchText = `${input.businessName} ${input.oneLiner}`;
-  const [copy, heroImage, galleryPhotos] = await Promise.all([
+  const [copy, heroImage, galleryPhotos, aboutImage] = await Promise.all([
     generateCopy(input, industry),
     // 뱅크 승인 이미지 우선, 없으면 플레이스홀더. text는 태그 매칭 가중치용(예: "브런치" 태그 ↔ 소개 문장)
     pickImage(industry.id, input.mood, "hero", { text: matchText }),
     pickImages(industry.id, input.mood, "gallery", GALLERY_COUNT, { text: matchText }),
+    pickImage(industry.id, input.mood, "about", { text: matchText }),
   ]);
 
   const sections: SiteDocT["sections"] = [
@@ -104,7 +105,7 @@ export async function generateSite(input: GenerateInput) {
       image: heroImage,
       cta: { label: cat.template === "quote" ? "견적 문의" : "전화 문의", action: cat.cta === "quote" ? "quote" : "call" },
     },
-    { type: "about", title: copy.aboutTitle, body: copy.aboutBody },
+    { type: "about", title: copy.aboutTitle, body: copy.aboutBody, image: aboutImage },
   ];
 
   // 갤러리 — 뱅크에 승인 사진이 있을 때만. 재고가 없으면 섹션 자체를 만들지 않는다(pickImages는 빈 배열을 준다)
