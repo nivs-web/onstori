@@ -89,13 +89,18 @@ export async function pickImage(
  * pickImage와 달리 플레이스홀더로 폴백하지 않고 **빈 배열**을 준다. 히어로는 반드시 한 장이
  * 있어야 하지만 갤러리는 없으면 섹션을 안 만드는 편이 낫다 — 플레이스홀더로만 채운 갤러리는
  * 남의 사진을 자기 작업물처럼 보이게 해서 없느니만 못하다. 넣을지 말지는 호출부가 정한다.
+ *
+ * `widenMood`: 정확한 (업종,무드) 재고가 n장에 모자라면 **같은 업종의 다른 무드**에서 채운다.
+ * 진행 과정처럼 칸 수가 정해진 자리는 일부만 사진이 붙으면 고장난 것처럼 보이는데, 셀당 재고가
+ * 평균 3장이라 4스텝 중 55셀 가운데 38셀이 못 채운다(2026-09-02 실측). 업종까지 넓히면 최소 8장이라
+ * 최대 6스텝도 채워진다. 56px 썸네일에서 무드(조명·색조) 차이는 거의 안 보이고 업종 적합성이 훨씬 중요하다.
  */
 export async function pickImages(
   industry: string,
   mood: string,
   role: "gallery" | "about" | "process",
   n: number,
-  opts?: { text?: string },
+  opts?: { text?: string; widenMood?: boolean },
 ): Promise<string[]> {
   try {
     const sb = sbAdmin();
@@ -130,6 +135,27 @@ export async function pickImages(
         ordered.push(...bucket);
       }
       const chosen = ordered.slice(0, n);
+
+      // 모자라면 같은 업종의 다른 무드에서 보충 (이미 고른 것 제외)
+      if (opts?.widenMood && chosen.length < n) {
+        const { data: wider } = await sb
+          .from("image_bank")
+          .select("id, url, tags, used_count")
+          .eq("industry", industry)
+          .eq("role", role)
+          .eq("quality_ok", true)
+          .eq("deleted", false)
+          .order("used_count", { ascending: true })
+          .limit(60);
+        const have = new Set(chosen.map((c) => c.id));
+        const extra = ((wider ?? []) as Row[]).filter((r) => !have.has(r.id));
+        for (let i = extra.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [extra[i], extra[j]] = [extra[j], extra[i]];
+        }
+        chosen.push(...extra.slice(0, n - chosen.length));
+      }
+
       if (chosen.length > 0) {
         // 카운터는 best-effort — 실패해도 이미지 선택은 진행 (pickImage와 같은 방침)
         await Promise.all(chosen.map((c) => sb.rpc("bump_bank_used", { bank_id: c.id }).then(() => {}, () => {})));

@@ -119,10 +119,15 @@ export async function generateSite(input: GenerateInput) {
   }
 
   if (cat.template === "quote") {
-    // 스텝 수는 카피가 정하므로 여기서 그 개수만큼만 가져온다 — 미리 6장 뽑으면 안 쓸 이미지의 used_count까지 오른다
-    const stepImages = await pickImages(industry.id, input.mood, "process", copy.steps.length, { text: matchText });
+    // 스텝 수는 카피가 정하므로 여기서 그 개수만큼만 가져온다 — 미리 6장 뽑으면 안 쓸 이미지의 used_count까지 오른다.
+    // widenMood: 정확한 무드 재고로는 대개 스텝을 못 채운다(55셀 중 38셀). 업종까지 넓혀야 다 채워진다.
+    const stepImages = await pickImages(industry.id, input.mood, "process", copy.steps.length, { text: matchText, widenMood: true });
+    // 전부 채우지 못하면 아예 안 붙인다 — 사진 있는 카드와 없는 카드가 섞이면 고장난 것처럼 보인다
+    const stepsWithImages = stepImages.length >= copy.steps.length
+      ? copy.steps.map((st, i) => ({ ...st, image: stepImages[i] }))
+      : copy.steps;
     sections.push(
-      { type: "processSteps", title: "진행 과정", steps: copy.steps.map((st, i) => stepImages[i] ? { ...st, image: stepImages[i] } : st) },
+      { type: "processSteps", title: "진행 과정", steps: stepsWithImages },
       { type: "storyFeed", title: copy.storyFeedTitle, showCount: 5 },
       { type: "quoteForm", title: "견적 문의", sub: copy.quoteSub, phone: input.phone, allowPhotos: true },
     );
