@@ -46,6 +46,30 @@ export function EditUi({ slug }: { slug: string }) {
    *  notFound(404)에 로그인 CTA를 주면 /login이 세션을 발견해 되돌려보내 같은 화면으로 돈다. */
   const [denied, setDenied] = useState<{ signedIn: boolean; notFound: boolean } | null>(null);
   const [tab, setTab] = useState<"content" | "story">("content");
+
+  /**
+   * "＋N점" 클릭 → 해당 data-tour 앵커로 스크롤·강조 (P3 이월, 투어의 최소 동작형).
+   * 앵커가 지금 탭에 없으면 내용 탭으로 바꾼 뒤 다시 찾는다.
+   */
+  function goToAnchor(anchor: string) {
+    const focus = () => {
+      const el = document.querySelector<HTMLElement>(`[data-tour="${anchor}"]`);
+      if (!el) return false;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+      const ring = ["ring-2", "ring-teal-500", "ring-offset-2", "rounded-xl"];
+      el.classList.add(...ring);
+      window.setTimeout(() => el.classList.remove(...ring), 1800);
+      return true;
+    };
+    if (focus()) return;
+    setTab("content");
+    // 탭 전환 렌더 후 재시도. 그래도 없으면 이 사이트에 그 자리가 없는 것이다
+    // (예: 영업시간은 VISIT 템플릿에만 있다). 조용히 끝내면 버튼이 고장난 것처럼 보인다.
+    window.setTimeout(() => {
+      if (!focus()) flash("이 홈페이지에는 아직 그 항목이 없어요 — 아래 '섹션 추가'에서 넣을 수 있어요");
+    }, 60);
+  }
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -217,7 +241,10 @@ export function EditUi({ slug }: { slug: string }) {
       {/* 점수 올리기 힌트 */}
       <section className="mt-4 rounded-xl bg-teal-50 p-3 text-xs leading-relaxed text-teal-900">
         {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo", "widget_1"].includes(r.id)).slice(0, 3).map((r) => (
-          <p key={r.id}>＋{r.pts}점 · <b>{r.label}</b> — {r.hint}</p>
+          <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
+            className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600">
+            ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
+          </button>
         ))}
         {data.score >= 75 && <p>잘하고 있어요! 이야기를 계속 쌓으면 홈페이지가 강해져요.</p>}
       </section>
@@ -280,6 +307,17 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
   async function uploadSectionImage(idx: number, file: File) {
     const url = await upload(file);
     if (url) patchSection(idx, { image: url } as Partial<SectionT>);
+  }
+
+  /**
+   * 섹션 삭제(P3 이월). hero 는 애초에 액션 버튼이 없고, quoteForm 은 문의 경로이자
+   * 완성도 규칙 cta_form 의 대상이라 지우면 전환 경로와 점수가 함께 사라진다 — 둘 다 막는다.
+   */
+  function deleteSection(i: number) {
+    const t = doc.sections[i]?.type;
+    if (t === "hero" || t === "quoteForm") return;
+    if (!confirm("이 섹션을 지울까요? 되돌리려면 다시 추가해야 해요.")) return;
+    setDoc({ ...doc, sections: doc.sections.filter((_, k) => k !== i) });
   }
 
   function moveSection(i: number, d: -1 | 1) {
@@ -544,6 +582,10 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
                   className="h-6 w-6 rounded border border-neutral-200 bg-white text-xs text-neutral-500 disabled:opacity-30" aria-label="위로 이동">↑</button>
                 <button disabled={i === doc.sections.length - 1} onClick={() => moveSection(i, 1)}
                   className="h-6 w-6 rounded border border-neutral-200 bg-white text-xs text-neutral-500 disabled:opacity-30" aria-label="아래로 이동">↓</button>
+                {s.type !== "quoteForm" && (
+                  <button onClick={() => deleteSection(i)}
+                    className="h-6 w-6 rounded border border-neutral-200 bg-white text-xs text-neutral-400 hover:border-red-300 hover:text-red-600" aria-label="섹션 삭제">✕</button>
+                )}
               </div>
             )}
             {card}
