@@ -516,15 +516,23 @@ v1 활성 범위는 **시공·출장 12업종 + 카페·식당 2업종 = 14종**
 
 ### ✅ WIF 전환 — 동작 확인 (2026-09-02) · 남은 것은 SA 키 폐기뿐
 
-Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Workload Identity Federation으로** 옮긴다.
+Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Workload Identity Federation으로** 옮겼다. **Vercel 에는 더 이상 장기 키가 없다** — 요청마다 발급되는 단기 토큰으로만 인증한다.
 
-**왜**: 조직 정책 `iam.disableServiceAccountKeyCreation`이 상위 조직에서 상속·적용 중인데, 지금은 **프로젝트 단위 예외로 그 정책을 끄고** 키를 만들어 쓰는 상태다. 정책의 취지(장기 키 금지)를 우회한 것이라 부채로 남는다. WIF는 키를 아예 만들지 않는다.
+**왜 했나**: 조직 정책 `iam.disableServiceAccountKeyCreation`이 상위 조직에서 상속·적용 중인데, 이를 **프로젝트 단위 예외로 끄고** 키를 만들어 쓰고 있었다. 정책의 취지(장기 키 금지)를 우회한 것이라 부채였다. WIF는 키를 아예 만들지 않는다.
 
-**방식**: Vercel OIDC → GCP STS → **기존 `onstori-gemini-sa` 가장(impersonation)**. 키 파일 불필요, 정책 예외도 되돌릴 수 있다. 오늘 부여한 `roles/aiplatform.user`를 그대로 재사용한다. Vercel에 넣는 값은 전부 비밀이 아니다(프로젝트 번호·SA 이메일·풀/프로바이더 ID).
+⚠ **현재 상태 정정**: 키를 *쓰는* 상태는 끝났다(2026-09-02 ①). 다만 **정책 예외는 아직 열려 있고 키도 GCP 안에 남아 있다** — 관찰 기간의 복구 수단으로 일부러 둔 것이다. 아래 "마무리 3단계" 참조.
 
-**코드**: `lib/vertex.ts`의 `auth()`를 `getAuthClient(): Promise<AuthClient>`로 바꾸고 분기 3개(WIF → SA JSON → 로컬 ADC). `ExternalAccountClient.fromJSON({ ..., subject_token_supplier: { getSubjectToken: getVercelOidcToken } })` — **`google-auth-library`가 이미 지원**하므로 새 인증 라이브러리 불필요. 추가 의존성은 `@vercel/oidc` 하나. 약 40줄. 로컬 ADC 흐름은 그대로.
+**방식**: Vercel OIDC → GCP STS → **기존 `onstori-gemini-sa` 가장(impersonation)**. 키 파일 불필요, 정책 예외도 되돌릴 수 있다. 기존에 부여한 `roles/aiplatform.user`(2026-09-01)를 그대로 재사용한다. Vercel에 넣는 값은 전부 비밀이 아니다(프로젝트 번호·SA 이메일·풀/프로바이더 ID).
 
-**시간**: GCP 콘솔 30~45분 + Vercel 설정 10~15분 + 코드 30~45분 + 배포·디버깅 30~60분 = **2~3시간**. 난이도 중 — 코드는 쉽고 공식 예제가 있으나 STS 오류 메시지가 불친절하고 로컬 재현이 어려워 프리뷰 배포로 반복해야 한다. subject 문자열이 `owner:ianworld:project:onstori-pwk2:environment:production`으로 정확히 맞아야 한다.
+**코드(실제 구현)**: `lib/vertex.ts`의 `auth()`를 `authClient(): Promise<AuthClient>`로 바꿔 분기 3개(WIF → SA JSON → 로컬 ADC)를 하나의 `AuthClient`로 수렴시켰다. `ExternalAccountClient.fromJSON({ ..., subject_token_supplier: { getSubjectToken: getVercelOidcToken } })` — **`google-auth-library`가 이미 지원**하므로 새 인증 라이브러리 불필요. 추가 의존성은 `@vercel/oidc` 하나. 로컬 ADC 흐름은 그대로.
+
+계획에 없었으나 필요해서 추가한 것 둘:
+- **폴백** — WIF 는 토큰을 한 번 받아보고 성공해야 채택하고, 실패하면 SA/ADC 로 넘어간다. 처음엔 폴백이 없어 WIF 가 어긋나는 순간 프로덕션 생성이 통째로 500이 났다(실제 발생).
+- **진단 엔드포인트** `GET /api/admin/auth-check` — 폴백은 서비스를 살리지만 실패를 가린다. "지금 진짜 어느 경로인가"를 볼 창구가 없으면 전환 완료 여부를 판단할 수 없다. `?probe=wif` 로 캐시를 무시한 재시도와 실패 사유 원문도 받는다.
+
+**실제 소요**: 약 1.5시간(예상 2~3시간). GCP 는 콘솔 대신 gcloud 로 해서 빨랐고, 대신 예상에 없던 `iamcredentials` 함정과 프로덕션 500 복구·진단 엔드포인트 제작에 시간이 갔다.
+
+**예상이 맞았던 것**: "STS 오류 메시지가 불친절하고 로컬 재현이 어렵다." 실제로 GCP 감사 로그에는 STS 호출 자체가 안 남아 원인을 좁힐 수 없었고, 토큰 클레임을 디코드해 대조하고 나서야 잡혔다. subject 문자열 `owner:ianworld:project:onstori-pwk2:environment:production` 은 정확히 맞아야 한다는 것도 그대로였다(실측 일치).
 
 **착수 전 확인 — ✅ 통과**: 조직 정책 `iam.workloadIdentityPoolProviders`의 유효값이 `allValues: ALLOW`라 발급자 제한이 없다(gcloud 확인).
 
