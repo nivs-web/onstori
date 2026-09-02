@@ -301,7 +301,7 @@ auth-setup 5절의 미확인 3건을 **onstori.com 실서비스**에서 확인�
 검증(실데이터): 사용 판정이 시드 히어로를 3개 사이트 공유로 정확히 집계 · 태그 "브런치" 적중 시 6/6 선택, 불일치 텍스트에서도 정상 폴백 · 재고 부족 시 경고 로그 발생 후 진행 · 일괄승인/태그 PATCH 무권한 401 · `tsc`·`build` 통과. 검증 스크립트는 실행 후 삭제.
 `BankCardActions`(구 카드 액션)는 `BankGrid`로 대체되어 제거.
 
-**뱅크 재고 (2026-09-02 비히어로 웨이브 후)**: 전체 638장 **전량 승인** — hero 124 · gallery 183 · about 167 · process 164. 웨이브 결과는 아래 "AI 스택" 절 참조.
+**뱅크 재고 (2026-09-02 비히어로 웨이브 후)**: 전체 638장 **전량 승인** — hero 124 · gallery 183 · about 167 · process 164. **네 역할 모두 생성 파이프라인에 배선 완료**(hero=1장, gallery=최대 6장, about=1장, processSteps=스텝당 1장). 웨이브 결과는 아래 "AI 스택" 절 참조.
 
 ---
 
@@ -493,25 +493,6 @@ model gemini-3-pro-image · created 100 · dups 0 · fails 0 · apiCalls 100 · 
 ---
 
 ## 알려진 이슈 / TODO
-
-### ⚠️ about·process 뱅크 이미지 331장이 갈 곳이 없다 — 스키마에 이미지 필드 부재
-
-2026-09-02에 gallery만 배선했다(`lib/generate.ts` → `pickImages` → `Gallery` 섹션). 나머지 두 역할은
-**넣을 자리 자체가 없다**:
-
-| 역할 | 현재 스키마 | 재고 |
-|---|---|---|
-| `gallery` | `Gallery.photos[]` — ✅ 배선 완료 | 183장 |
-| `about` | `About = {title, body, stats?}` — **이미지 필드 없음** | 167장 |
-| `process` | `ProcessSteps.steps[] = {name, desc?}` — **이미지 필드 없음** | 164장 |
-
-필드를 넣으려면 **CLAUDE.md 불변 규칙 2**에 따라 한 커밋에서 4곳 동시 수정이다 —
-`lib/schema.ts` + `components/sections/index.tsx` 렌더러 + `app/[slug]/edit/ui.tsx` 에디터 폼 +
-`docs/SCHEMA.md`. 두 섹션이니 2세트. 배치·비율 같은 **디자인 결정**이 함께 필요하다
-(About에 사진을 한 장 넣을지 좌우 2단으로 갈지, 진행 과정 각 단계에 썸네일을 달지).
-
-331장은 이미 만들어 승인까지 끝나 있으므로 **버려지는 건 없다** — 자리가 생기는 즉시 붙는다.
-우선순위는 낮다(제품이 지금도 동작한다). 2026-09-02 사용자 결정으로 gallery만 먼저 처리했다.
 
 ### 🔴 표시광고법 리스크 — 폴백 모델의 근거 없는 경력 표현
 

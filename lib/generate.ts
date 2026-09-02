@@ -119,8 +119,10 @@ export async function generateSite(input: GenerateInput) {
   }
 
   if (cat.template === "quote") {
+    // 스텝 수는 카피가 정하므로 여기서 그 개수만큼만 가져온다 — 미리 6장 뽑으면 안 쓸 이미지의 used_count까지 오른다
+    const stepImages = await pickImages(industry.id, input.mood, "process", copy.steps.length, { text: matchText });
     sections.push(
-      { type: "processSteps", title: "진행 과정", steps: copy.steps },
+      { type: "processSteps", title: "진행 과정", steps: copy.steps.map((st, i) => stepImages[i] ? { ...st, image: stepImages[i] } : st) },
       { type: "storyFeed", title: copy.storyFeedTitle, showCount: 5 },
       { type: "quoteForm", title: "견적 문의", sub: copy.quoteSub, phone: input.phone, allowPhotos: true },
     );

@@ -94,6 +94,8 @@ export const ProcessSteps = z.object({
   steps: z.array(z.object({
     name: z.string().max(20),
     desc: z.string().max(80).optional(),
+    // 단계별 소형 사진. optional — 이 필드가 생기기 전 발행본 호환
+    image: z.string().optional(),
   })).min(2).max(6),
 });
 

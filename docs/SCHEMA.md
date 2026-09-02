@@ -115,7 +115,7 @@ VISIT 전용: `hoursCard` `menuPrice`
 | 필드 | 타입 | 필수 | 제약·기본값 |
 |---|---|---|---|
 | title | string | ⬜ | ≤40자, 기본값 `"진행 과정"` |
-| steps | `{ name, desc? }[]` | ✅ | 2~6개. name ≤20자, desc ≤80자(선택) |
+| steps | `{ name, desc?, image? }[]` | ✅ | 2~6개. name ≤20자, desc ≤80자(선택), image = 단계별 사진 URL(선택) |
 
 ### quoteForm (QUOTE 전용)
 
@@ -171,13 +171,14 @@ VISIT 전용: `hoursCard` `menuPrice`
 
 `lib/image-usage.ts`의 `loadImageUsage()`는 **발행본(`sites.published`)의 섹션을 훑어** "이 이미지를 지금 어느 사이트가 쓰는가"를 만든다. 어드민의 사용 중 배지와 `pickImage`의 히어로 중복 방지가 이 한 곳을 공유한다.
 
-훑는 필드는 아래 4개다:
+훑는 필드는 아래 5개다:
 
 | 섹션 | 필드 | 판정 role |
 |---|---|---|
 | hero | `image` | `hero` |
 | about | `image` | `about` |
 | gallery | `photos[]` | `gallery` |
+| processSteps | `steps[].image` | `process` |
 | portfolioGallery | `items[].image` | `portfolio` |
 
 - **draft는 세지 않는다.** 아직 손님에게 안 나간 상태라서. 발행해야 "사용 중"이 된다.

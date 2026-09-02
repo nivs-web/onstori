@@ -351,11 +351,20 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
             <section className="space-y-3 rounded-2xl border border-neutral-200 p-4">
               <h2 className="text-sm font-bold">진행 과정</h2>
               {s.steps.map((st, j) => (
-                <div key={j} className="flex gap-2">
+                <div key={j} className="flex items-center gap-2">
                   <input className={`${inp} w-28 flex-shrink-0`} value={st.name} maxLength={20}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, name: e.target.value } : x) })} />
                   <input className={inp} value={st.desc ?? ""} maxLength={80}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} />
+                  <label className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-neutral-300 text-xs"
+                         title={st.image ? "사진 교체" : "사진 추가"}>
+                    {st.image ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={st.image} alt="" className="h-full w-full object-cover" />
+                    ) : (uploading ? "…" : "＋")}
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, image: url } : x) }); e.target.value = ""; }} />
+                  </label>
                 </div>
               ))}
             </section>

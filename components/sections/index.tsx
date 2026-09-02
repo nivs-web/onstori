@@ -233,13 +233,18 @@ function ProcessSec({ s }: { s: Extract<SectionT, { type: "processSteps" }> }) {
     <SectionShell title={s.title}>
       <ol className="grid gap-3 sm:grid-cols-2">
         {s.steps.map((st, i) => (
-          <li key={st.name} className="flex gap-4 rounded-xl border p-4" style={{ borderColor: "var(--s-line)" }}>
+          <li key={st.name} className="flex items-start gap-4 rounded-xl border p-4" style={{ borderColor: "var(--s-line)" }}>
             <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
                   style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>{i + 1}</span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold" style={{ color: "var(--s-ink)" }}>{st.name}</p>
               {st.desc && <p className="mt-0.5 text-[13.5px] leading-6" style={{ color: "var(--s-muted)" }}>{st.desc}</p>}
             </div>
+            {/* 단계 사진 — 번호·글 다음 오른쪽 끝에 작게. 2단 그리드라 폭을 많이 못 준다 */}
+            {st.image && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={st.image} alt="" className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" />
+            )}
           </li>
         ))}
       </ol>
