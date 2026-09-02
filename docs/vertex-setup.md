@@ -57,7 +57,8 @@ npx tsx --env-file=.env.local scripts/bank-generate.ts --model gemini-3.1-flash-
 - [x] `onstori-gemini-sa` 에 `roles/iam.workloadIdentityUser` — principal 은 subject 정확 일치
 - [x] **`iamcredentials.googleapis.com` 사용 설정** ← 빠뜨리기 쉬운 곳. 없으면 STS 는 통과해도 가장 단계에서 실패한다
 - [x] Vercel: 발급자 모드 **Team** + `GCP_PROJECT_NUMBER`·`GCP_SERVICE_ACCOUNT_EMAIL`·`GCP_WORKLOAD_IDENTITY_POOL_ID`·`GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID` (Production)
-- [ ] **마무리**: Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 → SA 키 `520195620d…` 삭제 → `iam.disableServiceAccountKeyCreation` 예외 해제
+- [x] **①** Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 → 재배포 (2026-09-02). 제거 후에도 `실제경로: wif` 5회 연속·생성 200 — **WIF 단독 동작 증명됨**
+- [ ] **②** SA 키 `520195620d…` 삭제 · **③** `iam.disableServiceAccountKeyCreation` 예외 해제 — 며칠 관찰 후 (PROGRESS "마무리 3단계" 참조). ③은 새 키 발급을 막으므로 되돌릴 문이 닫히는 지점
 
 진단: `GET /api/admin/auth-check`(운영자 쿠키) — 선언 모드/실제 경로/OIDC 헤더 유무/토큰 클레임.
 `?probe=wif` 를 붙이면 폴백 캐시와 무관하게 WIF 를 새로 시도해 실패 사유를 그대로 준다.
