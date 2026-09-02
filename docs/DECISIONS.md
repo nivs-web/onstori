@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-02 · WIF 마무리를 **①(Vercel 키 env 제거)만 하고 ②③(키 삭제·정책 예외 해제)은 며칠 관찰 후**로 나눔 · 세 단계의 되돌리기 난이도가 다르다. ③은 새 키 발급 자체를 막아 **되돌릴 문을 닫는** 유일한 지점이므로 마지막에 둔다. ②③을 미뤄도 남은 키는 Vercel 에서 빠져 어디서도 안 쓰이므로 손해가 거의 없다. 인증 판정은 람다당 캐시되므로 관찰은 한 번이 아니라 여러 번·콜드스타트를 섞어서 한다
+
 - 2026-09-02 · Vercel→Vertex 인증을 **WIF(Workload Identity Federation)**로 전환 · 장기 SA 키를 없애기 위함. `lib/vertex.ts`가 WIF → SA JSON → ADC 3분기로 하나의 `AuthClient`에 수렴한다. audience 는 **Allowed audiences**(`https://vercel.com/ianworld`) 방식 — 코드에서 audience 를 넘길 필요가 없어 어긋날 자리가 하나 줄고 env 도 하나 적다. WIF 풀/프로바이더는 둘 다 `vercel`, issuer `https://oidc.vercel.com/ianworld`, SA 가장은 subject 정확 일치로만 허용. 프로바이더에 attribute-condition 은 걸지 않았다 — issuer 가 이미 팀 한정이고 SA 바인딩이 subject 정확 일치라 같은 제약이 세 겹이 되는데, STS 오류가 불친절해 디버깅 면이 늘어나는 손해가 더 크다. **SA JSON 분기는 롤백용으로 남긴다**
 
 - 2026-09-02 · `/api/generate` 요청 제한 카운터를 **Postgres에 둔다**(인메모리 아님) · Vercel 서버리스는 요청마다 다른 인스턴스일 수 있어 인메모리로는 막히지 않는다. 증가·판정은 `rate_limit_hit` 함수가 upsert 한 번으로 원자적으로 처리(동시 10회 max=3 실측에서 정확히 3개 통과). 한도 IP당 1시간 5회·24시간 20회 — CGNAT 공유를 감안한 값. **판정 실패 시 통과시킨다**: 카운터가 죽었다고 정상 사장님의 생성을 막는 손해가 더 크다

@@ -566,7 +566,37 @@ GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
 `auth-check` 의 `실제경로`를 봐야 한다. 마지막 증명은 `GOOGLE_SERVICE_ACCOUNT_JSON` 을
 Vercel 에서 **지우고** 재배포한 뒤에도 생성이 200인지 보는 것이다.
 
-**전환이 끝나면**: ① SA 키 `520195620d…` 삭제 ② Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 ③ 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제.
+### 🕒 마무리 3단계 — ①만 하고 **며칠 관찰 중** (2026-09-02 결정)
+
+되돌릴 수 있는 정도가 단계마다 다르다. 뭉뚱그리면 안 된다.
+
+| 단계 | 내용 | 되돌리기 |
+|---|---|---|
+| ① | Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 → Redeploy | ⚠ 값이 사라진다(로컬에도 없음). **새 키 발급으로만** 복구 |
+| ② | SA 키 `520195620d…` 삭제 | ❌ 영구. 단 새 키 발급은 가능 |
+| ③ | `iam.disableServiceAccountKeyCreation` 예외 해제 | ⚠ **이걸 하면 새 키 발급 자체가 막힌다** — 진짜 되돌릴 수 없는 지점 |
+
+**지금 상태: ①만 진행, ②③은 며칠 관찰 후.** ②③을 미뤄도 손해가 거의 없다 — 남은 키는
+Vercel 에서 이미 빠져 어디서도 안 쓰이고, 위험은 GCP 안에 잠자는 것뿐이다. 반대로 ③을 먼저
+하면 WIF 가 어긋났을 때 되돌릴 문이 닫힌다.
+
+**관찰 방법**: `GET /api/admin/auth-check`(운영자 쿠키)의 `실제경로`가 계속 `wif` 인지.
+인증 판정은 람다당 한 번만 하고 캐시하므로 **한 번 보고 판단하지 말 것** — 몇 분 간격으로
+여러 번, 콜드스타트를 섞어 봐야 한다.
+
+**실패 시 복구(5분)**: 정책이 아직 열려 있으므로 새 키를 발급해 되돌린다.
+
+```bash
+gcloud iam service-accounts keys create <저장소 밖 경로> \
+  --iam-account=onstori-gemini-sa@project-e8a34e87-a445-4701-af4.iam.gserviceaccount.com
+npx tsx scripts/sa-key-to-clipboard.ts "<그 경로>"   # base64 를 클립보드로
+# Vercel Production 에 GOOGLE_SERVICE_ACCOUNT_JSON 로 붙여넣고 Redeploy
+```
+
+**영향 범위**(인증이 죽었을 때): `/api/generate` 신규 생성만 500. 기존 발행 사이트·에디터·
+로그인·대시보드는 무관하다. 가게가 멈추는 게 아니라 신규 접수가 멈춘다.
+
+**②③ 진행 조건**: 며칠간 `실제경로: wif` 가 유지되고 생성 실패가 없을 것.
 
 **전환 완료 시 되돌릴 것**: ① 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제 ② SA 키 `520195620d…` 삭제(현재 유일한 사용자 관리 키) ③ Vercel의 `GOOGLE_SERVICE_ACCOUNT_JSON` 제거.
 
