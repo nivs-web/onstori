@@ -53,27 +53,61 @@ function googleAuth(): GoogleAuth {
   return googleAuthCache;
 }
 
+/** 지금 실제로 쓰이는 경로 — WIF 를 시도했다가 폴백했으면 여기 반영된다 */
+let resolvedMode: AuthMode | null = null;
+export function resolvedAuthMode(): AuthMode | null { return resolvedMode; }
+
+function buildWifClient(): AuthClient {
+  const w = wifEnv();
+  const c = ExternalAccountClient.fromJSON({
+    type: "external_account",
+    audience: `//iam.googleapis.com/projects/${w.num}/locations/global/workloadIdentityPools/${w.pool}/providers/${w.provider}`,
+    subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+    token_url: "https://sts.googleapis.com/v1/token",
+    service_account_impersonation_url:
+      `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${w.sa}:generateAccessToken`,
+    scopes: [SCOPE],
+    // Vercel 함수 안에서만 토큰이 나온다. 로컬에서 부르면 던진다.
+    subject_token_supplier: { getSubjectToken: () => getVercelOidcToken() },
+  });
+  if (!c) throw new Error("ExternalAccountClient.fromJSON 이 null — GCP_* 값 형식 확인");
+  return c;
+}
+
 let clientCache: Promise<AuthClient> | null = null;
-/** 실제 요청에 쓰는 클라이언트 — 세 경로를 하나의 AuthClient 로 수렴시킨다 */
+/**
+ * 실제 요청에 쓰는 클라이언트 — 세 경로를 하나의 AuthClient 로 수렴시킨다.
+ *
+ * WIF 는 **토큰을 한 번 받아보고** 성공해야 채택한다. 실패하면 SA JSON/ADC 로 폴백한다.
+ * 폴백이 없으면 WIF 설정이 어긋나는 순간 사이트 생성이 통째로 죽는다 — 2026-09-02 실제로
+ * 그렇게 프로덕션이 500이 났다. SA 키를 롤백용으로 남겨두고도 코드가 쓰지 않으면 안전망이 아니다.
+ * 결과는 한 번만 판정해 캐시한다(요청마다 STS 를 두드리지 않게).
+ */
 function authClient(): Promise<AuthClient> {
   if (clientCache) return clientCache;
   clientCache = (async (): Promise<AuthClient> => {
     if (authMode() === "wif") {
       const w = wifEnv();
-      const c = ExternalAccountClient.fromJSON({
-        type: "external_account",
-        audience: `//iam.googleapis.com/projects/${w.num}/locations/global/workloadIdentityPools/${w.pool}/providers/${w.provider}`,
-        subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
-        token_url: "https://sts.googleapis.com/v1/token",
-        service_account_impersonation_url:
-          `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${w.sa}:generateAccessToken`,
-        scopes: [SCOPE],
-        // Vercel 함수 안에서만 토큰이 나온다. 로컬에서 부르면 던진다.
-        subject_token_supplier: { getSubjectToken: () => getVercelOidcToken() },
-      });
-      if (!c) throw new Error("WIF 클라이언트 생성 실패 — GCP_* 환경변수를 확인하세요");
-      return c;
+      try {
+        const c = buildWifClient();
+        await c.getAccessToken(); // 여기서 실패하면 폴백
+        resolvedMode = "wif";
+        console.log(JSON.stringify({ evt: "auth_wif_ok", pool: w.pool, provider: w.provider }));
+        return c;
+      } catch (e) {
+        const hasKey = !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+        console.error(JSON.stringify({
+          evt: "auth_wif_failed",
+          err: String(e).slice(0, 400),
+          audience: `//iam.googleapis.com/projects/${w.num}/locations/global/workloadIdentityPools/${w.pool}/providers/${w.provider}`,
+          sa: w.sa,
+          fallback: hasKey ? "service-account" : "adc",
+        }));
+        // 폴백 대상이 아예 없으면 감추지 말고 그대로 던진다
+        if (!hasKey && !process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.VERCEL) throw e;
+      }
     }
+    resolvedMode = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ? "service-account" : "adc";
     return googleAuth().getClient();
   })();
   return clientCache;
