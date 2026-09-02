@@ -1,6 +1,6 @@
 # 관리자 어드민 기획 (본사 운영자 전용)
 
-위치: `onstori.com/admin` — 고객용 `{slug}.onstori.com/admin`(P7)과 별개인 **운영자 콘솔**.
+위치: `onstori.com/admin` — 고객용 `onstori.com/{slug}/admin`(P7)과 별개인 **운영자 콘솔**.
 
 ## 권한
 
