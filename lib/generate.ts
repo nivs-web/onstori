@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { geminiJson } from "./gemini";
 import { INDUSTRIES, matchIndustry, categoryOf, type Industry } from "@/config/industries";
-import { pickImage } from "./bank";
+import { pickImage, pickImages } from "./bank";
 import { SiteDoc, type SiteDocT } from "./schema";
 
 /**
@@ -81,13 +81,18 @@ JSON으로만 답하라:
 
 /* ── 3) SiteDoc 조립 ── */
 
+/** 생성 시 갤러리에 넣을 뱅크 사진 수 — 재고가 모자라면 있는 만큼만 들어간다 */
+const GALLERY_COUNT = 6;
+
 export async function generateSite(input: GenerateInput) {
   const { industry, confidence, method } = await classify(input);
   const cat = categoryOf(industry);
-  const [copy, heroImage] = await Promise.all([
+  const matchText = `${input.businessName} ${input.oneLiner}`;
+  const [copy, heroImage, galleryPhotos] = await Promise.all([
     generateCopy(input, industry),
     // 뱅크 승인 이미지 우선, 없으면 플레이스홀더. text는 태그 매칭 가중치용(예: "브런치" 태그 ↔ 소개 문장)
-    pickImage(industry.id, input.mood, "hero", { text: `${input.businessName} ${input.oneLiner}` }),
+    pickImage(industry.id, input.mood, "hero", { text: matchText }),
+    pickImages(industry.id, input.mood, "gallery", GALLERY_COUNT, { text: matchText }),
   ]);
 
   const sections: SiteDocT["sections"] = [
@@ -101,6 +106,16 @@ export async function generateSite(input: GenerateInput) {
     },
     { type: "about", title: copy.aboutTitle, body: copy.aboutBody },
   ];
+
+  // 갤러리 — 뱅크에 승인 사진이 있을 때만. 재고가 없으면 섹션 자체를 만들지 않는다(pickImages는 빈 배열을 준다)
+  // (플레이스홀더로만 채운 갤러리는 없느니만 못하다). 사장님은 에디터에서 자기 사진으로 교체한다.
+  if (galleryPhotos.length > 0) {
+    sections.push({
+      type: "gallery",
+      title: cat.template === "quote" ? "작업 사진" : "매장 사진",
+      photos: galleryPhotos,
+    });
+  }
 
   if (cat.template === "quote") {
     sections.push(

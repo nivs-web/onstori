@@ -80,6 +80,65 @@ export async function pickImage(
   return role === "hero" ? ph.hero : ph.gallery[0] ?? ph.hero;
 }
 
+/**
+ * 갤러리처럼 여러 장이 필요한 자리 — 승인 이미지 중 태그 적중 우선으로 최대 n장(중복 없이).
+ * hero 전용 로직(현재 사용 중인 이미지 제외)은 태우지 않는다 — 여러 장 자리는 hero가 아니고,
+ * 갤러리는 사이트끼리 겹쳐도 치명적이지 않다(pickImage 주석의 역할별 규칙과 같은 판단).
+ * 판박이 방지: 같은 점수끼리는 섞어서 뽑는다.
+ *
+ * pickImage와 달리 플레이스홀더로 폴백하지 않고 **빈 배열**을 준다. 히어로는 반드시 한 장이
+ * 있어야 하지만 갤러리는 없으면 섹션을 안 만드는 편이 낫다 — 플레이스홀더로만 채운 갤러리는
+ * 남의 사진을 자기 작업물처럼 보이게 해서 없느니만 못하다. 넣을지 말지는 호출부가 정한다.
+ */
+export async function pickImages(
+  industry: string,
+  mood: string,
+  role: "gallery" | "about" | "process",
+  n: number,
+  opts?: { text?: string },
+): Promise<string[]> {
+  try {
+    const sb = sbAdmin();
+    const { data } = await sb
+      .from("image_bank")
+      .select("id, url, tags, used_count")
+      .eq("industry", industry)
+      .eq("mood", mood)
+      .eq("role", role)
+      .eq("quality_ok", true)
+      .eq("deleted", false)
+      .order("quality_score", { ascending: false })
+      .order("used_count", { ascending: true })
+      .limit(40);
+
+    const rows = (data ?? []) as Row[];
+    if (rows.length > 0) {
+      const text = opts?.text ?? "";
+      // 점수 tier별로 묶고 tier 안에서 섞는다 — 관련성은 지키되 사이트마다 다른 조합이 나오게
+      const tiers = new Map<number, Row[]>();
+      for (const r of rows) {
+        const t = tagScore(r.tags, text);
+        (tiers.get(t) ?? tiers.set(t, []).get(t)!).push(r);
+      }
+      const ordered: Row[] = [];
+      for (const t of [...tiers.keys()].sort((a, b) => b - a)) {
+        const bucket = tiers.get(t)!;
+        for (let i = bucket.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [bucket[i], bucket[j]] = [bucket[j], bucket[i]];
+        }
+        ordered.push(...bucket);
+      }
+      const chosen = ordered.slice(0, n);
+      if (chosen.length > 0) {
+        // 카운터는 best-effort — 실패해도 이미지 선택은 진행 (pickImage와 같은 방침)
+        await Promise.all(chosen.map((c) => sb.rpc("bump_bank_used", { bank_id: c.id }).then(() => {}, () => {})));
+        return chosen.map((c) => c.url);
+      }
+    }
+  } catch { /* 빈 배열로 */ }
+  return [];
+}
 /** 어드민 재고 표시용 — (업종,분위기)별 hero 승인 수와 그중 지금 안 쓰이는 수 */
 export async function heroStock(): Promise<{ industry: string; mood: string; total: number; free: number }[]> {
   const { data } = await sbAdmin()
