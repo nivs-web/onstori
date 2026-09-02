@@ -408,7 +408,7 @@
     <h3>뒤에서 도는 추론 파이프라인 (이것이 "없어도 문제 없음"의 근거)</h3>
     <ol>
       <li><b>1차 — 키워드 사전 매칭 (0원, 즉시):</b> <code>industries.ts</code>의 업종별 키워드 사전("인테리어·리모델링·도배·장판·타일…" → cat5/QUOTE)과 ②번 문장을 대조. v1은 14업종이라 사전만으로 대부분 적중.</li>
-      <li><b>2차 — LLM 분류 (사전 미적중 시):</b> ①+②+플레이스 소개글을 Claude에 넘겨 <code>{industry, category, template, cta_type, confidence}</code> JSON으로 분류. 카피 생성 호출에 얹으면 추가 비용 ~0원.</li>
+      <li><b>2차 — LLM 분류 (사전 미적중 시):</b> ①+②+플레이스 소개글을 <b>Gemini</b>(Vertex 경유)에 넘겨 <code>{industry, category, template, cta_type, confidence}</code> JSON으로 분류. 카피 생성 호출에 얹으면 추가 비용 ~0원.</li>
       <li><b>3차 — 확신 낮을 때만 되묻기:</b> confidence 낮음 → 생성 직전에 딱 한 번 "혹시 이 중 어디에 가까운가요?" 카드 2~3개 제시(전체 7개를 보여주지 않음). 높으면 그냥 진행.</li>
       <li><b>4차 — 에디터에서 교정 가능:</b> 추론이 틀렸어도 에디터 설정에서 템플릿 전환 1번이면 복구. 추론 결과와 사용자 교정 여부를 로깅해 키워드 사전을 계속 보강.</li>
     </ol>
@@ -731,7 +731,7 @@ supabase db push                           # 배포 시 원격 적용</code></pr
         <ul class="tight">
           <li>/new 위저드: 상호명 → 하는 일 한 줄(+플레이스 불러오기) → 슬러그 → 분위기 → 시작한 이유</li>
           <li><b>추론 파이프라인:</b> 키워드 사전 → LLM 분류 → 低확신 시 1회 되묻기 → 에디터 교정 로깅</li>
-          <li>Claude 카피 생성(zod 검증+재시도) + 첫 스토리 자동 작성 + 이미지 뱅크 구축(~500장+검수)</li>
+          <li><b>Gemini</b> 카피 생성(zod 검증+재시도) + 첫 스토리 자동 작성 + 이미지 뱅크 구축(<b>실적 638장·전량 검수 완료</b>)</li>
           <li>익명 생성 + 체험 타이머 + <b>쇼케이스 시드 10~12개 직접 제작 → 랜딩 포트폴리오 탭 오픈</b></li>
         </ul>
         <div class="dod"><b>완료:</b> "도배 전문이에요" 입력만으로 QUOTE 템플릿 사이트가 60초 내 생성(10회 무실패), 랜딩 4개 탭에 전시물이 걸려 있다.</div>
@@ -886,7 +886,7 @@ supabase db push                           # 배포 시 원격 적용</code></pr
         <tr><td>Vercel</td><td class="num">0원</td><td class="num">$20/월</td><td>첫 유료 고객 = 즉시 Pro(약관)</td></tr>
         <tr><td>Supabase</td><td class="num">0원</td><td class="num">$25/월</td><td>첫 유료 고객 직전(백업)</td></tr>
         <tr><td>도메인</td><td class="num" colspan="2">~2만원/년</td><td>P0 즉시</td></tr>
-        <tr><td>Claude API</td><td class="num" colspan="2">생성 1건 ~100원 · 챗봇 ~20원</td><td>처음부터 사용량 과금</td></tr>
+        <tr><td>Gemini 텍스트(Vertex)</td><td class="num" colspan="2">생성 1건 ~100원 · 챗봇 ~20원 (추정)</td><td>GCP 크레딧에서 차감</td></tr>
         <tr><td>Gemini 이미지(Vertex)</td><td class="num" colspan="2"><b>뱅크 구축 실비 약 $33</b>(638장, 크레딧 차감) · 이후 뱅크에서 꺼내 쓰므로 건당 ~0원</td><td>P2 완료</td></tr>
         <tr><td>Seedance</td><td class="num" colspan="2">1건 원가 실측(수천원~수만원대 예상)</td><td>무료 10건에서 원가 축적 → 199,000원 마진 검증</td></tr>
         <tr><td>Sentry</td><td class="num">0원(미도입)</td><td class="num">0원(무료 티어)</td><td>P9 베타</td></tr>
@@ -935,7 +935,8 @@ supabase db push                           # 배포 시 원격 적용</code></pr
   </section>
 
   <footer class="doc-end">
-    v3 (최종 기획안) · 2026-08-31 · v1: homon.co.kr 로그인 실사+캡쳐 111장 분석 → v2: 온스토리 방향 확정 → v3: 카테고리 7×템플릿 5, 무질문 온보딩, 게이미피케이션 기반 설계 확정.
+    v3.3 · 2026-09-02 갱신 · v1: homon.co.kr 실사 분석 → v2: 방향 확정 → v3: 카테고리 7×템플릿 5·무질문 온보딩·게이미피케이션 확정 → <b>v3.3: 착수 후 실적 반영</b>(경로 방식 전환·Vertex 이관·이미지 모델 확정·뱅크 638장·P0~P4 완료).<br>
+    이 문서의 원본은 저장소 <code>docs/design/design-doc.html</code>이고 <code>onstori.com/onstoriplandept</code> 대시보드에서도 볼 수 있다. 착수 후 뒤집힌 결정은 <code>docs/DECISIONS.md</code>가 최신이다.
     "추정" 표시 항목은 외부 관찰에 근거한 합리적 추론임.
   </footer>
 </div>
