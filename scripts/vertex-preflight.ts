@@ -14,7 +14,10 @@ const IMAGE_MODELS = ["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-2.
 async function main() {
   console.log("[1] 인증");
   const mode = authMode();
-  console.log(`  모드: ${mode === "adc" ? "ADC (gcloud application-default)" : "서비스 계정 JSON"}`);
+  const label = mode === "wif" ? "WIF (Vercel OIDC → SA 가장, 키 없음)"
+    : mode === "adc" ? "ADC (gcloud application-default)"
+    : "서비스 계정 JSON (장기 키 — WIF 전환 전 임시 경로)";
+  console.log(`  모드: ${label}`);
   console.log(`  project=${await vertexProject()} location=${vertexLocation()}`);
 
   console.log("\n[2] 토큰");

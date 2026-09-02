@@ -2,6 +2,10 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-02 · Vercel→Vertex 인증을 **WIF(Workload Identity Federation)**로 전환 · 장기 SA 키를 없애기 위함. `lib/vertex.ts`가 WIF → SA JSON → ADC 3분기로 하나의 `AuthClient`에 수렴한다. audience 는 **Allowed audiences**(`https://vercel.com/ianworld`) 방식 — 코드에서 audience 를 넘길 필요가 없어 어긋날 자리가 하나 줄고 env 도 하나 적다. WIF 풀/프로바이더는 둘 다 `vercel`, issuer `https://oidc.vercel.com/ianworld`, SA 가장은 subject 정확 일치로만 허용. 프로바이더에 attribute-condition 은 걸지 않았다 — issuer 가 이미 팀 한정이고 SA 바인딩이 subject 정확 일치라 같은 제약이 세 겹이 되는데, STS 오류가 불친절해 디버깅 면이 늘어나는 손해가 더 크다. **SA JSON 분기는 롤백용으로 남긴다**
+
+- 2026-09-02 · `/api/generate` 요청 제한 카운터를 **Postgres에 둔다**(인메모리 아님) · Vercel 서버리스는 요청마다 다른 인스턴스일 수 있어 인메모리로는 막히지 않는다. 증가·판정은 `rate_limit_hit` 함수가 upsert 한 번으로 원자적으로 처리(동시 10회 max=3 실측에서 정확히 3개 통과). 한도 IP당 1시간 5회·24시간 20회 — CGNAT 공유를 감안한 값. **판정 실패 시 통과시킨다**: 카운터가 죽었다고 정상 사장님의 생성을 막는 손해가 더 크다
+
 - 2026-09-01 · 로그에 노출된 서비스 계정 키를 **교체**하고 `.env.local`에서는 **아예 제거** · 노출 이력이 있는 장기 자격증명은 폐기가 원칙. 신 키 `520195620d…` 발급 → Vercel Production 교체·Redeploy → **구 키를 먼저 비활성화한 상태에서** 프로덕션 사이트 생성 200/6.6초 확인(비활성 키는 토큰을 발급할 수 없으므로, 이것이 "Vercel 환경변수가 실제로 갱신됐는가"를 가리는 유일한 검사다) → 구 키 `a29494b9…` 영구 삭제. 로컬은 ADC로 도는 것을 실증했으므로 `.env.local`에 장기 키를 두지 않는다 — 이번 유출도 그 파일을 읽다 났다. ⚠ **이전 배포로 롤백하면 Redeploy 필수** — 그 배포엔 삭제된 구 키가 주입돼 있다
 
 - 2026-09-01 · [중대] 카카오 로그인을 **Supabase 프로바이더 → 카카오 OIDC 직결**로 변경 · Supabase(GoTrue)의 카카오 프로바이더는 scope에 `account_email`이 하드코딩돼 있고 요청 scope는 **덧붙기만** 된다(실측: `scopes=profile_nickname`을 보내면 `account_email profile_image profile_nickname profile_nickname`으로 나감). 이메일 동의항목은 비즈 앱 전환 없이는 못 켜서 카카오가 **KOE205**로 막았다. 그래서 `/auth/kakao`가 카카오 authorize를 직접 열어 `openid profile_nickname`만 요청하고, `/auth/callback`이 code→id_token 교환 후 `signInWithIdToken({provider:'kakao'})`로 세션을 만든다(`lib/kakao.ts`). ⚠ **Supabase의 카카오 프로바이더는 계속 켜둬야 한다** — id_token의 `aud`를 프로바이더 Client ID와 대조하기 때문. state는 httpOnly 쿠키로 검증, nonce는 요청하지 않는다. 새 환경변수 `KAKAO_REST_API_KEY`·`KAKAO_CLIENT_SECRET`

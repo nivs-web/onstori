@@ -1,16 +1,20 @@
 import { readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, ExternalAccountClient, type AuthClient } from "google-auth-library";
+import { getVercelOidcToken } from "@vercel/oidc";
 
 /**
  * Vertex AI 호출 공통 — generateContent + 인증.
  * Gemini API(`?key=`)에서 이관: GCP 크레딧을 쓰기 위함. DECISIONS 2026-09-01 참조.
  *
  * 인증 (우선순위 — 코드 순서 그대로):
- *   1) GOOGLE_SERVICE_ACCOUNT_JSON — 있으면 무조건 이걸 쓴다. Vercel처럼 ADC를 쓸 수 없는 곳 전용.
- *      서비스 계정 키 JSON(원문 1줄 또는 base64). 장기 자격증명이라 로컬 `.env.local`에는 두지 않는다.
- *   2) ADC — 로컬 기본. `gcloud auth application-default login` 한 번이면 키 파일이 필요 없다.
+ *   1) WIF — Vercel OIDC → GCP STS → 서비스 계정 가장. **키 파일이 없다.**
+ *      GCP_PROJECT_NUMBER · GCP_SERVICE_ACCOUNT_EMAIL · GCP_WORKLOAD_IDENTITY_POOL_ID ·
+ *      GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID 넷이 다 있으면 이 경로. 전부 비밀이 아니다.
+ *   2) GOOGLE_SERVICE_ACCOUNT_JSON — WIF 전환 전의 임시 경로(장기 키). 롤백용으로만 남긴다.
+ *      서비스 계정 키 JSON(원문 1줄 또는 base64). 로컬 `.env.local`에는 두지 않는다.
+ *   3) ADC — 로컬 기본. `gcloud auth application-default login` 한 번이면 키 파일이 필요 없다.
  *      프로젝트·quota project도 gcloud 설정에서 따라오므로 env 없이 동작.
  *
  * 선택 env: GOOGLE_CLOUD_PROJECT(미설정 시 ADC에서 추론) · GOOGLE_CLOUD_LOCATION(기본 global)
@@ -18,22 +22,61 @@ import { GoogleAuth } from "google-auth-library";
 
 const SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 
-let cached: GoogleAuth | null = null;
-function auth(): GoogleAuth {
-  if (cached) return cached;
+export type AuthMode = "wif" | "service-account" | "adc";
+
+const wifEnv = () => ({
+  num: process.env.GCP_PROJECT_NUMBER?.trim(),
+  sa: process.env.GCP_SERVICE_ACCOUNT_EMAIL?.trim(),
+  pool: process.env.GCP_WORKLOAD_IDENTITY_POOL_ID?.trim(),
+  provider: process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID?.trim(),
+});
+
+export function authMode(): AuthMode {
+  const w = wifEnv();
+  if (w.num && w.sa && w.pool && w.provider) return "wif";
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim()) return "service-account";
+  return "adc";
+}
+
+/** SA JSON / ADC 전용 — WIF 는 GoogleAuth 를 거치지 않는다 */
+let googleAuthCache: GoogleAuth | null = null;
+function googleAuth(): GoogleAuth {
+  if (googleAuthCache) return googleAuthCache;
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
   if (raw) {
     // base64도 허용 — private_key 개행이 env에서 깨지는 문제 회피
     const json = raw.startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
-    cached = new GoogleAuth({ credentials: JSON.parse(json), scopes: [SCOPE] });
+    googleAuthCache = new GoogleAuth({ credentials: JSON.parse(json), scopes: [SCOPE] });
   } else {
-    cached = new GoogleAuth({ scopes: [SCOPE] }); // ADC
+    googleAuthCache = new GoogleAuth({ scopes: [SCOPE] }); // ADC
   }
-  return cached;
+  return googleAuthCache;
 }
 
-export function authMode(): "service-account" | "adc" {
-  return process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ? "service-account" : "adc";
+let clientCache: Promise<AuthClient> | null = null;
+/** 실제 요청에 쓰는 클라이언트 — 세 경로를 하나의 AuthClient 로 수렴시킨다 */
+function authClient(): Promise<AuthClient> {
+  if (clientCache) return clientCache;
+  clientCache = (async (): Promise<AuthClient> => {
+    if (authMode() === "wif") {
+      const w = wifEnv();
+      const c = ExternalAccountClient.fromJSON({
+        type: "external_account",
+        audience: `//iam.googleapis.com/projects/${w.num}/locations/global/workloadIdentityPools/${w.pool}/providers/${w.provider}`,
+        subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+        token_url: "https://sts.googleapis.com/v1/token",
+        service_account_impersonation_url:
+          `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${w.sa}:generateAccessToken`,
+        scopes: [SCOPE],
+        // Vercel 함수 안에서만 토큰이 나온다. 로컬에서 부르면 던진다.
+        subject_token_supplier: { getSubjectToken: () => getVercelOidcToken() },
+      });
+      if (!c) throw new Error("WIF 클라이언트 생성 실패 — GCP_* 환경변수를 확인하세요");
+      return c;
+    }
+    return googleAuth().getClient();
+  })();
+  return clientCache;
 }
 
 /** ADC 파일의 quota_project_id — gcloud 바이너리가 PATH에 없어도 프로젝트를 알아내는 경로 */
@@ -53,7 +96,8 @@ export async function vertexProject(): Promise<string> {
   if (projectCache) return projectCache;
   const fromEnv = process.env.GOOGLE_CLOUD_PROJECT?.trim();
   if (fromEnv) return (projectCache = fromEnv);
-  const fromAdc = await auth().getProjectId().catch(() => null);
+  // WIF 는 GoogleAuth 를 안 거치므로 추론이 없다 — Vercel 에서는 GOOGLE_CLOUD_PROJECT 가 단일 출처
+  const fromAdc = authMode() === "wif" ? null : await googleAuth().getProjectId().catch(() => null);
   if (fromAdc) return (projectCache = fromAdc);
   const fromQuota = adcQuotaProject();
   if (fromQuota) return (projectCache = fromQuota);
@@ -66,7 +110,7 @@ export function vertexLocation(): string {
 
 /** 인증 헤더 — 라이브러리가 만들게 해서 ADC의 quota project(x-goog-user-project)까지 자동 포함 */
 async function authHeaders(url: string): Promise<Record<string, string>> {
-  const raw = await (await auth().getClient()).getRequestHeaders(url);
+  const raw = await (await authClient()).getRequestHeaders(url);
   const headers: Record<string, string> = {};
   if (raw && typeof (raw as Headers).forEach === "function") {
     (raw as Headers).forEach((v, k) => { headers[k] = v; });
@@ -79,7 +123,7 @@ async function authHeaders(url: string): Promise<Record<string, string>> {
 
 /** 액세스 토큰 단독 발급 (프리플라이트에서 인증만 따로 확인할 때) */
 export async function vertexToken(): Promise<string> {
-  const token = await (await auth().getClient()).getAccessToken();
+  const token = await (await authClient()).getAccessToken();
   const t = typeof token === "string" ? token : token?.token;
   if (!t) throw new Error("액세스 토큰 발급 실패 — `gcloud auth application-default login` 확인");
   return t;

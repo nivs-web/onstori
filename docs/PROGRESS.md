@@ -514,7 +514,7 @@ v1 활성 범위는 **시공·출장 12업종 + 카페·식당 2업종 = 14종**
 - 결과적으로 엉뚱한 템플릿·이미지·진행단계가 붙은 사이트가 만들어질 수 있다. 당근 홍보로 불특정 업종이 들어오기 시작하면 바로 드러날 문제.
 - **결정이 필요한 지점**: (a) 저확신·범위 밖이면 되묻기 UI를 띄울지 (b) "아직 지원하지 않는 업종입니다" 안내로 막을지 (c) 범용 템플릿으로 받아줄지. **사장님 판단 필요 — 사업 범위 문제라 코드로 정할 수 없다.**
 
-### 백로그 — P5(결제) 진입 전 검토: 장기 키 대신 WIF로 전환 (예상 2~3시간)
+### ⏳ WIF 전환 — GCP·코드 완료, **Vercel 환경변수만 남음** (2026-09-02)
 
 Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Workload Identity Federation으로** 옮긴다.
 
@@ -526,7 +526,33 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 
 **시간**: GCP 콘솔 30~45분 + Vercel 설정 10~15분 + 코드 30~45분 + 배포·디버깅 30~60분 = **2~3시간**. 난이도 중 — 코드는 쉽고 공식 예제가 있으나 STS 오류 메시지가 불친절하고 로컬 재현이 어려워 프리뷰 배포로 반복해야 한다. subject 문자열이 `owner:ianworld:project:onstori-pwk2:environment:production`으로 정확히 맞아야 한다.
 
-**착수 전 확인**: 조직에 `iam.workloadIdentityPoolProviders`(허용 발급자 제한) 정책이 걸려 있는지. 걸려 있으면 Vercel 발급자를 허용 목록에 넣어야 한다.
+**착수 전 확인 — ✅ 통과**: 조직 정책 `iam.workloadIdentityPoolProviders`의 유효값이 `allValues: ALLOW`라 발급자 제한이 없다(gcloud 확인).
+
+**끝난 것 (2026-09-02)**
+
+| 무엇 | 값 |
+|---|---|
+| WIF 풀 | `vercel` (global) |
+| OIDC 프로바이더 | `vercel` · issuer `https://oidc.vercel.com/ianworld` · audience `https://vercel.com/ianworld` · `google.subject=assertion.sub` |
+| SA 가장 권한 | `onstori-gemini-sa` 에 `roles/iam.workloadIdentityUser`, principal 은 subject 정확 일치 |
+| 코드 | `lib/vertex.ts` 인증 3분기(WIF → SA JSON → ADC) + `@vercel/oidc` 의존성 |
+
+audience 는 문서의 두 방식 중 **Allowed audiences**를 골랐다 — 코드에서 audience 를 넘길 필요가 없어 env 변수가 하나 줄고 어긋날 자리도 준다.
+
+**남은 것 — 사장님 담당**: Vercel `onstori-pwk2` → Settings → Environment Variables 에 아래 4개를 **Production**으로 추가한 뒤 **Redeploy**. 전부 비밀이 아니다.
+
+```
+GCP_PROJECT_NUMBER=724604972722
+GCP_SERVICE_ACCOUNT_EMAIL=onstori-gemini-sa@project-e8a34e87-a445-4701-af4.iam.gserviceaccount.com
+GCP_WORKLOAD_IDENTITY_POOL_ID=vercel
+GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
+```
+
+⚠ Vercel 의 OIDC **issuer mode 가 `Team`**이어야 한다(Settings → Security/OIDC). `Global`이면 issuer 가 `https://oidc.vercel.com`이 되어 위 프로바이더와 어긋난다 — 그때는 프로바이더의 issuer-uri 를 바꾸면 된다.
+
+**검증 방법**: 배포 후 사이트 생성 1건이 200이면 성공. 그 다음 `GOOGLE_SERVICE_ACCOUNT_JSON`을 Vercel에서 **지우고** 다시 생성해 보면 WIF만으로 도는 것이 증명된다 — 그때까지는 SA 키가 살아 있어 WIF 실패를 가릴 수 있다.
+
+**전환이 끝나면**: ① SA 키 `520195620d…` 삭제 ② Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 ③ 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제.
 
 **전환 완료 시 되돌릴 것**: ① 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제 ② SA 키 `520195620d…` 삭제(현재 유일한 사용자 관리 키) ③ Vercel의 `GOOGLE_SERVICE_ACCOUNT_JSON` 제거.
 

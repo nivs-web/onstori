@@ -13,6 +13,7 @@
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "@swc/helpers": "^0.5.23",
+    "@vercel/oidc": "^3.8.5",
     "google-auth-library": "^11.0.2",
     "next": "^16.1.6",
     "react": "19.2.8",
