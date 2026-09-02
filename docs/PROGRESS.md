@@ -514,7 +514,7 @@ v1 활성 범위는 **시공·출장 12업종 + 카페·식당 2업종 = 14종**
 - 결과적으로 엉뚱한 템플릿·이미지·진행단계가 붙은 사이트가 만들어질 수 있다. 당근 홍보로 불특정 업종이 들어오기 시작하면 바로 드러날 문제.
 - **결정이 필요한 지점**: (a) 저확신·범위 밖이면 되묻기 UI를 띄울지 (b) "아직 지원하지 않는 업종입니다" 안내로 막을지 (c) 범용 템플릿으로 받아줄지. **사장님 판단 필요 — 사업 범위 문제라 코드로 정할 수 없다.**
 
-### ⏳ WIF 전환 — GCP·코드 완료, **Vercel 환경변수만 남음** (2026-09-02)
+### ✅ WIF 전환 — 동작 확인 (2026-09-02) · 남은 것은 SA 키 폐기뿐
 
 Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Workload Identity Federation으로** 옮긴다.
 
@@ -539,7 +539,14 @@ Vercel→Vertex 인증을 **서비스 계정 키(장기 자격증명)에서 Work
 
 audience 는 문서의 두 방식 중 **Allowed audiences**를 골랐다 — 코드에서 audience 를 넘길 필요가 없어 env 변수가 하나 줄고 어긋날 자리도 준다.
 
-**남은 것 — 사장님 담당**: Vercel `onstori-pwk2` → Settings → Environment Variables 에 아래 4개를 **Production**으로 추가한 뒤 **Redeploy**. 전부 비밀이 아니다.
+**Vercel 설정 완료** (사장님, 2026-09-02): 발급자 모드 Team + 아래 4개를 Production 에 등록 후 재배포. 전부 비밀이 아니다.
+
+⚠ **함정 — `iamcredentials.googleapis.com` 을 켜야 한다.** 환경변수를 넣고 재배포한 직후
+`/api/generate` 가 500이 났다. 클레임은 전부 정확히 맞았고(iss·aud·sub) 원인은 프로젝트에
+**IAM Service Account Credentials API 가 사용 설정되어 있지 않은 것**이었다. WIF 는 서비스 계정
+가장에 이 API 를 쓰는데, SA 키 방식은 쓰지 않으므로 켤 일이 없었다. `gcloud services enable
+iamcredentials.googleapis.com` 한 줄로 해결. 이 함정은 GCP 콘솔 마법사를 따라가면 안 드러난다.
+
 
 ```
 GCP_PROJECT_NUMBER=724604972722
@@ -550,7 +557,14 @@ GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
 
 ⚠ Vercel 의 OIDC **issuer mode 가 `Team`**이어야 한다(Settings → Security/OIDC). `Global`이면 issuer 가 `https://oidc.vercel.com`이 되어 위 프로바이더와 어긋난다 — 그때는 프로바이더의 issuer-uri 를 바꾸면 된다.
 
-**검증 방법**: 배포 후 사이트 생성 1건이 200이면 성공. 그 다음 `GOOGLE_SERVICE_ACCOUNT_JSON`을 Vercel에서 **지우고** 다시 생성해 보면 WIF만으로 도는 것이 증명된다 — 그때까지는 SA 키가 살아 있어 WIF 실패를 가릴 수 있다.
+**검증 결과 (2026-09-02)**: `GET /api/admin/auth-check`(운영자 전용) 로 확인 —
+`실제경로: wif` 4회 연속, 사이트 생성 200/8.6초. 토큰 클레임도 대조했다:
+`iss=https://oidc.vercel.com/ianworld` · `aud=https://vercel.com/ianworld` ·
+`sub=owner:ianworld:project:onstori-pwk2:environment:production` — 셋 다 GCP 설정과 일치.
+
+⚠ **아직 SA 키가 살아 있다.** 200이 나온다고 WIF 라는 증거는 아니다(폴백이 가린다) — 그래서
+`auth-check` 의 `실제경로`를 봐야 한다. 마지막 증명은 `GOOGLE_SERVICE_ACCOUNT_JSON` 을
+Vercel 에서 **지우고** 재배포한 뒤에도 생성이 200인지 보는 것이다.
 
 **전환이 끝나면**: ① SA 키 `520195620d…` 삭제 ② Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 ③ 프로젝트의 `iam.disableServiceAccountKeyCreation` 예외 해제.
 

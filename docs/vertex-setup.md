@@ -49,6 +49,19 @@ npx tsx --env-file=.env.local scripts/bank-generate.ts --model gemini-3.1-flash-
 ```
 → `construction/warm/gallery` 1200x896 등록, bank 버킷 공개 URL `200 image/webp 188KB`, `image_bank` 행 생성 확인.
 
+## 6-1. WIF (Workload Identity Federation) — ✅ 동작 (2026-09-02)
+
+장기 SA 키 없이 Vercel OIDC → GCP STS → 서비스 계정 가장으로 인증한다.
+
+- [x] WIF 풀 `vercel` · OIDC 프로바이더 `vercel` (issuer `https://oidc.vercel.com/ianworld`, audience `https://vercel.com/ianworld`, `google.subject=assertion.sub`)
+- [x] `onstori-gemini-sa` 에 `roles/iam.workloadIdentityUser` — principal 은 subject 정확 일치
+- [x] **`iamcredentials.googleapis.com` 사용 설정** ← 빠뜨리기 쉬운 곳. 없으면 STS 는 통과해도 가장 단계에서 실패한다
+- [x] Vercel: 발급자 모드 **Team** + `GCP_PROJECT_NUMBER`·`GCP_SERVICE_ACCOUNT_EMAIL`·`GCP_WORKLOAD_IDENTITY_POOL_ID`·`GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID` (Production)
+- [ ] **마무리**: Vercel `GOOGLE_SERVICE_ACCOUNT_JSON` 제거 → SA 키 `520195620d…` 삭제 → `iam.disableServiceAccountKeyCreation` 예외 해제
+
+진단: `GET /api/admin/auth-check`(운영자 쿠키) — 선언 모드/실제 경로/OIDC 헤더 유무/토큰 클레임.
+`?probe=wif` 를 붙이면 폴백 캐시와 무관하게 WIF 를 새로 시도해 실패 사유를 그대로 준다.
+
 ## 7. 크레딧 소진 확인 — ✅ 완료 (2026-09-01)
 
 [비용 보고서](https://console.cloud.google.com/billing/014ED8-17111F-A31CCD/reports) 실확인: **₩435,523 중 ₩25,243.93 사용, 잔액 ₩410,279.** Vertex AI 사용분에 크레딧이 정상 적용된다 — 카드 청구가 아니다. 적용 범위 밖일 수 있다는 리스크는 해소됐고, 남은 이미지 웨이브를 진행해도 된다. 만료 **2026-12-01**.
