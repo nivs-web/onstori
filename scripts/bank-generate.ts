@@ -22,6 +22,7 @@ import sharp from "sharp";
 import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { vertexGenerate, imageOf } from "../lib/vertex";
+import * as storage from "../lib/storage";
 import { buildPrompt, INDUSTRY_SCENES, VARIATIONS } from "../config/bank-prompts";
 import { INDUSTRIES } from "../config/industries";
 
@@ -160,14 +161,15 @@ async function main() {
         const width = j.role === "hero" ? 1920 : 1200;
         const webp = await sharp(r.buf).resize({ width, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
         const path = `${j.ind}/${j.mood}/${j.role}/${randomUUID()}.webp`;
-        const { error: upErr } = await sb.storage.from("bank").upload(path, webp, { contentType: "image/webp" });
-        if (upErr) { noteFail(`업로드 — ${upErr.message}`); }
-        else {
-          const { data: pub } = sb.storage.from("bank").getPublicUrl(path);
+        const up = await storage.put("media", `bank/${path}`, webp, "image/webp").catch((e: unknown) => {
+          noteFail(`업로드 — ${String(e).slice(0, 80)}`);
+          return null;
+        });
+        if (up) {
           const orientation = (meta.width ?? 0) >= (meta.height ?? 0) ? "landscape" : "portrait";
           const { error: dbErr } = await sb.from("image_bank").insert({
             industry: j.ind, mood: j.mood, role: j.role, orientation,
-            url: pub.publicUrl, storage_path: path, source: `ai:${MODEL}`,
+            url: storage.publicUrl(up.key), storage_path: path, source: `ai:${MODEL}`,
             tags: [j.ind, j.mood, j.role], prompt, model: MODEL, phash: hash,
             width: meta.width, height: meta.height, batch_id: BATCH,
           });

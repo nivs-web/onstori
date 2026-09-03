@@ -11,6 +11,13 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   /**
+   * 이미지 저장소는 Cloudflare R2(`img.onstori.com`) — docs/specs/storage-r2.md, DECISIONS 2026-09-03.
+   * 지금은 <img> 직접 사용이라 필요 없지만, next/image 도입 시 외부 호스트 허용이 선행돼야 한다.
+   */
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "img.onstori.com" }],
+  },
+  /**
    * 사업 설계도 대시보드(/onstoriplandept) — public/onstoriplandept/index.html 정적 파일.
    * beforeFiles 로 앞세우지 않으면 app/[slug] 동적 라우트가 고객 사이트 슬러그로 가로챈다.
    * 슬러그 자체는 reserved_slugs 에도 넣어 고객이 선점하지 못하게 했다.

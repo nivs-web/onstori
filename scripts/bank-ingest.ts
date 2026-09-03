@@ -11,6 +11,7 @@ import { join, extname } from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { createClient } from "@supabase/supabase-js";
+import * as storage from "../lib/storage";
 
 const arg = (n: string, d?: string) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -56,13 +57,11 @@ async function main() {
       const width = ROLE === "hero" ? 1920 : 1200;
       const webp = await sharp(buf).resize({ width, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
       const path = `${INDUSTRY}/${MOOD}/${ROLE}/${randomUUID()}.webp`;
-      const { error: upErr } = await sb.storage.from("bank").upload(path, webp, { contentType: "image/webp" });
-      if (upErr) throw new Error(upErr.message);
-      const { data: pub } = sb.storage.from("bank").getPublicUrl(path);
+      const { key } = await storage.put("media", `bank/${path}`, webp, "image/webp");
       const { error: dbErr } = await sb.from("image_bank").insert({
         industry: INDUSTRY, mood: MOOD, role: ROLE,
         orientation: (meta.width ?? 0) >= (meta.height ?? 0) ? "landscape" : "portrait",
-        url: pub.publicUrl, storage_path: path, source: SOURCE,
+        url: storage.publicUrl(key), storage_path: path, source: SOURCE,
         tags: [INDUSTRY!, MOOD, ROLE], phash: hash, width: meta.width, height: meta.height, batch_id: batch,
       });
       if (dbErr) throw new Error(dbErr.message);
