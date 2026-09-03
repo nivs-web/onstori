@@ -45,7 +45,7 @@
 | 아침 점검 | `rate_limits` 마이그레이션 프로덕션 적용 확인(`migration list --linked` + RPC 실호출 200/`true`) · WIF 감사 로그 1회 조회(① 이후 유기적 성공 2건 추가·실패 0, 표본은 아직 하루 미만) · **DB 백업 실패** — 작업 머신에 Docker·`pg_dump` 모두 없어 `supabase db dump --linked` 불가(P1 이후 `backups/`가 비어 있음, 미해결) |
 | 표시광고법 — 발행 사이트 3곳 문구 수정 | whitedobae·mong-filates·testtesttest의 진행 과정 카피에 있던 근거 없는 경력 표현("오랜 노하우를 바탕으로"·"숙련된 전문가들이"·"숙련된 기술로") 제거. draft+published 동시 반영, 이전 published는 `site_versions`에 스냅샷. 프로덕션 `curl`로 반영 실측 확인 |
 | 표시광고법 — 생성 파이프라인 재발 방지 | 카피 프롬프트의 날조 금지 규칙을 숫자 없는 경력·숙련도 암시 표현까지 확대 · `geminiJson`이 사용 모델을 함께 반환하도록 해 `inferred.copyModel`로 향후 생성물의 폴백 여부 식별 가능(`lib/generate.ts`, `lib/gemini.ts`) — 아래 "표시광고법 리스크" 항목 참조 |
-| 쇼케이스 정리 | 랜딩 포트폴리오에서 니브인테리어·클린하우스·카페크로프트(가짜 경력·후기·시공사례가 담긴 데모 시드) 3건 제외, 실제 고객 goodmoksu·whitedobae 2건만 유지. `showcase` 테이블 행만 삭제, `seeds/*.json` 콘텐츠 파일은 보존(재등록 가능). 랜딩 실측 확인 |
+| 쇼케이스 정리 | 랜딩 포트폴리오에서 니브인테리어·클린하우스·카페크로프트(가짜 경력·후기·시공사례가 담긴 데모 시드) 3건 제외, 테스트 사이트 goodmoksu·whitedobae 2건만 유지. `showcase` 테이블 행만 삭제, `seeds/*.json` 콘텐츠 파일은 보존(재등록 가능). 랜딩 실측 확인 |
 | 커밋 | `51b9d1f`·`761924a`(CLAUDE.md 현황질문 규칙)·`70c1dc4`, 전부 push 완료 |
 
 ---
