@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { loadOwnedSite } from "@/lib/site-owner";
-import { sbAdmin } from "@/lib/db-admin";
+import * as storage from "@/lib/storage";
 
 export const maxDuration = 30;
 
@@ -22,12 +22,8 @@ export async function POST(req: Request) {
   try {
     const buf = Buffer.from(await file.arrayBuffer());
     const webp = await sharp(buf).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
-    const path = `${slug}/${randomUUID()}.webp`;
-    const sb = sbAdmin();
-    const { error } = await sb.storage.from("uploads").upload(path, webp, { contentType: "image/webp" });
-    if (error) throw new Error(error.message);
-    const { data: pub } = sb.storage.from("uploads").getPublicUrl(path);
-    return NextResponse.json({ url: pub.publicUrl });
+    const { key } = await storage.put("media", `uploads/${slug}/${randomUUID()}.webp`, webp, "image/webp");
+    return NextResponse.json({ url: storage.publicUrl(key) });
   } catch (e) {
     return NextResponse.json({ error: "이미지 처리에 실패했어요", detail: String(e).slice(0, 120) }, { status: 500 });
   }
