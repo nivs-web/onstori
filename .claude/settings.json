@@ -20,16 +20,11 @@
       "Bash(npm run test*)",
       "Bash(npm install*)",
       "Bash(npm ci*)",
-      "Bash(npx tsc*)"
+      "Bash(npx tsc*)",
+      "Bash(git push)",
+      "Bash(git merge*)"
     ],
     "ask": [
-      "Bash(git push)",
-      "Bash(git push origin main*)",
-      "Bash(git push -u origin main*)",
-      "Bash(git push --set-upstream origin main*)",
-      "Bash(git push origin HEAD*)",
-      "Bash(git push origin +*)",
-      "Bash(git merge*)",
       "Bash(git rebase*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
@@ -65,7 +60,8 @@
       "Bash(vercel rollback*)",
       "Bash(npx vercel rollback*)",
       "Bash(vercel redeploy*)",
-      "Bash(npx vercel redeploy*)"
+      "Bash(npx vercel redeploy*)",
+      "Bash(git push origin +*)"
     ]
   }
 }
