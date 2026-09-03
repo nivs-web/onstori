@@ -54,7 +54,7 @@ export default async function SitePage({ params }: Props) {
         }}
       >
         {site.doc.sections.map((s, i) => (
-          <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories }} />
+          <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}
         <footer className="px-5 py-10 text-center text-[12.5px]" style={{ color: "var(--s-muted)" }}>
           © {new Date().getFullYear()} {site.doc.businessName} ·{" "}
