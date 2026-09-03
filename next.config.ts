@@ -18,6 +18,20 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "img.onstori.com" }],
   },
   /**
+   * sharp 의 리눅스 네이티브 파일을 서버리스 함수 번들에 강제 포함.
+   * 이게 없으면 프로덕션에서 sharp 를 쓰는 라우트가 전부 500 이었다:
+   *   ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.6: cannot open shared object file
+   * .node 는 올라가는데 libvips 공유 라이브러리(.so)가 트레이싱에서 빠진다.
+   * optionalDependencies 로 끌어올리는 것(2026-09-04 시도)만으로는 해결되지 않아
+   * 트레이싱에 파일을 직접 지정한다.
+   */
+  outputFileTracingIncludes: {
+    "/api/**": [
+      "./node_modules/@img/sharp-linux-x64/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/**",
+    ],
+  },
+  /**
    * 사업 설계도 대시보드(/onstoriplandept) — public/onstoriplandept/index.html 정적 파일.
    * beforeFiles 로 앞세우지 않으면 app/[slug] 동적 라우트가 고객 사이트 슬러그로 가로챈다.
    * 슬러그 자체는 reserved_slugs 에도 넣어 고객이 선점하지 못하게 했다.
