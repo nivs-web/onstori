@@ -2,6 +2,8 @@
 
 형식: 날짜 · 결정 · 이유. 최신이 위.
 
+- 2026-09-03 · 쇼케이스 랜딩 캐러셀에서 니브인테리어·클린하우스·카페크로프트(가짜 경력·후기·시공사례가 담긴 데모 시드) 3건을 제외, 실제 고객 goodmoksu·whitedobae 2건만 남김 · 실제 고객과 구분 없이 노출되고 있었다. `showcase` 테이블 행만 삭제, `seeds/*.json` 콘텐츠 파일은 그대로 둠(추후 필요하면 재등록 가능)
+- 2026-09-03 · 발행 사이트 3곳(whitedobae·mong-filates·testtesttest)의 진행 과정 카피에 있던 근거 없는 경력 표현("오랜 노하우를 바탕으로" 등)을 제거하고, 카피 프롬프트의 날조 금지 규칙을 숫자 없는 경력·숙련도 암시 표현까지 확대(`lib/generate.ts`) · CLAUDE.md 불변규칙 7(표시광고법) 위반을 실사이트 감사 중 발견. draft+published 동시 수정, 이전 published는 site_versions에 스냅샷. 폴백 모델 생성물을 사후 식별하도록 `inferred.copyModel` 기록 추가(`lib/gemini.ts`)
 - 2026-09-02 · WIF 마무리를 **①(Vercel 키 env 제거)만 하고 ②③(키 삭제·정책 예외 해제)은 며칠 관찰 후**로 나눔 · 세 단계의 되돌리기 난이도가 다르다. ③은 새 키 발급 자체를 막아 **되돌릴 문을 닫는** 유일한 지점이므로 마지막에 둔다. ②③을 미뤄도 남은 키는 Vercel 에서 빠져 어디서도 안 쓰이므로 손해가 거의 없다. 인증 판정은 람다당 캐시되므로 관찰은 한 번이 아니라 여러 번·콜드스타트를 섞어서 한다
 
 - 2026-09-02 · Vercel→Vertex 인증을 **WIF(Workload Identity Federation)**로 전환 · 장기 SA 키를 없애기 위함. `lib/vertex.ts`가 WIF → SA JSON → ADC 3분기로 하나의 `AuthClient`에 수렴한다. audience 는 **Allowed audiences**(`https://vercel.com/ianworld`) 방식 — 코드에서 audience 를 넘길 필요가 없어 어긋날 자리가 하나 줄고 env 도 하나 적다. WIF 풀/프로바이더는 둘 다 `vercel`, issuer `https://oidc.vercel.com/ianworld`, SA 가장은 subject 정확 일치로만 허용. 프로바이더에 attribute-condition 은 걸지 않았다 — issuer 가 이미 팀 한정이고 SA 바인딩이 subject 정확 일치라 같은 제약이 세 겹이 되는데, STS 오류가 불친절해 디버깅 면이 늘어나는 손해가 더 크다. **SA JSON 분기는 롤백용으로 남긴다**
