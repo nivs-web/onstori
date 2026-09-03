@@ -32,7 +32,7 @@ export async function classify(input: GenerateInput): Promise<{ industry: Indust
   if (hit) return { industry: hit, confidence: 0.95, method: "keyword" };
 
   const taxonomy = INDUSTRIES.map((i) => `${i.id}: ${i.name} (${i.keywords.slice(0, 4).join(",")})`).join("\n");
-  const out = await geminiJson(
+  const { data: out } = await geminiJson(
     `다음 가게를 아래 업종 목록 중 가장 가까운 하나로 분류하라.
 가게: "${input.businessName}" — "${input.oneLiner}"
 업종 목록:\n${taxonomy}\n
@@ -69,6 +69,7 @@ ${input.whyStarted ? `시작한 이유: ${input.whyStarted}` : ""}
 규칙 (반드시 지켜라):
 - 자연스러운 한국어, 사장님이 직접 말하는 듯한 담백한 톤. 과장·유행어 금지.
 - 경력 연차, 시공 건수, 자격증, 수상 등 구체적 사실을 절대 지어내지 마라. 입력에 있는 정보만 쓴다.
+- "오랜 노하우로", "숙련된 전문가가", "다년간의 경험으로"처럼 숫자가 없어도 경력·숙련도를 암시하는 표현도 금지 — 입력에 그런 근거가 없으면 쓰지 마라.
 - headline은 24자 이내, 줄바꿈이 필요하면 \\n 사용. sub는 한 문장.
 - steps는 이 업종의 일반적인 진행 과정 3~4단계 (사실 날조 없이 일반적 절차만).
 - firstStory: "시작한 이유"가 있으면 그걸 1인칭 이야기(2~3문장)로 다듬어라. 없으면 null.
@@ -88,13 +89,14 @@ export async function generateSite(input: GenerateInput) {
   const { industry, confidence, method } = await classify(input);
   const cat = categoryOf(industry);
   const matchText = `${input.businessName} ${input.oneLiner}`;
-  const [copy, heroImage, galleryPhotos, aboutImage] = await Promise.all([
+  const [copyResult, heroImage, galleryPhotos, aboutImage] = await Promise.all([
     generateCopy(input, industry),
     // 뱅크 승인 이미지 우선, 없으면 플레이스홀더. text는 태그 매칭 가중치용(예: "브런치" 태그 ↔ 소개 문장)
     pickImage(industry.id, input.mood, "hero", { text: matchText }),
     pickImages(industry.id, input.mood, "gallery", GALLERY_COUNT, { text: matchText }),
     pickImage(industry.id, input.mood, "about", { text: matchText }),
   ]);
+  const copy = copyResult.data;
 
   const sections: SiteDocT["sections"] = [
     {
@@ -151,5 +153,5 @@ export async function generateSite(input: GenerateInput) {
     sections,
   });
 
-  return { doc, industry, category: cat, copy, inferred: { method, confidence, industryId: industry.id } };
+  return { doc, industry, category: cat, copy, inferred: { method, confidence, industryId: industry.id, copyModel: copyResult.model } };
 }

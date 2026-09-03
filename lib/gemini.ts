@@ -18,7 +18,7 @@ export async function geminiJson<T>(
   prompt: string,
   schema: z.ZodType<T>,
   opts?: { retries?: number },
-): Promise<T> {
+): Promise<{ data: T; model: string }> {
   const retries = opts?.retries ?? 1;
 
   let lastErr: unknown;
@@ -38,7 +38,7 @@ export async function geminiJson<T>(
         if (!text) { lastErr = new Error(`${model} empty response`); continue; }
         const parsed = schema.safeParse(JSON.parse(text));
         if (!parsed.success) { lastErr = parsed.error; continue; } // 재시도로 교정 유도
-        return parsed.data;
+        return { data: parsed.data, model };
       } catch (e) {
         lastErr = e;
       }
