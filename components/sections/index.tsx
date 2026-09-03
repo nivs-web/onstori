@@ -1,5 +1,6 @@
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
 import { workCount } from "@/lib/sites";
+import QuoteForm from "./quote-form";
 
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
@@ -14,7 +15,7 @@ export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
   lively:  { bg: "#FFFFFF", ink: "#1D2430", muted: "#6A7383", line: "#E8EBF1", accent: "#E1465A", soft: "#FBE9EC", onAccent: "#FFFFFF" },
 };
 
-type Ctx = { doc: SiteDocT; stories: StoryEntryT[] };
+type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string };
 
 /* ── 공통 부품 ── */
 
@@ -252,33 +253,11 @@ function ProcessSec({ s }: { s: Extract<SectionT, { type: "processSteps" }> }) {
   );
 }
 
-function QuoteFormSec({ s }: { s: Extract<SectionT, { type: "quoteForm" }> }) {
-  // P1: 연락 CTA 카드 — 실제 폼 접수(사진 첨부·DB 저장)는 P8에서 이 컴포넌트를 교체
+function QuoteFormSec({ s, ctx }: { s: Extract<SectionT, { type: "quoteForm" }>; ctx: Ctx }) {
+  // 실제 접수 폼은 클라이언트 컴포넌트로 분리 — docs/specs/inquiry.md 5장
   return (
     <section id="quote" className="px-5 py-14" style={{ background: "var(--s-soft)" }}>
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-xl font-bold sm:text-2xl" style={{ color: "var(--s-ink)" }}>{s.title}</h2>
-        {s.sub && <p className="mt-2 text-[14.5px]" style={{ color: "var(--s-muted)" }}>{s.sub}</p>}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <a href={`tel:${s.phone.replace(/[^0-9+]/g, "")}`}
-             className="rounded-full px-7 py-3.5 text-[15px] font-semibold shadow"
-             style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>
-            📞 {s.phone}
-          </a>
-          {s.kakaoUrl && (
-            <a href={s.kakaoUrl} target="_blank" rel="noreferrer"
-               className="rounded-full border px-7 py-3.5 text-[15px] font-semibold"
-               style={{ borderColor: "var(--s-accent)", color: "var(--s-accent)" }}>
-              카카오톡 문의
-            </a>
-          )}
-        </div>
-        {s.allowPhotos && (
-          <p className="mt-4 text-[13px]" style={{ color: "var(--s-muted)" }}>
-            현장 사진을 보내주시면 더 정확한 견적을 받으실 수 있어요.
-          </p>
-        )}
-      </div>
+      <QuoteForm s={s} slug={ctx.slug} />
     </section>
   );
 }
@@ -325,7 +304,7 @@ export function RenderSection({ s, ctx }: { s: SectionT; ctx: Ctx }) {
     case "banner": return <BannerSec s={s} />;
     case "portfolioGallery": return <PortfolioSec s={s} />;
     case "processSteps": return <ProcessSec s={s} />;
-    case "quoteForm": return <QuoteFormSec s={s} />;
+    case "quoteForm": return <QuoteFormSec s={s} ctx={ctx} />;
     case "hoursCard": return <HoursSec s={s} />;
     case "menuPrice": return <MenuSec s={s} />;
   }
