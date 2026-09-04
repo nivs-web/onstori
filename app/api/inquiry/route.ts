@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import sharp from "sharp";
 import { sbAdmin } from "@/lib/db-admin";
@@ -140,14 +140,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "save-failed" }, { status: 500 });
   }
 
-  // ⑦⑧ 알림·퍼널은 접수 응답을 붙잡지 않는다
-  void notifyInquiry({
-    siteId: site.id as string,
-    businessName: (site.business_name as string) ?? "",
-    slug: site.slug as string,
-    inquiry: { name, phone, message: message || undefined, photoCount: photoKeys.length },
+  // ⑦⑧ 알림·퍼널은 접수 응답을 붙잡지 않는다.
+  //
+  // ⚠ `void promise` 로 띄워두면 안 된다. 서버리스는 응답을 반환하는 순간 인스턴스를
+  //    얼릴 수 있어서, 그때까지 안 끝난 작업은 그대로 사라진다. 2026-09-04 실측:
+  //    문의 3건이 접수됐는데 솔라피에는 발송 요청이 0건이었고 notify_last_error 도
+  //    비어 있었다(catch 조차 안 돌았다). 반면 DB 한 번만 쓰는 markFirstInquiry(14ms)는
+  //    통과했다 — 짧은 건 살고 긴 건 죽는, 보장 없는 동작이다.
+  //    after() 는 응답을 보낸 뒤에도 플랫폼이 실행을 보장해 준다.
+  after(async () => {
+    await notifyInquiry({
+      siteId: site.id as string,
+      businessName: (site.business_name as string) ?? "",
+      slug: site.slug as string,
+      inquiry: { name, phone, message: message || undefined, photoCount: photoKeys.length },
+    });
   });
-  void markFirstInquiry(site.id as string);
+  after(async () => {
+    await markFirstInquiry(site.id as string);
+  });
 
   // ⑨
   return NextResponse.json({ ok: true, id: row.id });
