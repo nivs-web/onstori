@@ -35,6 +35,7 @@ export const TOURS: Tour[] = [
       { anchor: "score-bar", title: "완성도 점수", body: "100점까지 하나씩 안내해 드려요. 점수를 누르면 그 자리로 데려가요" },
       { anchor: "btn-publish", title: "사이트 반영", body: "저장과 발행은 달라요 — 발행해야 손님에게 보여요" },
       { anchor: "panel-inbox", title: "문의함", body: "손님이 남긴 견적 문의가 여기 쌓여요. 새 문의가 오면 숫자가 붙어요" },
+      { anchor: "panel-preview", title: "미리보기", body: "고친 내용이 여기 바로 보여요. 저장 안 해도 돼요" },
     ],
   },
   {

@@ -7,6 +7,7 @@ import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
 import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
+import { PreviewPane } from "./preview-pane";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -58,6 +59,16 @@ export function EditUi({ slug }: { slug: string }) {
   const [newCount, setNewCount] = useState(0);
   /** 알림 수신처 — draft 가 아니라 sites.settings 라서 doc 이 아니라 여기가 들고 있는다 */
   const [notify, setNotify] = useState({ phone: "", email: "" });
+
+  /** 미리보기 — 편집 중인 섹션(스크롤 위치), 자동저장 상태, PC/폰 판정, 폰 시트 열림 여부.
+   *  editor-preview-2026-09-05.md 4장. */
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  /** 이 값이 실제로 쓰이는 지점(아래 aside)은 data 로딩이 끝난 뒤에만 그려지므로,
+   *  SSR(window 없음)과 첫 클라이언트 렌더 사이에 값이 갈려도 하이드레이션 비교에 걸리지 않는다.
+   *  false 인 동안은 미리보기 iframe 을 아예 마운트하지 않는다 — 폰에서 불필요한 로드를 막는다. */
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   /**
    * "＋N점" 클릭 → 해당 data-tour 앵커로 스크롤·강조 (P3 이월, 투어의 최소 동작형).
@@ -115,26 +126,84 @@ export function EditUi({ slug }: { slug: string }) {
       .finally(() => setInboxDone(true));
   }, [slug]);
 
+  // PC/폰 경계를 넘나드는 리사이즈만 구독한다 — 초기값은 이미 useState 에서 계산했다.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // 폰 시트가 열려 있는 동안 뒤 페이지가 같이 스크롤되지 않게
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [sheetOpen]);
+
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2500); };
 
   function patchSection(idx: number, patch: Partial<SectionT>) {
     setDoc((d) => d && ({ ...d, sections: d.sections.map((s, i) => (i === idx ? ({ ...s, ...patch } as SectionT) : s)) }));
     setDirty(true);
+    setFocusIndex(idx);
   }
 
-  async function save(): Promise<boolean> {
+  /** 실제 저장 POST. silent=true 면 토스트 없이 autoStatus 만 갱신한다(자동저장 전용). */
+  async function doSave(opts: { silent?: boolean } = {}): Promise<boolean> {
     if (!doc) return false;
     setBusy("save");
+    if (opts.silent) setAutoStatus("saving");
     const r = await fetch("/api/site/update", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug, anonId: anon(), draft: doc,
         settings: { phone: phoneOf(doc), address: addressOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
     const d = await r.json();
     setBusy("");
-    if (!r.ok) { flash(`저장 실패: ${d.detail ?? d.error}`); return false; }
+    if (!r.ok) {
+      if (opts.silent) setAutoStatus("error"); else flash(`저장 실패: ${d.detail ?? d.error}`);
+      return false;
+    }
     setData((p) => p && { ...p, score: d.score, rulesDone: d.rulesDone });
     setDirty(false);
-    flash("저장했어요 (아직 손님에게는 안 보여요)");
+    if (opts.silent) setAutoStatus("saved"); else flash("저장했어요 (아직 손님에게는 안 보여요)");
     return true;
+  }
+
+  async function save(): Promise<boolean> {
+    return doSave();
+  }
+
+  /** 자동저장 — 실패하면 3초 뒤 1회만 재시도. 그래도 실패하면 화면에 [지금 저장] 버튼을 남긴다. */
+  async function autoSave() {
+    const ok = await doSave({ silent: true });
+    if (!ok) setTimeout(() => { void doSave({ silent: true }); }, 3000);
+  }
+
+  // doc·notify 가 바뀌고 dirty 이면 2초 뒤 조용히 저장. busy 중이면 이번 렌더는 타이머를 걸지 않는다
+  // (busy 가 풀리면 이 effect 가 다시 돌아 새 타이머를 건다 — 중복 저장 방지).
+  // 첫 로딩 직후엔 dirty 가 false 라 저절로 건너뛴다(patchSection 류를 거쳐야만 dirty 가 켜진다).
+  useEffect(() => {
+    if (!dirty || busy) return;
+    const t = setTimeout(() => { void autoSave(); }, 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, notify, dirty, busy]);
+
+  // 창을 벗어날 때(다른 탭으로 전환·최소화)도 붙잡는다
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === "hidden" && dirty && !busy) void autoSave();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, busy, doc, notify]);
+
+  /** 탭을 옮기기 전에 편집 중이던 내용을 붙잡는다(자동저장 타이머를 기다리지 않는다) */
+  function switchTab(next: "content" | "story" | "inbox") {
+    if (dirty && !busy) void autoSave();
+    setTab(next);
   }
 
   async function publish() {
@@ -217,13 +286,15 @@ export function EditUi({ slug }: { slug: string }) {
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;
 
   return (
-    <main className="mx-auto max-w-xl px-5 pb-32 pt-8">
+    <div className="mx-auto max-w-xl px-5 pb-32 pt-8 lg:flex lg:max-w-6xl lg:items-start lg:gap-8 lg:px-8 lg:pb-8">
+    <main className="min-w-0 lg:max-w-xl lg:flex-1">
       {/* 상단: 점수 + 발행 */}
       <header className="sticky top-0 z-10 -mx-5 border-b border-neutral-200 bg-white/95 px-5 py-3 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div data-tour="score-bar" className="min-w-0">
             <p className="truncate text-sm font-bold">{data.businessName}</p>
             <p className="text-xs text-neutral-500">완성도 <b className="text-teal-700">{data.score}점</b> / 100</p>
+            <AutoSaveStatus status={autoStatus} onRetry={() => void autoSave()} />
           </div>
           <div className="flex gap-2">
             <button onClick={save} disabled={!!busy} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
@@ -278,11 +349,11 @@ export function EditUi({ slug }: { slug: string }) {
 
       {/* 탭 */}
       <nav className="mt-5 flex flex-wrap items-center gap-2">
-        <button onClick={() => setTab("content")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "content" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>내용 수정</button>
-        <button data-tour="story-new" onClick={() => setTab("story")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "story" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
+        <button onClick={() => switchTab("content")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "content" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>내용 수정</button>
+        <button data-tour="story-new" onClick={() => switchTab("story")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "story" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
           이야기 쓰기 <span className="opacity-60">({data.storyCount})</span>
         </button>
-        <button data-tour="panel-inbox" onClick={() => setTab("inbox")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "inbox" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
+        <button data-tour="panel-inbox" onClick={() => switchTab("inbox")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "inbox" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
           문의함
           {newCount > 0 && (
             <span className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-teal-600 px-1.5 py-0.5 text-[11px] font-bold text-white">{newCount}</span>
@@ -301,9 +372,49 @@ export function EditUi({ slug }: { slug: string }) {
       ) : (
         <p className="mt-8 text-center text-sm text-neutral-400">문의를 불러오는 중…</p>
       )}
-
-      {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
     </main>
+
+    {/* PC 미리보기 — 폰 프레임. 투어 앵커는 여기 한 곳에만 붙인다(아래 폰 버튼은 같은 자리를 가리키는 중복이라 안 붙인다) */}
+    <aside data-tour="panel-preview" className="hidden lg:sticky lg:top-4 lg:block lg:w-[390px] lg:flex-shrink-0">
+      <div className="overflow-hidden rounded-[2rem] border border-neutral-300 bg-white shadow-sm" style={{ height: "calc(100vh - 8rem)" }}>
+        {isDesktop && <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />}
+      </div>
+    </aside>
+
+    {/* 폰 하단 고정 바 — 미리보기는 무거우니 기본으로 열지 않는다 */}
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-white p-3 lg:hidden">
+      <button onClick={() => setSheetOpen(true)} className="mx-auto block w-full max-w-xl rounded-full bg-neutral-900 py-3 text-sm font-semibold text-white">
+        미리보기
+      </button>
+    </div>
+
+    {/* 폰 전체화면 시트 */}
+    {sheetOpen && (
+      <div className="fixed inset-0 z-50 flex flex-col bg-white lg:hidden">
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
+          <p className="text-sm font-bold">미리보기</p>
+          <button onClick={() => setSheetOpen(false)} className="rounded-full border border-neutral-300 px-3.5 py-1.5 text-xs font-semibold">닫기</button>
+        </div>
+        <div className="min-h-0 flex-1">
+          <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />
+        </div>
+      </div>
+    )}
+
+    {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+function AutoSaveStatus({ status, onRetry }: { status: "idle" | "saving" | "saved" | "error"; onRetry: () => void }) {
+  if (status === "idle") return null;
+  if (status === "saving") return <p className="text-[11px] text-neutral-400">저장 중…</p>;
+  if (status === "saved") return <p className="text-[11px] text-neutral-400">저장됨 · 사장님만 보여요</p>;
+  return (
+    <p className="text-[11px] text-red-500">
+      저장 실패 — 다시 시도
+      <button onClick={onRetry} className="ml-1.5 rounded-full border border-red-300 px-2 py-0.5 text-[10px] font-semibold text-red-600">지금 저장</button>
+    </p>
   );
 }
 
