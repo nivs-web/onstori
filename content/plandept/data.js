@@ -4,7 +4,7 @@
    docs[].type : md(대시보드 안에서 바로 읽음) · html(새 창) · link(외부)
    갱신: 2026-09-04 (기술참모) */
 window.PLAN = {
-  updated: "2026-09-04 (저녁)",
+  updated: "2026-09-04 (밤)",
   stages: [
     { key: "idea",     label: "아이디어",        hint: "제안만 있음. 조사·검토 전" },
     { key: "prep",     label: "준비중",          hint: "사실 조사·사전 준비 진행" },
@@ -58,10 +58,10 @@ window.PLAN = {
       owner: "기술참모(파일) · 온팀장(배포)", since: "2026-09-04", updated: "2026-09-04",
       summary: "아이디어를 단계별(아이디어→준비중→기획중→기획완료→적용중→적용완료/폐기)로 보고, 기획서·샘플을 그 자리에서 읽는 정적 대시보드. public/plandept/ 에 두고 next.config 재작성 규칙 2줄로 /plandept 경로를 연다.",
       why: "회장님이 외부에서도 아이디어를 검토하고, 온팀장·참모가 같은 목록을 본다. 폐기된 것도 이유와 함께 남아 같은 논의를 반복하지 않는다.",
-      status: "파일은 public/plandept/ 에 배치됨(참모). next.config.ts 재작성 2줄 + 예약 슬러그 'plandept' + commit/push 는 온팀장 몫.",
-      next: "온팀장: rewrite 2줄·예약 슬러그 마이그레이션·push → Vercel 배포 확인 → onstori.com/plandept 접속.",
+      status: "2026-09-04 밤 배포 완료(fca9969). 참모가 크롬에서 보드·해시 주소·md 렌더 확인. 이어서 운영자 로그인(ADMIN_KEY 쿠키)으로 잠그는 작업 진행 중 — public/ 에서 content/ 로 옮기고 라우트 핸들러가 쿠키 확인 뒤 파일을 내준다. 어드민 메뉴에 '전략기획실' 버튼 추가.",
+      next: "온팀장: 잠금 세션(content/ 이동 · app/plandept/[[...path]]/route.ts · rewrite 제거 · 어드민 메뉴 버튼 · 로그인 후 next 이동) → 로그아웃 상태에서 /plandept 가 /admin 으로 가는지 확인 → 적용완료.",
       docs: [{ label: "README (올리는 법·구조)", href: "/plandept/README.md", type: "md" }],
-      history: [{ d: "2026-09-04", t: "제작·배치. data.js 가 단일 출처" }],
+      history: [{ d: "2026-09-04", t: "제작·배치. data.js 가 단일 출처" }, { d: "2026-09-04", t: "온팀장 배포(rewrite 2줄·예약 슬러그 마이그레이션·push) → 두 주소 200 확인" }, { d: "2026-09-04", t: "온팀장 지적(공개 경로) → 회장님 결정: 운영자 로그인으로 잠금 + 어드민 메뉴 버튼" }],
     },
 
     /* ───────────── 기획완료 · 검토 대기 ───────────── */

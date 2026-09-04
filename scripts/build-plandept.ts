@@ -1,5 +1,7 @@
 /**
- * 사업 설계도 대시보드 생성 — public/onstoriplandept/index.html 한 파일.
+ * 사업 설계도 대시보드 생성 — content/onstoriplandept/index.html 한 파일.
+ * (운영자 전용 — 2026-09-04 회장님 결정. public/ 에 두면 누구나 볼 수 있어 content/ 로 옮겼고
+ *  app/onstoriplandept/[[...path]]/route.ts 가 ADMIN_KEY 쿠키 확인 뒤에만 내보낸다.)
  * 실행: npx tsx scripts/build-plandept.ts   (npm run build 의 prebuild 로 자동 실행)
  *
  * 왜 생성하는가: md 파일을 손으로 박아넣으면 다음 커밋에 바로 낡는다. 빌드마다 저장소의
@@ -18,7 +20,7 @@ import { execSync } from "child_process";
 import { join } from "path";
 
 const ROOT = process.cwd();
-const OUT_DIR = join(ROOT, "public", "onstoriplandept");
+const OUT_DIR = join(ROOT, "content", "onstoriplandept");
 const OUT = join(OUT_DIR, "index.html");
 
 /* ────────────────── 문서 목록 ────────────────── */
