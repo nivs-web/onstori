@@ -3,6 +3,7 @@ import { z } from "zod";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
+import { notifyChannels } from "@/lib/notify";
 
 /**
  * 문의함 목록 — docs/specs/inquiry.md 3장. 사장님·운영자만.
@@ -56,5 +57,7 @@ export async function POST(req: Request) {
     .eq("site_id", r.site.id)
     .eq("status", "new");
 
-  return NextResponse.json({ items, newCount: newCount ?? 0 });
+  // 채널 상태는 서버 env 라 클라이언트가 알 수 없다. 에디터 알림 설정 카드가
+  // "문자 알림 준비 중" 을 정확히 띄우려면 이 값이 필요하다(키 자체는 나가지 않는다).
+  return NextResponse.json({ items, newCount: newCount ?? 0, channels: notifyChannels() });
 }
