@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>온스토리 실행 런북 · 견적 접수 설계</title>
+<style>html{color-scheme:light dark}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#FBFAF7; --paper-2:#F3F1EA; --ink:#17191d; --ink-2:#4A4F57; --ink-3:#7C8189; --line:#E2DFD6;
+  --teal:#0e7365; --teal-soft:#E3F1EE; --teal-ink:#0B5A50;
+  --rust:#B3452B; --rust-soft:#F7E6E0; --amber:#9A6A00; --amber-soft:#F7EDD2; --good:#1F6F3F; --good-soft:#E3F0E6;
+  --code-bg:#EFEDE6;
+  --display:"Noto Serif KR","Apple SD Gothic Neo",serif;
+  --body:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+    --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+    --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+    --code-bg:#22252B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+  --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+  --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+  --code-bg:#22252B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--teal-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:48px}
+@media(min-width:1000px){.layout{grid-template-columns:220px minmax(0,1fr)}}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13px;line-height:1.5;display:none}
+@media(min-width:1000px){nav.toc{display:block}}
+nav.toc p{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0;border-top:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--teal-ink)}
+nav.toc a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+main{max-width:78ch}
+header.masthead{padding:56px 0 32px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-ink);margin:0 0 14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.25;margin:0 0 16px;text-wrap:balance;letter-spacing:-.01em}
+.lede{font-size:17px;color:var(--ink-2);margin:0;max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+h2{font-family:var(--display);font-weight:700;font-size:25px;line-height:1.3;margin:64px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2 .num{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--teal-ink);display:block;letter-spacing:.1em;margin-bottom:6px}
+h3{font-size:17px;font-weight:700;margin:34px 0 8px}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px}
+p{margin:0 0 14px}
+.sub{color:var(--ink-2)}
+strong{font-weight:600}
+.verdict{margin:32px 0 0;padding:22px 24px;background:var(--teal-soft);border-left:4px solid var(--teal);border-radius:0 8px 8px 0}
+.verdict p{margin:0 0 10px}.verdict p:last-child{margin:0}
+.verdict .k{font-family:var(--display);font-size:19px;font-weight:700;margin-bottom:10px;display:block}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5;margin:14px 0 20px}
+.tablewrap{overflow-x:auto;margin:0 -24px;padding:0 24px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:8px 10px;border-bottom:2px solid var(--ink);vertical-align:bottom}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600;white-space:nowrap}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;line-height:1.5}
+.c-good{background:var(--good-soft);color:var(--good)}
+.c-warn{background:var(--amber-soft);color:var(--amber)}
+.c-bad{background:var(--rust-soft);color:var(--rust)}
+.c-none{background:var(--paper-2);color:var(--ink-3)}
+.c-teal{background:var(--teal-soft);color:var(--teal-ink)}
+.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:16px 0 22px}
+.panel{padding:18px 20px;border:1px solid var(--line);border-radius:8px}
+.panel h4{margin:0 0 10px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.panel ul{margin:0;padding-left:18px}.panel li{margin:0 0 6px}
+.panel.win{border-color:var(--teal);background:var(--teal-soft)}
+.panel.bad{border-color:var(--rust);background:var(--rust-soft)}
+.step{margin:18px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step .hd{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:12px 18px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.step .hd .n{font-family:var(--mono);font-size:12px;color:var(--teal-ink);letter-spacing:.1em}
+.step .hd .t{font-weight:700;font-size:16px}
+.step .hd .w{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto}
+.step .bd{padding:14px 18px}
+.step .bd p{margin:0 0 8px}
+.step ul,.step ol{margin:6px 0 8px;padding-left:20px}.step li{margin:0 0 5px}
+.step .lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 6px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;margin:10px 0 18px;white-space:pre-wrap;word-break:break-word}
+pre.prompt{border-left:3px solid var(--teal);background:var(--teal-soft);color:var(--ink)}
+pre.term{border-left:3px solid var(--ink-3)}
+.note{padding:14px 18px;border:1px solid var(--line);border-radius:8px;font-size:14px;color:var(--ink-2);margin:14px 0 20px}
+.note.warn{border-color:var(--amber);background:var(--amber-soft);color:var(--ink)}
+.note.bad{border-color:var(--rust);background:var(--rust-soft);color:var(--ink)}
+.tree{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;white-space:pre}
+.tree .c{color:var(--ink-3)}
+.timeline{display:grid;gap:0;margin:16px 0 22px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.day{display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid var(--line)}
+.day:last-child{border-bottom:0}
+.day>div{padding:12px 14px;font-size:13.5px}
+.day .d{background:var(--paper-2);font-family:var(--mono);font-size:12px;color:var(--ink-2);font-weight:500}
+.day .t1{border-right:1px solid var(--line)}
+.day.head>div{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);background:var(--paper-2)}
+.day b{display:block;font-weight:700;margin-bottom:2px}
+.day .m{color:var(--ink-3);font-size:12.5px}
+.wire{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:16px 0 22px}
+.wire figure{margin:0}
+.wire figcaption{font-size:12.5px;color:var(--ink-3);margin-top:8px;font-family:var(--mono)}
+.wire svg{width:100%;height:auto;display:block}
+.check{list-style:none;padding:0;margin:14px 0 22px}
+.check li{padding:9px 0 9px 30px;position:relative;border-bottom:1px solid var(--line)}
+.check li::before{content:"";position:absolute;left:2px;top:14px;width:14px;height:14px;border:1.5px solid var(--ink-3);border-radius:3px}
+.check li .tag{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:6px}
+footer{margin:72px 0 48px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Runbook · Sprint A 실행 절차 + 견적 접수 상세 설계 · 2026-09-03</p>
+  <h1>바뀐 기획을 손으로 실행하는 순서 — 그리고 견적 폼을 진짜 폼으로 만드는 설계</h1>
+  <p class="lede">두 가지를 다룹니다. 앞부분은 "코워크(여기)에서 받은 기획을 클로드코드 터미널 두 개로 어떻게 나눠 돌리고 다시 합치나"를 윈도우 명령어까지 그대로 적은 런북입니다. 뒷부분은 부족한 지점 1번 — 견적 폼 — 을 DB·API·화면·알림·법무까지 붙여 실행 가능한 스펙과 클로드코드 프롬프트로 풀었습니다.</p>
+  <div class="meta"><span>역할 구분: 코워크 = 기획·검토 · 클로드코드 = 코드 실행</span><span>세션 수: 편집기 계열 4 + 견적 접수 2</span><span>기준: onstori 저장소 2026-09-02</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="목차">
+  <p>Contents</p>
+  <a href="#s1">역할과 도구 — 무엇을 어디서</a>
+  <a href="#s2">터미널 2개 운영 — 명령어 순서</a>
+  <a href="#s3">3일 타임라인</a>
+  <a href="#s4">합치기 · 배포 · 마이그레이션</a>
+  <a href="#s5">견적 접수 설계 — 목표와 흐름</a>
+  <a href="#s6">데이터 · API · 보안 · 알림 스펙</a>
+  <a href="#s7">화면 — 손님 폼 · 사장님 문의함 · 알림 설정</a>
+  <a href="#s8">클로드코드 프롬프트 G1 · G2</a>
+  <a href="#s9">사장님이 준비할 것</a>
+</nav>
+
+<main>
+
+<section id="s1">
+<h2><span class="num">01</span>역할과 도구 — 무엇을 어디서 하나</h2>
+<div class="verdict">
+  <span class="k">코워크 세션을 2개로 나누는 것이 아니라, 클로드코드 터미널을 2개 여는 것입니다.</span>
+  <p>지금 하고 계신 방식이 맞습니다. <strong>코워크(이 대화)</strong>는 기획·검토·프롬프트 작성을 맡고, <strong>클로드코드(터미널)</strong>가 저장소에서 코드를 씁니다. 병렬 작업은 클로드코드 쪽에서 일어납니다 — 터미널 창 두 개, 각각 다른 폴더(worktree)에서 다른 브랜치를 작업하고, 끝나면 main에 합칩니다.</p>
+  <p>코워크는 하나면 됩니다. 클로드코드에서 나온 결과(빌드 로그, 화면 캡쳐, "이게 맞나요?")를 여기로 가져오시면 검토하고 다음 프롬프트를 드립니다. 이 세션이 그 기획의 단일 출처이고, 프로젝트 문서(<code>claude/onstori-advisor-context.md</code>)에 계속 누적됩니다.</p>
+</div>
+<div class="tablewrap"><table>
+<thead><tr><th>도구</th><th>하는 일</th><th>하지 않는 일</th></tr></thead>
+<tbody>
+<tr><td>코워크 (여기)</td><td>기획 확정 · 스펙 작성 · 클로드코드 프롬프트 작성 · 결과 검토 · 결정 기록</td><td>저장소 코드 직접 수정(가능은 하지만 클로드코드와 충돌)</td></tr>
+<tr><td>클로드코드 터미널 1</td><td>에디터 계열(세션 0 → A → C …) — 폴더 <code>onstori</code>(main) 또는 <code>onstori-wt-editor</code></td><td>다른 터미널이 소유한 파일 수정</td></tr>
+<tr><td>클로드코드 터미널 2</td><td>독립 작업(세션 B 미리보기, G1 견적 백엔드 …) — 폴더 <code>onstori-wt-preview</code> / <code>onstori-wt-inquiry</code></td><td>동시에 <code>lib/schema.ts</code>·마이그레이션 만지기</td></tr>
+<tr><td>사장님(사람)</td><td>브랜치 합치기 · 배포 확인 · 마이그레이션 push · 대시보드 설정 · 결정</td><td>—</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s2">
+<h2><span class="num">02</span>터미널 2개 운영 — 명령어 순서 (Windows PowerShell)</h2>
+<p class="sub">저장소는 <code>C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori</code>입니다. worktree는 그 옆 폴더에 만듭니다. 처음 한 번만 하는 것과 매 세션 반복하는 것을 나눴습니다.</p>
+
+<h3>처음 한 번 — 세션 0 (main에서, 터미널 1)</h3>
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori
+git status            # 깨끗해야 함. 수정 중인 게 있으면 먼저 커밋
+git pull origin main
+claude                # 클로드코드 시작 → 에디터 플랜의 SESSION 0 프롬프트 붙여넣기
+# 끝나면 클로드코드가 보여준 커밋 메시지로 커밋 → push
+git push origin main</pre>
+<p>세션 0이 main에 들어간 뒤에야 worktree를 만듭니다. 그래야 두 worktree가 같은 계약(타입·파일명)을 갖고 출발합니다.</p>
+
+<h3>worktree 만들기 (세션 0 push 후, 터미널 1)</h3>
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori
+git worktree add ..\onstori-wt-editor  -b editor-v2/shell
+git worktree add ..\onstori-wt-preview -b editor-v2/preview
+git worktree list     # 3줄 나와야 함: onstori(main), onstori-wt-editor, onstori-wt-preview
+
+# 각 worktree에 의존성 설치 + .env.local 복사 (git에 없는 파일이라 직접)
+cd ..\onstori-wt-editor  ; npm install ; copy ..\onstori\.env.local .env.local
+cd ..\onstori-wt-preview ; npm install ; copy ..\onstori\.env.local .env.local</pre>
+<div class="note warn"><strong>포트 충돌</strong> — 두 worktree에서 동시에 <code>npm run dev</code>를 하면 둘 다 3000번을 잡으려 합니다. 터미널 2는 <code>npm run dev -- -p 3001</code>로 띄우고, 클로드코드 프롬프트에도 "dev 서버는 3001번"이라고 적어 주세요. 카카오 로그인 Redirect URI는 3000만 등록돼 있으므로, 3001에서는 이메일 OTP나 운영자 쿠키로 검증합니다.</div>
+
+<h3>매 세션 반복 — 터미널 1 (에디터 A)</h3>
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori-wt-editor
+claude                # SESSION A 프롬프트 붙여넣기
+# 완료 조건 통과 확인 → 커밋 → push
+git push -u origin editor-v2/shell</pre>
+
+<h3>매 세션 반복 — 터미널 2 (미리보기 B, 동시에)</h3>
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori-wt-preview
+claude                # SESSION B 프롬프트 붙여넣기 (dev는 3001)
+git push -u origin editor-v2/preview</pre>
+
+<h3>프롬프트 첫 줄에 항상 넣을 것</h3>
+<pre class="prompt">이 폴더는 git worktree이고 브랜치는 editor-v2/shell 이다. main이나 다른 worktree는 건드리지 마.
+읽을 파일: (목록). 그 외는 읽지 마. 탐색이 필요하면 서브에이전트로 하고 본 세션에는 결론만.
+완료 조건을 만족하면 커밋 메시지를 보여주고 멈춰. push는 내가 한다.</pre>
+<p>마지막 줄이 중요합니다. 에이전트가 push·merge까지 해버리면 두 터미널의 순서가 꼬입니다. 합치는 것은 사람이 04장 순서대로 합니다.</p>
+</section>
+
+<section id="s3">
+<h2><span class="num">03</span>3일 타임라인 — 어느 터미널에서 무엇을</h2>
+<p class="sub">에디터 플랜의 세션 A~D와 이 문서의 견적 접수 G1·G2를 파일 소유권이 겹치지 않게 배치했습니다. 견적 접수를 에디터보다 늦추지 않습니다 — 백엔드(G1)는 새 파일만 만들므로 첫날부터 병렬로 갑니다.</p>
+<div class="timeline">
+  <div class="day head"><div>Day</div><div>터미널 1 (에디터 계열)</div><div>터미널 2 (독립 작업)</div></div>
+  <div class="day"><div class="d">1 오전</div><div class="t1"><b>세션 0 · 계약</b>main · 1h · STATUS.md · stories.ts · editor 타입 · 앵커<span class="m">끝나면 push → worktree 2개 생성</span></div><div><span class="m">대기 (worktree는 세션 0 push 후)</span></div></div>
+  <div class="day"><div class="d">1 오후</div><div class="t1"><b>세션 A · ui.tsx 분해</b>wt-editor · 4h<span class="m">소유: app/[slug]/edit/**</span></div><div><b>세션 B · 미리보기</b>wt-preview · 4h · dev 3001<span class="m">소유: app/[slug]/preview/**, components/site-renderer.tsx, index.tsx import 1줄</span></div></div>
+  <div class="day"><div class="d">1 저녁</div><div class="t1" style="grid-column:2/4"><b>합치기 ①</b> A → main, B → main (04장) · 빌드 · push · Vercel 배포 확인</div></div>
+  <div class="day"><div class="d">2</div><div class="t1"><b>세션 C · 미리보기 패널 + 자동저장</b>main · 1d<span class="m">소유: _shell/**, lib/editor/use-editor-doc.ts, api/site/{update,revert}</span></div><div><b>세션 G1 · 견적 접수 백엔드</b>wt-inquiry(새 worktree) · 1d<span class="m">소유: 마이그레이션 1개, app/api/inquiry/**, lib/inquiry.ts, lib/notify.ts — 전부 새 파일</span></div></div>
+  <div class="day"><div class="d">2 저녁</div><div class="t1" style="grid-column:2/4"><b>합치기 ②</b> C → main, G1 → main · <code>npx supabase db push</code> (main에서 1회) · 배포</div></div>
+  <div class="day"><div class="d">3</div><div class="t1"><b>세션 G2 · 견적 폼 화면 + 문의함 탭</b>main · 1d<span class="m">소유: components/sections/quote-form.tsx(신설), index.tsx QuoteFormSec 교체, _tabs/inbox-tab.tsx, settings-tab 알림 필드</span></div><div><b>세션 D · 연결 위젯</b>wt-widgets · 1d · ultracode<span class="m">소유: lib/schema.ts, widget-bar.tsx, _forms/widgets.tsx, SCHEMA.md</span></div></div>
+  <div class="day"><div class="d">3 저녁</div><div class="t1" style="grid-column:2/4"><b>합치기 ③</b> G2 → main, D → main. <code>_shell/editor-shell.tsx</code> 탭 등록 줄과 <code>settings-tab.tsx</code>에서 한 줄짜리 충돌 가능 — 양쪽 다 남기면 됨 · 배포 · 실사이트에서 견적 1건 접수 → 알림 도착 확인</div></div>
+</div>
+<p>Day 3 저녁이면 "타이핑하면 바로 보이고, 견적이 DB에 남고, 사장님 폰에 알림이 오고, 하단에 전화·카톡 버튼이 뜨는" 상태입니다. 지난 리포트의 Sprint A 핵심이 이 3일입니다.</p>
+</section>
+
+<section id="s4">
+<h2><span class="num">04</span>합치기 · 배포 · 마이그레이션 — 사람이 하는 부분</h2>
+<h3>합치기 (터미널 1, main 폴더)</h3>
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori
+git checkout main ; git pull origin main
+git merge --no-ff editor-v2/shell    -m "merge: editor-v2/shell (세션 A 분해)"
+git merge --no-ff editor-v2/preview  -m "merge: editor-v2/preview (세션 B 미리보기)"
+npm run build                        # 둘을 합친 상태에서 빌드가 돼야 push
+git push origin main                 # → Vercel 자동 배포</pre>
+<p>충돌이 나면 클로드코드에게 맡기는 것이 빠릅니다 — main 폴더에서 <code>claude</code>를 열고 "git merge 충돌이 났다. <code>git status</code>로 충돌 파일을 보고, 양쪽 변경을 모두 살리는 방향으로 해결한 뒤 <code>npm run build</code> 통과시켜. 로직은 바꾸지 마"라고 하면 됩니다. 이 플랜의 분할에서는 파일 한두 개의 한 줄짜리 충돌만 예상됩니다.</p>
+<h3>worktree 정리 (브랜치가 main에 들어간 뒤)</h3>
+<pre class="term">git worktree remove ..\onstori-wt-editor
+git worktree remove ..\onstori-wt-preview
+git branch -d editor-v2/shell editor-v2/preview
+# 다음 병렬 작업 때 같은 방법으로 새 worktree를 만든다 (이름은 작업별로)</pre>
+<h3>마이그레이션은 main에서, 한 번만</h3>
+<p>G1이 만든 <code>supabase/migrations/…_inquiries.sql</code>은 worktree 안에서는 <strong>적용하지 않습니다</strong>(파일만 작성). main에 합친 뒤 main 폴더에서 <code>npx supabase migration list --linked</code>로 순서를 확인하고 <code>npx supabase db push</code>를 실행합니다. 로컬 Docker가 없는 환경이라 DECISIONS(2026-09-01)에 적힌 대로 원격 push + RPC 검증 방식입니다. 두 브랜치가 각각 마이그레이션을 만들면 타임스탬프 순서가 꼬이므로, <strong>이 3일 안에 마이그레이션은 G1 하나뿐</strong>입니다(위젯 D는 스키마 JSON만 바꾸고 DB는 안 건드립니다).</p>
+</section>
+
+<section id="s5">
+<h2><span class="num">05</span>견적 접수 설계 — 목표와 흐름</h2>
+<div class="verdict">
+  <span class="k">목표: 손님이 30초 안에 사진 3장과 전화번호를 남기고, 사장님 폰에 60초 안에 알림이 도착하고, 에디터에 "문의 3건"이 보인다.</span>
+  <p>그러면 온스토리는 처음으로 자기 상품의 성과(리드)를 측정하게 되고, 사장님은 무료 한 달 안에 "이 홈페이지에서 연락이 왔다"를 경험합니다. 홈온은 이 기능을 39,900원 BUSINESS에만 줍니다 — 온스토리는 기본입니다.</p>
+</div>
+<h3>손님 쪽 흐름</h3>
+<p>히어로의 "견적 문의" 버튼 → <code>#quote</code> 섹션으로 스크롤 → 폼: 이름 · 연락처(필수) · 어떤 작업인지 한 줄(선택) · 현장 사진 최대 3장(폰이면 카메라 직행, 업로드 전 압축) · 개인정보 수집 동의 체크 → "견적 요청 보내기" → 성공 화면 "접수됐어요. 사장님이 곧 연락드려요" + 급하면 전화 버튼. 전화 버튼은 폼 옆에 그대로 둡니다 — 시공 손님의 절반은 여전히 전화를 선호합니다.</p>
+<h3>사장님 쪽 흐름</h3>
+<p>접수 즉시 문자(솔라피) + 이메일(Resend) — "니브인테리어에 견적 문의가 왔어요 · 김OO · 010-…· 사진 2장 · 보기 →" → 링크는 에디터 문의함 탭(로그인 필요) → 상세: 사진 크게, 내용, "전화하기" 버튼, 상태(새 문의 → 연락함 → 완료), 메모 한 줄. 문의함 탭에는 새 문의 수 배지. 알림 받을 번호·이메일은 설정 탭에서 바꿀 수 있고, 기본값은 견적 섹션의 전화번호와 로그인 이메일입니다.</p>
+<h3>온스토리 쪽(운영자) 흐름</h3>
+<p>어드민 사이트 목록에 "문의 수(30일)" 열 하나 추가. 어느 업종·어느 사이트에서 리드가 나는지 처음으로 보입니다. 이 숫자가 다음 리포트(Sprint B 대시보드)의 씨앗입니다.</p>
+</section>
+
+<section id="s6">
+<h2><span class="num">06</span>데이터 · API · 보안 · 알림 스펙</h2>
+<h3>테이블 — <code>inquiries</code> (마이그레이션 1개)</h3>
+<pre>create table inquiries (
+  id            uuid primary key default gen_random_uuid(),
+  site_id       uuid not null references sites(id) on delete cascade,
+  kind          text not null default 'quote' check (kind in ('quote','reserve','consult','contact')),
+  name          text not null check (char_length(name) between 1 and 40),
+  phone         text not null check (phone ~ '^[0-9+\-]{9,20}$'),
+  message       text check (char_length(message) &lt;= 1000),
+  photos        jsonb not null default '[]',        -- ["inquiries/&lt;site_id&gt;/&lt;uuid&gt;.webp", ...] 최대 3
+  status        text not null default 'new' check (status in ('new','contacted','done','spam')),
+  memo          text check (char_length(memo) &lt;= 300),   -- 사장님 메모
+  referrer_class text,                               -- direct|naver|google|instagram|kakao|other (Sprint B 통계와 공유)
+  ip_hash       text,                                -- 일 단위 salt 해시. 원 IP 저장 안 함
+  consent_at    timestamptz not null,                -- 개인정보 수집 동의 시각 (법적 근거)
+  read_at       timestamptz,
+  created_at    timestamptz not null default now()
+);
+create index on inquiries (site_id, created_at desc);
+create index on inquiries (site_id, status);
+
+alter table inquiries enable row level security;
+-- 손님 insert 는 service-role API 에서만 (anon 직접 insert 정책 없음)
+-- 사장님 select/update 는 owner_id 일치
+create policy "owner reads own inquiries" on inquiries for select
+  using (exists (select 1 from sites s where s.id = inquiries.site_id and s.owner_id = auth.uid()));
+create policy "owner updates own inquiries" on inquiries for update
+  using (exists (select 1 from sites s where s.id = inquiries.site_id and s.owner_id = auth.uid()));
+
+-- 사진 버킷: 손님 현장 사진은 공개 버킷에 두지 않는다
+insert into storage.buckets (id, name, public) values ('inquiry-photos','inquiry-photos', false);
+
+-- site_progress.funnel 에 first_inquiry_at 키 추가 (jsonb 라 스키마 변경 없음, 코드에서 set)</pre>
+<p>설계서 09장의 <code>inquiries</code> 원안에 <code>consent_at</code>·<code>ip_hash</code>·<code>memo</code>·<code>referrer_class</code>를 더했습니다. 익명 사이트(owner_id null, anonId만)의 문의는 RLS로는 못 읽으므로 문의함 API가 <code>loadOwnedSite</code>(anonId 폴백 포함)로 판정하고 service-role로 읽습니다 — 기존 5개 게이트 API와 같은 방식입니다.</p>
+
+<h3>API 3개</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>라우트</th><th>누가</th><th>입력</th><th>동작</th></tr></thead>
+<tbody>
+<tr><td><code>POST /api/inquiry</code></td><td>손님(비로그인)</td><td>multipart: slug, name, phone, message?, photos[] ≤3 (각 ≤10MB), consent="1", website(허니팟, 비어야 함), t0(폼 렌더 시각)</td><td>① rate limit <code>inquiry:{ip}</code> 1h 5 / 24h 20 (기존 <code>rate_limit_hit</code>) ② 허니팟 채워짐·t0 3초 미만·consent 없음 → 400(조용히) ③ 같은 site+phone 10분 내 재접수 → 409 ④ 사진 sharp 1600w WebP → <code>inquiry-photos/{site_id}/{uuid}.webp</code> ⑤ insert ⑥ 알림 발송(await 하지 않음, 실패는 로그) ⑦ funnel.first_inquiry_at 없으면 기록 ⑧ <code>{ok:true, id}</code></td></tr>
+<tr><td><code>POST /api/inquiry/list</code></td><td>사장님·운영자</td><td>{slug, anonId?, status?, cursor?}</td><td><code>loadOwnedSite</code> 게이트 → 최신 50건 + 사진은 서명 URL(10분) → <code>{items, newCount}</code></td></tr>
+<tr><td><code>POST /api/inquiry/update</code></td><td>사장님·운영자</td><td>{slug, anonId?, id, status?, memo?, read?}</td><td>게이트 → 해당 site_id 소속인지 확인 후 update</td></tr>
+</tbody></table></div>
+
+<h3>알림 — <code>lib/notify.ts</code></h3>
+<pre>type Notify = { siteId; businessName; slug; inquiry: { name; phone; message?; photoCount } };
+
+// 수신처 우선순위: sites.settings.notify.{phone,email} → quoteForm.phone / auth.users.email
+// 채널
+//  - SMS: 솔라피(Solapi) REST. env SOLAPI_API_KEY / SOLAPI_API_SECRET / SOLAPI_SENDER(발신번호, 사전 등록 필수)
+//    본문(80자 이내로 단문 유지):
+//    "[온스토리] 니브인테리어 견적 문의 · 김OO 010-1234-5678 · 사진 2장 · onstori.com/niv/edit?tab=inbox"
+//  - Email: Resend REST. env RESEND_API_KEY, from = "온스토리 &lt;noreply@onstori.com&gt;" (도메인 인증 필요)
+//    제목 "[견적 문의] 니브인테리어 — 김OO" / 본문에 내용·사진 썸네일(서명 URL 24h)·문의함 링크
+//  - 둘 다 실패해도 접수는 성공. 실패는 console.error(JSON) 로 남기고 어드민 auth-check 처럼 /api/admin/notify-check 로 마지막 실패를 볼 수 있게
+// 카카오 알림톡은 P5(사업자·채널 심사) 이후 같은 함수에 채널 하나 추가</pre>
+<p>솔라피는 건당 약 20원, 발신번호는 통신사 인증(사업자 또는 개인 휴대폰)을 먼저 등록해야 합니다 — 09장 사장님 준비 항목. 등록 전에는 이메일만 나가도록 env가 없으면 그 채널을 건너뜁니다.</p>
+
+<h3>보안·스팸·개인정보</h3>
+<div class="two">
+<div class="panel">
+<h4>스팸 5중</h4>
+<ul>
+<li>IP rate limit(기존 함수 재사용, Postgres 원자 upsert)</li>
+<li>허니팟 필드 <code>website</code>(CSS로 숨김, 채워지면 400)</li>
+<li>렌더 후 3초 미만 제출 거부</li>
+<li>같은 사이트+전화 10분 중복 409</li>
+<li>사장님이 "스팸" 상태로 표시 → 같은 phone 30일 자동 차단(site 단위)</li>
+</ul>
+</div>
+<div class="panel">
+<h4>개인정보보호법</h4>
+<ul>
+<li>폼에 수집 항목·목적·보관기간(1년) 고지 + 동의 체크(필수) → <code>consent_at</code> 저장</li>
+<li>사진은 비공개 버킷 + 서명 URL(10분)만. 공개 URL 없음</li>
+<li>IP는 일 단위 salt 해시만 저장</li>
+<li>1년 지난 문의는 사진 삭제 + 이름·전화 마스킹(cron은 Sprint B, 지금은 정책 문구만)</li>
+<li>온스토리 개인정보처리방침에 "고객 문의 대행 처리(수탁)" 항목 — P9 법무에 추가</li>
+</ul>
+</div>
+</div>
+</section>
+
+<section id="s7">
+<h2><span class="num">07</span>화면 — 손님 폼 · 사장님 문의함 · 알림 설정</h2>
+<div class="wire">
+<figure>
+<svg viewBox="0 0 240 400" role="img" aria-label="손님 견적 폼 와이어프레임">
+  <rect x="1" y="1" width="238" height="398" rx="18" fill="var(--paper-2)" stroke="var(--line)"/>
+  <text x="20" y="34" font-size="13" font-weight="700" fill="var(--ink)" font-family="var(--body)">견적 문의</text>
+  <text x="20" y="52" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">사진을 보내주시면 더 정확한 견적을 드려요</text>
+  <rect x="20" y="66" width="200" height="30" rx="8" fill="var(--paper)" stroke="var(--line)"/><text x="30" y="85" font-size="9.5" fill="var(--ink-3)" font-family="var(--body)">이름</text>
+  <rect x="20" y="102" width="200" height="30" rx="8" fill="var(--paper)" stroke="var(--line)"/><text x="30" y="121" font-size="9.5" fill="var(--ink-3)" font-family="var(--body)">연락처 (필수)</text>
+  <rect x="20" y="138" width="200" height="48" rx="8" fill="var(--paper)" stroke="var(--line)"/><text x="30" y="157" font-size="9.5" fill="var(--ink-3)" font-family="var(--body)">어떤 작업이 필요하세요? (선택)</text>
+  <rect x="20" y="194" width="60" height="60" rx="8" fill="var(--paper)" stroke="var(--teal)" stroke-dasharray="3 3"/><text x="34" y="228" font-size="9" fill="var(--teal-ink)" font-family="var(--body)">📷 사진</text>
+  <rect x="90" y="194" width="60" height="60" rx="8" fill="var(--paper)" stroke="var(--line)"/><rect x="160" y="194" width="60" height="60" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="20" y="270" font-size="8.5" fill="var(--ink-3)" font-family="var(--body)">최대 3장 · 폰에서 바로 촬영 가능</text>
+  <rect x="20" y="284" width="11" height="11" rx="2" fill="var(--paper)" stroke="var(--ink-2)"/><text x="36" y="294" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">견적 안내를 위한 개인정보 수집에 동의 (1년 보관)</text>
+  <rect x="20" y="308" width="200" height="34" rx="17" fill="var(--teal)"/><text x="72" y="330" font-size="11" font-weight="700" fill="#fff" font-family="var(--body)">견적 요청 보내기</text>
+  <rect x="20" y="350" width="200" height="30" rx="15" fill="var(--paper)" stroke="var(--teal)"/><text x="66" y="369" font-size="10" fill="var(--teal-ink)" font-family="var(--body)">📞 급하면 바로 전화</text>
+</svg>
+<figcaption>손님 폼 — 필수 2개(연락처·동의). 사진 첫 칸은 카메라 직행(capture=environment).</figcaption>
+</figure>
+<figure>
+<svg viewBox="0 0 240 400" role="img" aria-label="사장님 문의함 와이어프레임">
+  <rect x="1" y="1" width="238" height="398" rx="18" fill="var(--paper-2)" stroke="var(--line)"/>
+  <rect x="14" y="14" width="212" height="28" rx="6" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="22" y="32" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">내용 · 이야기 · </text><text x="86" y="32" font-size="9.5" font-weight="700" fill="var(--ink)" font-family="var(--body)">문의함</text>
+  <circle cx="121" cy="27" r="7" fill="var(--rust)"/><text x="118" y="30" font-size="8" fill="#fff" font-family="var(--mono)">3</text>
+  <text x="150" y="32" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">· 설정</text>
+  <text x="20" y="62" font-size="8.5" fill="var(--ink-3)" font-family="var(--mono)">새 문의 3 · 연락함 2 · 완료 5</text>
+  <rect x="14" y="70" width="212" height="70" rx="8" fill="var(--paper)" stroke="var(--teal)" stroke-width="1.5"/>
+  <rect x="22" y="78" width="30" height="14" rx="7" fill="var(--rust-soft)"/><text x="27" y="88" font-size="8" fill="var(--rust)" font-family="var(--body)">새 문의</text>
+  <text x="60" y="89" font-size="8.5" fill="var(--ink-3)" font-family="var(--mono)">오늘 14:02</text>
+  <text x="22" y="108" font-size="11" font-weight="700" fill="var(--ink)" font-family="var(--body)">김민수 · 010-1234-5678</text>
+  <text x="22" y="124" font-size="9" fill="var(--ink-2)" font-family="var(--body)">32평 아파트 주방·욕실 부분 시공 문의드려요</text>
+  <rect x="180" y="100" width="18" height="18" rx="3" fill="var(--paper-2)"/><rect x="200" y="100" width="18" height="18" rx="3" fill="var(--paper-2)"/>
+  <rect x="14" y="148" width="212" height="70" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <rect x="22" y="156" width="30" height="14" rx="7" fill="var(--rust-soft)"/><text x="27" y="166" font-size="8" fill="var(--rust)" font-family="var(--body)">새 문의</text>
+  <text x="22" y="186" font-size="11" font-weight="700" fill="var(--ink)" font-family="var(--body)">박서연 · 010-9876-5432</text>
+  <text x="22" y="202" font-size="9" fill="var(--ink-2)" font-family="var(--body)">(내용 없음 · 사진 3장)</text>
+  <rect x="14" y="226" width="212" height="70" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <rect x="22" y="234" width="30" height="14" rx="7" fill="var(--amber-soft)"/><text x="27" y="244" font-size="8" fill="var(--amber)" font-family="var(--body)">연락함</text>
+  <text x="22" y="264" font-size="11" font-weight="700" fill="var(--ink)" font-family="var(--body)">이정호 · 010-5555-1212</text>
+  <text x="22" y="280" font-size="9" fill="var(--ink-2)" font-family="var(--body)">메모: 9/10 실측 방문</text>
+  <rect x="14" y="310" width="212" height="34" rx="17" fill="var(--teal)"/><text x="60" y="332" font-size="10.5" font-weight="700" fill="#fff" font-family="var(--body)">📞 김민수님께 전화하기</text>
+  <rect x="14" y="352" width="102" height="28" rx="14" fill="var(--paper)" stroke="var(--line)"/><text x="30" y="370" font-size="9" fill="var(--ink-2)" font-family="var(--body)">연락함으로 표시</text>
+  <rect x="124" y="352" width="102" height="28" rx="14" fill="var(--paper)" stroke="var(--line)"/><text x="150" y="370" font-size="9" fill="var(--ink-2)" font-family="var(--body)">스팸 · 완료</text>
+</svg>
+<figcaption>문의함 탭 — 새 문의 배지, 카드 탭 → 상세(사진 크게·전화·상태·메모).</figcaption>
+</figure>
+</div>
+<h3>세부 결정</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>항목</th><th>결정</th><th>이유</th></tr></thead>
+<tbody>
+<tr><td>섹션 스키마</td><td><code>QuoteForm</code> zod는 <strong>변경 없음</strong>. <code>allowPhotos</code>(있음)로 사진 칸 노출 여부, <code>phone</code>으로 전화 버튼</td><td>스키마 4곳 동시 수정 규칙을 피함 — 위젯(D)과 같은 날 스키마를 두 곳에서 만지지 않기 위해</td></tr>
+<tr><td>컴포넌트 위치</td><td><code>components/sections/quote-form.tsx</code>("use client") 신설. <code>index.tsx</code>의 <code>QuoteFormSec</code>는 그 컴포넌트를 렌더하는 3줄로 축소</td><td>index.tsx는 서버·클라이언트 공용이라 폼 상태를 여기 두면 전체가 클라이언트화됨</td></tr>
+<tr><td>미리보기 안에서</td><td>제출 버튼은 "미리보기에서는 보내지지 않아요"로 비활성. <code>window.parent !== window</code> 이고 경로가 <code>/preview</code>면 preview 모드</td><td>사장님이 테스트 문의를 자기한테 보내 rate limit을 소진하는 일 방지</td></tr>
+<tr><td>사진 업로드</td><td>폼 안에서 클라이언트 압축(<code>browser-image-compression</code>, 1600px·0.8MB) 후 multipart 한 번에 전송. 서버에서 sharp로 재검증·WebP</td><td>시공 현장 사진은 4~8MB. 압축 없으면 모바일에서 30초 걸리고 이탈</td></tr>
+<tr><td>성공 화면</td><td>폼 자리에 "접수됐어요 · 사장님이 곧 연락드려요" + 전화 버튼 유지. 새로고침해도 30분간 성공 상태(sessionStorage)</td><td>중복 제출 방지 + 손님 안심</td></tr>
+<tr><td>VISIT 템플릿(카페)</td><td>같은 컴포넌트, 제목 "문의하기", 사진 칸 없음(<code>allowPhotos:false</code> 이미 그렇게 생성됨), kind="contact"</td><td>템플릿별 분기는 데이터로 이미 존재</td></tr>
+<tr><td>문의함 탭 위치</td><td>에디터 <code>_tabs/inbox-tab.tsx</code>, 탭 순서 "내용 · 이야기 · 문의함(배지) · 설정". <code>data-tour="panel-inbox"</code>는 세션 0에서 tours.ts에 등록해 둘 것(누락 시 G2 프롬프트가 추가)</td><td>사장님이 이미 아는 화면 하나에 모음. 별도 대시보드는 Sprint B</td></tr>
+<tr><td>알림 설정</td><td><code>settings-tab.tsx</code>에 "문의 알림 받기: 문자 번호 / 이메일" 2필드 → <code>sites.settings.notify</code>(jsonb, 스키마 변경 없음)</td><td>견적 섹션 전화와 알림 번호가 다른 사장님(직원 폰 등)이 있음</td></tr>
+<tr><td>완성도 점수</td><td>규칙 변경 없음(<code>cta_form</code>은 이미 quoteForm 존재로 판정). 문의함에 "첫 문의를 받으면 여기 쌓여요" 빈 상태 문구</td><td>점수 규칙표는 config 단일 출처 — 이번엔 안 건드림</td></tr>
+</tbody></table></div>
+<h3>문구 (독자 제작 · 홈온 문구 미사용)</h3>
+<pre>폼 제목       : (섹션 title 그대로 — "견적 문의" / "문의하기")
+부제         : (섹션 sub 그대로, 없으면) "사진 몇 장과 연락처만 남겨주세요. 사장님이 직접 연락드려요."
+연락처 오류   : "연락받을 번호를 다시 확인해 주세요"
+동의 문구     : "견적 안내를 위해 이름·연락처·사진을 수집하며 1년 뒤 삭제합니다. 동의합니다."
+제출 버튼     : "견적 요청 보내기" / 전송 중 "보내는 중…" / 성공 "접수됐어요 — 사장님이 곧 연락드려요"
+실패         : "지금은 보내지 못했어요. 아래 전화로 바로 연락 주세요." (전화 버튼 강조)
+미리보기      : "미리보기에서는 보내지지 않아요"
+문의함 빈 상태 : "아직 문의가 없어요. 홈페이지 주소를 카톡 프로필·명함·플레이스에 걸어두면 여기 쌓여요."
+SMS 본문     : "[온스토리] {상호} 견적 문의 · {이름} {전화} · 사진 {n}장 · onstori.com/{slug}/edit?tab=inbox"</pre>
+</section>
+
+<section id="s8">
+<h2><span class="num">08</span>클로드코드 프롬프트 — G1(백엔드) · G2(화면)</h2>
+
+<div class="step"><div class="hd"><span class="n">SESSION G1</span><span class="t">견적 접수 백엔드 — 새 파일만</span><span class="w">worktree inquiry · Day 2 · 1d · 일반 모드</span></div><div class="bd">
+<pre class="term">cd C:\Users\ariancepc\Desktop\cowork\fable51plandept\onstori
+git worktree add ..\onstori-wt-inquiry -b feat/inquiry-backend
+cd ..\onstori-wt-inquiry ; npm install ; copy ..\onstori\.env.local .env.local ; claude</pre>
+<div class="lab">Prompt</div>
+<pre class="prompt">이 폴더는 git worktree, 브랜치 feat/inquiry-backend. main·다른 worktree는 건드리지 마. dev 서버는 3001.
+읽을 파일: lib/site-owner.ts, lib/rate-limit.ts, app/api/site/upload/route.ts, app/api/generate/route.ts(rate limit 호출부만), lib/db-admin.ts, lib/score.ts(funnel 기록 방식만), docs/SCHEMA.md(QuoteForm 절만), CLAUDE.md. 그 외는 읽지 마. 탐색은 서브에이전트로.
+
+목표: 손님 견적 문의를 DB에 접수하고 사장님에게 알리는 백엔드. 이번 세션은 새 파일만 만든다 — 기존 파일 수정은 0이어야 한다(렌더러·에디터는 다음 세션 G2).
+
+1. supabase/migrations/&lt;timestamp&gt;_inquiries.sql — 아래 스펙 그대로(RLS 동봉). 적용(db push)은 하지 마, 파일만.
+   [06장의 create table … 블록을 여기에 그대로 붙여넣기]
+2. lib/inquiry.ts — zod 입력 스키마 InquiryInput(name 1~40, phone 정규식 ^[0-9+\-]{9,20}$, message ≤1000, consent literal "1", website 빈 문자열, t0 숫자), 사진 처리(sharp 1600w webp, 최대 3장, 각 10MB 초과 거부) → 비공개 버킷 inquiry-photos/{siteId}/{uuid}.webp 업로드, insert, 중복(같은 site_id+phone 10분) 검사, ip 해시(일 단위 salt = sha256(ip + YYYY-MM-DD + INQUIRY_SALT env)).
+3. lib/notify.ts — notifyInquiry({siteId, businessName, slug, inquiry}): 수신처는 sites.settings.notify.{phone,email} → 없으면 published의 quoteForm.phone / auth.users(owner_id).email. SMS는 솔라피 REST(env SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER — 없으면 채널 건너뜀), 이메일은 Resend REST(env RESEND_API_KEY, from noreply@onstori.com — 없으면 건너뜀). 본문은 07장 문구. 실패는 throw 하지 말고 console.error(JSON.stringify({evt:"notify_fail",...})). 마지막 실패 1건을 메모리에 두지 말고 sites.settings.notify_last_error 에 기록.
+4. app/api/inquiry/route.ts POST(multipart): rate_limit_hit("inquiry:"+ip, 1h 5, 24h 20 — 판정 실패 시 통과, 기존 방침) → 허니팟·t0 3초·consent 검사(위반은 200처럼 보이는 400 JSON {ok:false}) → slug로 site 조회(status trial|active 만) → lib/inquiry.insert → notifyInquiry를 await 없이 호출(void) → funnel.first_inquiry_at 없으면 기록 → {ok:true, id}. maxDuration 30.
+5. app/api/inquiry/list/route.ts POST {slug, anonId?, status?} → loadOwnedSite 게이트(기존 5개 API와 동일) → 최신 50건, photos는 createSignedUrl 600초 → {items, newCount}.
+6. app/api/inquiry/update/route.ts POST {slug, anonId?, id, status?, memo?, read?} → 게이트 → 해당 site_id 소속 확인 → update. status="spam"이면 그 phone을 sites.settings.blocked_phones 배열에 추가(30일 만료 시각과 함께) — insert 시 검사.
+7. app/api/admin/notify-check/route.ts GET(운영자 쿠키) → 최근 24h 접수 수·알림 실패 수·env 채널 상태.
+8. .env.example에 SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER, RESEND_API_KEY, INQUIRY_SALT 추가. docs/STATUS.md 에 "견적 접수 백엔드 — G1 완료, G2(화면) 대기, 마이그레이션 미적용" 한 줄.
+
+완료 조건: npm run build 통과, `git diff --stat main` 에 수정된 기존 파일이 .env.example·docs/STATUS.md 외 0개, curl 로 /api/inquiry에 (a) 정상 접수 → 200 {ok:true} (b) 허니팟 채움 → 400 (c) 6번째 요청 → 429 (d) 같은 번호 10분 내 → 409 확인(마이그레이션 미적용 상태면 insert 부분은 mock 으로 단위 확인하고 그 사실을 보고), 사진 없는 접수와 3장 접수 둘 다 zod 통과. 끝나면 커밋 메시지 보여주고 멈춰.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION G2</span><span class="t">손님 폼 · 문의함 탭 · 알림 설정</span><span class="w">main(G1·A·B·C 머지 + db push 후) · Day 3 · 1d · 일반 모드</span></div><div class="bd">
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: components/sections/index.tsx(QuoteFormSec 부분), components/site-renderer.tsx, app/[slug]/preview/live.tsx(preview 판정 방식만), app/[slug]/edit/_shell/editor-shell.tsx(탭 등록 부분), app/[slug]/edit/_tabs/settings-tab.tsx, app/[slug]/edit/_forms/fields.tsx, app/[slug]/edit/_lib/upload.ts, lib/inquiry.ts(타입만), config/tours.ts. 그 외는 읽지 마. lib/schema.ts는 절대 수정하지 마(스키마 변경 없는 작업이다).
+
+목표 3개.
+
+1. components/sections/quote-form.tsx ("use client") 신설 — props는 기존 QuoteForm 섹션 + slug. 필드: 이름, 연락처(필수, 숫자·하이픈만), 내용(선택, 500자), 사진(allowPhotos 일 때만, 최대 3, input multiple accept=image/* capture=environment, browser-image-compression 1600px/0.8MB, 썸네일·삭제), 동의 체크(필수), 허니팟 input name="website"(aria-hidden, CSS로 화면 밖), t0=Date.now() hidden. 제출 → POST /api/inquiry multipart. 상태: idle/sending/done/error. done 은 sessionStorage "onstori:inq:{slug}" 30분. 문구는 07장 표 그대로. 전화 버튼(tel:)은 폼 아래 항상. preview 모드(window.parent!==window && location.pathname.endsWith("/preview"))면 제출 버튼 비활성 + "미리보기에서는 보내지지 않아요". 스타일은 --s-* 테마 변수만. index.tsx의 QuoteFormSec 는 &lt;section id="quote"&gt;&lt;QuoteForm s={s} slug={ctx.slug} /&gt;&lt;/section&gt; 로 축소 — ctx 에 slug 가 없으면 Ctx 타입에 slug 를 추가하고 site-renderer·preview 호출부에 넘긴다(그 두 파일의 변경은 이 한 줄만).
+
+2. app/[slug]/edit/_tabs/inbox-tab.tsx 신설, editor-shell 탭에 "문의함" 추가(순서: 내용·이야기·문의함·설정), data-tour="panel-inbox"(tours.ts ACTIVE_ANCHORS 에 없으면 추가하고 editorIntro 에 스텝 하나 — "손님 문의는 여기 쌓여요"). 진입 시 /api/inquiry/list → 상단 필터 칩(새 문의 N · 연락함 · 완료 · 스팸), 카드 목록(상태 배지·시각·이름·전화·내용 1줄·사진 썸네일), 카드 탭 → 상세 시트(사진 크게, 내용 전체, "📞 {이름}님께 전화하기" tel:, 상태 버튼 3개, 메모 1줄 저장). 열면 read=true. 탭 라벨에 newCount 배지. 빈 상태 문구는 07장. ?tab=inbox 쿼리로 열리면 이 탭이 기본.
+
+3. settings-tab.tsx 에 "문의 알림" 카드: 문자 받을 번호 · 이메일 2필드 → settings.notify 로 저장(기존 /api/site/update 의 settings 경로 재사용). 비우면 기본값(견적 섹션 전화·로그인 이메일) 사용한다는 안내.
+
+완료 조건: npm run build. 실브라우저: (a) /barun-electric 에서 사진 2장 포함 접수 → "접수됐어요" → 새로고침해도 유지 (b) 에디터 문의함 배지 1 → 카드 → 상세 사진 표시 → "연락함" 전환 → 배지 0 (c) 미리보기 iframe 안에서는 버튼 비활성 (d) grep data-tour 에 panel-inbox 포함 (e) lib/schema.ts 무변경(git diff 로 확인). 끝나면 커밋 메시지 보여주고 멈춰.</pre>
+</div></div>
+
+<div class="note"><strong>ultracode를 쓰지 않는 이유</strong> — G1은 새 파일만, G2는 스키마 무변경이라 CLAUDE.md의 "여러 파일 정합성" 게이트에 해당하지 않습니다. 대신 완료 조건이 실브라우저 시나리오라 에이전트가 스스로 검증하고 멈춥니다. 같은 날 도는 위젯(D)만 ultracode입니다.</div>
+</section>
+
+<section id="s9">
+<h2><span class="num">09</span>사장님이 준비할 것 · 이번 주 순서</h2>
+<ul class="check">
+<li><strong>솔라피 가입 + 발신번호 등록</strong> — solapi.com, 개인 휴대폰으로도 가능(통신사 인증). API 키·시크릿을 Vercel Production env에 <code>SOLAPI_*</code> 3개로 <span class="tag">Day 2 전 · 없으면 이메일만 발송</span></li>
+<li><strong>Resend에 onstori.com 도메인 인증</strong> — DNS에 DKIM 레코드 3개. 지금은 Supabase SMTP용으로만 쓰고 있어 앱에서 보내는 <code>RESEND_API_KEY</code>는 별도 발급 <span class="tag">Day 2 전</span></li>
+<li><strong><code>INQUIRY_SALT</code></strong> 임의 문자열 1개를 Vercel env에 <span class="tag">Day 2</span></li>
+<li>Day 1 오전: 세션 0 실행 → push → worktree 2개 생성 (02장 명령어) <span class="tag">1h</span></li>
+<li>Day 1 오후: 터미널 1 = 세션 A, 터미널 2 = 세션 B(3001) → 저녁 합치기 ① <span class="tag">에디터 플랜 프롬프트</span></li>
+<li>Day 2: 터미널 1 = 세션 C, 터미널 2 = 세션 G1 → 저녁 합치기 ② + <code>npx supabase db push</code> <span class="tag">이 문서 G1</span></li>
+<li>Day 3: 터미널 1 = 세션 G2, 터미널 2 = 세션 D(ultracode) → 합치기 ③ → 실사이트에서 견적 1건 보내 폰에 문자 도착 확인 <span class="tag">이 문서 G2</span></li>
+<li>각 합치기 후 여기(코워크)에 빌드 로그·화면 캡쳐를 올려주시면 검토 후 다음 프롬프트를 조정합니다 <span class="tag">매일 저녁</span></li>
+</ul>
+<p>막히는 지점이 나오면 그 터미널의 마지막 출력 30줄만 여기 붙여주세요. 어느 세션인지(0/A/B/C/G1/G2/D)와 함께요. 순서를 지키는 것이 병렬의 전부입니다 — 세션 0이 main에 들어가기 전에 worktree를 만들지 않는 것, 마이그레이션은 main에서 한 번만 push하는 것, 스키마는 하루에 한 세션만 만지는 것.</p>
+</section>
+
+<footer>
+<p>연결 문서 — "온스토리 기술고문 리포트"(부족한 지점 14 · Sprint A~F) · "온스토리 에디터 v2 구축 플랜"(세션 0·A·B·C·D·E·F 프롬프트). 이 문서는 그 둘의 실행 순서와 견적 접수(G1·G2)를 더한 것입니다.</p>
+<p>기준: onstori 저장소 2026-09-02 · lib/site-owner.ts 게이트 방식 · lib/rate-limit.ts(Postgres 원자 카운터) · app/api/site/upload(sharp→WebP) · DECISIONS 2026-09-01(마이그레이션 원격 push).</p>
+</footer>
+
+</main>
+</div>
+</div>
+
+</body>
+</html>

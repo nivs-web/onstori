@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>abc 인테리어 이야기 페이지</title>
+<style>html{color-scheme:light dark}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#EEECE7; --ground:#F7F6F2; --surface:#FFFFFF; --ink:#1B1D22; --muted:#6B6F78; --line:#E2DFD8;
+    --accent:#1F5F4B; --accent-soft:#E3EFE9; --on-accent:#FFFFFF;
+    --rec:#D9482B; --rec-soft:#FBE7E1; --warn:#B7791F; --warn-soft:#FBF1DC;
+    --rail:#F3F1EC; --shadow:0 18px 50px rgba(27,29,34,.14);
+    --display:"Gowun Batang","Nanum Myeongjo","Apple SD Gothic Neo",serif;
+    --body:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1012; --ground:#151719; --surface:#1D1F23; --ink:#ECEAE4; --muted:#9A9DA5; --line:#2C2F35;
+      --accent:#5FB394; --accent-soft:#1B2E28; --on-accent:#0F1A16;
+      --rec:#F0664A; --rec-soft:#3A1F19; --warn:#E0A64A; --warn-soft:#33270F;
+      --rail:#131416; --shadow:0 18px 50px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1012; --ground:#151719; --surface:#1D1F23; --ink:#ECEAE4; --muted:#9A9DA5; --line:#2C2F35;
+    --accent:#5FB394; --accent-soft:#1B2E28; --on-accent:#0F1A16;
+    --rec:#F0664A; --rec-soft:#3A1F19; --warn:#E0A64A; --warn-soft:#33270F;
+    --rail:#131416; --shadow:0 18px 50px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+  button{font:inherit;color:inherit;cursor:pointer}
+  button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+
+  /* ── 스튜디오 레이아웃: 좌 설명 레일 · 우 폰 프레임 ─────────── */
+  .studio{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);min-height:100vh}
+  .rail{background:var(--rail);border-right:1px solid var(--line);padding:28px 24px;display:flex;flex-direction:column;gap:22px}
+  .rail h1{font-family:var(--display);font-size:22px;line-height:1.3;margin:0;text-wrap:balance}
+  .rail .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+  .rail p{margin:0;color:var(--muted);font-size:13.5px}
+  .modes{display:grid;gap:8px}
+  .modes button{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:10px;text-align:left;font-weight:500}
+  .modes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .modes button small{color:var(--muted);font-weight:400;font-size:12px}
+  .sms{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.6;position:relative}
+  .sms b{font-weight:600}
+  .sms .from{font-size:11px;color:var(--muted);letter-spacing:.06em;margin-bottom:6px}
+  .sms .link{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+  .legend{display:grid;gap:10px;font-size:13px}
+  .legend div{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
+  .legend .n{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+  .stage{display:grid;place-items:center;padding:40px 24px}
+  .phone{width:390px;height:820px;background:var(--ground);border-radius:44px;box-shadow:var(--shadow);border:1px solid var(--line);position:relative;overflow:hidden}
+  .phone .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:28px;background:var(--ink);border-radius:0 0 18px 18px;z-index:5;opacity:.9}
+  .screen{height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+  .screen::-webkit-scrollbar{display:none}
+  @media (max-width:820px){
+    .studio{grid-template-columns:1fr}
+    .rail{border-right:0;border-bottom:1px solid var(--line)}
+    .stage{padding:0}
+    .phone{width:100%;height:auto;border-radius:0;box-shadow:none;border:0}
+    .phone .notch{display:none}
+    .screen{height:auto;overflow:visible}
+  }
+
+  /* ── 페이지 본체 (onstori.com/abc/story) ────────────────────── */
+  .page{padding:44px 18px 40px;display:flex;flex-direction:column;gap:18px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+  .topbar a{color:var(--muted);text-decoration:none}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .name{font-weight:700;color:var(--ink);font-size:14px}
+  .head{display:flex;flex-direction:column;gap:6px}
+  .head h2{font-family:var(--display);font-size:28px;line-height:1.25;margin:0;text-wrap:balance}
+  .head .meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .head .meta b{color:var(--ink);font-weight:600}
+
+  /* 사장님 카드 */
+  .composer{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px}
+  .composer .status{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .chip.todo{background:var(--warn-soft);color:var(--warn)}
+  .chip.done{background:var(--accent-soft);color:var(--accent)}
+  .streak{color:var(--muted);font-variant-numeric:tabular-nums}
+  .ask{font-family:var(--display);font-size:22px;line-height:1.3;margin:0;text-wrap:balance}
+  .hint{font-size:13.5px;color:var(--muted);margin:0}
+  .recwrap{display:grid;place-items:center;padding:6px 0 2px}
+  .recbtn{position:relative;width:132px;height:132px;border-radius:50%;border:0;background:var(--rec);color:#fff;display:grid;place-items:center;box-shadow:0 10px 26px rgba(217,72,43,.35);transition:transform .12s}
+  .recbtn:active{transform:scale(.97)}
+  .recbtn svg{width:46px;height:46px}
+  .recbtn .ring{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);border-radius:50%}
+  .recbtn .ring circle{fill:none;stroke-width:5;stroke-linecap:round}
+  .recbtn .ring .track{stroke:var(--rec-soft)}
+  .recbtn .ring .bar{stroke:var(--rec);stroke-dasharray:452;stroke-dashoffset:452;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .25s linear}
+  .recbtn[data-on="1"]{background:var(--ink);box-shadow:0 10px 26px rgba(27,29,34,.3)}
+  .reclabel{text-align:center;font-size:15px;font-weight:600;margin:8px 0 0}
+  .reclabel .t{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+  .alt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .alt button,.btn{min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--ground);font-weight:600;font-size:15px;padding:0 14px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);min-height:58px;font-size:17px}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--rec)}
+  textarea.write{width:100%;min-height:110px;border:1px solid var(--line);border-radius:14px;padding:14px;font:inherit;font-size:16px;line-height:1.55;background:var(--ground);color:var(--ink);resize:vertical}
+  .photos{display:flex;gap:8px;flex-wrap:wrap}
+  .photos .ph{width:64px;height:64px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent);font-size:11px;font-weight:600;overflow:hidden}
+  .photos .ph img{width:100%;height:100%;object-fit:cover}
+  .photos label{width:64px;height:64px;border-radius:10px;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:22px;color:var(--muted);cursor:pointer}
+  .photos input{display:none}
+  .kakao-warn{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+  .kakao-warn b{font-weight:700}
+  .kakao-warn .btn{background:var(--surface)}
+  .thinking{display:flex;align-items:center;gap:12px;padding:16px 4px;font-size:15px}
+  .dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:5px;animation:pulse 1s infinite ease-in-out}
+  .dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+  @keyframes pulse{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+  .draft{display:flex;flex-direction:column;gap:12px}
+  .draft .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .draft input.title{width:100%;font:inherit;font-family:var(--display);font-size:21px;font-weight:700;border:0;border-bottom:1.5px solid var(--line);background:transparent;color:var(--ink);padding:6px 0}
+  .draft textarea.body{width:100%;font:inherit;font-size:16px;line-height:1.6;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--ground);color:var(--ink);min-height:120px;resize:vertical}
+  .raw{background:var(--ground);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.55}
+  .raw b{color:var(--ink);font-weight:600}
+  .draft .actions{display:grid;gap:8px}
+  .draft .actions .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .success{display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center}
+  .success .big{font-family:var(--display);font-size:24px;margin:6px 0 0}
+  .success .sub{color:var(--muted);font-size:14px;margin:0}
+  .success .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* 스토리 목록 */
+  .list{display:flex;flex-direction:column;gap:12px}
+  .list .lhead{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 0}
+  .list .lhead h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+  .list .lhead span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .story{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px;position:relative}
+  .story.new{animation:drop .5s ease-out}
+  @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .story .date{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;justify-content:space-between;align-items:center}
+  .story .date .type{background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .story h4{font-family:var(--display);font-size:19px;line-height:1.35;margin:0}
+  .story p{margin:0;font-size:14.5px;color:var(--ink);opacity:.9;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .story .pics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .story .pics div{aspect-ratio:4/3;border-radius:10px;background:linear-gradient(135deg,var(--accent-soft),var(--line));display:grid;place-items:center;font-size:11px;color:var(--muted)}
+  .story .own{font-size:11.5px;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+  .story .foot-row{display:flex;justify-content:space-between;align-items:center}
+  .story .views{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cta{background:var(--accent);color:var(--on-accent);border-radius:20px;padding:20px 18px;display:flex;flex-direction:column;gap:10px}
+  .cta h5{font-family:var(--display);font-size:20px;margin:0;line-height:1.3}
+  .cta p{margin:0;font-size:13.5px;opacity:.85}
+  .cta .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+  .cta .row a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:12px;background:rgba(255,255,255,.14);color:inherit;text-decoration:none;font-weight:600;border:1px solid rgba(255,255,255,.25)}
+  .cta .row a.solid{background:var(--surface);color:var(--ink);border-color:transparent}
+  .foot{text-align:center;font-size:12px;color:var(--muted);padding-top:6px}
+  .foot a{color:inherit}
+  .sheet{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;z-index:10}
+  .sheet[data-open="1"]{display:flex}
+  .sheet .card{background:var(--surface);border-radius:24px 24px 0 0;padding:22px 20px 26px;width:100%;display:flex;flex-direction:column;gap:12px}
+  .sheet h6{font-size:18px;margin:0;font-weight:700}
+  .sheet p{margin:0;color:var(--muted);font-size:14px}
+  .sheet label{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+  .sheet input{width:20px;height:20px;margin-top:2px}
+  .hidden{display:none!important}
+</style>
+
+<div class="studio">
+  <aside class="rail">
+    <div>
+      <div class="eyebrow">샘플 페이지 · 제안</div>
+      <h1>onstori.com/abc/story</h1>
+      <p style="margin-top:8px">같은 주소가 보는 사람에 따라 두 얼굴로 열립니다. 아래에서 화면을 바꿔 보세요. 마이크·사진은 실제로 동작하고, AI 초안은 예시 문장으로 대신합니다. <b>v2</b>: 카카오 로그인 게이트 · AI 재수정 1회 · 사진 20장 · 카톡 안내 문구.</p>
+    </div>
+    <div class="modes" role="group" aria-label="화면 모드">
+      <button data-mode="login" aria-pressed="false">첫 방문 <small>카톡 링크 → 로그인 전</small></button>
+      <button data-mode="owner" aria-pressed="true">사장님 화면 <small>카카오 로그인 뒤</small></button>
+      <button data-mode="visitor" aria-pressed="false">손님 화면 <small>검색·홈페이지에서 들어옴</small></button>
+      <button data-mode="kakao-android" aria-pressed="false">안드로이드 카톡 안에서 열림 <small>마이크가 막히는 경우</small></button>
+    </div>
+    <div class="sms">
+      <div class="from">이 링크를 보낸 카톡 · 화 12:00 · 온스토리 권병철</div>
+      사장님, 온스토리 권병철입니다 🙂 이번 주 하신 일 하나만 남겨주세요. 20초 녹음이면 충분해요.<br>👉 <span class="link">onstori.com/abc/story</span><br><span style="color:var(--muted)">※ 녹음은 카톡 밖(Chrome·Safari)에서 돼요. 카톡 안에서는 글·사진으로 남겨주세요. 이 채팅에 음성메시지를 보내셔도 글이 되지는 않아요. 안 받고 싶으시면 "원치않음"이라고 답장 주세요.</span>
+    </div>
+    <div class="legend">
+      <div><span class="n">1</span><span>녹음·글·사진 중 아무거나. 20초면 충분, 60초까지.</span></div>
+      <div><span class="n">2</span><span>AI가 말한 것만 정리한 초안. 원문 병기. AI 재수정은 1회, 그다음은 직접.</span></div>
+      <div><span class="n">3</span><span>"이대로 올리기" 한 번 → 홈페이지 스토리에 즉시 게시.</span></div>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen" id="screen">
+        <div class="page">
+          <div class="topbar">
+            <div class="brand"><span class="name">abc 인테리어</span><span>이야기</span></div>
+            <a href="#" onclick="return false">홈페이지로 →</a>
+          </div>
+
+          <div class="head">
+            <h2 id="headline">현장에서 있었던 일을 그대로 적습니다</h2>
+            <div class="meta"><b id="count">14편</b> · 2026년 3월부터 · 최근 <b>9월 1일</b></div>
+          </div>
+
+          <!-- 첫 방문: 로그인 게이트 -->
+          <section class="composer" id="gate" aria-label="사장님 확인" style="display:none">
+            <h3 class="ask">사장님이신가요?</h3>
+            <p class="hint">이야기를 남기려면 본인 확인이 필요해요. 카톡 안이라 한 번만 누르면 됩니다. 다음부터는 이 화면이 뜨지 않아요.</p>
+            <button class="btn primary" id="btn-kakao" style="background:#FEE500;color:#191919;border-color:#FEE500">💬 카카오로 계속하기</button>
+            <button class="btn ghost" id="btn-email" style="min-height:40px;font-size:13px;color:var(--muted)">이메일로 로그인할게요</button>
+            <p class="hint" style="font-size:12px">링크를 다른 사람이 열어도 글은 남길 수 없어요. 홈페이지 주인 계정으로만 열립니다.</p>
+          </section>
+
+          <!-- 사장님 카드 -->
+          <section class="composer" id="composer" aria-label="이번 주 이야기 남기기">
+            <div class="status">
+              <span class="chip todo" id="weekchip">● 이번 주 아직이에요</span>
+              <span class="streak" id="streak">3주 연속 기록 중</span>
+            </div>
+
+            <!-- 단계 1: 입력 -->
+            <div id="step-input">
+              <h3 class="ask">이번 주엔 어떤 일을 하셨어요?</h3>
+              <p class="hint">어디서 · 무슨 작업 · 어떻게 했는지, 말하듯이요.</p>
+
+              <div id="rec-area">
+                <div class="recwrap">
+                  <button class="recbtn" id="recbtn" data-on="0" aria-label="녹음 시작">
+                    <svg class="ring" viewBox="0 0 160 160" aria-hidden="true">
+                      <circle class="track" cx="80" cy="80" r="72"></circle>
+                      <circle class="bar" id="ringbar" cx="80" cy="80" r="72"></circle>
+                    </svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Zm6-4a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93V22h2v-3.07A8 8 0 0 0 20 11h-2Z"/></svg>
+                  </button>
+                </div>
+                <p class="reclabel" id="reclabel">눌러서 녹음 <span class="t">· 20초면 충분해요</span></p>
+              </div>
+
+              <div class="kakao-warn hidden" id="kakao-warn">
+                <div><b>카톡 안에서는 녹음이 안 돼요.</b><br>Chrome으로 열면 바로 녹음할 수 있어요(카카오 로그인 한 번 더). 글이나 사진으로 남기셔도 됩니다.<br><span style="font-size:12.5px;color:var(--muted)">카톡 채팅에 음성메시지를 보내셔도 글로 만들어지지 않아요.</span></div>
+                <button class="btn" onclick="alert('실제 구현: intent://onstori.com/abc/story#Intent;scheme=https;package=com.android.chrome;end')">Chrome으로 열기</button>
+              </div>
+
+              <div class="alt" style="margin-top:12px">
+                <button id="btn-write">✏️ 글로 쓸게요</button>
+                <label class="btn" style="cursor:pointer">📷 사진 추가 <span id="photo-count" style="color:var(--muted);font-weight:500;font-size:13px">0/20</span><input type="file" accept="image/*" multiple id="photo-in" style="display:none"></label>
+              </div>
+
+              <div id="write-area" class="hidden" style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+                <textarea class="write" id="write" placeholder="예) 정릉동 빌라 욕실 타일 다시 붙였어요. 이틀 걸렸고 줄눈은 회색으로."></textarea>
+                <button class="btn primary" id="btn-send-text">보내기</button>
+              </div>
+
+              <div class="photos" id="photos" style="margin-top:12px"></div>
+            </div>
+
+            <!-- 단계 1.5: 생각 중 -->
+            <div id="step-thinking" class="hidden">
+              <div class="thinking"><span class="dots"><span></span><span></span><span></span></span> 말씀하신 내용을 정리하고 있어요…</div>
+            </div>
+
+            <!-- 단계 2: 초안 확인 -->
+            <div id="step-draft" class="draft hidden">
+              <div class="lab">이렇게 올릴게요</div>
+              <input class="title" id="d-title" value="">
+              <textarea class="body" id="d-body"></textarea>
+              <div class="raw"><b>사장님 말씀 그대로</b><br><span id="d-raw"></span></div>
+              <p class="hint" style="font-size:12.5px">말씀하신 내용만 정리했어요. 없는 사실·숫자는 넣지 않습니다. 홈페이지 소개글과 지난 이야기의 말투를 참고했어요.</p>
+              <div class="actions">
+                <button class="btn primary" id="btn-publish">✅ 이대로 올리기</button>
+                <div class="row">
+                  <button class="btn ghost" id="btn-revise">🔁 AI에게 한 번 더 <span id="revise-left" style="color:var(--muted);font-weight:500">(1/1)</span></button>
+                  <button class="btn ghost" id="btn-edit">✏️ 내가 고칠게요</button>
+                </div>
+                <div id="revise-menu" class="hidden" style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="btn" data-rv="short" style="min-height:40px;font-size:13px">더 짧게</button>
+                  <button class="btn" data-rv="long" style="min-height:40px;font-size:13px">더 자세히</button>
+                  <button class="btn" data-rv="soft" style="min-height:40px;font-size:13px">더 부드럽게</button>
+                </div>
+                <div class="row">
+                  <button class="btn ghost" id="btn-self" style="min-height:44px;font-size:14px">내 말 그대로 올릴게요</button>
+                  <button class="btn ghost danger" id="btn-discard" style="min-height:44px;font-size:14px">안 올릴게요</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 단계 3: 완료 -->
+            <div id="step-done" class="success hidden">
+              <p class="big">올라갔어요 🎉</p>
+              <p class="sub" id="done-sub">4주 연속이에요. 손님이 볼 수 있게 바로 게시됐어요.</p>
+              <div class="row">
+                <button class="btn" onclick="document.getElementById('list').scrollIntoView({behavior:'smooth'})">홈페이지에서 보기</button>
+                <button class="btn" onclick="alert('실제 구현: 카카오톡 공유 시트 (링크 + 제목 + 첫 사진)')">카톡으로 알리기</button>
+              </div>
+              <button class="btn ghost" id="btn-again" style="min-height:44px;font-size:14px">하나 더 남기기</button>
+            </div>
+          </section>
+
+          <!-- 목록 -->
+          <section class="list" id="list" aria-label="이야기 목록">
+            <div class="lhead"><h3>최근 시공 내역</h3><span>최신순</span></div>
+            <div id="stories"></div>
+          </section>
+
+          <!-- 손님용 CTA -->
+          <section class="cta" id="cta">
+            <h5>비슷한 공사를 생각 중이세요?</h5>
+            <p>사진 몇 장과 연락처만 남겨주시면 사장님이 직접 연락드려요.</p>
+            <div class="row">
+              <a href="#" onclick="return false" class="solid">견적 문의</a>
+              <a href="#" onclick="return false">📞 전화</a>
+            </div>
+          </section>
+
+          <div class="foot">© 2026 abc 인테리어 · <a href="#" onclick="return false">Made with 온스토리</a></div>
+        </div>
+      </div>
+
+      <!-- 첫 녹음 전 1회 동의 -->
+      <div class="sheet" id="consent" data-open="0" role="dialog" aria-modal="true" aria-label="녹음 안내">
+        <div class="card">
+          <h6>녹음은 글을 만드는 데만 써요</h6>
+          <p>녹음 파일은 글 작성에만 사용하고 90일 뒤 지웁니다. 홈페이지에는 글만 올라가고 목소리는 올라가지 않아요.</p>
+          <label><input type="checkbox" id="consent-ck"> 알겠어요. 녹음을 시작할게요.</label>
+          <button class="btn primary" id="consent-ok" disabled>확인하고 녹음</button>
+          <button class="btn ghost" id="consent-no" style="min-height:44px;font-size:14px">다음에요</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const $ = (s) => document.querySelector(s);
+  const stories = [
+    { d:"9월 1일", t:"성북구 길음동 아파트 주방 상판 교체", b:"기존 인조대리석 상판을 걷어내고 12T 세라믹 상판으로 바꿨습니다. 싱크볼은 언더 타입으로 다시 앉혔고, 실리콘 마감까지 하루에 끝냈습니다.", pics:2, v:31, type:"시공" },
+    { d:"8월 25일", t:"정릉동 빌라 현관 중문 설치", b:"3연동 슬라이딩 중문을 달았습니다. 바닥 레일 없이 상부 레일만 써서 턱이 없게 했습니다.", pics:1, v:18, type:"시공" },
+    { d:"8월 18일", t:"장위동 상가 화장실 방수·타일", b:"바닥 방수를 두 번 올리고 이틀 양생한 뒤 300각 타일을 붙였습니다. 줄눈은 진회색입니다.", pics:3, v:52, type:"시공" },
+    { d:"8월 11일", t:"이번 주는 자재 정리하고 쉬었습니다", b:"현장은 없었고 창고에 있던 타일 재고와 공구를 정리했습니다. 다음 주 두 곳 공사 준비 중입니다.", pics:0, v:9, type:"소식" },
+  ];
+  let mode = "owner";
+  let consented = false;
+  let count = 14, streak = 3;
+
+  function renderList(){
+    const el = $("#stories");
+    el.innerHTML = "";
+    stories.forEach((s, i) => {
+      const a = document.createElement("article");
+      a.className = "story" + (s.isNew ? " new" : "");
+      a.innerHTML = `
+        <div class="date"><span>${s.d}</span><span class="type">${s.type}</span></div>
+        <h4>${esc(s.t)}</h4>
+        <p>${esc(s.b)}</p>
+        ${s.pics ? `<div class="pics">${Array.from({length:s.pics}).map(()=>"<div>사진</div>").join("")}</div>` : ""}
+        ${mode === "owner" || mode === "kakao-android" ? `<div class="foot-row"><span class="views">손님 ${s.v}명이 봤어요</span><span style="display:flex;gap:6px"><button class="own" title="제목·본문·사진을 직접 고칩니다">글 고치기</button><button class="own" title="목록에서 숨깁니다(삭제 아님)">숨기기</button></span></div>` : ""}`;
+      el.appendChild(a);
+      s.isNew = false;
+    });
+    $("#count").textContent = count + "편";
+    $("#streak").textContent = streak + "주 연속 기록 중";
+  }
+  function esc(s){ return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  function setMode(m){
+    mode = m;
+    document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+    const owner = m === "owner" || m === "kakao-android";
+    $("#gate").style.display = m === "login" ? "" : "none";
+    $("#composer").classList.toggle("hidden", !owner);
+    $("#kakao-warn").classList.toggle("hidden", m !== "kakao-android");
+    $("#rec-area").classList.toggle("hidden", m === "kakao-android");
+    $("#headline").textContent = (owner || m === "login") ? "현장에서 있었던 일을 그대로 적습니다" : "abc 인테리어가 한 일들";
+    renderList();
+    $("#screen").scrollTo({ top: 0 });
+  }
+  document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+  // ── 녹음 ──
+  const recbtn = $("#recbtn"), ring = $("#ringbar"), label = $("#reclabel");
+  const MAX = 60, TARGET = 20;
+  let recording = false, t0 = 0, timer = null, mediaRec = null, chunks = [];
+  function fmt(s){ return `0:${String(s).padStart(2,"0")}`; }
+  function tick(){
+    const s = Math.min(MAX, Math.round((Date.now() - t0) / 1000));
+    const frac = Math.min(1, s / TARGET);
+    ring.style.strokeDashoffset = String(452 - 452 * frac);
+    label.innerHTML = s < TARGET
+      ? `녹음 중 <span class="t">${fmt(s)} · 다 말하면 다시 눌러요</span>`
+      : `충분해요 <span class="t">${fmt(s)} · 눌러서 마치기</span>`;
+    if (s >= MAX) stopRec();
+  }
+  async function startRec(){
+    if (!consented) { openConsent(); return; }
+    recording = true; t0 = Date.now(); chunks = [];
+    recbtn.dataset.on = "1"; recbtn.setAttribute("aria-label","녹음 마치기");
+    ring.style.strokeDashoffset = "452";
+    timer = setInterval(tick, 250); tick();
+    try {
+      if (navigator.mediaDevices && window.MediaRecorder) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
+        mediaRec = new MediaRecorder(stream, { mimeType: mime });
+        mediaRec.ondataavailable = e => chunks.push(e.data);
+        mediaRec.onstop = () => stream.getTracks().forEach(t => t.stop());
+        mediaRec.start();
+      }
+    } catch (e) { mediaRec = null; /* 권한 거부·미지원 → 시연은 그대로 진행 */ }
+  }
+  function stopRec(){
+    if (!recording) return;
+    recording = false; clearInterval(timer);
+    const secs = Math.round((Date.now() - t0) / 1000);
+    recbtn.dataset.on = "0"; recbtn.setAttribute("aria-label","녹음 시작");
+    try { mediaRec && mediaRec.state !== "inactive" && mediaRec.stop(); } catch (e) {}
+    if (secs < 2) { label.innerHTML = `조금만 더 말씀해 주세요 <span class="t">· 2초 이상</span>`; ring.style.strokeDashoffset = "452"; return; }
+    label.innerHTML = `녹음 끝 <span class="t">${fmt(secs)}</span>`;
+    toThinking(SAMPLE.raw, SAMPLE);
+  }
+  recbtn.addEventListener("click", () => recording ? stopRec() : startRec());
+
+  // ── 동의 시트 ──
+  const consent = $("#consent");
+  function openConsent(){ consent.dataset.open = "1"; }
+  $("#consent-ck").addEventListener("change", e => $("#consent-ok").disabled = !e.target.checked);
+  $("#consent-ok").addEventListener("click", () => { consented = true; consent.dataset.open = "0"; startRec(); });
+  $("#consent-no").addEventListener("click", () => consent.dataset.open = "0");
+
+  // ── 글로 쓰기 ──
+  $("#btn-write").addEventListener("click", () => { $("#write-area").classList.toggle("hidden"); $("#write").focus(); });
+  $("#btn-send-text").addEventListener("click", () => {
+    const v = $("#write").value.trim();
+    if (v.length < 10) { $("#write").placeholder = "조금만 더 적어주세요 (10자 이상)"; $("#write").focus(); return; }
+    toThinking(v, draftFromText(v));
+  });
+
+  // ── 사진 ──
+  const photos = [];
+  const PHOTO_MAX = 20;
+  function addFiles(files){
+    Array.from(files).slice(0, PHOTO_MAX - photos.length).forEach(f => photos.push(URL.createObjectURL(f)));
+    renderPhotos();
+  }
+  $("#photo-in").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+  function renderPhotos(){
+    const el = $("#photos"); el.innerHTML = "";
+    photos.forEach(u => { const d = document.createElement("div"); d.className = "ph"; d.innerHTML = `<img src="${u}" alt="">`; el.appendChild(d); });
+    $("#photo-count").textContent = `${photos.length}/${PHOTO_MAX}`;
+    if (photos.length && photos.length < PHOTO_MAX) {
+      const l = document.createElement("label"); l.innerHTML = `＋<input type="file" accept="image/*" multiple>`;
+      l.querySelector("input").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+      el.appendChild(l);
+    }
+  }
+
+  // ── AI 초안 (예시) ──
+  const SAMPLE = {
+    raw: "어 이번 주는 정릉동 빌라 욕실 타일 다시 했어요. 기존 타일이 들떠서 다 걷어내고 방수 다시 하고, 300각 무광 타일로 붙였고 줄눈은 회색으로 마감했어요. 이틀 걸렸고요.",
+    title: "정릉동 빌라 욕실 타일 교체",
+    body: "기존 타일이 들떠 있어 전부 걷어내고 방수를 다시 했습니다. 300각 무광 타일을 붙이고 줄눈은 회색으로 마감했습니다. 이틀 걸렸습니다."
+  };
+  function draftFromText(v){
+    const first = v.split(/[.!?\n]/)[0].trim();
+    return { raw: v, title: first.length > 28 ? first.slice(0, 28) + "…" : first, body: v.replace(/요\.?$/,"습니다.").replace(/했어요/g,"했습니다").replace(/이에요/g,"입니다") };
+  }
+  function show(id){ ["step-input","step-thinking","step-draft","step-done"].forEach(s => $("#"+s).classList.toggle("hidden", s !== id)); }
+  function toThinking(raw, d){
+    show("step-thinking");
+    setTimeout(() => {
+      $("#d-title").value = d.title; $("#d-body").value = d.body; $("#d-raw").textContent = raw; lastRaw = raw;
+      reviseLeft = 1; $("#revise-left").textContent = "(1/1)"; $("#btn-revise").disabled = false; $("#btn-revise").style.opacity = ""; $("#revise-menu").classList.add("hidden");
+      show("step-draft"); $("#composer").scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 2200);
+  }
+  $("#btn-edit").addEventListener("click", () => { $("#d-body").focus(); });
+  let reviseLeft = 1, lastRaw = "";
+  $("#btn-revise").addEventListener("click", () => { if (reviseLeft > 0) $("#revise-menu").classList.toggle("hidden"); });
+  document.querySelectorAll("#revise-menu button").forEach(b => b.addEventListener("click", () => {
+    if (reviseLeft <= 0) return;
+    reviseLeft -= 1; $("#revise-menu").classList.add("hidden");
+    const body = $("#d-body").value;
+    const v = { short: SAMPLE.body.split(". ").slice(0,2).join(". ").replace(/\.?$/,"."),
+                long: "기존 타일이 들떠 있어 전부 걷어냈습니다. 방수를 다시 한 뒤 300각 무광 타일을 붙였습니다. 줄눈은 회색으로 마감했고, 작업은 이틀 걸렸습니다. (말씀 안 하신 내용은 보태지 않았어요 — 더 자세히 원하시면 한 번 더 말씀해 주세요.)",
+                soft: body.replace(/했습니다/g,"했어요").replace(/걸렸습니다/g,"걸렸어요") }[b.dataset.rv];
+    show("step-thinking");
+    setTimeout(() => { $("#d-body").value = v; $("#revise-left").textContent = "(0/1)"; $("#btn-revise").disabled = true; $("#btn-revise").style.opacity = ".5"; show("step-draft"); }, 1400);
+  }));
+  $("#btn-self").addEventListener("click", () => { $("#d-body").value = lastRaw; $("#d-title").value = ($("#d-title").value || "이번 주 이야기"); $("#d-body").focus(); });
+  $("#btn-discard").addEventListener("click", () => { resetInput(); show("step-input"); });
+  $("#btn-publish").addEventListener("click", () => {
+    stories.unshift({ d:"오늘", t:$("#d-title").value.trim() || "이번 주 이야기", b:$("#d-body").value.trim(), pics:photos.length, v:0, type:"시공", isNew:true });
+    count += 1; streak += 1;
+    $("#weekchip").className = "chip done"; $("#weekchip").textContent = "✓ 이번 주 올렸어요";
+    $("#done-sub").textContent = `${streak}주 연속이에요. 손님이 볼 수 있게 바로 게시됐어요.`;
+    show("step-done"); renderList();
+  });
+  $("#btn-again").addEventListener("click", () => { resetInput(); show("step-input"); });
+  function resetInput(){
+    photos.length = 0; renderPhotos(); $("#write").value = ""; $("#write-area").classList.add("hidden");
+    ring.style.strokeDashoffset = "452"; label.innerHTML = `눌러서 녹음 <span class="t">· 20초면 충분해요</span>`;
+  }
+
+  $("#btn-kakao").addEventListener("click", () => setMode("owner"));
+  $("#btn-email").addEventListener("click", () => alert("실제 구현: 이메일 6자리 코드 입력 화면 (기존 OTP 로그인 재사용)"));
+  renderList();
+})();
+</script>
+
+</body>
+</html>

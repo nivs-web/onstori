@@ -32,7 +32,9 @@ const nextConfig: NextConfig = {
     ],
   },
   /**
-   * 사업 설계도 대시보드(/onstoriplandept) — public/onstoriplandept/index.html 정적 파일.
+   * 내부 대시보드 정적 파일 — public/<이름>/index.html.
+   *  - /onstoriplandept : 사업 설계도
+   *  - /plandept        : 전략기획실 (2026-09-04 추가)
    * beforeFiles 로 앞세우지 않으면 app/[slug] 동적 라우트가 고객 사이트 슬러그로 가로챈다.
    * 슬러그 자체는 reserved_slugs 에도 넣어 고객이 선점하지 못하게 했다.
    */
@@ -41,6 +43,8 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         { source: "/onstoriplandept", destination: "/onstoriplandept/index.html" },
         { source: "/onstoriplandept/", destination: "/onstoriplandept/index.html" },
+        { source: "/plandept", destination: "/plandept/index.html" },
+        { source: "/plandept/", destination: "/plandept/index.html" },
       ],
       afterFiles: [],
       fallback: [],

@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>온스토리 에디터 v2 구축 플랜</title>
+<style>html{color-scheme:light dark}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#FBFAF7; --paper-2:#F3F1EA; --ink:#17191d; --ink-2:#4A4F57; --ink-3:#7C8189; --line:#E2DFD6;
+  --teal:#0e7365; --teal-soft:#E3F1EE; --teal-ink:#0B5A50;
+  --rust:#B3452B; --rust-soft:#F7E6E0; --amber:#9A6A00; --amber-soft:#F7EDD2; --good:#1F6F3F; --good-soft:#E3F0E6;
+  --code-bg:#EFEDE6;
+  --display:"Noto Serif KR","Apple SD Gothic Neo",serif;
+  --body:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+    --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+    --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+    --code-bg:#22252B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+  --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+  --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+  --code-bg:#22252B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--teal-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:48px}
+@media(min-width:1000px){.layout{grid-template-columns:220px minmax(0,1fr)}}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13px;line-height:1.5;display:none}
+@media(min-width:1000px){nav.toc{display:block}}
+nav.toc p{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0;border-top:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--teal-ink)}
+nav.toc a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+main{max-width:78ch}
+header.masthead{padding:56px 0 32px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-ink);margin:0 0 14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.25;margin:0 0 16px;text-wrap:balance;letter-spacing:-.01em}
+.lede{font-size:17px;color:var(--ink-2);margin:0;max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+h2{font-family:var(--display);font-weight:700;font-size:25px;line-height:1.3;margin:64px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2 .num{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--teal-ink);display:block;letter-spacing:.1em;margin-bottom:6px}
+h3{font-size:17px;font-weight:700;margin:34px 0 8px}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px}
+p{margin:0 0 14px}
+.sub{color:var(--ink-2)}
+strong{font-weight:600}
+.verdict{margin:32px 0 0;padding:22px 24px;background:var(--teal-soft);border-left:4px solid var(--teal);border-radius:0 8px 8px 0}
+.verdict p{margin:0 0 10px}.verdict p:last-child{margin:0}
+.verdict .k{font-family:var(--display);font-size:19px;font-weight:700;margin-bottom:10px;display:block}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5;margin:14px 0 20px}
+.tablewrap{overflow-x:auto;margin:0 -24px;padding:0 24px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:8px 10px;border-bottom:2px solid var(--ink);vertical-align:bottom}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600;white-space:nowrap}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;line-height:1.5}
+.c-good{background:var(--good-soft);color:var(--good)}
+.c-warn{background:var(--amber-soft);color:var(--amber)}
+.c-bad{background:var(--rust-soft);color:var(--rust)}
+.c-none{background:var(--paper-2);color:var(--ink-3)}
+.c-teal{background:var(--teal-soft);color:var(--teal-ink)}
+.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:16px 0 22px}
+.panel{padding:18px 20px;border:1px solid var(--line);border-radius:8px}
+.panel h4{margin:0 0 10px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.panel ul{margin:0;padding-left:18px}.panel li{margin:0 0 6px}
+.panel.win{border-color:var(--teal);background:var(--teal-soft)}
+.panel.bad{border-color:var(--rust);background:var(--rust-soft)}
+.step{margin:18px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step .hd{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:12px 18px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.step .hd .n{font-family:var(--mono);font-size:12px;color:var(--teal-ink);letter-spacing:.1em}
+.step .hd .t{font-weight:700;font-size:16px}
+.step .hd .w{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto}
+.step .bd{padding:14px 18px}
+.step .bd p{margin:0 0 8px}
+.step ul{margin:6px 0 8px;padding-left:18px}.step li{margin:0 0 5px}
+.step .lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 6px}
+.done{font-size:14px;color:var(--ink-2);border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;margin:10px 0 18px;white-space:pre-wrap;word-break:break-word}
+pre.prompt{border-left:3px solid var(--teal);background:var(--teal-soft);color:var(--ink)}
+.note{padding:14px 18px;border:1px solid var(--line);border-radius:8px;font-size:14px;color:var(--ink-2);margin:14px 0 20px}
+.note.warn{border-color:var(--amber);background:var(--amber-soft);color:var(--ink)}
+.note.bad{border-color:var(--rust);background:var(--rust-soft);color:var(--ink)}
+.tree{font-family:var(--mono);font-size:12.5px;line-height:1.7;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;white-space:pre}
+.tree .c{color:var(--ink-3)}
+.tree .n{color:var(--teal-ink)}
+.wire{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:16px 0 22px}
+.wire figure{margin:0}
+.wire figcaption{font-size:12.5px;color:var(--ink-3);margin-top:8px;font-family:var(--mono)}
+.wire svg{width:100%;height:auto;display:block}
+footer{margin:72px 0 48px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Editor v2 · Build Plan · onstori.com · 2026-09-02</p>
+  <h1>에디터 v2 — 지금 만드는 것이 맞고, 다시 짜는 것이 아니라 쪼개서 붙이는 것입니다</h1>
+  <p class="lede">질문 네 가지에 순서대로 답합니다. ① 언제 만드나 ② 클로드코드가 왜 무겁고 어떻게 가볍게 하나 ③ 다른 세션에서 컴포넌트로 따로 만들어 합칠 수 있나 ④ 홈온보다 빠르고 쉬운 에디터를 정확히 어떻게 설계·구현하나 — 복붙용 클로드코드 프롬프트 7개와 완료 조건까지.</p>
+  <div class="meta"><span>기준 코드: app/[slug]/edit/ui.tsx 691줄 · components/sections/index.tsx · config/tours.ts(2026-09-02 재정의본)</span><span>공수: 1인 + Claude Code · 7세션 · 약 1.5주</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="목차">
+  <p>Contents</p>
+  <a href="#s1">언제 — 지금인 이유</a>
+  <a href="#s2">클로드코드가 무거운 이유와 처방</a>
+  <a href="#s3">병렬 작업 — worktree로 나누는 법</a>
+  <a href="#s4">홈온보다 빠르고 쉬운 에디터 설계</a>
+  <a href="#s5">목표 파일 구조</a>
+  <a href="#s6">미리보기 프로토콜 스펙</a>
+  <a href="#s7">실행 — 세션별 프롬프트 7개</a>
+  <a href="#s8">필요한 것 · 하지 말 것</a>
+</nav>
+
+<main>
+
+<section id="s1">
+<h2><span class="num">01</span>언제 — P9까지 끝내고 나서가 아니라 지금입니다</h2>
+<div class="verdict">
+  <span class="k">P4 직후인 지금이 가장 싼 시점입니다. 단, "새 에디터"가 아니라 "분해 + 미리보기 + 자동저장"입니다.</span>
+  <p>P5~P8은 전부 에디터에 패널을 하나씩 얹는 작업입니다 — 결제(활성화 버튼), 브랜드키트(로고 패널), 위젯(연결 버튼 패널), 문의함, 배너, 후기. 지금 691줄짜리 <code>ui.tsx</code> 한 파일에 그것들을 계속 붙이면 P8쯤엔 2,500줄이 되고, 그때 쪼개는 비용은 지금의 5배입니다. 클로드코드가 무거운 이유의 절반도 이 파일입니다.</p>
+  <p>반대로 "에디터를 통째로 새로 짓는 것"은 지금 하면 안 됩니다. 폼 기반 에디터는 폰에서 홈온의 캔버스보다 낫고, 이미 12섹션 편집·업로드·발행·점수·소유권이 프로덕션에서 검증됐습니다. 버릴 게 없습니다. 필요한 것은 <strong>구조(파일 분해)와 체감(즉시 미리보기·자동저장·되돌리기)</strong> 두 가지입니다.</p>
+</div>
+<p>현재 코드를 다시 읽으니 지난 리포트에서 "섹션 삭제 없음"이라 적은 것은 이미 해결돼 있었습니다 — <code>ui.tsx</code>의 <code>deleteSection</code>(hero·quoteForm 보호)과 <code>goToAnchor</code>(＋N점 클릭 스크롤)가 2026-09-02자로 들어가 있고, <code>tours.ts</code>도 현 화면에 맞게 재정의됐습니다. 남은 실제 격차는 <strong>미리보기 없음 · 자동저장 없음 · 되돌리기 없음 · 파일 1개에 전부</strong> 네 가지입니다.</p>
+</section>
+
+<section id="s2">
+<h2><span class="num">02</span>클로드코드가 무거운 이유와 처방</h2>
+<p class="sub"><code>/clear</code>를 해도 무거운 것은 대화 길이 문제가 아니라 <em>세션을 시작할 때마다 자동으로 읽히는 양</em>의 문제입니다. 현재 저장소에서 원인을 셋 찾았습니다.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>원인</th><th>현재</th><th>처방</th></tr></thead>
+<tbody>
+<tr><td>PROGRESS.md 673줄(67KB)</td><td>CLAUDE.md가 "목록은 docs/PROGRESS.md"로 가리켜 매 세션 통째로 읽힘. 내용의 80%는 끝난 일의 기록(P3·P4 E2E 상세, Vertex 이관 경위, WIF 함정).</td><td><strong>docs/STATUS.md(≤60줄)</strong> 신설 — "지금 어디·다음 뭐·막힌 것"만. PROGRESS.md는 <code>docs/archive/2026-09-progress.md</code>로 이동. CLAUDE.md는 STATUS만 가리킴.</td></tr>
+<tr><td><code>ui.tsx</code> 691줄 단일 파일</td><td>에디터를 한 글자 고쳐도 691줄을 읽고, 수정 diff도 큰 파일 기준으로 계산됨. ContentTab 안의 switch가 12섹션 폼을 전부 품음.</td><td>05장 구조로 <strong>파일 20개</strong>로 분해. 이후 "hero 폼 고쳐줘"는 60줄짜리 파일 하나만 읽음.</td></tr>
+<tr><td>CLAUDE.md의 "현재 상태" 절</td><td>날짜·커밋·E2E 결과가 CLAUDE.md에 들어가 규칙 파일이 일지가 됨(54줄이지만 상태 절이 절반).</td><td>CLAUDE.md는 <strong>규칙·스택·명령어만</strong>(30줄). 상태는 STATUS.md로.</td></tr>
+</tbody></table></div>
+
+<h3>세션 운영 규칙 5가지 (이걸로 체감이 반으로 줄어듭니다)</h3>
+<p><strong>① 한 세션 = 한 작업 = 파일 목록 명시.</strong> 프롬프트 첫 줄에 "읽을 파일: A, B, C. 그 외는 읽지 마"를 씁니다. 클로드코드는 지시 없으면 탐색하면서 컨텍스트를 태웁니다. 07장 프롬프트는 전부 이 형식입니다.</p>
+<p><strong>② <code>/clear</code> 대신 <code>/compact</code>를 작업 중간에.</strong> clear는 다시 CLAUDE.md·STATUS를 읽게 만들고, compact는 지금까지의 결론만 남깁니다. 작업이 끝나면 그때 clear.</p>
+<p><strong>③ 서브에이전트로 읽기를 위임.</strong> "이 파일들을 읽고 요약만 돌려줘"는 <code>Task</code>(서브에이전트)로 시키면 본 세션에 원문이 안 들어옵니다. 프롬프트에 "탐색은 서브에이전트로, 본 세션에는 결론만"을 넣습니다.</p>
+<p><strong>④ 완료 조건을 먼저 쓰고 시작.</strong> "npm run build 통과 + 다음 4가지가 화면에서 확인되면 끝"을 프롬프트에 넣으면 에이전트가 검증 루프를 스스로 끝냅니다. 없으면 무한히 "확인해볼까요"를 반복합니다.</p>
+<p><strong>⑤ ultracode는 정합성 작업에만.</strong> CLAUDE.md의 게이트대로 스키마 4곳 동시 수정·새 라우트+컴포넌트 결합에만 쓰고, 단일 파일 분해·폼 하나 만들기는 일반 모드로. ultracode는 에이전트 7개를 띄우므로 무거움의 주범이 되기도 합니다.</p>
+</section>
+
+<section id="s3">
+<h2><span class="num">03</span>병렬 작업 — 다른 클로드코드 세션에서 따로 만들어 합칠 수 있나</h2>
+<p><strong>가능하고, 권장합니다.</strong> 방법은 <code>git worktree</code>입니다. 같은 저장소를 폴더 두 개로 체크아웃해 각 폴더에서 클로드코드를 따로 띄우면, 세션마다 컨텍스트가 독립되고 브랜치도 분리됩니다. 별도 저장소를 만들 필요가 없고(모노레포 1개 결정 유지), 합치는 것은 PR 머지입니다.</p>
+<pre># 본 저장소 옆에 작업 폴더 2개
+cd C:\Users\ariancepc\Desktop\cowork\fable51plandept
+git -C onstori worktree add ../onstori-wt-editor  -b editor-v2/shell
+git -C onstori worktree add ../onstori-wt-preview -b editor-v2/preview
+
+# 각 폴더에서 클로드코드를 따로 실행 (npm install은 각 폴더에서 1회)
+cd onstori-wt-editor  &amp;&amp; claude
+cd onstori-wt-preview &amp;&amp; claude
+
+# 끝나면 각 브랜치를 main에 PR → 머지 → worktree 정리
+git -C onstori worktree remove ../onstori-wt-editor</pre>
+
+<h3>충돌 없이 나누는 원칙 — 파일 소유권 + 계약 우선</h3>
+<p>두 세션이 같은 파일을 만지면 머지에서 충돌합니다. 그래서 <strong>세션 0에서 계약(타입·파일명·postMessage 메시지)을 한 커밋으로 먼저 확정</strong>하고, 그 다음 세션들은 자기 소유 파일만 만집니다. 이 플랜의 분할은 다음과 같습니다.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>세션</th><th>소유 파일</th><th>만지면 안 되는 파일</th><th>의존</th></tr></thead>
+<tbody>
+<tr><td>0 · 계약</td><td><code>lib/editor/types.ts</code> · <code>lib/editor/preview-protocol.ts</code> · <code>lib/stories.ts</code> · <code>docs/STATUS.md</code></td><td>—</td><td>없음. 먼저 main에 머지</td></tr>
+<tr><td>A · 셸 분해</td><td><code>app/[slug]/edit/**</code> (ui.tsx를 쪼갠 결과물 전부)</td><td><code>lib/schema.ts</code> · <code>components/sections</code> · API 라우트</td><td>0</td></tr>
+<tr><td>B · 미리보기</td><td><code>app/[slug]/preview/**</code> · <code>components/sections/index.tsx</code>(workCount import 1줄만) · <code>components/site-renderer.tsx</code></td><td><code>app/[slug]/edit/**</code></td><td>0 · A와 동시 진행 가능</td></tr>
+<tr><td>C · 자동저장·되돌리기</td><td><code>lib/editor/use-editor-doc.ts</code> · <code>app/api/site/update/route.ts</code>(응답 필드 추가)</td><td>폼 파일들</td><td>A 머지 후</td></tr>
+<tr><td>D · 위젯 패널</td><td><code>lib/schema.ts</code> · <code>components/sections/widget-bar.tsx</code> · <code>app/[slug]/edit/_forms/widgets.tsx</code> · <code>docs/SCHEMA.md</code></td><td>셸·훅</td><td>A·B 머지 후 · <strong>ultracode 권장</strong></td></tr>
+</tbody></table></div>
+<p>A와 B는 파일이 겹치지 않으므로 동시에 두 창에서 돌릴 수 있습니다. C·D는 A의 결과 위에 얹히므로 순서대로. 세션 A가 가장 크지만(분해), 로직을 바꾸지 않는 이동 작업이라 리스크는 낮습니다.</p>
+<div class="note warn"><strong>나눌 수 없는 것</strong> — <code>lib/schema.ts</code>는 항상 한 세션만. 두 세션이 동시에 스키마를 바꾸면 "4곳 동시 수정" 규칙이 깨집니다. 그래서 위젯(D)은 마지막에 단독으로 갑니다. DB 마이그레이션도 마찬가지로 한 번에 한 세션.</div>
+</section>
+
+<section id="s4">
+<h2><span class="num">04</span>홈온보다 빠르고 쉬운 에디터 — 설계</h2>
+<p class="sub">홈온 에디터(캡쳐 60여 장)의 실체는 "3단 캔버스처럼 보이는 폼 에디터"입니다. 중앙 캔버스는 클릭 선택만 되고 편집은 우측 폼에서 합니다. 사용자 불만은 "글자체·크기 못 바꿈", "저장 눌러야 함", "24시간 체험". 온스토리가 이길 지점은 캔버스를 흉내 내는 것이 아니라 <strong>폰에서 세 번 탭이면 고쳐지는 것</strong>입니다.</p>
+
+<div class="wire">
+<figure>
+<svg viewBox="0 0 240 420" role="img" aria-label="폰 레이아웃: 상단 미리보기, 하단 섹션 카드">
+  <rect x="1" y="1" width="238" height="418" rx="18" fill="var(--paper-2)" stroke="var(--line)"/>
+  <rect x="14" y="16" width="212" height="34" rx="6" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="22" y="38" font-size="11" fill="var(--ink)" font-family="var(--body)">니브인테리어 · 75점 ━━━━━━</text>
+  <text x="178" y="38" font-size="10" fill="var(--teal-ink)" font-family="var(--body)">사이트 반영</text>
+  <rect x="14" y="58" width="212" height="150" rx="8" fill="var(--paper)" stroke="var(--teal)" stroke-width="1.5"/>
+  <rect x="14" y="58" width="212" height="70" rx="8" fill="var(--teal-soft)"/>
+  <text x="26" y="96" font-size="11" fill="var(--ink)" font-family="var(--body)" font-weight="700">10년의 현장이 말합니다</text>
+  <text x="26" y="112" font-size="9" fill="var(--ink-2)" font-family="var(--body)">주거 인테리어 · 니브</text>
+  <rect x="26" y="140" width="60" height="40" rx="4" fill="var(--paper-2)"/><rect x="92" y="140" width="60" height="40" rx="4" fill="var(--paper-2)"/><rect x="158" y="140" width="56" height="40" rx="4" fill="var(--paper-2)"/>
+  <text x="26" y="200" font-size="9" fill="var(--ink-3)" font-family="var(--mono)">LIVE PREVIEW · 탭하면 그 섹션 폼으로</text>
+  <rect x="14" y="218" width="212" height="52" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="24" y="238" font-size="10.5" fill="var(--ink)" font-family="var(--body)" font-weight="700">첫 화면</text>
+  <text x="24" y="256" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">10년의 현장이 말합니다</text>
+  <text x="196" y="240" font-size="9" fill="var(--ink-3)" font-family="var(--mono)">↑↓ ✎</text>
+  <rect x="14" y="278" width="212" height="52" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="24" y="298" font-size="10.5" fill="var(--ink)" font-family="var(--body)" font-weight="700">소개</text>
+  <text x="24" y="316" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">현장 10년, 직영 시공으로…</text>
+  <rect x="14" y="338" width="212" height="52" rx="8" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="24" y="358" font-size="10.5" fill="var(--ink)" font-family="var(--body)" font-weight="700">작업 사진 · 6장</text>
+  <text x="24" y="376" font-size="9.5" fill="var(--ink-2)" font-family="var(--body)">＋ 사진 올리기</text>
+  <text x="26" y="408" font-size="9" fill="var(--good)" font-family="var(--mono)">● 자동 저장됨 · 방금</text>
+</svg>
+<figcaption>폰(&lt;1024px): 미리보기가 위에 고정(접기 가능), 아래는 섹션 카드. 카드 탭 → 폼 펼침.</figcaption>
+</figure>
+<figure>
+<svg viewBox="0 0 400 260" role="img" aria-label="PC 레이아웃: 좌측 폼, 우측 미리보기">
+  <rect x="1" y="1" width="398" height="258" rx="8" fill="var(--paper-2)" stroke="var(--line)"/>
+  <rect x="12" y="12" width="376" height="28" rx="5" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="20" y="30" font-size="10" fill="var(--ink)" font-family="var(--body)">니브인테리어 · 완성도 75 ━━━━━━━━</text>
+  <text x="290" y="30" font-size="9" fill="var(--ink-3)" font-family="var(--body)">● 자동 저장됨</text>
+  <text x="345" y="30" font-size="9" fill="var(--teal-ink)" font-family="var(--body)" font-weight="700">사이트 반영</text>
+  <rect x="12" y="48" width="180" height="200" rx="6" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="20" y="66" font-size="9" fill="var(--ink-3)" font-family="var(--mono)">내용 · 이야기 · 문의함 · 설정</text>
+  <rect x="20" y="76" width="164" height="30" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+  <text x="28" y="95" font-size="9.5" fill="var(--ink)" font-family="var(--body)" font-weight="700">첫 화면 — 편집 중</text>
+  <rect x="20" y="112" width="164" height="22" rx="4" fill="var(--paper-2)"/><text x="28" y="127" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">헤드라인 · AI로 다시 쓰기 ✦</text>
+  <rect x="20" y="140" width="164" height="22" rx="4" fill="var(--paper-2)"/><text x="28" y="155" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">한 줄 설명</text>
+  <rect x="20" y="168" width="164" height="22" rx="4" fill="var(--paper-2)"/><text x="28" y="183" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">대표 사진 · 바꾸기</text>
+  <rect x="20" y="200" width="164" height="18" rx="4" fill="var(--paper)" stroke="var(--line)"/><text x="28" y="213" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">소개</text>
+  <rect x="20" y="222" width="164" height="18" rx="4" fill="var(--paper)" stroke="var(--line)"/><text x="28" y="235" font-size="8.5" fill="var(--ink-2)" font-family="var(--body)">작업 사진</text>
+  <rect x="204" y="48" width="184" height="200" rx="6" fill="var(--paper)" stroke="var(--teal)" stroke-width="1.5"/>
+  <text x="212" y="64" font-size="8.5" fill="var(--ink-3)" font-family="var(--mono)">📱 폰 · 🖥 PC        iframe /preview</text>
+  <rect x="246" y="72" width="100" height="168" rx="10" fill="var(--paper-2)" stroke="var(--line)"/>
+  <rect x="250" y="76" width="92" height="50" rx="6" fill="var(--teal-soft)"/>
+  <text x="256" y="100" font-size="8" fill="var(--ink)" font-family="var(--body)" font-weight="700">10년의 현장이</text>
+  <text x="256" y="111" font-size="8" fill="var(--ink)" font-family="var(--body)" font-weight="700">말합니다</text>
+  <rect x="254" y="134" width="84" height="8" rx="2" fill="var(--paper)"/><rect x="254" y="146" width="70" height="8" rx="2" fill="var(--paper)"/>
+  <rect x="254" y="162" width="26" height="20" rx="2" fill="var(--paper)"/><rect x="283" y="162" width="26" height="20" rx="2" fill="var(--paper)"/><rect x="312" y="162" width="26" height="20" rx="2" fill="var(--paper)"/>
+</svg>
+<figcaption>PC(≥1024px): 좌 폼 · 우 미리보기(폰/PC 토글). 타이핑 300ms 후 미리보기 즉시 갱신 — 저장 안 해도.</figcaption>
+</figure>
+</div>
+
+<h3>홈온보다 빠르고 쉬운 이유 8가지 — 각각 구현 근거와 함께</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>온스토리 v2</th><th>홈온</th><th>구현 (어디에 무엇)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>타이핑하면 바로 보인다</strong> — 저장 전에 미리보기 갱신</td><td>저장 → "수정된 홈페이지 확인하기" 별도 버튼</td><td>에디터가 draft 객체를 <code>postMessage</code>로 iframe에 보내고, 미리보기 페이지가 클라이언트에서 <code>RenderSection</code>으로 다시 그림. 서버 왕복 0 (06장)</td></tr>
+<tr><td>2</td><td><strong>저장 버튼이 없다</strong> — 1.5초 자동저장 + "● 저장됨/저장 중/실패" 표시</td><td>저장·사이트 반영 2단계, 미저장 이탈 경고</td><td><code>use-editor-doc.ts</code> 훅: dirty → debounce 1500ms → <code>/api/site/update</code>. 실패 시 배지 빨강 + 재시도. "사이트 반영"만 버튼으로 남김</td></tr>
+<tr><td>3</td><td><strong>되돌리기 2종</strong> — ⌘Z(20단계 메모리) + "발행본으로 되돌리기"</td><td>실행취소·"마지막 반영 상태로 되돌리기" 있음(동등)</td><td>훅 안의 <code>history[]</code> 스택. 발행본 되돌리기는 <code>published → draft</code> 복사 API 1개(<code>/api/site/revert</code>)</td></tr>
+<tr><td>4</td><td><strong>미리보기를 탭하면 그 폼이 열린다</strong></td><td>캔버스 클릭 → 우측 패널(동등, PC에서만)</td><td>미리보기의 각 섹션에 <code>data-sec-idx</code>; 클릭 시 <code>postMessage({type:"focus", idx})</code> → 에디터가 그 카드 펼치고 스크롤. 폰에서도 동작</td></tr>
+<tr><td>5</td><td><strong>사진이 먼저</strong> — 카드에서 바로 다중 업로드, 폰에서 카메라 직행, 업로드 전 클라이언트 압축</td><td>사진은 별도 "사진 그룹" 탭으로 이동해야 함(사용자 혼란 지점)</td><td>갤러리 카드에 <code>&lt;input type=file multiple accept=image/* capture=environment&gt;</code>; <code>browser-image-compression</code>(1600px, 0.8)으로 업로드 크기 1/5 → 체감 속도</td></tr>
+<tr><td>6</td><td><strong>"AI로 다시 쓰기"가 필드 옆에</strong> — 헤드라인·소개·진행 과정 desc</td><td>섹션 추가 시 초안만, 필드 단위 재생성 없음</td><td><code>/api/site/rewrite</code>: 기존 <code>generateCopy</code>의 프롬프트 규칙(날조 금지) 재사용, 필드 1개만 3안 반환 → 칩으로 선택. rate limit 재사용</td></tr>
+<tr><td>7</td><td><strong>제목 폰트·크기 3초 안에</strong> — 홈온 사용자 불만 1위를 정면으로</td><td>제목 폰트 8종은 있으나 본문 크기·색 세부 없음(후기: "글자체와 크기 바꾸는 기능이 없네요")</td><td><code>theme.font</code> enum 확장(3종, 눈누 BI 허용) + <code>theme.scale: "s"|"m"|"l"</code>. 스키마 4곳 수정 → 세션 D 뒤 별도 세션</td></tr>
+<tr><td>8</td><td><strong>체험 한 달 내내 편집 가능</strong>, 폰만으로 처음부터 끝까지</td><td>24시간 체험, "반영 실패: 미리 체험 중에는 저장되지 않아요"</td><td>이미 정책상 그럼. 에디터는 폰 우선 레이아웃(폼이 위, 미리보기 접힘)으로 확정</td></tr>
+</tbody></table></div>
+<p>1·2·3·4는 이 플랜(세션 A~C)에서, 5·6은 세션 A에서 폼을 쪼갤 때 함께, 7은 스키마 변경이라 위젯(D) 뒤 별도 세션, 8은 이미 됩니다.</p>
+</section>
+
+<section id="s5">
+<h2><span class="num">05</span>목표 파일 구조</h2>
+<p class="sub">691줄 한 파일 → 20개 파일. 파일 하나가 한 화면 역할만 맡고 60~150줄을 넘지 않게. 클로드코드가 "hero 폼"을 고칠 때 <code>_forms/hero.tsx</code> 하나만 읽으면 되는 구조입니다.</p>
+<div class="tree">app/[slug]/edit/
+├── page.tsx                    <span class="c">서버 셸 (현재 그대로)</span>
+├── ui.tsx                      <span class="c">→ 30줄로 축소: EditorShell 만 렌더</span>
+├── _shell/
+│   ├── editor-shell.tsx        <span class="c">레이아웃(폰/PC 분기) · 탭 · 토스트 · 거부화면 분기</span>
+│   ├── top-bar.tsx             <span class="c">상호·점수바·저장상태 배지·사이트 반영 (data-tour: score-bar, btn-publish)</span>
+│   ├── denied.tsx              <span class="c">403/404 화면 (현재 ui.tsx 161~189줄 이동)</span>
+│   ├── ownership-banner.tsx    <span class="c">로그인/연결 유도 (현재 217~239줄 이동)</span>
+│   ├── score-hints.tsx         <span class="c">＋N점 힌트 + goToAnchor</span>
+│   └── preview-pane.tsx        <span class="c">iframe + 폰/PC 토글 + postMessage 송신 (data-tour: preview)</span>
+├── _tabs/
+│   ├── content-tab.tsx         <span class="c">섹션 카드 목록 · 추가 패널 · 순서/삭제 (data-tour: panel-sections)</span>
+│   ├── story-tab.tsx           <span class="c">현재 StoryTab 이동 (data-tour: story-new)</span>
+│   └── settings-tab.tsx        <span class="c">분위기·연락처·주소 (data-tour: panel-settings, set-contact)</span>
+├── _forms/
+│   ├── section-card.tsx        <span class="c">공용 카드 껍데기: 제목·접기·↑↓·삭제·anchor</span>
+│   ├── fields.tsx              <span class="c">Field, TextInput, TextArea, ImagePicker, ListEditor 공용 부품</span>
+│   ├── hero.tsx                <span class="c">(data-tour: sec-hero, panel-photos)</span>
+│   ├── about.tsx · gallery.tsx · reviews.tsx · map.tsx · banner.tsx
+│   ├── portfolio-gallery.tsx · process-steps.tsx
+│   ├── quote-form.tsx          <span class="c">(data-tour: sec-form)</span>
+│   ├── hours-card.tsx          <span class="c">(data-tour: set-hours)</span>
+│   ├── menu-price.tsx · story-feed.tsx
+│   └── index.ts                <span class="c">type → 폼 컴포넌트 레지스트리 (switch 대체)</span>
+└── _lib/
+    └── upload.ts               <span class="c">압축 + /api/site/upload 호출 (현재 upload 함수 이동)</span>
+
+app/[slug]/preview/
+├── page.tsx                    <span class="c">서버: loadOwnedSite → 초기 draft 주입, noindex</span>
+└── live.tsx                    <span class="c">클라이언트: postMessage 수신 → SiteRenderer 재렌더 · 섹션 클릭 → focus 송신</span>
+
+components/
+├── sections/index.tsx          <span class="c">변경 1줄: workCount import 를 lib/stories 로</span>
+└── site-renderer.tsx           <span class="c">신설: doc+stories → 팔레트 변수 + 섹션 map. [slug]/page.tsx 와 preview 가 공유</span>
+
+lib/
+├── stories.ts                  <span class="c">신설: workCount 등 순수 함수 (fs·supabase 의존 없음)</span>
+└── editor/
+    ├── types.ts                <span class="c">EditorState, SaveStatus, FormProps&lt;T&gt; 계약</span>
+    ├── preview-protocol.ts     <span class="c">postMessage 메시지 타입·origin 검사 (06장)</span>
+    └── use-editor-doc.ts       <span class="c">doc 상태 · dirty · 자동저장 · history(undo) · publish · revert</span>
+
+docs/
+├── STATUS.md                   <span class="c">신설 ≤60줄 — 현재 위치·다음·막힌 것</span>
+└── archive/2026-09-progress.md <span class="c">PROGRESS.md 이동</span></div>
+<p>새 <code>data-tour</code> 앵커는 <code>preview</code>·<code>panel-settings</code> 두 개이며 둘 다 <code>config/tours.ts</code>의 원안(설계서 05장)에 있던 이름입니다. 세션 0에서 <code>ACTIVE_ANCHORS</code>에 다시 넣으면 규칙 3을 지키면서 붙일 수 있습니다.</p>
+</section>
+
+<section id="s6">
+<h2><span class="num">06</span>미리보기 프로토콜 스펙 (세션 0의 계약)</h2>
+<p>미리보기가 "저장 없이 즉시"가 되려면 iframe 페이지가 서버를 다시 부르지 않고 <strong>받은 draft로 클라이언트에서 다시 그려야</strong> 합니다. 그래서 렌더러가 클라이언트에서도 돌 수 있어야 하는데, 지금 <code>components/sections/index.tsx</code>는 <code>@/lib/sites</code>에서 <code>workCount</code>를 가져오고 그 파일은 <code>fs</code>·supabase를 import합니다. 이 한 줄이 클라이언트 번들을 막습니다 — <code>lib/stories.ts</code>로 옮기는 것이 세션 0의 첫 작업입니다.</p>
+<pre>// lib/editor/preview-protocol.ts
+import type { SiteDocT, StoryEntryT } from "@/lib/schema";
+
+export type ToPreview =
+  | { type: "onstori:doc"; doc: SiteDocT; stories: StoryEntryT[] }   // 에디터 → 미리보기: 다시 그려라
+  | { type: "onstori:scroll"; idx: number };                           // 에디터 → 미리보기: idx 섹션으로 스크롤
+
+export type FromPreview =
+  | { type: "onstori:ready" }                                          // 미리보기 → 에디터: 로드됨, doc 보내라
+  | { type: "onstori:focus"; idx: number };                            // 미리보기 → 에디터: 사용자가 idx 섹션을 탭했다
+
+export const PREVIEW_ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
+export function isFromPreview(e: MessageEvent): e is MessageEvent&lt;FromPreview&gt; {
+  return e.origin === PREVIEW_ORIGIN &amp;&amp; typeof e.data?.type === "string" &amp;&amp; e.data.type.startsWith("onstori:");
+}</pre>
+<p><strong>흐름</strong>: 에디터가 <code>&lt;iframe src="/{slug}/preview"&gt;</code>를 띄움 → 미리보기 페이지는 서버에서 <code>loadOwnedSite</code>로 소유 검증 후 draft를 초기 렌더(첫 화면이 비지 않게) → 로드되면 <code>ready</code> 송신 → 에디터는 doc이 바뀔 때마다 300ms 디바운스로 <code>doc</code> 송신 → 미리보기는 <code>useState(doc)</code>를 갈아끼워 <code>SiteRenderer</code> 재렌더. 사용자가 미리보기 섹션을 탭하면 <code>focus</code> 송신 → 에디터가 해당 카드를 펼치고 <code>scrollIntoView</code>.</p>
+<p><strong>보안</strong>: 같은 오리진만 허용(<code>e.origin</code> 검사), 미리보기 라우트는 소유자·운영자만(403), <code>robots: noindex</code>, 발행본과 무관하므로 손님에게 노출되지 않습니다. draft 렌더는 zod <code>SiteDoc.safeParse</code>를 통과한 것만 그리고, 실패 시 마지막 정상 doc을 유지합니다(입력 중간 상태에서 화면이 깨지지 않게).</p>
+<p><strong>스토리</strong>는 draft 밖(즉시 공개)이므로 미리보기 초기 렌더 때 서버가 함께 넣어주고, 이후 doc 메시지에도 같은 배열을 동봉합니다.</p>
+</section>
+
+<section id="s7">
+<h2><span class="num">07</span>실행 — 세션별 클로드코드 프롬프트 7개</h2>
+<p class="sub">각 프롬프트는 그대로 붙여넣을 수 있게 썼습니다. 첫 줄의 "읽을 파일"이 컨텍스트를 제한하고, 마지막의 "완료 조건"이 에이전트를 멈추게 합니다. 세션마다 새 worktree 또는 <code>/clear</code>로 시작하세요.</p>
+
+<div class="step"><div class="hd"><span class="n">SESSION 0</span><span class="t">컨텍스트 다이어트 + 계약 확정</span><span class="w">main · 1시간 · 일반 모드</span></div><div class="bd">
+<p>다른 세션이 의존하는 파일을 먼저 확정해 main에 넣습니다. 로직 변경 없음.</p>
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: CLAUDE.md, docs/PROGRESS.md(앞 60줄만), config/tours.ts, lib/sites.ts, components/sections/index.tsx. 그 외 파일은 읽지 마. 탐색이 필요하면 서브에이전트에 시키고 본 세션엔 결론만 가져와.
+
+작업 4개. 로직은 하나도 바꾸지 않는다.
+
+1. docs/STATUS.md 신설(60줄 이내): "현재 Phase와 완료 목록(한 줄씩) / 다음 작업 / 사장님 결정 대기 / 막힌 것 / 알려진 이슈 제목만". 내용은 PROGRESS.md의 '다음 세션 시작점'과 '알려진 이슈' 절에서 제목만 추린다. docs/PROGRESS.md는 docs/archive/2026-09-progress.md로 git mv. CLAUDE.md의 '현재 상태' 절은 "진행 위치는 docs/STATUS.md"라는 두 줄로 교체하고, 'PROGRESS' 언급을 전부 STATUS로 바꾼다.
+
+2. lib/stories.ts 신설: lib/sites.ts의 workCount를 여기로 옮기고(순수 함수, fs·supabase import 금지) lib/sites.ts는 re-export로 하위 호환. components/sections/index.tsx의 import를 "@/lib/stories"로 바꾼다.
+
+3. lib/editor/types.ts와 lib/editor/preview-protocol.ts 신설. preview-protocol은 다음 타입을 정확히 이 이름으로: ToPreview = {type:"onstori:doc"; doc; stories} | {type:"onstori:scroll"; idx}, FromPreview = {type:"onstori:ready"} | {type:"onstori:focus"; idx}, isFromPreview(e) 오리진 검사 함수. types.ts에는 SaveStatus = "saved"|"saving"|"dirty"|"error", FormProps&lt;T extends SectionT&gt; = { s: T; idx: number; patch: (p: Partial&lt;T&gt;) =&gt; void; upload: (f: File) =&gt; Promise&lt;string|null&gt; }.
+
+4. config/tours.ts의 ACTIVE_ANCHORS에 "preview"와 "panel-settings"를 추가하고 editorIntro 스텝에 {anchor:"preview", title:"미리보기", body:"고치면 바로 보여요. 미리보기를 누르면 그 자리로 가요"}를 sec-hero 다음에 넣는다. 아직 화면에 없으므로 주석으로 "세션 A·B에서 부착"이라고 적는다.
+
+완료 조건: npm run build 통과, npx tsc --noEmit 통과, git diff에 로직 변경이 없음(이동·re-export·타입 추가·문서만). 끝나면 커밋 메시지 초안을 보여주고 멈춰.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION A</span><span class="t">ui.tsx 분해 — 20개 파일로</span><span class="w">worktree editor-v2/shell · 반나절 · 일반 모드</span></div><div class="bd">
+<p>가장 큰 세션이지만 "이동"입니다. 동작이 1픽셀도 바뀌면 안 된다는 조건을 걸어 에이전트가 리팩터 범위를 넘지 않게 합니다.</p>
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: app/[slug]/edit/ui.tsx, lib/editor/types.ts, lib/section-defaults.ts, config/tours.ts(ACTIVE_ANCHORS 부분만). 그 외는 읽지 마.
+
+목표: ui.tsx(691줄)를 아래 구조로 분해한다. 화면·동작·문구·data-tour 앵커는 하나도 바뀌면 안 된다 — 순수 파일 분리다.
+
+app/[slug]/edit/
+  ui.tsx                → EditorShell만 렌더하는 30줄
+  _shell/editor-shell.tsx  (현재 EditUi의 상태·fetch·save·publish·claim·goLogin·거부 분기)
+  _shell/top-bar.tsx       (sticky 헤더: 상호·점수·저장·사이트 반영. data-tour score-bar, btn-publish 유지)
+  _shell/denied.tsx        (161~189줄 거부 화면)
+  _shell/ownership-banner.tsx (217~239줄)
+  _shell/score-hints.tsx   (＋N점 힌트 + goToAnchor)
+  _tabs/content-tab.tsx    (ContentTab 골격: 분위기 카드·섹션 목록·추가 패널·이동/삭제)
+  _tabs/story-tab.tsx      (StoryTab 그대로)
+  _forms/section-card.tsx  (카드 껍데기: 제목·↑↓·삭제 버튼·children. hero는 버튼 없음, quoteForm은 삭제 없음 — 현재 규칙 그대로)
+  _forms/fields.tsx        (Field, inp 클래스, 공용 입력 부품)
+  _forms/{hero,about,gallery,reviews,map,banner,portfolio-gallery,process-steps,quote-form,hours-card,menu-price,story-feed}.tsx
+      각 파일은 FormProps&lt;해당 섹션 타입&gt;을 받는 컴포넌트 하나. 현재 ContentTab switch의 case 본문을 그대로 옮긴다.
+  _forms/index.ts          (type → 컴포넌트 레지스트리. switch 대체. 모르는 type은 현재의 "알 수 없는 섹션" 폴백 카드 유지)
+  _lib/upload.ts           (upload 함수 이동. 시그니처 동일)
+
+규칙: 파일당 150줄 이하. data-tour 속성은 원래 있던 요소에 그대로. import 경로만 바뀐다. 하나의 커밋으로.
+
+완료 조건: npm run build 통과, `grep -rn 'data-tour=' app/[slug]/edit | sort` 결과가 분해 전과 앵커 집합이 동일(분해 전 목록을 먼저 저장해 두고 비교), 로컬에서 /barun-electric/edit 열어 저장·발행·사진 업로드·섹션 추가·이동·삭제·이야기 작성이 전과 같이 동작. 검증은 실제 브라우저로 한 번만.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION B</span><span class="t">미리보기 라우트 + 라이브 렌더</span><span class="w">worktree editor-v2/preview · 반나절 · A와 동시 가능</span></div><div class="bd">
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: app/[slug]/page.tsx, components/sections/index.tsx, lib/editor/preview-protocol.ts, lib/site-owner.ts, app/api/site/get/route.ts(소유 검증 호출부만). app/[slug]/edit/** 은 절대 읽거나 수정하지 마 — 다른 세션이 작업 중이다.
+
+목표: 에디터가 iframe으로 띄울 미리보기 페이지. 서버 왕복 없이 postMessage로 받은 draft를 클라이언트에서 다시 그린다.
+
+1. components/site-renderer.tsx 신설: props {doc, stories} → 팔레트 CSS 변수 + Pretendard link + sections.map(RenderSection) + 푸터. 현재 app/[slug]/page.tsx의 JSX를 여기로 옮기고 page.tsx는 이 컴포넌트를 쓰도록 교체(발행 사이트 화면은 그대로여야 한다). 각 섹션 래퍼에 data-sec-idx={i}를 붙인다. 이 컴포넌트는 서버·클라이언트 양쪽에서 import 가능해야 한다(fs·supabase import 금지 — lib/stories 사용).
+
+2. app/[slug]/preview/page.tsx (서버): loadOwnedSite로 소유·운영자 검증(실패 시 403 텍스트), sites.draft + story_entries를 읽어 &lt;Live initialDoc initialStories /&gt; 렌더. metadata robots noindex,nofollow.
+
+3. app/[slug]/preview/live.tsx ("use client"): useState(doc). mount 시 window.parent.postMessage({type:"onstori:ready"}, location.origin). message 이벤트에서 isFromPreview 통과한 것만 처리: "onstori:doc"이면 SiteDoc.safeParse 성공 시에만 setDoc(실패 시 무시), "onstori:scroll"이면 [data-sec-idx=idx]로 scrollIntoView. 섹션 클릭(캡처 단계, 링크·버튼 기본 동작은 preventDefault)하면 parent에 {type:"onstori:focus", idx} 송신. 미리보기 안에서 tel:·외부 링크가 실제로 이동하지 않게 막는다.
+
+완료 조건: npm run build 통과, /barun-electric 발행 화면이 변경 전과 동일(스크린샷 비교 1회), 로그인 없이 /barun-electric/preview → 403, 운영자 쿠키로 열면 draft가 보임, 브라우저 콘솔에서 window.postMessage로 headline을 바꾼 doc을 보내면 즉시 반영됨.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION C</span><span class="t">미리보기 패널 붙이기 + 자동저장 + 되돌리기</span><span class="w">main(A·B 머지 후) · 하루 · 일반 모드</span></div><div class="bd">
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: app/[slug]/edit/_shell/editor-shell.tsx, _shell/top-bar.tsx, lib/editor/types.ts, lib/editor/preview-protocol.ts, app/api/site/update/route.ts, app/api/site/publish/route.ts. _forms/** 는 읽지 마.
+
+목표 3개.
+
+1. lib/editor/use-editor-doc.ts 훅 신설: editor-shell의 doc·dirty·save·publish 상태를 여기로 옮기고 다음을 추가한다.
+   - 자동저장: doc 변경 후 1500ms 디바운스로 save(). 진행 중 새 변경이 오면 끝난 뒤 한 번 더. status: "saved"|"saving"|"dirty"|"error". error면 5초 후 1회 재시도, 계속 실패면 "저장 안 됨 — 다시 시도" 버튼.
+   - undo/redo: history 스택 최대 20, 300ms 안의 연속 타이핑은 한 단계로 합침. ⌘Z/Ctrl+Z, ⇧⌘Z.
+   - revert: POST /api/site/revert 신설(published → draft 복사, 소유 검증은 update와 동일 헬퍼) 호출 후 doc 교체 + history 초기화.
+   - beforeunload: status가 saving/dirty면 이탈 경고.
+2. top-bar.tsx: "저장" 버튼 제거, 대신 상태 배지(● 저장됨 · 저장 중… · 저장 안 됨). "사이트 반영"은 유지하고 dirty면 먼저 save를 기다린다. 우측에 "되돌리기 ▾" 메뉴(실행 취소 / 발행본으로 되돌리기 — 확인 다이얼로그는 confirm 대신 인라인 2단계 버튼).
+3. _shell/preview-pane.tsx 신설 + editor-shell에 배치: iframe src=/{slug}/preview, data-tour="preview". ready 수신 후 doc 변경마다 300ms 디바운스로 {type:"onstori:doc"} 송신. focus 수신 시 해당 idx 카드로 스크롤·펼침(content-tab에 expandIdx prop 추가). 레이아웃: ≥1024px는 폼 좌 / 미리보기 우(sticky, 폰·PC 폭 토글 375/1024 + scale), 미만은 상단 접이식(기본 접힘, 높이 40svh, "미리보기 보기" 토글). settings-tab.tsx는 이번엔 분위기·연락처 카드만 옮겨 data-tour="panel-settings"를 붙인다.
+
+완료 조건: npm run build 통과. 실브라우저 1회: 헤드라인 타이핑 → 0.5초 안에 우측 미리보기 갱신, 2초 안에 "● 저장됨", ⌘Z로 되돌아감, 미리보기의 소개 섹션 클릭 → 좌측 소개 카드 펼침·스크롤, 새로고침 후 값 유지, "발행본으로 되돌리기" 후 draft=published. `grep -rn 'data-tour='`에 preview·panel-settings 포함.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION D</span><span class="t">연결 위젯 — 스키마 4곳 동시 수정</span><span class="w">main · 하루 · <strong>ultracode 권장</strong></span></div><div class="bd">
+<p>이 세션만 스키마를 건드립니다. CLAUDE.md 규칙 2(4곳 한 커밋)와 게이트("ultracode 권장" 후 확인)를 그대로 따릅니다.</p>
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: lib/schema.ts, docs/SCHEMA.md, components/site-renderer.tsx, app/[slug]/edit/_tabs/settings-tab.tsx, app/[slug]/edit/_forms/fields.tsx, config/completeness.ts, config/tours.ts, lib/score.ts. 나머지는 읽지 마.
+
+이 작업은 여러 파일 정합성 작업이라 ultracode 권장 — 확인받고 시작.
+
+목표: 손님 화면 하단 고정 "연결 버튼" 바. 스키마 변경이므로 zod·렌더러·에디터 폼·SCHEMA.md 4곳을 한 커밋에.
+
+1. lib/schema.ts: Widget = { type: enum["call","sms","kakao","navertalk","instagram","blog","map","soomgo","youtube"], value: string.max(200), enabled: boolean.default(true) }. SiteDoc에 widgets: z.array(Widget).max(6).default([]). 기존 발행본(widgets 없음)이 그대로 parse 통과해야 한다 — default([])로.
+2. components/sections/widget-bar.tsx 신설 + site-renderer에서 sections 다음에 렌더: enabled인 것만, position fixed bottom, 최대 4개 노출(나머지는 "더보기"), call은 tel:, sms는 sms:, kakao/navertalk/instagram/blog/soomgo/youtube는 URL, map은 주소로 네이버지도 검색 URL. 테마 변수(--s-*)만 사용. 미리보기 안에서는 클릭 이동 막힘(live.tsx의 캡처 핸들러가 이미 처리).
+3. app/[slug]/edit/_forms/widgets.tsx 신설, settings-tab에 배치, data-tour="panel-widgets": 타입별 행(토글·값 입력·placeholder 예시), 전화는 quoteForm.phone을 기본값 제안.
+4. docs/SCHEMA.md에 widgets 필드표 추가.
+5. config/tours.ts: FUTURE_ANCHORS의 panel-widgets를 ACTIVE_ANCHORS로 이동. lib/score.ts: widget_1 규칙을 "enabled 위젯 1개 이상"으로 실판정.
+
+완료 조건: npm run build, 기존 발행 사이트 6곳이 모두 정상 렌더(widgets 없음), 에디터에서 전화·카톡 켜고 발행 → /barun-electric 하단에 바 표시·클릭 동작, 완성도 점수 +10 반영, 4곳 변경이 한 커밋.</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION E</span><span class="t">폼 체감 — 사진 우선 · AI 다시 쓰기</span><span class="w">main · 하루 · 일반 모드</span></div><div class="bd">
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: app/[slug]/edit/_forms/{fields,hero,gallery,about,process-steps}.tsx, app/[slug]/edit/_lib/upload.ts, lib/generate.ts(generateCopy 프롬프트 부분만), lib/rate-limit.ts, app/api/generate/route.ts(rate limit 호출부만).
+
+1. 업로드 체감: npm i browser-image-compression. _lib/upload.ts에서 업로드 전 maxWidthOrHeight 1600, maxSizeMB 0.8, useWebWorker로 압축. gallery.tsx는 multiple + accept="image/*" + capture="environment", 여러 장 순차 업로드 + 진행 "3/6". 카드에 썸네일 즉시(objectURL) 표시 후 서버 URL로 교체.
+2. AI 다시 쓰기: POST /api/site/rewrite {slug, anonId, field: "headline"|"sub"|"aboutBody"|"stepDesc", current, context:{businessName, oneLiner, industryName}} → 3안 배열. 프롬프트는 generateCopy의 규칙 블록(과장 금지·사실 날조 금지)을 함수로 추출해 재사용. rate limit은 /api/generate와 같은 함수, 키는 "rewrite", 한도 IP당 시간 30회. 소유 검증 필수. fields.tsx에 &lt;AiRewrite&gt; 버튼: 누르면 칩 3개, 선택 시 값 교체(undo 스택에 들어가야 함).
+3. 날조 필터: lib/copy-guard.ts 신설 — 정규식으로 "N년|N건|수상|자격|1위|최고|최상|전문가 인증" 등 근거 없는 수치·최상급을 잡아 재생성 1회, 남으면 그 문장 제거. rewrite와 generate 둘 다 통과시키고 inferred.model에 사용 모델 기록.
+
+완료 조건: npm run build, 폰 크롬에서 카메라로 찍은 4MB 사진이 300KB 이하로 업로드됨(네트워크 탭 확인), 헤드라인 "AI로 다시 쓰기" 3안 표시·선택·⌘Z 복구, "10년 경력" 같은 문구가 입력에 없을 때 결과에 나오지 않음(5회 시도).</pre>
+</div></div>
+
+<div class="step"><div class="hd"><span class="n">SESSION F</span><span class="t">폰트·크기 테마 (홈온 불만 1위)</span><span class="w">main · 반나절 · ultracode 권장(스키마)</span></div><div class="bd">
+<div class="lab">Prompt</div>
+<pre class="prompt">읽을 파일: lib/schema.ts(Theme만), docs/SCHEMA.md(Theme 절), components/site-renderer.tsx, app/[slug]/edit/_tabs/settings-tab.tsx, docs/LICENSES.md(있으면).
+
+스키마 4곳 동시 수정 — ultracode 권장, 확인 후 시작.
+
+Theme.font enum을 ["pretendard","gowun-batang","nanum-square","jua"]로 확장(눈누 BI/CI 허용·OFL 폰트만, 라이선스 근거를 LICENSES.md에 한 줄씩), Theme.scale: enum["s","m","l"].default("m"). site-renderer는 font에 따라 --s-font-display CSS 변수와 Google Fonts link를 바꾸고, scale은 h1·h2·본문 rem 배율(0.92/1/1.08). settings-tab에 "제목 글씨체" 칩 4개(각 칩을 그 폰트로 렌더) + "글씨 크기" 세그먼트 3개. 미리보기 즉시 반영은 이미 되는 구조.
+
+완료 조건: build 통과, 기존 발행본 parse 통과(default), 칩 탭 → 미리보기 제목 폰트 즉시 변경, 발행 후 손님 화면 반영, 4곳 한 커밋.</pre>
+</div></div>
+
+<p>여기까지가 "에디터 v2"입니다. 이후 P5(활성화 버튼 → <code>top-bar.tsx</code>), P6(브랜드키트 → <code>_tabs/brand-tab.tsx</code>), 문의함(→ <code>_tabs/inbox-tab.tsx</code>), 배너·후기는 각각 <strong>파일 하나 추가 + 탭 등록 한 줄</strong>이 됩니다. 셸을 다시 여는 일이 없습니다.</p>
+</section>
+
+<section id="s8">
+<h2><span class="num">08</span>필요한 것 · 하지 말 것</h2>
+<div class="two">
+<div class="panel">
+<h4>필요한 것</h4>
+<ul>
+<li><strong>라이브러리 1개</strong>: <code>browser-image-compression</code>(세션 E). 미리보기·자동저장·undo는 의존성 없이 됩니다. 드래그 정렬(dnd-kit)은 넣지 않습니다 — 폰에서 ↑↓가 더 확실합니다.</li>
+<li><strong>API 2개 신설</strong>: <code>/api/site/revert</code>, <code>/api/site/rewrite</code>. 마이그레이션 없음.</li>
+<li><strong>라우트 1개 신설</strong>: <code>/{slug}/preview</code>(소유자 전용, noindex).</li>
+<li><strong>스키마 변경 2회</strong>(세션 D·F) — 각각 단독 세션, 4곳 한 커밋.</li>
+<li><strong>git worktree</strong> 2개(A·B 동시). Docker 불필요.</li>
+<li><strong>사장님 결정 1개</strong>: 폰트 3종 선택(눈누에서 BI/CI 허용 확인한 것만).</li>
+</ul>
+</div>
+<div class="panel bad">
+<h4>하지 말 것</h4>
+<ul>
+<li>자유 드래그 캔버스(GrapesJS·Puck·Craft.js류) 도입 — 폰에서 못 쓰고, 12섹션 스키마 구조와 충돌하며, 홈온도 결국 폼입니다.</li>
+<li>세션 A에서 "겸사겸사" 동작 개선 — 분해와 개선을 섞으면 회귀를 못 찾습니다. A는 이동만.</li>
+<li>두 세션이 동시에 <code>lib/schema.ts</code>나 마이그레이션을 만지는 것.</li>
+<li>미리보기를 iframe 새로고침으로 구현 — 저장 왕복이 생겨 "즉시"가 사라지고 서버 부하가 타이핑마다 납니다. postMessage가 정답입니다.</li>
+<li>홈온의 3단 캔버스·투어 문구·"+N점" 표기 방식 그대로 옮기기(CLAUDE.md 규칙 8).</li>
+<li>에디터 v2를 P9 뒤로 미루기 — 그 사이 붙는 패널 4개가 전부 691줄 파일에 쌓입니다.</li>
+</ul>
+</div>
+</div>
+
+<h3>일정 요약</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>세션</th><th>내용</th><th>소요</th><th>병렬</th><th>모드</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>STATUS.md · stories.ts · 계약 타입 · 앵커</td><td>1h</td><td>—</td><td>일반</td></tr>
+<tr><td>A</td><td>ui.tsx → 20파일</td><td>4h</td><td rowspan="2">동시</td><td>일반</td></tr>
+<tr><td>B</td><td>site-renderer · /preview · live.tsx</td><td>4h</td><td>일반</td></tr>
+<tr><td>C</td><td>미리보기 패널 · 자동저장 · undo · revert</td><td>1d</td><td>A·B 후</td><td>일반</td></tr>
+<tr><td>D</td><td>연결 위젯(스키마)</td><td>1d</td><td>C 후</td><td>ultracode</td></tr>
+<tr><td>E</td><td>압축 업로드 · AI 다시 쓰기 · 날조 필터</td><td>1d</td><td>D와 동시 가능(파일 안 겹침)</td><td>일반</td></tr>
+<tr><td>F</td><td>폰트·크기 테마(스키마)</td><td>4h</td><td>D 후</td><td>ultracode</td></tr>
+</tbody></table></div>
+<p>합계 약 5~6 작업일. 세션 0·A·B·C가 끝나면(2~3일) 이미 "타이핑하면 바로 보이고 저장 버튼이 없는" 에디터가 프로덕션에 올라가고, 그 시점부터 홈온 체험 화면과 나란히 놓아도 밀리지 않습니다.</p>
+</section>
+
+<footer>
+<p>기준: onstori 저장소 2026-09-02 상태(app/[slug]/edit/ui.tsx 691줄 · config/tours.ts 재정의본 · components/sections/index.tsx · lib/sites.ts) · 홈온 에디터 캡쳐(105014~111400) · 홈온 사용자 후기 JSON("글자체와 크기를 바꾸는 기능이 없네요").</p>
+<p>이 플랜은 이전 리포트의 Sprint A에서 에디터 부분을 떼어 상세화한 것입니다. 문의 접수·지도·헤더는 별도 세션으로 이어집니다.</p>
+</footer>
+
+</main>
+</div>
+</div>
+
+</body>
+</html>

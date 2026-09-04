@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>온스토리 기술고문 리포트</title>
+<style>html{color-scheme:light dark}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#FBFAF7; --paper-2:#F3F1EA; --ink:#17191d; --ink-2:#4A4F57; --ink-3:#7C8189; --line:#E2DFD6;
+  --teal:#0e7365; --teal-soft:#E3F1EE; --teal-ink:#0B5A50;
+  --rust:#B3452B; --rust-soft:#F7E6E0; --amber:#9A6A00; --amber-soft:#F7EDD2; --good:#1F6F3F; --good-soft:#E3F0E6;
+  --code-bg:#EFEDE6;
+  --display:"Noto Serif KR","Apple SD Gothic Neo",serif;
+  --body:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+    --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+    --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+    --code-bg:#22252B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15171B; --paper-2:#1C1F25; --ink:#ECEAE3; --ink-2:#BDB9AF; --ink-3:#8A8781; --line:#2C3038;
+  --teal:#4FB8A6; --teal-soft:#16302C; --teal-ink:#8ED8CA;
+  --rust:#E27A5E; --rust-soft:#3A221B; --amber:#E0B14E; --amber-soft:#332A14; --good:#6CC08A; --good-soft:#18301F;
+  --code-bg:#22252B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--teal-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:48px}
+@media(min-width:1000px){.layout{grid-template-columns:220px minmax(0,1fr)}}
+nav.toc{position:sticky;top:24px;align-self:start;font-size:13px;line-height:1.5;display:none}
+@media(min-width:1000px){nav.toc{display:block}}
+nav.toc p{margin:0 0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 0;border-top:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--teal-ink)}
+nav.toc a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+main{max-width:76ch}
+header.masthead{padding:56px 0 32px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-ink);margin:0 0 14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.25;margin:0 0 16px;text-wrap:balance;letter-spacing:-.01em}
+.lede{font-size:17px;color:var(--ink-2);margin:0;max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+h2{font-family:var(--display);font-weight:700;font-size:25px;line-height:1.3;margin:64px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2 .num{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--teal-ink);display:block;letter-spacing:.1em;margin-bottom:6px}
+h3{font-size:17px;font-weight:700;margin:34px 0 8px}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px}
+p{margin:0 0 14px}
+.sub{color:var(--ink-2)}
+strong{font-weight:600}
+.verdict{margin:32px 0 0;padding:22px 24px;background:var(--teal-soft);border-left:4px solid var(--teal);border-radius:0 8px 8px 0}
+.verdict p{margin:0 0 10px}.verdict p:last-child{margin:0}
+.verdict .k{font-family:var(--display);font-size:19px;font-weight:700;margin-bottom:10px;display:block}
+table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5;margin:14px 0 20px}
+.tablewrap{overflow-x:auto;margin:0 -24px;padding:0 24px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:8px 10px;border-bottom:2px solid var(--ink);vertical-align:bottom}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600;white-space:nowrap}
+tr.group td{background:var(--paper-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:500;padding:6px 10px}
+.num-col{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;line-height:1.5}
+.c-good{background:var(--good-soft);color:var(--good)}
+.c-warn{background:var(--amber-soft);color:var(--amber)}
+.c-bad{background:var(--rust-soft);color:var(--rust)}
+.c-none{background:var(--paper-2);color:var(--ink-3)}
+.c-teal{background:var(--teal-soft);color:var(--teal-ink)}
+.card-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:18px 0 22px}
+.stat{padding:16px 18px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2)}
+.stat .v{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12.5px;color:var(--ink-3);margin-top:6px}
+.stat .n{font-size:13px;color:var(--ink-2);margin-top:8px;line-height:1.5}
+ol.issues{padding:0;margin:14px 0 20px;list-style:none;counter-reset:iss}
+ol.issues>li{position:relative;padding:16px 0 16px 56px;border-top:1px solid var(--line);counter-increment:iss}
+ol.issues>li::before{content:counter(iss,decimal-leading-zero);position:absolute;left:0;top:18px;font-family:var(--mono);font-size:13px;color:var(--teal-ink);font-weight:500}
+ol.issues>li:last-child{border-bottom:1px solid var(--line)}
+ol.issues .t{font-weight:700;display:block;margin-bottom:4px}
+ol.issues .fix{display:block;margin-top:8px;padding:10px 12px;background:var(--paper-2);border-radius:6px;font-size:14px}
+ol.issues .fix b{color:var(--teal-ink);font-weight:600}
+.sev{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:4px;margin-left:8px;vertical-align:middle}
+.sev.hi{background:var(--rust-soft);color:var(--rust)}.sev.mid{background:var(--amber-soft);color:var(--amber)}.sev.lo{background:var(--paper-2);color:var(--ink-3)}
+.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:16px 0 22px}
+.panel{padding:18px 20px;border:1px solid var(--line);border-radius:8px}
+.panel h4{margin:0 0 10px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.panel ul{margin:0;padding-left:18px}.panel li{margin:0 0 6px}
+.panel.win{border-color:var(--teal);background:var(--teal-soft)}
+.sprint{margin:18px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.sprint .hd{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;padding:12px 18px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.sprint .hd .n{font-family:var(--mono);font-size:12px;color:var(--teal-ink);letter-spacing:.1em}
+.sprint .hd .t{font-weight:700;font-size:16px}
+.sprint .hd .w{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto}
+.sprint .bd{padding:14px 18px}
+.sprint .bd p{margin:0 0 8px}
+.sprint ul{margin:6px 0 0;padding-left:18px}.sprint li{margin:0 0 5px}
+.why{font-size:14px;color:var(--ink-2);border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;margin:10px 0 18px}
+.note{padding:14px 18px;border:1px solid var(--line);border-radius:8px;font-size:14px;color:var(--ink-2);margin:14px 0 20px}
+.note.warn{border-color:var(--amber);background:var(--amber-soft);color:var(--ink)}
+.note.bad{border-color:var(--rust);background:var(--rust-soft);color:var(--ink)}
+.check{list-style:none;padding:0;margin:14px 0 22px}
+.check li{padding:9px 0 9px 30px;position:relative;border-bottom:1px solid var(--line)}
+.check li::before{content:"";position:absolute;left:2px;top:14px;width:14px;height:14px;border:1.5px solid var(--ink-3);border-radius:3px}
+.check li .tag{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:6px}
+footer{margin:72px 0 48px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Technical Advisor Report · onstori.com · 2026-09-02</p>
+  <h1>온스토리, 홈온을 넘어서기 위한 진단과 설계 가이드</h1>
+  <p class="lede">onstori.com 현재 사이트, onstoriplandept 설계 대시보드(설계서 v3.3 · PROGRESS · DECISIONS), 로컬 소스 47개 파일, 캡쳐 폴더의 홈온 스크린샷 110장, 그리고 홈온 공개 페이지·언론·경쟁사 요금을 전부 읽고 판단한 결과입니다. 결론과 우선순위를 먼저 두고, 근거와 구현 방법을 뒤에 붙였습니다.</p>
+  <div class="meta"><span>읽은 것: 사이트 2 · 문서 12 · 소스 35 · 캡쳐 110장</span><span>경쟁 조사: 홈온 · 아임웹 · 식스샵 · 웨이브온 · 카페24</span><span>작성: Claude (기술 고문)</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="목차">
+  <p>Contents</p>
+  <a href="#s0">결론 한 장</a>
+  <a href="#s1">현재 상태 스코어카드</a>
+  <a href="#s2">기능 매트릭스 (캡쳐 110장 기준)</a>
+  <a href="#s3">사이트의 부족한 지점 14</a>
+  <a href="#s4">사업 설계의 문제 4</a>
+  <a href="#s5">우위 전략 — 이기는 무기 7</a>
+  <a href="#s6">로드맵 재편 (Sprint A–F)</a>
+  <a href="#s7">기술 구현 가이드</a>
+  <a href="#s8">가격 재설계</a>
+  <a href="#s9">이번 주 체크리스트</a>
+</nav>
+
+<main>
+
+<section id="s0">
+<h2><span class="num">00</span>결론 한 장</h2>
+<div class="verdict">
+  <span class="k">뼈대는 홈온의 70%까지 왔고, "돈을 내는 이유"에 해당하는 층은 아직 0%입니다.</span>
+  <p>생성 파이프라인(5.8초, 홈온의 5분보다 빠름), 이미지뱅크 638장, 12섹션 렌더러, draft/발행 분리, 카카오·OTP 로그인, 경로형 주소+통합 사이트맵 — P0~P4는 1인 규모에서 이례적으로 탄탄합니다. 설계서 00장의 자기 비판("이 사업이 죽는다면 코드가 아니라 유통 때문이다")도 정확합니다.</p>
+  <p>그런데 사장님이 월 9,900원을 계속 내게 만드는 것들 — <strong>문의가 실제로 접수되는 폼, 전화·카톡 플로팅 버튼, "이번 달 문의 N건" 통계, 브랜드키트, 도메인, 결제</strong> — 은 전부 P5~P8 미착수입니다. 지금의 온스토리는 "예쁜 정적 페이지 + 스토리 탭"이고, 홈온 LIGHT(같은 가격)와 나란히 놓으면 기능표에서 집니다.</p>
+  <p>홈온의 기능을 "전부" 따라 만드는 것은 답이 아닙니다. 홈온에는 출시 2개월차의 빈틈(환불 규정 없음, 도메인 연결 오류, 후기 협찬 의존, 단일 페이지 SEO, BUSINESS에만 묶인 문의 관리)이 있고, 온스토리는 이미 <strong>속도·SEO 구조·스토리 아카이브</strong>라는 세 가지 구조적 우위를 갖고 있습니다. 전략은 셋입니다: ① 홈온과 동등해야 하는 12개 기능(테이블 스테이크)을 <em>가장 싼 방식</em>으로 채우고 ② 홈온이 39,900원 BUSINESS에 가둔 "문의 관리"를 기본 플랜에 풀어 <em>"제작비 0원 · 단일 플랜에 전부"</em>로 가격 체감을 뒤집고 ③ 스토리 개별 페이지 SEO + 리드 알림 + AI 스토리 비서라는 홈온이 못 따라오는 무기에 집중합니다.</p>
+  <p>순서도 바꿔야 합니다. <strong>결제(P5)보다 문의 접수·위젯·통계를 먼저</strong> — 무료 체험 한 달 동안 사장님이 "문의가 왔다"는 경험을 하지 못하면, 결제 시스템이 완벽해도 전환율은 0에 가깝습니다.</p>
+</div>
+</section>
+
+<section id="s1">
+<h2><span class="num">01</span>현재 상태 스코어카드</h2>
+<p class="sub">세 소스(라이브 사이트 · 설계 대시보드 · 로컬 소스)를 대조해 실제로 동작하는 것만 셌습니다. 문서에 "완료"로 적힌 항목도 코드로 재확인했습니다.</p>
+<div class="card-grid">
+  <div class="stat"><div class="v">5.8<span style="font-size:15px">초</span></div><div class="l">사이트 생성 시간 (프로덕션 7.7~8.6초)</div><div class="n">홈온은 11단계 위저드 후 "5분". 이미 확실한 우위. 단 랜딩에서 이 속도를 체감시키지 못하고 있음.</div></div>
+  <div class="stat"><div class="v">12</div><div class="l">섹션 타입 (zod·렌더러·에디터·문서 4곳 정합)</div><div class="n">홈온 섹션 라이브러리와 개수는 비슷. 없는 것: 헤더 네비, 플로팅 위젯, FAQ, 구성원, 가격표(시공용), 동영상.</div></div>
+  <div class="stat"><div class="v">638</div><div class="l">이미지뱅크 승인 장수 · 실비 약 $33</div><div class="n">홈온은 온디맨드 AI 생성(원가·대기 발생). 셀당 평균 3장이라 얇음 — 무드 확장(widenMood)으로 버티는 중.</div></div>
+  <div class="stat"><div class="v">0</div><div class="l">DB에 남는 고객 문의 수</div><div class="n"><code>quoteForm</code>은 폼이 아니라 <code>tel:</code> 링크 카드. "견적 문의를 부르는 홈페이지"라는 포지셔닝의 핵심 지표를 측정할 수 없음.</div></div>
+</div>
+
+<div class="tablewrap"><table>
+<thead><tr><th>영역</th><th>구현 상태</th><th>판정</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>생성 위저드 <code>/new</code></td><td>필드 7개(상호·한 줄·전화·슬러그·분위기·주소·이유), 키워드→LLM 분류, 카피 zod 검증, rate limit(Postgres)</td><td><span class="chip c-good">동작</span></td><td>전화·슬러그 필수는 마찰. 범위 밖 업종 처리 미결(필라테스→repair 실측).</td></tr>
+<tr><td>렌더러 <code>/{slug}</code></td><td>12섹션, 팔레트 4종, OG/canonical, 트라이얼 noindex, 통합 sitemap</td><td><span class="chip c-good">동작</span></td><td>헤더 없음, 지도는 텍스트+링크, <code>&lt;img&gt;</code> 직접 사용(next/image 미사용), 폰트 CDN 외부 의존.</td></tr>
+<tr><td>에디터 <code>/{slug}/edit</code></td><td>폼 기반, 12섹션 편집, 추가·순서, 스토리 탭, 사진 업로드(WebP 변환), draft/발행, 점수</td><td><span class="chip c-warn">부분</span></td><td><strong>미리보기 없음</strong>, 섹션 삭제 없음, 투어 없음, 점수 규칙 2개(logo·widget)는 영구 false → 최대 85점.</td></tr>
+<tr><td>계정·소유권</td><td>카카오 OIDC 직결 + 이메일 OTP, anon claim, owner 게이트, 403 두 갈래</td><td><span class="chip c-good">동작</span></td><td>프로덕션 E2E 통과. 운영자 인증은 ADMIN_KEY 쿠키(로그아웃 없음).</td></tr>
+<tr><td>어드민</td><td>이미지뱅크 검수·태그·재고, 사이트 목록, 쇼케이스, auth-check</td><td><span class="chip c-good">동작</span></td><td>운영에 필요한 최소는 갖춤.</td></tr>
+<tr><td>결제·플랜</td><td>—</td><td><span class="chip c-bad">미착수</span></td><td>통신판매업 신고·토스 가맹이 선행. 서류가 코드를 막고 있음.</td></tr>
+<tr><td>문의·예약 접수</td><td>—</td><td><span class="chip c-bad">미착수</span></td><td>P8 예정. <strong>이 리포트의 1순위 재배치 대상.</strong></td></tr>
+<tr><td>연결 위젯 · 통계 · 브랜드키트 · 도메인 · 마케팅 연동 · 배너 관리 · 챗봇</td><td>—</td><td><span class="chip c-bad">미착수</span></td><td>홈온 캡쳐 110장 중 약 60장이 이 영역. 격차의 실체.</td></tr>
+<tr><td>랜딩 <code>/</code></td><td>포트폴리오 5개(폰 프레임 iframe), 가격 공개, 3단계 설명</td><td><span class="chip c-warn">부분</span></td><td>5개 중 3개가 시드(전화 010-0000-0000). 상단 네비·로그인 외 "지금 만들기" 입력창 없음.</td></tr>
+<tr><td>인프라·보안</td><td>Vercel+Supabase, Vertex WIF(장기 키 제거), 예산 알림, 키 유출 즉시 교체</td><td><span class="chip c-good">양호</span></td><td>1인 프로젝트 기준 상위 수준. Supabase Free는 자동 백업 없음(주 1회 dump 규칙).</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s2">
+<h2><span class="num">02</span>기능 매트릭스 — 캡쳐 110장에 찍힌 홈온 vs 온스토리</h2>
+<p class="sub">캡쳐 폴더를 전부 판독해 홈온 기능을 34개로 정리하고, 온스토리의 현재 구현과 "이기려면 어느 수준이어야 하는가"를 붙였습니다. <strong>우선순위</strong>는 이 리포트의 로드맵(06장)과 같은 기준입니다: 무료 체험 한 달 안에 사장님이 가치를 체감하는 순서.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>기능</th><th>홈온 (캡쳐 확인)</th><th>온스토리 현재</th><th>목표 수준</th><th>우선</th></tr></thead>
+<tbody>
+<tr class="group"><td colspan="5">온보딩 · 생성</td></tr>
+<tr><td>시작 진입</td><td>랜딩에서 상호명 1칸 → 회원가입 없이 시작</td><td><code>/new</code>에서 7필드</td><td>랜딩 히어로에 상호명 1칸 → 즉시 생성, 나머지는 에디터에서</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>위저드 길이</td><td>STEP 1/11 (업종 카드·로고·분위기 6·색감 2·강조점·채널 12)</td><td>무질문 추론(설계 우위)</td><td>유지. 단 슬러그 자동 추천 3개, 전화는 선택</td><td><span class="chip c-warn">B</span></td></tr>
+<tr><td>네이버 플레이스 불러오기</td><td>있음(주소·전화·소개·리뷰 별점 수집)</td><td>없음 (약관 그레이존으로 보류 — 옳은 판단)</td><td>불채택 유지. 대신 "주소 입력 → 지도 자동"</td><td><span class="chip c-none">—</span></td></tr>
+<tr><td>AI 로고 3안</td><td>워드마크/심볼/대중형 + 색 8종 + 한글 오타 경고</td><td>없음</td><td>워드마크 SVG 조판(폰트 3종 × 색) — AI 없이 0원·즉시</td><td><span class="chip c-warn">D</span></td></tr>
+<tr><td>명함 · QR · 전자도장</td><td>명함 드래그 편집·PDF 90×50, QR, 도장 20종(PRO)</td><td>없음</td><td>QR(라이브러리) + 명함 PDF 1종. 도장은 후순위</td><td><span class="chip c-warn">D</span></td></tr>
+<tr><td>쇼핑몰형</td><td>옵션 있음(BUSINESS 강제, 사례 품질 낮음)</td><td>BROWSE 템플릿 문서만</td><td>런칭 후. 스마트스토어 외부 링크로 대체</td><td><span class="chip c-none">후</span></td></tr>
+<tr class="group"><td colspan="5">에디터</td></tr>
+<tr><td>실시간 미리보기</td><td>중앙 캔버스, 모바일/PC 토글, 줌</td><td><strong>없음</strong> (폼만)</td><td>draft 렌더 iframe + 저장 시 갱신, 폰/PC 토글</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>섹션 라이브러리</td><td>기본 4 + 서비스·메뉴, 작업 사례, 약속·강점, FAQ, 가격표, 구성원, 띠 배너, 지도</td><td>12종(FAQ·구성원·시공가격표·헤더 없음)</td><td>FAQ·헤더 네비 추가(2종), 나머지는 기존으로 커버</td><td><span class="chip c-warn">B</span></td></tr>
+<tr><td>섹션 삭제 · 복제 · 노출/숨김</td><td>있음</td><td>순서만 (삭제 이월)</td><td>삭제 + 숨김 플래그</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>실행취소 · 마지막 반영 상태로 되돌리기</td><td>있음</td><td>발행 스냅샷만(site_versions)</td><td>"발행본으로 되돌리기" 버튼 1개면 동등</td><td><span class="chip c-warn">B</span></td></tr>
+<tr><td>완성도 점수 + 체크리스트 딥링크</td><td>64점 · +12/+10/+6 · 클릭 시 이동</td><td>서버 계산 · 앵커 스크롤 이월</td><td>앵커 스크롤 연결(반나절)</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>인터랙티브 투어 14단계</td><td>있음(예시 결과 보기·시연)</td><td>tours.ts 스텝만, UI 없음</td><td>P9. 앵커 규약 덕에 나중에 덧입히면 됨</td><td><span class="chip c-none">후</span></td></tr>
+<tr><td>AI 초안 자동 작성(섹션 추가 시)</td><td>있음</td><td>생성 시 1회만</td><td>섹션 추가 시 Gemini로 초안(카피 함수 재사용)</td><td><span class="chip c-warn">C</span></td></tr>
+<tr><td>AI 이미지: 화질 개선 · 다시 그리기 · 제목으로 사진 만들기</td><td>있음(원본 보관·글자 경고)</td><td>없음</td><td>후순위. 실사 교체 유도가 컨셉과 맞음</td><td><span class="chip c-none">후</span></td></tr>
+<tr><td>색상 프리셋 · 폰트</td><td>프리셋 18 · 제목 폰트 8 · 로고색 추천 · hex 직접</td><td>팔레트 4 + accent hex</td><td>프리셋 8~10 + 제목 폰트 3(눈누 BI 허용) — 스키마 <code>theme.font</code> enum 확장</td><td><span class="chip c-warn">C</span></td></tr>
+<tr><td>하위 카테고리(멀티 페이지)</td><td>카테고리 1/3/10 · 페이지 각 5~10 · 상단 드롭다운</td><td>단일 페이지</td><td><strong>스토리 개별 페이지</strong>로 대체(SEO상 더 유리, 05장)</td><td><span class="chip c-teal">무기</span></td></tr>
+<tr><td>사업자 정보 · 보조 연락처 · 약관 링크</td><td>사업자번호·통판번호·대표자·전화2/3·팩스·약관 링크</td><td>없음</td><td>settings에 필드 6개 + 푸터 렌더 (전자상거래법상 필요)</td><td><span class="chip c-warn">B</span></td></tr>
+<tr class="group"><td colspan="5">고객 접점 · 전환</td></tr>
+<tr><td>연결 위젯(플로팅 바)</td><td>전화·문자·카톡·톡톡·인스타·블로그·예약·오시는길·스토어·유튜브·오픈채팅·숨고 (3/6/무제한)</td><td><strong>없음</strong></td><td>하단 고정 바 2~4개 버튼, 무제한</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>문의하기 폼 · 문의 관리</td><td><strong>BUSINESS(39,900)만</strong></td><td>tel: 링크만</td><td>사진 첨부 견적 폼 + 문의함 + 즉시 알림 — <strong>기본 플랜에</strong></td><td><span class="chip c-teal">무기</span></td></tr>
+<tr><td>예약 접수</td><td>요일·운영시간·간격·휴무·추가질문·확정 방식 (무료 제공)</td><td>없음</td><td>희망일시 신청 폼(캘린더 아님) — BOOK 템플릿 열 때</td><td><span class="chip c-warn">E</span></td></tr>
+<tr><td>후기 관리</td><td>제목·내용·출처, 별점 임의 입력 불가</td><td>reviews 섹션 수동 입력</td><td>"후기 요청 링크" — 고객이 직접 쓰고 사장님 승인</td><td><span class="chip c-teal">무기</span></td></tr>
+<tr><td>띠 배너 · 공지 · 팝업</td><td>문구 5개 롤링·색·링크·노출 기간 (PRO)</td><td>banner 섹션(문구 1개)</td><td>노출 기간 필드 추가면 동등</td><td><span class="chip c-warn">E</span></td></tr>
+<tr><td>사진 그룹 · 동영상</td><td>그룹당 20장, 3/6/10 그룹 · 동영상 3/6/10</td><td>gallery 30장 · portfolioGallery</td><td>유튜브 URL 임베드 섹션 1종. 무제한</td><td><span class="chip c-warn">E</span></td></tr>
+<tr><td>네이버 지도 임베드</td><td>지도 + 길찾기 버튼</td><td>주소 텍스트 + 링크</td><td>정적 지도 이미지 or iframe + 길찾기</td><td><span class="chip c-bad">A</span></td></tr>
+<tr><td>자동 상담 챗봇</td><td>BUSINESS 전용 · FAQ 챗봇 "홈ON에 물어보기"</td><td>없음</td><td>런칭 후. 스토리 주입 RAG는 차별화 가능</td><td><span class="chip c-none">후</span></td></tr>
+<tr class="group"><td colspan="5">운영 · 성장</td></tr>
+<tr><td>운영현황 대시보드</td><td>방문(오늘/7일/30일/총)·클릭(전화·문자·길찾기·문의·QR)·유입출처·KPI·관리 리포트·성장 제안</td><td>없음</td><td>events 테이블 + <code>/{slug}/admin</code> 1페이지 + 주간 카톡/메일 리포트</td><td><span class="chip c-bad">B</span></td></tr>
+<tr><td>도메인 연결 · 구매</td><td>연결(오류 발생 확인) · 구매 "준비 중"</td><td>없음</td><td>Vercel Domains API + CNAME 안내. 구매는 가비아 링크로</td><td><span class="chip c-warn">E</span></td></tr>
+<tr><td>마케팅 연동</td><td>서치어드바이저·서치콘솔·GA4·Meta·카카오 픽셀·Google Ads 전환</td><td>통합 sitemap(구조적 우위)</td><td>사이트별 GA4·픽셀 주입 + 서치어드바이저는 도메인 1회로 끝(이미 해결)</td><td><span class="chip c-warn">E</span></td></tr>
+<tr><td>스토리(타임라인 아카이브)</td><td><strong>없음</strong> — 사용자 불만 "블로그 방식 도입되었으면"</td><td>있음(4유형·사진 4장)</td><td>개별 URL + AI 캡션 + 공유 시트 업로드</td><td><span class="chip c-teal">무기</span></td></tr>
+<tr><td>결제</td><td>토스 빌링키(테스트 모드), 1개월/1년(+3개월)/2년(10%)/3년(15%)</td><td>없음</td><td>토스 빌링키, 월/연 2종만</td><td><span class="chip c-bad">C</span></td></tr>
+<tr><td>브랜드 표기 숨김</td><td>BUSINESS 전용</td><td>"Made with 온스토리" 고정</td><td>유료 플랜이면 숨김 허용 — 싸게 주는 것 중 가장 싼 것</td><td><span class="chip c-warn">C</span></td></tr>
+</tbody></table></div>
+<p class="sub">우선순위 표기: <span class="chip c-bad">A</span> 지금(2주) · <span class="chip c-warn">B~E</span> 스프린트 순서 · <span class="chip c-teal">무기</span> 홈온이 못 하는 차별화 · <span class="chip c-none">후</span> 런칭 후.</p>
+</section>
+
+<section id="s3">
+<h2><span class="num">03</span>현재 사이트의 부족한 지점 14</h2>
+<p class="sub">소스와 라이브 사이트에서 직접 확인한 것만 적었습니다. 각 항목에 심각도와 수정 방향을 붙였습니다. 순서는 "고객 전환에 미치는 영향" 순입니다.</p>
+<ol class="issues">
+<li><span class="t">견적 폼이 폼이 아니다 <span class="sev hi">치명</span></span>
+<code>components/sections/index.tsx</code>의 <code>QuoteFormSec</code>는 전화번호 <code>tel:</code> 버튼 카드입니다. 랜딩 카피는 "견적 문의가 늘어납니다"인데, 문의가 DB에 남지 않으니 사장님에게 "이번 달 문의 3건"을 보여줄 수 없고, 온스토리 자신도 어떤 사이트가 리드를 만드는지 모릅니다. 설계서 00장이 지목한 최대 결함("이 제품은 손님을 데려오지 않는다")을 측정조차 못 하는 상태입니다.
+<span class="fix"><b>수정</b> <code>inquiries</code> 테이블(설계서 09장에 이미 있음) + 클라이언트 폼(이름·전화·내용·사진 ≤3) + <code>POST /api/inquiry</code>(rate limit·허니팟) + 사장님에게 즉시 알림(Resend 메일은 이미 있음, 문자는 솔라피/알리고 건당 ~20원). P8에서 <strong>Sprint A로 이동.</strong></span></li>
+
+<li><span class="t">에디터에 미리보기가 없다 <span class="sev hi">치명</span></span>
+폼 기반 에디터 자체는 폰에서 오히려 유리하지만, 지금은 "저장 → 새 탭에서 사이트 열기"를 반복해야 결과를 봅니다. 홈온 캡쳐 110장 중 절반이 중앙 캔버스가 있는 화면이고, 사장님이 "수정이 쉽다"고 느끼는 지점이 바로 거기입니다(홈온 후기 21건의 공통 만족 포인트가 "수정이 편해요").
+<span class="fix"><b>수정</b> <code>/{slug}/preview</code> 라우트(owner 검증, draft 렌더) + 에디터에 iframe 패널(PC는 우측 분할, 폰은 상단 접이식) + 저장 성공 시 <code>iframe.contentWindow.location.reload()</code>. 이미 있는 <code>components/phone-frame.tsx</code> 재사용. 1~2일.</span></li>
+
+<li><span class="t">플로팅 연결 버튼이 없다 <span class="sev hi">높음</span></span>
+소상공인 사이트 방문의 80%는 폰이고, 전환의 대부분은 하단 고정 "전화·카톡" 버튼에서 납니다. 홈온은 온보딩 STEP 9에서 12개 채널을 고르게 하고 플랜별로 3/6/무제한으로 팔고 있습니다. 온스토리는 히어로 CTA와 견적 카드가 스크롤 밖으로 사라지면 연락 수단이 없습니다.
+<span class="fix"><b>수정</b> <code>SiteDoc</code>에 <code>widgets: [{type, value, enabled}]</code>(전화·문자·카카오톡·네이버톡톡·인스타·블로그·길찾기·숨고) 추가, 렌더러 하단 고정 바. 개수 제한 없음 — 홈온이 파는 것을 공짜로. 하루.</span></li>
+
+<li><span class="t">가격이 홈온과 정확히 같다 <span class="sev hi">높음</span></span>
+제작 49,000원 + 월 9,900원. 홈온 LIGHT와 원 단위까지 동일합니다. "더 저렴"이라는 목표에 미달이고, 기능표에서는 지는 상태라 비교 시 선택 이유가 없습니다.
+<span class="fix"><b>수정</b> 08장 가격 재설계 참조 — 제작비 0원, 단일 플랜에 홈온 BUSINESS급 기능. 랜딩 카피에서 "제작비 없음"을 홈온의 "49,000원" 앵커에 정면으로 붙입니다.</span></li>
+
+<li><span class="t">체험 사이트가 noindex인데 무료 기간이 한 달이다 <span class="sev mid">중간</span></span>
+<code>app/[slug]/page.tsx</code>는 <code>status === "trial"</code>이면 noindex. 홈온은 체험이 24시간이라 noindex가 무해하지만, 온스토리의 무료 한 달 동안 "검색에 잡히는 구조"라는 약속을 사장님이 확인할 방법이 없습니다. 가장 강력한 전환 증거(네이버에서 내 상호가 나옴)를 스스로 막고 있습니다.
+<span class="fix"><b>수정</b> 발행(published_at) + 사장님 사진 1장 이상 + 스토리 1건 조건을 만족하면 trial이어도 index 허용. 스팸 방어는 rate limit + 어드민 승인 플래그로.</span></li>
+
+<li><span class="t">범위 밖 업종이 조용히 엉뚱한 템플릿으로 떨어진다 <span class="sev hi">높음</span></span>
+PROGRESS 실측: "몽 필라테스" → <code>repair</code>. <code>confidence</code>는 저장만 되고 분기에 안 쓰이며, 목록 밖 id는 <code>INDUSTRIES[0]</code>(인테리어)로 폴백합니다. 당근 홍보를 켜는 순간 미용실·학원 사장님이 시공 사이트를 받습니다.
+<span class="fix"><b>수정</b> (사장님 결정 대기 중인 항목) 권고안: <code>generic-visit</code>·<code>generic-quote</code> 업종 2개를 추가해 <strong>범용 수용</strong> + <code>confidence &lt; 0.6</code>이면 생성 직전 카드 3개로 1회 되묻기. 이미지뱅크는 무드만으로 매칭. "지원 안 함"으로 막는 것은 유입을 버리는 선택입니다.</span></li>
+
+<li><span class="t">지도가 텍스트다 <span class="sev mid">중간</span></span>
+<code>MapSecC</code>는 주소 문자열 + 외부 링크. 홈온은 네이버 지도 임베드 + "길찾기". 시공 업종에는 덜 중요하지만 카페·식당(VISIT)에서는 첫 화면 다음으로 중요한 블록입니다.
+<span class="fix"><b>수정</b> 네이버 클라우드 Static Map API(월 무료 쿼터 충분) 이미지 + <code>nmap://route</code>·카카오맵 길찾기 딥링크. 주소→좌표는 Geocoding API. 반나절.</span></li>
+
+<li><span class="t">고객 사이트에 헤더가 없다 <span class="sev mid">중간</span></span>
+렌더러는 히어로부터 시작합니다. 상호·로고·섹션 앵커 메뉴·CTA가 있는 얇은 sticky 헤더가 없어 긴 페이지에서 길을 잃고, "홈페이지"라기보다 랜딩 한 장처럼 보입니다.
+<span class="fix"><b>수정</b> 섹션이 아니라 레이아웃 요소로 헤더 추가(상호·앵커 3~5개·전화 버튼). 스키마 변경 없음. 반나절.</span></li>
+
+<li><span class="t">랜딩 포트폴리오 5개 중 3개가 시드다 <span class="sev mid">중간</span></span>
+니브·클린하우스·카페크로프트는 전화 010-0000-0000, Unsplash 사진의 시드입니다. 실제 고객 2곳(좋은목수·하얀세상도배)은 있으니 시드는 "예시"로 표기하거나 뒤로 보내야 합니다. 시공 사장님은 전화번호가 0000인 사례를 한눈에 알아봅니다.
+<span class="fix"><b>수정</b> 쇼케이스에 <code>kind: real | sample</code> 플래그, 실고객 우선 정렬, 샘플에는 "예시" 배지. Unsplash 핫링크는 뱅크 이미지로 교체(PROGRESS TODO에 이미 있음).</span></li>
+
+<li><span class="t">온보딩 필수 입력이 홈온보다 많다 <span class="sev mid">중간</span></span>
+설계는 "타이핑 3번 + 탭 2번"인데 구현은 상호·한 줄·전화·슬러그 4개 필수. 특히 영문 슬러그를 사장님이 직접 짓는 것은 홈온(숫자 자동)에 없는 마찰입니다. 홈온은 랜딩 히어로에서 상호명 하나로 시작합니다.
+<span class="fix"><b>수정</b> 랜딩 히어로에 "상호명" 1칸 + 버튼 → <code>/new?name=</code>. 슬러그는 상호명 로마자 변환으로 3개 추천(서버 중복 검사), 전화는 에디터에서. 필수 2개(상호·한 줄)로.</span></li>
+
+<li><span class="t">스토리 작성이 "카톡 보내듯"이 아니다 <span class="sev mid">중간</span></span>
+스토리는 온스토리의 유일한 컨셉 차별화인데, 작성 경로가 에디터 로그인 → 탭 → 폼입니다. 설계서가 스스로 지적한 최대 리스크("3주 뒤 방치")를 UI가 완화하지 못하고 있습니다.
+<span class="fix"><b>수정</b> 05장 무기 ③ — PWA 공유 시트(폰 갤러리에서 "공유 → 온스토리") + 사진만 올리면 Gemini Vision이 제목·두 줄 초안 + 주 1회 "이번 주 기록 남길까요?" 넛지.</span></li>
+
+<li><span class="t">폴백 모델의 경력 날조 <span class="sev hi">법적</span></span>
+<code>gemini-2.5-flash</code> 폴백이 "오랜 경험과 기술력으로"를 생성한 표본이 있습니다. CLAUDE.md 규칙 위반이자 표시광고법 리스크입니다.
+<span class="fix"><b>수정</b> 카피 후처리 필터(정규식: 년|경력|건|수상|자격|1위|최고 등 근거 없는 수치·최상급) → 매칭 시 재생성 1회 → 그래도 남으면 해당 문장 제거. <code>inferred</code>에 사용 모델명 기록. 2시간.</span></li>
+
+<li><span class="t">성능 기초 미적용 <span class="sev lo">낮음</span></span>
+히어로가 <code>&lt;img&gt;</code> 원본(1376×768 WebP)이고 <code>next/image</code>·<code>priority</code>·<code>sizes</code>가 없으며, Pretendard를 jsDelivr에서 매 사이트 로드합니다. 네이버 모바일 검색 노출에 LCP가 영향을 줍니다.
+<span class="fix"><b>수정</b> 히어로만 <code>next/image priority</code> + Supabase 이미지 변환(<code>?width=</code>) + 폰트 self-host 서브셋. 하루.</span></li>
+
+<li><span class="t">점수 100점이 구조적으로 불가능하다 <span class="sev lo">낮음</span></span>
+<code>logo</code>·<code>widget_1</code> 규칙이 항상 false라 최대 85점. "거의 완성"에서 멈추는 게이미피케이션은 동기를 꺾습니다.
+<span class="fix"><b>수정</b> 위젯(이슈 3)이 들어오면 <code>widget_1</code>은 자동 해결. <code>logo</code>는 브랜드키트 전까지 "상호명 워드마크 자동 생성됨"으로 true 처리.</span></li>
+</ol>
+</section>
+
+<section id="s4">
+<h2><span class="num">04</span>사업 설계의 문제 4</h2>
+<p class="sub">설계서 v3.3의 00장은 투자자 관점 비판을 이미 담고 있고 대부분 동의합니다. 여기서는 그 위에 <em>실제 홈온·시장 조사 결과</em>를 대조해 추가로 드러난 것만 적습니다.</p>
+
+<h3>① "더 싸고 기능은 더 많이"는 그대로 실행하면 마진이 없다 — 구조로 이겨야 한다</h3>
+<p>홈온 조사 결과, 홈온의 진짜 수익 구조는 월 9,900원이 아니라 <strong>제작비 49,000원 선불 + 1년 결제 유도(12+3개월) + 39,900원 BUSINESS 업셀</strong>입니다. 첫 결제 58,900~68,900원이 CAC를 회수합니다. 온스토리가 단순히 월 7,900원으로 내리면 같은 구조에서 매출만 줄어듭니다.</p>
+<p>이길 방법은 가격 숫자가 아니라 <strong>가격 구조</strong>입니다. 홈온이 BUSINESS(월 39,900)에 가둔 문의 관리·고객 DB·위젯 무제한·브랜드 표기 숨김은 온스토리에서는 <em>구현 원가가 거의 0</em>입니다(테이블 하나, 렌더 조건 하나). 이것들을 기본 플랜에 넣으면 "홈온 BUSINESS 478,800원/년 vs 온스토리 99,000원/년"이라는 비교표를 랜딩에 쓸 수 있습니다. 이것이 표시광고법 안에서 가능한 가장 강한 가격 메시지입니다.</p>
+
+<h3>② 유통 문제는 코드가 일부 풀 수 있다 — 스토리 개별 페이지 SEO</h3>
+<p>설계서는 "방문자 0에서 시작"을 최대 결함으로 봤고 해법을 영업(당근·전화)에서 찾았습니다. 그런데 온스토리는 이미 경로형 주소 + 통합 사이트맵이라는 SEO 구조를 갖췄고, 홈온은 <strong>사용자 사이트가 단일 페이지</strong>입니다(하위 카테고리도 같은 URL 안 앵커). 스토리 엔트리 하나하나를 <code>onstori.com/{slug}/story/{id}</code>로 열면, "광진구 32평 리모델링", "강동구 입주청소 후기" 같은 <em>지역+업종 롱테일 검색어</em>를 사이트당 수십 개씩 갖게 됩니다. 시공 업종의 네이버 검색 유입은 정확히 이런 롱테일에서 납니다. 스토리가 쌓일수록 검색 유입이 늘어나는 구조 — 컨셉과 유통 문제가 한 기능으로 이어집니다. 홈온이 이걸 따라 하려면 데이터 모델을 바꿔야 합니다.</p>
+
+<h3>③ 히어로 무비는 상품이 아니라 서비스다 — 런칭 범위에서 빼거나 자동화 전제로만</h3>
+<p>설계서도 인정하듯 199,000원 ÷ (편집 3~6시간 + 수정 3회)는 시급 3~5만 원의 외주업입니다. 홈온 대비 우위를 만드는 데 무비는 필요하지 않고, 1인 운영의 번아웃 리스크만 키웁니다. 대안: 사장님 사진 3~5장으로 만드는 <strong>자동 Ken Burns 히어로 슬라이드(무료, 코드 1일)</strong>가 "CF 같은 첫인상"의 80%를 줍니다. 무비는 Seedance 자동 파이프라인이 사람 손 30분 이하로 떨어질 때 다시 꺼내는 것을 권합니다. 무비를 뺀 로드맵이 6장입니다.</p>
+
+<h3>④ 순서 — 결제(P5)가 문의·통계(P7·P8)보다 앞에 있다</h3>
+<p>현재 로드맵은 P5 결제 → P6 브랜드키트+무비 → P7 대시보드 → P8 위젯·문의. 그러나 무료 체험 한 달의 전환은 "문의가 왔다 + 몇 명이 봤다"는 <em>경험</em>에서 납니다. 결제 시스템은 서류(통신판매업·토스 가맹)에 막혀 있으니, 그 대기 시간에 P7·P8의 핵심을 먼저 만드는 것이 자연스럽습니다. 선판매 게이트 2(유료 전환 30%)를 통과하려면 이 순서 변경이 필수입니다.</p>
+</section>
+
+<section id="s5">
+<h2><span class="num">05</span>우위 전략 — 테이블 스테이크와 이기는 무기</h2>
+<p class="sub">"홈온보다 우위에서 시작"을 두 층으로 나눕니다. 테이블 스테이크는 없으면 비교표에서 탈락하는 것이라 <em>최소 비용으로 동등</em>하게 맞추고, 무기는 홈온이 구조적으로 못 따라오는 곳이라 <em>제대로</em> 만듭니다.</p>
+<div class="two">
+<div class="panel">
+<h4>테이블 스테이크 12 — 동등하게, 싸게</h4>
+<ul>
+<li>미리보기 에디터(폰/PC 토글)</li>
+<li>플로팅 연결 위젯</li>
+<li>문의·견적 접수함 + 알림</li>
+<li>예약 신청 폼(캘린더 아님)</li>
+<li>방문·클릭·유입 통계 1페이지</li>
+<li>워드마크 로고 · QR · 명함 PDF</li>
+<li>내 도메인 연결</li>
+<li>GA4 · 픽셀 주입</li>
+<li>띠 배너 노출 기간</li>
+<li>네이버 지도 임베드 + 길찾기</li>
+<li>헤더 네비 · 사업자 정보 푸터</li>
+<li>토스 빌링 결제 + 플랜</li>
+</ul>
+</div>
+<div class="panel win">
+<h4>이기는 무기 7 — 홈온이 못 하는 것</h4>
+<ul>
+<li><strong>리드 엔진</strong> — 사진 첨부 견적 폼 → 사장님 폰에 즉시 알림 → 문의함 → 월간 "문의 N건" 리포트. 기본 플랜에.</li>
+<li><strong>스토리 개별 페이지 SEO</strong> — 지역+업종 롱테일. 쌓일수록 유입.</li>
+<li><strong>공유 시트 스토리 + AI 캡션</strong> — 폰 갤러리에서 "공유 → 온스토리", Gemini Vision이 제목·두 줄 초안.</li>
+<li><strong>속도</strong> — 랜딩에서 상호명 1칸 → 8초 → 완성본. 홈온의 11단계·5분과 나란히 보여주기.</li>
+<li><strong>제작비 0원 · 단일 플랜</strong> — 홈온 BUSINESS 기능을 9,900~12,900원에.</li>
+<li><strong>후기 요청 링크</strong> — 고객이 직접 쓰고 승인 후 게시. 홈온은 사장님 수동 입력만.</li>
+<li><strong>신뢰 정책</strong> — 환불 규정·데이터 내보내기(JSON/ZIP)·"AI 초안" 고지를 공개. 홈온 약관엔 환불 조항이 없음.</li>
+</ul>
+</div>
+</div>
+<p>무기 ①②③은 서로 연결됩니다: 스토리가 쌓이면(③) 검색 유입이 늘고(②) 문의가 찍힙니다(①). 사장님이 매달 보는 리포트에 "이번 달 검색 유입 42명 · 문의 3건 · 스토리 2건 추가"가 찍히는 순간, 온스토리는 홈페이지가 아니라 <strong>"견적 문의가 들어오는 상태"</strong>를 파는 상품이 됩니다 — 설계서 00장이 요구한 포지셔닝 수정이 코드로 성립합니다.</p>
+<div class="note warn"><strong>CLAUDE.md 규칙 8 유의</strong> — 홈온 UI·문구·템플릿 복제 금지는 계속 지켜야 합니다. 이 리포트의 "홈온 기능 전부"는 <em>기능 개념</em>의 목록이고, 화면·카피·플로우는 독자 제작이어야 합니다. 특히 온보딩 11단계와 완성도 "+N점" 문구 패턴은 눈에 띄는 홈온 시그니처라 다르게 풀어야 합니다(온스토리는 이미 "무질문"으로 다릅니다).</div>
+</section>
+
+<section id="s6">
+<h2><span class="num">06</span>로드맵 재편 — Sprint A부터 F까지</h2>
+<p class="sub">기존 P5~P9를 "사장님이 무료 한 달 안에 가치를 느끼는 순서"로 다시 묶었습니다. 각 스프린트는 2주 기준, 1인 + Claude Code 공수입니다. 서류(통신판매업·토스)는 Sprint A 첫날 시작하면 Sprint C에 맞습니다.</p>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT A</span><span class="t">문의가 찍히는 홈페이지</span><span class="w">지금 · 2주 · 서류 대기와 병행</span></div><div class="bd">
+<ul>
+<li>견적·문의 폼 실접수(<code>inquiries</code>) + 이메일·문자 즉시 알림 + 에디터 안 "문의함" 탭</li>
+<li>플로팅 연결 위젯(전화·문자·카톡·톡톡·길찾기·인스타·숨고)</li>
+<li>에디터 미리보기 iframe(폰/PC) + 섹션 삭제·숨김 + 점수 앵커 스크롤</li>
+<li>네이버 정적 지도 + 길찾기, 고객 사이트 sticky 헤더</li>
+<li>범위 밖 업종: 범용 업종 2종 + 저확신 되묻기 카드</li>
+<li>폴백 카피 날조 필터, 트라이얼 index 조건 완화</li>
+</ul>
+<p class="why">이유: 당근 홍보를 켜기 전 최소 조건. 이 스프린트가 끝나면 "문의 왔어요" 알림이 사장님 폰에 도착하고, 그 사실이 곧 영업 자료가 됩니다.</p></div></div>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT B</span><span class="t">숫자가 보이는 홈페이지</span><span class="w">2주</span></div><div class="bd">
+<ul>
+<li><code>events</code> 경량 트래킹(visit·call_click·map·inquiry·story_view, 쿠키 없음, referrer 분류)</li>
+<li>사장님 대시보드 <code>/{slug}/admin</code> 1페이지: 30일 방문·클릭·유입·문의·스토리 조회</li>
+<li>주간 리포트 자동 발송(메일 + 카카오 알림톡은 가맹 후)</li>
+<li>랜딩 개편: 히어로 상호명 1칸 즉시 생성, 실고객 사례 우선, 홈온 대비 비교표(가격·기능·속도)</li>
+<li>사업자 정보 푸터, 슬러그 자동 추천, 필수 입력 2개로 축소</li>
+</ul>
+<p class="why">이유: 무료 종료 시점에 사장님이 보는 것은 "이걸 계속 낼 이유"입니다. 그 이유가 숫자로 도착해야 합니다(홈온 운영현황 캡쳐 6장이 정확히 이 화면).</p></div></div>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT C</span><span class="t">결제와 플랜 (구 P5)</span><span class="w">2주 · 서류 완료 시</span></div><div class="bd">
+<ul>
+<li>토스 빌링키: 월/연 2종, 웹훅 멱등, 실패 유예 7일 → 비공개 전환</li>
+<li>플랜 한도 서버 강제(사실상 제한 없음 — 브랜드 표기 숨김·도메인 연결만 유료 게이트)</li>
+<li>환불·해지·데이터 내보내기 정책 페이지 + 약관·개인정보처리방침·AI 고지(설계서 13장)</li>
+<li><code>funnel.activated_at</code> 기록, 운영자 퍼널 화면(생성→수정→발행→결제)</li>
+</ul>
+<p class="why">이유: Sprint A·B가 만든 가치를 돈으로 바꾸는 층. 단일 플랜이면 게이팅 코드가 1/3로 줄어 2주 안에 끝납니다.</p></div></div>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT D</span><span class="t">브랜드키트 — 규칙 기반, AI 없이</span><span class="w">1.5주</span></div><div class="bd">
+<ul>
+<li>워드마크 로고: 눈누 BI 허용 폰트 3종 × 팔레트 → SVG 조판(satori) → PNG/SVG 다운로드</li>
+<li>QR(홈페이지·전화·카톡) + 명함 PDF 1종(앞: 로고·상호·연락처, 뒤: QR)</li>
+<li>완성도 규칙 <code>logo</code> 실판정 연결</li>
+<li>히어로 Ken Burns 슬라이드(사진 3~5장) — 무비의 무료 대체</li>
+</ul>
+<p class="why">이유: 홈온이 온보딩 미끼로 쓰는 요소를 원가 0으로 갖춥니다. 심볼 로고(AI)는 한글 깨짐·상표 리스크가 있어 런칭 후.</p></div></div>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT E</span><span class="t">운영 도구 마감</span><span class="w">2주</span></div><div class="bd">
+<ul>
+<li>예약 신청 폼(희망일시·항목·확정 방식) → BOOK 템플릿 개방(미용·필라테스 업종 enum 활성)</li>
+<li>후기 요청 링크(고객 작성 → 승인 → 게시, 별점 없음)</li>
+<li>띠 배너 노출 기간·복수 문구, 유튜브 임베드 섹션, FAQ 섹션</li>
+<li>내 도메인 연결(Vercel Domains API + CNAME 안내 + 검증 폴링), GA4·픽셀 주입</li>
+<li>색상 프리셋 8종 + 제목 폰트 3종</li>
+</ul>
+<p class="why">이유: 이 시점에 기능표에서 홈온 BUSINESS와 동등 이상. 도메인은 홈온이 오류를 내는 곳이라 "확실히 되는 것"이 곧 차별화.</p></div></div>
+
+<div class="sprint"><div class="hd"><span class="n">SPRINT F</span><span class="t">스토리 엔진 — 무기의 완성</span><span class="w">2주</span></div><div class="bd">
+<ul>
+<li>스토리 개별 페이지 <code>/{slug}/story/{id}</code> + 사이트맵 포함 + OG + 지역·업종 메타</li>
+<li>PWA <code>share_target</code>: 폰 갤러리 "공유 → 온스토리" → 사진 업로드 → Gemini Vision 캡션 초안 → 1탭 게시</li>
+<li>주 1회 넛지(이메일/알림톡): "이번 주 현장 사진 한 장 남길까요?"</li>
+<li>실적 카운터(작업 기록 N건) 히어로·소개 노출 강화</li>
+</ul>
+<p class="why">이유: 컨셉·SEO·유지율이 한 기능으로 묶입니다. 홈온 사용자 불만("블로그 방식 도입되었으면")에 대한 직접 답.</p></div></div>
+
+<p>런칭 후: 투어 UI 폴리시(P9), 사이트별 챗봇(스토리 RAG), AI 이미지 편집, 심볼 로고, 쇼핑몰형, 히어로 무비. 설계서 P6의 무비는 이 목록 맨 뒤로 옮기는 것을 권합니다.</p>
+</section>
+
+<section id="s7">
+<h2><span class="num">07</span>기술 구현 가이드</h2>
+<p class="sub">Sprint A·B의 핵심 항목을 현재 코드 구조(Next 16 App Router · Supabase · zod 스키마 · 불변 규칙 8개) 안에서 어떻게 넣는지 적습니다. 모두 CLAUDE.md 규칙(마이그레이션 파일·스키마 4곳 동시 수정·서버 검증)을 지키는 방식입니다.</p>
+
+<h3>문의 접수 (Sprint A · 2~3일)</h3>
+<pre>-- supabase/migrations/xxxx_inquiries.sql
+create table inquiries (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references sites(id) on delete cascade,
+  name text not null check (char_length(name) &lt;= 40),
+  phone text not null check (char_length(phone) &lt;= 20),
+  message text check (char_length(message) &lt;= 1000),
+  photos jsonb not null default '[]',      -- uploads 버킷 경로 ≤3
+  kind text not null default 'quote',      -- quote | reserve | consult
+  status text not null default 'new',      -- new | contacted | done
+  referrer_class text, created_at timestamptz default now()
+);
+alter table inquiries enable row level security;
+-- 공개 insert는 service-role API에서만, select는 owner_id 일치</pre>
+<p><code>QuoteFormSec</code>를 클라이언트 컴포넌트로 교체하되 스키마는 그대로(<code>allowPhotos</code>가 이미 있음 → 4곳 수정 불필요). <code>POST /api/inquiry</code>는 기존 <code>rate_limit_hit</code> 함수 재사용(IP당 시간 5회), 허니팟 필드 1개, 사진은 <code>/api/site/upload</code>의 sharp 파이프라인 재사용. 알림은 Resend(이미 설정됨)로 사장님 이메일 + 문자는 솔라피 REST 1콜. 에디터에 "문의함" 탭(<code>tab: "content" | "story" | "inbox"</code>) — 앵커 <code>panel-inbox</code>는 <code>config/tours.ts</code>에 먼저 등록(규칙 3).</p>
+
+<h3>연결 위젯 (Sprint A · 1일)</h3>
+<pre>// lib/schema.ts — SiteDoc에 추가 (4곳 동시 수정: zod·렌더러·에디터 폼·SCHEMA.md)
+export const Widget = z.object({
+  type: z.enum(["call","sms","kakao","navertalk","instagram","blog","map","soomgo","youtube"]),
+  value: z.string().max(200),
+  enabled: z.boolean().default(true),
+});
+widgets: z.array(Widget).max(6).default([])</pre>
+<p>렌더러는 <code>position: fixed; bottom: 0</code> 바에 활성 위젯만 그리고, 클릭은 <code>/api/track</code> beacon으로 <code>call_click</code> 등 기록(Sprint B와 연결). <code>completeness.ts</code>의 <code>widget_1</code>이 자동으로 살아납니다.</p>
+
+<h3>에디터 미리보기 (Sprint A · 1~2일)</h3>
+<p><code>app/[slug]/preview/page.tsx</code> — <code>loadOwnedSite</code>로 소유 검증 후 <code>draft</code>를 <code>RenderSection</code>으로 렌더(발행본 렌더러와 같은 컴포넌트, noindex). 에디터 <code>ui.tsx</code>는 우측(≥1024px) 또는 상단 접이식(폰)에 <code>&lt;iframe src="/{slug}/preview"&gt;</code>. <code>save()</code> 성공 후 <code>iframeRef.current?.contentWindow?.location.reload()</code>. 폰/PC 토글은 iframe 폭 375/1024 + <code>transform: scale()</code>(이미 <code>phone-frame.tsx</code>에 있는 방식). 앵커 <code>preview</code>는 tours.ts에 이미 있으므로 규칙 위반 없음.</p>
+
+<h3>트래킹·대시보드 (Sprint B · 3일)</h3>
+<pre>-- events: 개인정보 없이. 세션은 일자+UA+IP 해시(salt 일 단위 회전)
+create table events (
+  site_id uuid references sites(id) on delete cascade,
+  type text not null,        -- visit | call_click | sms | map | inquiry | story_view | widget:*
+  referrer_class text,       -- direct | naver | google | instagram | kakao | other
+  session_hash text, created_at timestamptz default now()
+);
+create index on events (site_id, created_at desc);</pre>
+<p>수집은 렌더러의 작은 인라인 스크립트가 <code>navigator.sendBeacon('/api/track')</code>. 집계는 Postgres 함수 1개(<code>site_stats(site_id, days)</code>)로 30일 합계·일별·유입 분류를 한 번에 반환 → <code>/{slug}/admin</code>이 서버 컴포넌트로 표시. 트래픽 커지면 <code>events_daily</code> 롤업 테이블로 옮기면 됩니다. Supabase Free 500MB 기준, 사이트 100개 × 월 1,000 이벤트 = 무시할 수준.</p>
+
+<h3>범위 밖 업종 (Sprint A · 반나절)</h3>
+<p><code>config/industries.ts</code>에 <code>generic-quote</code>(카테고리 5)·<code>generic-visit</code>(카테고리 1) 추가, <code>bankTags</code>는 빈 배열 → <code>pickImage</code>가 무드만으로 매칭하도록 분기. <code>classify()</code>에서 <code>method === "llm" &amp;&amp; confidence &lt; 0.6</code>이면 <code>/api/generate</code>가 <code>{ needsConfirm: true, candidates: [...3] }</code>를 반환하고 <code>/new</code>가 카드 3장을 띄웁니다. LLM이 목록 밖 id를 주면 <code>INDUSTRIES[0]</code> 대신 generic으로. <code>inferred</code>에 <code>model</code> 필드 추가(날조 필터 추적용).</p>
+
+<h3>스토리 개별 페이지 · 공유 시트 (Sprint F)</h3>
+<p><code>app/[slug]/story/[id]/page.tsx</code> — <code>story_entries.visible</code>만, 제목에 지역(주소에서 구 단위 추출)+업종 자동 결합, <code>sitemap.ts</code>에 포함. PWA는 <code>manifest.json</code>의 <code>share_target: { action: "/share", method: "POST", enctype: "multipart/form-data", params: { files: [{ name: "photos", accept: ["image/*"] }] } }</code> + <code>/share</code> 라우트가 로그인 세션의 사이트 목록을 보여주고 Gemini Vision(<code>gemini-3.1-flash</code> 멀티모달)으로 제목·두 줄 초안 → 1탭 게시. 카카오톡 채널 자동 게시는 API 제약이 커서 공유 시트가 현실적 경로입니다.</p>
+
+<h3>도메인 연결 (Sprint E)</h3>
+<p>미들웨어 없이 가능합니다: <code>next.config.ts</code> <code>rewrites</code>에 <code>has: [{ type: "host", value: "(?&lt;host&gt;.*)" }]</code>로 커스텀 호스트를 <code>/_domain/:host</code>로 보내고, 그 라우트가 <code>sites.custom_domain</code>으로 슬러그를 찾아 같은 렌더러를 호출. 등록은 Vercel Domains API(<code>POST /v10/projects/{id}/domains</code>) + 사장님에게 CNAME 안내 + 검증 폴링. 홈온이 "연결 중 오류"를 내는 지점이라 E2E를 꼼꼼히.</p>
+
+<div class="note"><strong>에디터 방식에 대해</strong> — 홈온의 3단 캔버스를 그대로 따라갈 필요는 없습니다. 폼 기반 + 미리보기 iframe은 폰에서 홈온보다 낫고, 구현·유지 비용이 1/5입니다. 자유 드래그 캔버스는 소상공인이 원하는 것이 아니라(홈온 후기: "글자체 바꾸는 기능이 없네요" 정도의 요구) 개발자가 원하는 것입니다.</div>
+</section>
+
+<section id="s8">
+<h2><span class="num">08</span>가격 재설계</h2>
+<p class="sub">시장 가격은 2026-09-02 각 사 요금 페이지에서 확인했습니다. 부가세 표기는 사별로 다릅니다(식스샵 별도, 웨이브온 포함, 홈온 미표기).</p>
+<div class="tablewrap"><table>
+<thead><tr><th>서비스</th><th class="num-col">초기 비용</th><th class="num-col">월 요금</th><th class="num-col">첫해 총액 (월결제)</th><th>문의 관리</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>홈온 LIGHT</td><td class="num-col">49,000</td><td class="num-col">9,900</td><td class="num-col">~168,000</td><td><span class="chip c-bad">없음</span></td><td>위젯 3 · 사진그룹 3 · 브랜드 표기 고정</td></tr>
+<tr><td>홈온 PRO</td><td class="num-col">49,000</td><td class="num-col">19,900</td><td class="num-col">~288,000</td><td><span class="chip c-bad">없음</span></td><td>배너·공지·도장</td></tr>
+<tr><td>홈온 BUSINESS</td><td class="num-col">49,000</td><td class="num-col">39,900</td><td class="num-col">~528,000</td><td><span class="chip c-good">있음</span></td><td>챗봇·고객DB·위젯 무제한·표기 숨김</td></tr>
+<tr><td>아임웹 Starter</td><td class="num-col">0</td><td class="num-col">16,000</td><td class="num-col">~154,000</td><td><span class="chip c-good">있음</span></td><td>무료 플랜 폐지(2025-07). 직접 디자인</td></tr>
+<tr><td>식스샵 홈페이지</td><td class="num-col">0</td><td class="num-col">13,600</td><td class="num-col">~148,000 (+VAT)</td><td><span class="chip c-good">있음</span></td><td>무료 플랜은 워터마크</td></tr>
+<tr><td>웨이브온 Pro</td><td class="num-col">0</td><td class="num-col">14,900</td><td class="num-col">~147,000</td><td><span class="chip c-warn">폼</span></td><td>AI 대화형, 크레딧 과금</td></tr>
+<tr><td><strong>온스토리 현재</strong></td><td class="num-col">49,000</td><td class="num-col">9,900</td><td class="num-col">~168,000</td><td><span class="chip c-bad">없음</span></td><td>홈온 LIGHT와 동일 가격, 기능 열위</td></tr>
+<tr><td><strong>온스토리 제안</strong></td><td class="num-col"><strong>0</strong></td><td class="num-col"><strong>12,900</strong></td><td class="num-col"><strong>99,000</strong></td><td><span class="chip c-good">기본 포함</span></td><td>단일 플랜 · 위젯·스토리·문의 무제한 · 연결제 시 표기 숨김</td></tr>
+</tbody></table></div>
+<p><strong>제안 구조</strong>: 제작비 0원 · 1개월 무료 · 이후 월 12,900원 또는 연 99,000원(월 8,250원 환산). 플랜은 하나. 유료 게이트는 딱 두 개 — 커스텀 도메인 연결, "Made with 온스토리" 숨김(연결제 전용). 나머지(문의함·위젯·스토리·통계·브랜드키트·후기)는 전부 포함.</p>
+<p><strong>왜 9,900이 아니라 12,900인가</strong>: 홈온 LIGHT와 같은 9,900원으로는 "제작비 0"만으로 첫해 49,000원 차이가 나고 그 뒤로는 같습니다. 12,900원이면 "홈온 BUSINESS(39,900)의 기능을 1/3 가격에"라는 문장이 성립하고, 연 99,000원은 홈온 LIGHT 첫해(약 168,000원, 1년권 12+3개월로 계산해도 약 134,000원/년)보다 여전히 쌉니다. 즉 <em>모든 홈온 플랜보다 싸면서 최상위 플랜보다 기능이 많은</em> 위치가 됩니다. 사장님에게 가격 앵커는 "월 얼마"가 아니라 "처음에 얼마"이므로, 제작비 0원이 가장 큰 메시지입니다.</p>
+<p><strong>단위 경제</strong>: 인프라 고정비 월 약 10만 원(Vercel Pro $20 + Supabase Pro $25 + 문자·메일 소액), 고객당 변동비 월 100~300원(AI 카피 재생성·문자 알림·이미지 변환). 유료 100곳이면 월 매출 약 129만 원(연결제 혼합 시 약 100만 원), 원가 약 13만 원. 150~200곳부터 1인 사업으로 성립합니다. 선판매 게이트 2(전환 30%)를 통과한다는 전제입니다.</p>
+<div class="note"><strong>표시광고법</strong> — "제작비 0원"은 실제로 어떤 선불도 없어야 합니다. "홈온보다 싸다"는 직접 비교 광고는 근거(양사 공개 요금 캡쳐·날짜)를 보관하면 가능하지만, 홈온의 상호를 랜딩에 쓰는 것은 분쟁 여지가 있으니 "타 서비스 최상위 플랜 기준" 같은 간접 표현을 권합니다.</div>
+</section>
+
+<section id="s9">
+<h2><span class="num">09</span>이번 주 체크리스트</h2>
+<p class="sub">코드 5건 · 결정 3건 · 서류 1건. 코드는 전부 하루 이내이고 Sprint A의 출발점입니다.</p>
+<ul class="check">
+<li><strong>통신판매업 신고 → 토스페이먼츠 가맹 신청</strong> 시작 <span class="tag">사장님 · 서류 · Sprint C 선행</span></li>
+<li><strong>결정 1</strong> — 범위 밖 업종: "범용 수용 + 저확신 되묻기" 승인 여부 <span class="tag">사장님 · 결정</span></li>
+<li><strong>결정 2</strong> — 가격 구조: 제작비 0원 · 단일 플랜 12,900/99,000 승인 여부 <span class="tag">사장님 · 결정</span></li>
+<li><strong>결정 3</strong> — 히어로 무비를 런칭 범위에서 제외(Ken Burns 슬라이드로 대체) <span class="tag">사장님 · 결정</span></li>
+<li>폴백 카피 날조 필터 + <code>inferred.model</code> 기록 <span class="tag">코드 · 2h</span></li>
+<li>플로팅 연결 위젯(스키마 4곳 동시 수정) <span class="tag">코드 · 1d · ultracode 권장</span></li>
+<li>고객 사이트 sticky 헤더 + 네이버 정적 지도 <span class="tag">코드 · 1d</span></li>
+<li>랜딩: 쇼케이스 <code>real | sample</code> 배지, 실고객 우선 <span class="tag">코드 · 2h</span></li>
+<li>슬러그 자동 추천 3개 + 전화번호 선택 입력화 <span class="tag">코드 · 3h</span></li>
+</ul>
+<p>다음 리포트에서 다룰 수 있는 것: Sprint A 항목별 상세 스펙(스키마 diff·API 계약·에디터 화면 흐름), 랜딩 비교표 카피 초안, 당근 홍보글 v3(문의 알림을 앞세운 버전), 선판매 트래커 시트.</p>
+</section>
+
+<footer>
+<p>근거 출처 — onstori.com 라이브 · onstori.com/onstoriplandept(설계서 v3.3, PROGRESS 2026-09-02, DECISIONS) · 로컬 소스 <code>fable51plandept/onstori</code>(docs 12 · lib 15 · app 13 · config 4 · components 3) · 캡쳐 폴더 110장(2026-08-31 촬영) · homon.co.kr 공개 페이지·start·templates·terms·privacy · homeonweb.co.kr · iadplus.kr · 전자신문 2026-07-15 · 아임웹/식스샵/웨이브온/카페24 요금 페이지(2026-09-02 조회).</p>
+<p>"추정"으로 표기하지 않은 홈온 정보는 캡쳐 또는 공개 페이지에서 직접 읽은 것입니다. 가격은 조회 시점 기준이며 부가세 포함 여부는 각 사 표기를 따랐습니다.</p>
+</footer>
+
+</main>
+</div>
+</div>
+
+</body>
+</html>
