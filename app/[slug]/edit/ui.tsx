@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RULES } from "@/config/completeness";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
+import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -45,7 +46,18 @@ export function EditUi({ slug }: { slug: string }) {
   /** 거부 상태 — 서버가 준 error·signedIn으로 문구와 CTA를 가른다.
    *  notFound(404)에 로그인 CTA를 주면 /login이 세션을 발견해 되돌려보내 같은 화면으로 돈다. */
   const [denied, setDenied] = useState<{ signedIn: boolean; notFound: boolean } | null>(null);
-  const [tab, setTab] = useState<"content" | "story">("content");
+  /** 알림 문자·메일의 링크가 `?tab=inbox` 다. useSearchParams 는 Suspense 경계를 요구해
+   *  빌드가 걸리므로 초기값에서 직접 읽는다. 첫 렌더는 data=null 이라 탭이 트리에 없다. */
+  const [tab, setTab] = useState<"content" | "story" | "inbox">(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "inbox" ? "inbox" : "content");
+  /** 문의함 초기 데이터 — 배지 숫자와 알림 채널 상태는 탭을 열기 전에 알아야 한다 */
+  const [inbox, setInbox] = useState<InboxRes | null>(null);
+  /** 조회가 끝났는지. InboxTab 은 initial 을 마운트 때 한 번만 읽으므로,
+   *  ?tab=inbox 로 바로 들어오면 아직 null 인 상태로 마운트돼 실패 화면이 굳는다. */
+  const [inboxDone, setInboxDone] = useState(false);
+  const [newCount, setNewCount] = useState(0);
+  /** 알림 수신처 — draft 가 아니라 sites.settings 라서 doc 이 아니라 여기가 들고 있는다 */
+  const [notify, setNotify] = useState({ phone: "", email: "" });
 
   /**
    * "＋N점" 클릭 → 해당 data-tour 앵커로 스크롤·강조 (P3 이월, 투어의 최소 동작형).
@@ -82,11 +94,25 @@ export function EditUi({ slug }: { slug: string }) {
         return { ok: false as const, signedIn: !!body.signedIn, notFound: body.error !== "forbidden" };
       })
       .then((res) => {
-        if (res.ok) { setData(res.d); setDoc(res.d.draft); }
+        if (res.ok) {
+          setData(res.d); setDoc(res.d.draft);
+          const n = (res.d.settings as { notify?: { phone?: string; email?: string } } | null)?.notify;
+          setNotify({ phone: n?.phone ?? "", email: n?.email ?? "" });
+        }
         else setDenied({ signedIn: res.signedIn, notFound: res.notFound });
       })
       // 네트워크·서버 오류는 권한 문제가 아니므로 로그인으로 유도하지 않는다
       .catch(() => setDenied({ signedIn: false, notFound: true }));
+  }, [slug]);
+
+  /** 문의함 — 배지와 알림 채널 상태 때문에 탭을 열기 전에 한 번 받아둔다.
+   *  실패해도 에디터 본체는 그대로 뜬다(문의함 탭 안에서 다시 시도한다). */
+  useEffect(() => {
+    fetch("/api/inquiry/list", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, anonId: anon() }) })
+      .then((r) => (r.ok ? (r.json() as Promise<InboxRes>) : null))
+      .then((d) => { if (d) { setInbox(d); setNewCount(d.newCount); } })
+      .catch(() => {})
+      .finally(() => setInboxDone(true));
   }, [slug]);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2500); };
@@ -100,7 +126,8 @@ export function EditUi({ slug }: { slug: string }) {
     if (!doc) return false;
     setBusy("save");
     const r = await fetch("/api/site/update", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, anonId: anon(), draft: doc, settings: { phone: phoneOf(doc), address: addressOf(doc) } }) });
+      body: JSON.stringify({ slug, anonId: anon(), draft: doc,
+        settings: { phone: phoneOf(doc), address: addressOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
     const d = await r.json();
     setBusy("");
     if (!r.ok) { flash(`저장 실패: ${d.detail ?? d.error}`); return false; }
@@ -250,18 +277,29 @@ export function EditUi({ slug }: { slug: string }) {
       </section>
 
       {/* 탭 */}
-      <nav className="mt-5 flex gap-2">
+      <nav className="mt-5 flex flex-wrap items-center gap-2">
         <button onClick={() => setTab("content")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "content" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>내용 수정</button>
         <button data-tour="story-new" onClick={() => setTab("story")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "story" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
           이야기 쓰기 <span className="opacity-60">({data.storyCount})</span>
+        </button>
+        <button data-tour="panel-inbox" onClick={() => setTab("inbox")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "inbox" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>
+          문의함
+          {newCount > 0 && (
+            <span className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-teal-600 px-1.5 py-0.5 text-[11px] font-bold text-white">{newCount}</span>
+          )}
         </button>
         <a href={`/${slug}`} target="_blank" className="ml-auto self-center text-sm text-teal-700 underline underline-offset-4">내 사이트 보기 ↗</a>
       </nav>
 
       {tab === "content" ? (
-        <ContentTab doc={doc} slug={slug} patchSection={patchSection} setDoc={(d) => { setDoc(d); setDirty(true); }} />
-      ) : (
+        <ContentTab doc={doc} slug={slug} patchSection={patchSection} setDoc={(d) => { setDoc(d); setDirty(true); }}
+          notify={notify} setNotify={(n) => { setNotify(n); setDirty(true); }} channels={inbox?.channels ?? null} />
+      ) : tab === "story" ? (
         <StoryTab slug={slug} onDone={(score) => { setData((p) => p && { ...p, score, storyCount: p.storyCount + 1 }); flash("이야기가 올라갔어요! 바로 홈페이지에 보여요"); }} />
+      ) : inboxDone ? (
+        <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
+      ) : (
+        <p className="mt-8 text-center text-sm text-neutral-400">문의를 불러오는 중…</p>
       )}
 
       {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
@@ -285,10 +323,51 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 const inp = "w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-teal-600";
 
-function ContentTab({ doc, slug, patchSection, setDoc }: {
+/**
+ * 문의 알림 수신처 — docs/specs/inquiry.md 5장. quoteForm 카드 안에 붙는다.
+ *
+ * 값은 draft 가 아니라 `sites.settings.notify` 라서 저장 버튼(save)이 함께 보낸다.
+ * 채널 키(솔라피·Resend)는 서버 env 라 여기서는 켜짐/꺼짐만 안다 — 꺼져 있으면
+ * 사장님이 "설정을 잘못했나" 헤매지 않도록 준비 중이라고 밝힌다.
+ */
+function NotifyBox({ notify, setNotify, channels }: {
+  notify: { phone: string; email: string };
+  setNotify: (n: { phone: string; email: string }) => void;
+  channels: NotifyChannels | null;
+}) {
+  const pending = !channels || (channels.sms && channels.email)
+    ? null
+    : !channels.sms && !channels.email
+      ? "지금은 알림 발송이 준비 중이에요. 문의는 빠짐없이 문의함에 쌓이니 여기서 확인해 주세요."
+      : !channels.sms
+        ? "문자 알림은 준비 중이에요. 지금은 이메일로 알려드려요."
+        : "이메일 알림은 준비 중이에요. 지금은 문자로 알려드려요.";
+
+  return (
+    <div className="space-y-3 rounded-xl bg-neutral-50 p-3.5">
+      <p className="text-xs font-bold">문의 알림 받기</p>
+      <Field label="문자 받을 번호">
+        <input className={inp} value={notify.phone} maxLength={20} inputMode="tel"
+          onChange={(e) => setNotify({ ...notify, phone: e.target.value })} />
+      </Field>
+      <Field label="이메일">
+        <input className={inp} type="email" value={notify.email} maxLength={120}
+          onChange={(e) => setNotify({ ...notify, email: e.target.value })} />
+      </Field>
+      <p className="text-[11px] leading-relaxed text-neutral-500">비워두면 위 전화번호와 로그인 이메일로 알려드려요.</p>
+      {pending && <p className="text-[11px] leading-relaxed text-amber-700">{pending}</p>}
+    </div>
+  );
+}
+
+function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channels }: {
   doc: SiteDocT; slug: string;
   patchSection: (i: number, p: Partial<SectionT>) => void;
   setDoc: (d: SiteDocT) => void;
+  notify: { phone: string; email: string };
+  setNotify: (n: { phone: string; email: string }) => void;
+  /** null = 아직 못 받았거나 조회 실패 — 채널 상태를 단정하지 않는다 */
+  channels: NotifyChannels | null;
 }) {
   const [uploading, setUploading] = useState(false);
 
@@ -414,6 +493,7 @@ function ContentTab({ doc, slug, patchSection, setDoc }: {
               <div data-tour="set-contact">
                 <Field label="전화번호 (문의 버튼 연결)"><input className={inp} value={s.phone} maxLength={20} onChange={(e) => patchSection(i, { phone: e.target.value })} /></Field>
               </div>
+              <NotifyBox notify={notify} setNotify={setNotify} channels={channels} />
             </section>
           );
           case "map": return (
