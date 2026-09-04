@@ -85,8 +85,3 @@ export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
   if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null; // 라우팅 최종 방어선
   return (await getFromDb(slug)) ?? (await getFromSeed(slug));
 }
-
-/** 실적 카운터: 스토리에서 자동 집계 — 임의 숫자 입력 없음 (컨셉 + 표시광고법) */
-export function workCount(stories: StoryEntryT[]): number {
-  return stories.filter((s) => s.entryType === "work").length;
-}

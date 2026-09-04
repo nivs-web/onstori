@@ -1,5 +1,5 @@
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
-import { workCount } from "@/lib/sites";
+import { workCount } from "@/lib/stories";
 import QuoteForm from "./quote-form";
 
 /**
