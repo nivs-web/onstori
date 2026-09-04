@@ -105,7 +105,7 @@ export const QuoteForm = z.object({
   sub: z.string().max(120).optional(),
   phone: z.string().min(1).max(20),
   kakaoUrl: z.string().url().optional(),
-  allowPhotos: z.boolean().default(true), // 실제 폼 접수는 P8 — P1은 연락 CTA 카드로 렌더
+  allowPhotos: z.boolean().default(true), // 접수 폼은 components/sections/quote-form.tsx
 });
 
 /* ── VISIT 템플릿 전용 ── */
