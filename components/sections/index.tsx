@@ -36,12 +36,23 @@ function SectionShell({ title, children }: { title?: string; children: React.Rea
   );
 }
 
-// 전화번호가 안내 문구면 tel: 링크가 죽는다 — 쓸 수 있는 번호일 때만 걸고, 아니면 문의 폼으로 보낸다.
-// map.phone 폴백은 뺐다: 생성 시 값이 굳고 에디터에 수정 UI가 없어 사장님이 고칠 수 없는 값이다.
+/**
+ * 연결 수단의 단일 출처 — 히어로 CTA 와 플로팅 위젯이 같은 값을 본다.
+ * 위젯은 값을 갖지 않고 여기서 파생한다(사본을 늘리지 않기 위해).
+ * 전화번호가 안내 문구면 tel 이 "" 로 돌아온다 — 호출부가 죽은 링크를 만들지 않게 한다.
+ * map.phone 은 쓰지 않는다: 생성 시 값이 굳고 에디터에 수정 UI가 없어 사장님이 고칠 수 없는 값이다.
+ */
+export function contactOf(doc: SiteDocT): { tel: string; kakaoUrl: string } {
+  const q = doc.sections.find((s) => s.type === "quoteForm");
+  return {
+    tel: telValue(q && "phone" in q ? q.phone : ""),
+    kakaoUrl: (q && "kakaoUrl" in q ? q.kakaoUrl : "") ?? "",
+  };
+}
+
 function ctaHref(action: string, ctx: Ctx): string {
   if (action === "quote") return "#quote";
-  const q = ctx.doc.sections.find((s) => s.type === "quoteForm");
-  const tel = telValue(q && "phone" in q ? q.phone : "");
+  const { tel } = contactOf(ctx.doc);
   return tel ? `tel:${tel}` : "#quote";
 }
 

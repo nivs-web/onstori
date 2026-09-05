@@ -20,6 +20,7 @@
 | businessName | string | ✅ | 1~40자 |
 | theme | Theme | ✅ | 아래 Theme 표 |
 | sections | Section[] | ✅ | 1~20개, 순서 있는 배열 |
+| widgets | Widget[] | ⬜ | 0~2개. 없으면 위젯 없음 |
 
 ### Theme
 
@@ -35,6 +36,14 @@
 |---|---|---|---|
 | label | string | ✅ | 1~20자 |
 | action | `"call" \| "quote" \| "reserve" \| "consult"` | ✅ | |
+
+### Widget (플로팅 연결 버튼 — SiteDoc 최상위 `widgets[]`)
+
+| 필드 | 타입 | 필수 | 제약·기본값 |
+|---|---|---|---|
+| kind | `"call" \| "kakao"` | ✅ | 판별자. 같은 kind 가 두 번 있으면 렌더러가 첫 항목만 그린다 |
+| label | string | ⬜ | 최대 8자. 기본값 `call`=`"전화"`, `kakao`=`"카카오톡"` |
+| — | — | — | **전화번호·카톡 주소는 위젯이 갖지 않는다 — `quoteForm` 섹션에서 파생**(`contactOf`). 값이 없는 종류는 렌더되지 않는다 |
 
 ## 섹션 목록 (v1 확정)
 

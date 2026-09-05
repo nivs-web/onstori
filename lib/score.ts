@@ -28,7 +28,8 @@ const CHECKS: Record<string, (c: Ctx) => boolean> = {
   cta_form: (c) => !!c.doc?.sections.some((s) => s.type === "quoteForm"),
   logo: () => false,     // P6 브랜드키트에서 활성
   published: (c) => c.publishedAt,
-  widget_1: () => false, // P8 연결 위젯에서 활성
+  // c.doc 은 zod 검증 없이 캐스팅한 draft 라 ?. 가 필수다. 판정 대상이 draft 이므로 저장 즉시 오른다(발행 전)
+  widget_1: (c) => (c.doc?.widgets?.length ?? 0) > 0,
 };
 
 export async function recomputeScore(siteId: string) {
