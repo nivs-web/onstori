@@ -58,13 +58,28 @@
 |---|---|
 | 프로덕션 재검증(배포 7단계) | 발행 5곳(goodmoksu·whitedobae·barun-electric·mong-filates·testtesttest) 정상 렌더 · 콘솔 에러 0 · 5xx 0 · 깨진 이미지 0. 첫 페이지·온보딩 STEP 1~4·만료 차단 화면 확인(STEP 5는 실사이트가 생겨 미실행). **만료 상태에서도 문의함이 열린다** — 차단 화면의 [받아둔 문의 보기]와 `?tab=inbox` 콜드 로드 둘 다 통과 |
 | interior2 만료 테스트·원복 | `trial_ends_at`을 잠시 과거로 돌려 차단 화면을 확인하고 **원복 완료**. 24개 컬럼 전량 diff 결과 트리거가 만지는 `updated_at` 외 차이 없음. 검증 중 생성된 사이트·문의 0건 |
-| ⚠ 만료 규칙의 구멍(미해결) | 만료 판정은 날짜 기반이라 에디터는 즉시 잠기는데, 공개 차단은 크론이 `status='expired'`로 바꿔야 RLS가 끊는다. **`CRON_SECRET` 미등록으로 크론이 401이라 만료돼도 손님에게는 사이트가 그대로 보인다** — 차단 화면의 "지금 비공개 상태입니다" 문구가 현재는 사실이 아니다. 크론이 돌아도 최대 24시간 시차는 남는 구조 |
+| ~~⚠ 만료 규칙의 구멍(미해결)~~ → **2026-09-06 해결** | 만료 판정은 날짜 기반이라 에디터는 즉시 잠기는데, 공개 차단은 크론이 `status='expired'`로 바꿔야 RLS가 끊는다. **`CRON_SECRET` 미등록으로 크론이 401이라 만료돼도 손님에게는 사이트가 그대로 보인다** — 차단 화면의 "지금 비공개 상태입니다" 문구가 현재는 사실이 아니다. 크론이 돌아도 최대 24시간 시차는 남는 구조 |
 | 온보딩 플레이스 불러오기 복구 | 버튼이 늘 0건이던 원인은 키가 아니라 **주소**였다. 검색 API는 2026-07-30 개발자센터 신규 신청이 닫히고 **NAVER API HUB**(네이버클라우드)로 이관 — 구 `openapi.naver.com`은 유예 사용자 전용이라 HUB 키로 부르면 401(errorCode 024)이고 라우트가 `if (!r.ok) return []`로 삼켜 조용히 빈 목록이 됐다. 엔드포인트·헤더 2줄만 전환(응답 스키마는 구·신 동일 → 파싱 무수정). 프로덕션 실측 5건 수신 |
 | 카카오 로컬 채널(이월) | `KAKAO_REST_API_KEY`로 로컬 API를 부르면 `403 NotAuthorizedError — App(Onstori) disabled OPEN_MAP_AND_LOCAL service`. 로그인 스코프와 **별개 설정**이라 로그인이 멀쩡해도 이것만 막힌다. 켜는 것은 대시보드 작업이라 사장님께 이월(DECISIONS 기록, 확인법 포함) |
 | 전화번호 판정 단일화 | 기준이 네 지점에서 제각각이었고 서버(`z.string().min(9)`)가 **글자 수**만 봐서 클라이언트보다 약했다. `lib/phone.ts` 신설(숫자 9자리) — 온보딩·생성 서버·렌더러·완성도가 같은 기준을 쓴다. 온보딩 전화번호 필수화 + 연초록 안내 박스, 죽은 `tel:` 링크 제거. **부작용: 번호가 안내 문구인 사이트는 contact 10점이 빠진다** — 현재 해당 사이트 0곳이라 실피해는 없다 |
 | 권한 규칙 정리 | vercel 명령을 `allow`로 옮기고, 되돌리기 어려운 `vercel rm`·`vercel env rm`만 `ask`로 남김 |
-| 환경변수 | Vercel Production에 **`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET` 등록됨**(NAVER API HUB = NCP 키, ID 10자·Secret 40자 형식). 여전히 미등록: `CRON_SECRET`·`TOSS_*`·`NAVER_*` 외 없음 |
+| 환경변수 | Vercel Production에 **`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET` 등록됨**(NAVER API HUB = NCP 키, ID 10자·Secret 40자 형식). 여전히 미등록: `TOSS_*`(결제 모달 "준비 중"). ~~`CRON_SECRET`~~ 은 2026-09-06 등록됨 |
 | 커밋 | `24ee261`·`de9c85e`(전화번호) · `8bfd614`·`1382467`(플레이스) · `7c4d804`·`1dca6fe`·`1ecada4`(권한), 병합 3건 `ed876ae`·`936e65c`·`536b54f` |
+
+---
+
+## 오늘(2026-09-06) 한 일 요약
+
+`origin/main` = **`a10c499`** 기준. 코드 변경 없음 — 환경변수 1개 등록과 그 검증.
+
+| 영역 | 결과 |
+|---|---|
+| `CRON_SECRET` 등록 | 64자(48바이트 엔트로피) 생성 → `.env.local` + **Vercel Production** 등록 → Redeploy(`jv1g6jzex`). 값은 파일에서 곧장 파이프로 넘겨 명령줄·로그·대화 어디에도 남기지 않았다 |
+| 크론 인증 게이트 | 무인증 401 · 틀린 시크릿 401 · 올바른 시크릿 `200 {"nudged":0,"expired":0}` |
+| **만료 → 공개 차단 실증** | 테스트 사이트 `interior2` 로 체인 전체 확인: `trial_ends_at` 과거 → 크론 `{"expired":1}` → DB `status='expired'` → **공개 `/interior2` 가 200 → 404** → 에디터 `/interior2/edit` 는 200 유지(사장님은 차단 화면·문의함을 봐야 하므로 정상). 끝난 뒤 `status`·`trial_ends_at` 둘 다 원복, 다른 8개 사이트 status 무변경 확인 |
+| 차단 원리 | `lib/sites.ts` 가 **anon 클라이언트**로 읽고 RLS `sites_public_read` 가 `status in ('trial','active')` 만 허용한다 — 서비스 롤 우회가 아니라 정상 경로로 막힌다 |
+| ⚠ 남은 구멍 | **`seeds/*.json` 에 같은 slug 가 있으면 만료로 못 막는다**(DB가 안 줘도 파일 폴백으로 렌더). 현재 해당: cafecroft·cleanhaus·niv 3종. 실고객 사이트는 해당 없음 |
+| ⚠ 이제부터 실제로 나가는 것 | 크론이 매일 03:00 KST(`vercel.json` `0 18 * * *`)에 돌면서 **D-3·D-1 안내 문자를 솔라피로 실제 발송**한다. 문구는 `app/api/cron/expire/route.ts` 의 `nudgeText`. 실측 렌더 결과 **155바이트 안팎으로 전부 LMS(장문)** 구간이라 단문 대비 요금이 3배가량이다 — 문구를 90바이트 이하로 줄이면 SMS 로 떨어진다. 현재 9개 사이트 전부 `settings.phone` 이 있어 발송 대상이다 |
 
 ---
 
