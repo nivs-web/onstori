@@ -13,6 +13,40 @@ import type { Question } from "@/config/questions";
 const MAX_SEC = 60;
 type Screen = "greet" | "ask" | "mode" | "setup" | "count" | "rec" | "review" | "sending" | "done" | "error";
 
+/** 촬영 안내 — 회장님 문구(2026-09-06). 화면 3곳이 이 하나를 쓴다. 사본을 만들지 않는다. */
+const SHOOT_TIPS: [string, string][] = [
+  ["얼굴이 안 나와도 됩니다",
+   "목소리만으로도 충분합니다. 처음엔 목 아래만 나오게 찍으셔도 돼요."],
+  ["매장이라면, 60초 동안 매장을 걸으세요",
+   "“오늘 매장을 보여드릴게요”처럼 편하게 말씀하시면 됩니다."],
+  ["상품이 있다면, 상품을 보여주세요",
+   "60초 동안 상품을 비추면서 “이 상품은 OOO입니다”라고 짧게 말씀해 주세요."],
+  ["얼굴이 부담되시면 손만",
+   "손에 제품을 들고 손과 제품만 나오게 찍으셔도 좋습니다."],
+  ["카메라는 나 말고 매장 쪽으로",
+   "카메라를 매장 쪽으로 두고 편하게 말씀하세요. 그게 가장 자연스럽습니다."],
+];
+
+/** 촬영 안내 — JS 없이 접었다 펴기. globals.css 의 details.faq 규칙을 그대로 쓴다. */
+function ShootGuide({ compact = false }: { compact?: boolean }) {
+  return (
+    <details className="faq mt-5 rounded-2xl bg-white/10 px-4 py-3 text-left">
+      <summary className="flex items-center justify-between gap-3 text-[13.5px] font-bold">
+        어떻게 찍나요? · 30초면 읽어요
+        <span className="chev shrink-0 text-[18px] font-light" aria-hidden>＋</span>
+      </summary>
+      <ul className="mt-3 space-y-2.5">
+        {(compact ? SHOOT_TIPS.slice(0, 3) : SHOOT_TIPS).map(([t, d]) => (
+          <li key={t}>
+            <p className="text-[13.5px] font-bold">{t}</p>
+            <p className="mt-0.5 text-[13px] leading-relaxed opacity-75">{d}</p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function isInApp(): boolean {
   const ua = navigator.userAgent;
   return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua);
@@ -166,7 +200,8 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
                 카카오톡·인스타 안에서 열렸어요. 카메라를 쓰려면 오른쪽 위 <b>⋮ 메뉴 → 다른 브라우저로 열기(크롬)</b>를 눌러 주세요.
               </p>
             )}
-            <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !text-[16px]">시작하기</button>
+            <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !text-[16px]">60초 영상 촬영하기</button>
+            <ShootGuide />
           </section>
         )}
 
@@ -191,13 +226,14 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <p className="font-display mt-2 text-[24px] leading-snug">{questionText}</p>
             <button type="button" onClick={() => setScreen("ask")} className="mt-2 self-start text-[13px] underline opacity-70">질문 바꾸기</button>
             <div className="mt-8 grid gap-3">
-              {([["video", "영상으로", "얼굴이 나옵니다. 가장 반응이 좋아요."], ["audio", "음성만", "얼굴 없이 목소리만. 사진과 자막으로 영상을 만듭니다."]] as const).map(([m, t, d]) => (
+              {([["video", "영상으로", "매장·상품·손만 찍어도 됩니다. 얼굴은 선택이에요."], ["audio", "음성만", "목소리만 남깁니다. 사진과 자막으로 영상을 만들어 드려요."]] as const).map(([m, t, d]) => (
                 <button key={m} type="button" onClick={() => setMode(m)} className="rounded-2xl border p-4 text-left" style={{ borderColor: mode === m ? "var(--lime)" : "rgba(255,255,255,.25)", background: mode === m ? "rgba(183,220,198,.14)" : "transparent" }}>
                   <p className="text-[16px] font-bold">{mode === m ? "● " : "○ "}{t}</p>
                   <p className="mt-1 text-[13px] opacity-75">{d}</p>
                 </button>
               ))}
             </div>
+            <ShootGuide compact />
             <button type="button" onClick={setup} className="btn-lime mt-8 w-full !py-4 !text-[16px]">카메라·마이크 켜기</button>
             <p className="mt-3 text-center text-[12px] opacity-60">브라우저가 권한을 물으면 &lsquo;허용&rsquo;을 눌러 주세요</p>
           </section>
@@ -215,6 +251,9 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
               )}
               <div className="absolute inset-x-3 top-3 rounded-xl bg-white/95 p-3 text-[13.5px] font-semibold leading-snug" style={{ color: "var(--forest)" }}>{questionText}</div>
             </div>
+            <p className="mt-3 text-center text-[12.5px] opacity-70">
+              카메라를 매장 쪽으로 돌려도 됩니다. 얼굴이 안 나와도 괜찮아요.
+            </p>
             <p className="mt-4 text-[13.5px] leading-relaxed opacity-80">준비되셨으면 시작을 누르세요. 3·2·1 뒤 녹화가 시작되고 60초에 자동으로 멈춥니다. 다시 찍기는 무제한이에요.</p>
             <button type="button" onClick={startCountdown} className="btn-lime mt-6 w-full !py-4 !text-[16px]">준비됐어요 · 시작</button>
           </section>
