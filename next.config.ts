@@ -34,13 +34,15 @@ const nextConfig: NextConfig = {
      * 내부 대시보드는 content/ 에 있고 라우트 핸들러가 fs 로 읽는다(public/ 이 아니다).
      * 트레이싱에 넣지 않으면 서버리스 번들에 파일이 안 올라가 프로덕션에서 404 가 난다.
      */
+    "/mainplan/**": ["./content/mainplan/**"],
     "/plandept/**": ["./content/plandept/**"],
     "/onstoriplandept/**": ["./content/onstoriplandept/**"],
   },
   /**
    * 내부 대시보드 — content/<이름>/ 의 정적 파일을 운영자 전용 라우트가 서빙한다.
-   *  - /onstoriplandept : 사업 설계도  (app/onstoriplandept/[[...path]]/route.ts)
-   *  - /plandept        : 전략기획실   (app/plandept/[[...path]]/route.ts)
+   *  - /mainplan        : 기획1 이야기 엔진 기획실 (app/mainplan/[[...path]]/route.ts) — 2026-09-05 신설
+   *  - /plandept        : 기획2 전략기획실   (app/plandept/[[...path]]/route.ts)
+   *  - /onstoriplandept : 기획3 사업 설계도  (app/onstoriplandept/[[...path]]/route.ts)
    * 2026-09-04 회장님 결정으로 운영자 로그인 전용이 됐다. public/ 에 두면 누구나 볼 수 있어
    * content/ 로 옮기고 ADMIN_KEY 쿠키를 확인하는 라우트로만 내보낸다(lib/private-static.ts).
    * 정적 파일 rewrite 는 더 이상 필요 없다 — app/ 의 정적 세그먼트가 [slug] 보다 먼저 잡는다.

@@ -104,6 +104,16 @@ export async function signedGetUrl(key: string, expiresSec = 600): Promise<strin
   return data.signedUrl;
 }
 
+/**
+ * 브라우저 직접 업로드용 서명 PUT URL (R2 전용, 기본 10분) — 60초 녹화 영상은 Vercel 함수 본문 한도(4.5MB)를 넘으므로
+ * 브라우저 → R2 로 바로 올린다 (기획1 /mainplan #rec). R2 env 가 없으면 null → 호출측이 서버 경유 폴백을 쓴다.
+ */
+export async function signedPutUrl(bucket: Bucket, key: string, contentType: string, expiresSec = 600): Promise<string | null> {
+  const env = r2Env();
+  if (!env) return null;
+  return getSignedUrl(client(env), new PutObjectCommand({ Bucket: r2Bucket(env, bucket), Key: key, ContentType: contentType }), { expiresIn: expiresSec });
+}
+
 export async function remove(bucket: Bucket, key: string): Promise<void> {
   const env = r2Env();
   if (env) {

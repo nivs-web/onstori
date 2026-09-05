@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>온스토리 이야기 엔진</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F6F8F7; --surface:#FFFFFF; --surface-2:#EFF3F1;
+  --ink:#15211E; --ink-2:#3C4E49; --muted:#63756F;
+  --brand:#0E7365; --brand-ink:#08544A; --brand-soft:#DEEDE9;
+  --accent:#BF4F1C; --accent-soft:#F7E5DB;
+  --line:#DCE4E1; --line-strong:#C3D0CC;
+  --shadow:0 1px 2px rgba(21,33,30,.05), 0 8px 24px -12px rgba(21,33,30,.18);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1614; --surface:#151F1C; --surface-2:#1C2825;
+    --ink:#E9EFEC; --ink-2:#BCCBC6; --muted:#8DA09A;
+    --brand:#4FBFAC; --brand-ink:#8FDCCD; --brand-soft:#123A33;
+    --accent:#E87C4A; --accent-soft:#3A2318;
+    --line:#26332F; --line-strong:#364742;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1614; --surface:#151F1C; --surface-2:#1C2825;
+  --ink:#E9EFEC; --ink-2:#BCCBC6; --muted:#8DA09A;
+  --brand:#4FBFAC; --brand-ink:#8FDCCD; --brand-soft:#123A33;
+  --accent:#E87C4A; --accent-soft:#3A2318;
+  --line:#26332F; --line-strong:#364742;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  font-size:16px; line-height:1.68; font-weight:400;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+h1,h2,h3,h4{font-family:"Gowun Batang","Apple SD Gothic Neo",serif; font-weight:700; text-wrap:balance; margin:0; letter-spacing:-.01em}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
+
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+.narrow{max-width:640px}
+
+/* ── section rhythm ── */
+section{padding:64px 0; border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.sec-head{display:flex; flex-direction:column; gap:10px; margin-bottom:32px}
+.eyebrow{
+  font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--brand); font-family:"IBM Plex Sans KR",sans-serif;
+}
+.sec-head h2{font-size:clamp(24px,3.4vw,32px); line-height:1.35}
+.sec-head .lede{color:var(--ink-2); font-size:17px; max-width:62ch}
+
+/* ── header ── */
+.masthead{padding:72px 0 56px}
+.brandline{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:28px}
+.logo{font-family:"IBM Plex Sans KR",sans-serif; font-weight:700; letter-spacing:.22em; font-size:13px; color:var(--brand)}
+.docmeta{font-size:12.5px; color:var(--muted); letter-spacing:.02em}
+.masthead h1{font-size:clamp(28px,5.2vw,48px); line-height:1.3; text-wrap:pretty}
+.masthead h1 em{font-style:normal; color:var(--brand); border-bottom:3px solid var(--brand-soft); padding-bottom:2px}
+.masthead .sub{margin-top:22px; font-size:18px; color:var(--ink-2); max-width:60ch}
+
+.thesis{
+  margin-top:38px; display:grid; gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+}
+.thesis>div{background:var(--surface); padding:18px 20px}
+.thesis dt{font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.thesis dd{margin:0; font-size:15px; line-height:1.55; color:var(--ink)}
+.thesis .hit{color:var(--accent); font-weight:600}
+
+/* ── layer stack ── */
+.stack{display:flex; flex-direction:column; gap:10px; margin-top:8px}
+.layer{
+  display:grid; grid-template-columns:64px 1fr; align-items:stretch;
+  border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); overflow:hidden;
+}
+.layer .no{
+  display:flex; align-items:center; justify-content:center;
+  font-family:"Gowun Batang",serif; font-size:22px; font-weight:700;
+  background:var(--surface-2); color:var(--muted); border-right:1px solid var(--line);
+}
+.layer .body{padding:16px 20px}
+.layer h3{font-size:17px; margin-bottom:4px}
+.layer p{font-size:14.5px; color:var(--ink-2); line-height:1.6}
+.layer.core{border-color:var(--brand); box-shadow:var(--shadow)}
+.layer.core .no{background:var(--brand); color:#fff; border-right-color:var(--brand)}
+.layer.core h3{color:var(--brand)}
+.tagpill{
+  display:inline-block; margin-left:8px; vertical-align:2px;
+  font-family:"IBM Plex Sans KR",sans-serif; font-size:11px; font-weight:600; letter-spacing:.06em;
+  background:var(--accent-soft); color:var(--accent); padding:2px 8px; border-radius:99px;
+}
+
+/* ── demo layout ── */
+.demo{display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:44px; align-items:start}
+@media (max-width:880px){ .demo{grid-template-columns:1fr; gap:32px} }
+.notes h4{font-size:15px; margin:0 0 6px; font-family:"IBM Plex Sans KR",sans-serif; font-weight:600}
+.notes .note{padding:14px 0; border-top:1px dashed var(--line)}
+.notes .note:first-child{border-top:0; padding-top:0}
+.notes p{font-size:14.5px; color:var(--ink-2); line-height:1.62}
+.notes b{color:var(--ink); font-weight:600}
+
+/* ── phone ── */
+.phone{
+  width:360px; max-width:100%; margin:0 auto;
+  border:1px solid var(--line-strong); border-radius:26px; background:var(--surface);
+  box-shadow:var(--shadow); overflow:hidden; position:sticky; top:20px;
+}
+@media (max-width:880px){ .phone{position:static} }
+.phone-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 16px; background:var(--surface-2); border-bottom:1px solid var(--line);
+  font-size:11px; color:var(--muted); letter-spacing:.04em; font-variant-numeric:tabular-nums;
+}
+.phone-bar .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);display:inline-block;margin-right:6px}
+.screen{padding:20px 18px; min-height:430px; display:flex; flex-direction:column; gap:14px}
+.screen h5{font-family:"Gowun Batang",serif; font-size:19px; font-weight:700; margin:0; line-height:1.4}
+.screen .hint{font-size:13px; color:var(--muted); line-height:1.55}
+
+/* ── industry picker ── */
+.searchbox{
+  display:flex; align-items:center; gap:8px; border:1px solid var(--line-strong);
+  border-radius:10px; padding:9px 12px; background:var(--ground); font-size:14px; color:var(--muted);
+}
+.tiles{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.tile{
+  border:1px solid var(--line-strong); background:var(--surface); border-radius:11px;
+  padding:11px 12px; text-align:left; cursor:pointer; transition:border-color .12s, background .12s, transform .08s;
+  display:flex; flex-direction:column; gap:2px; line-height:1.35;
+}
+.tile:hover{border-color:var(--brand)}
+.tile:active{transform:scale(.985)}
+.tile .t{font-size:14.5px; font-weight:600}
+.tile .s{font-size:11.5px; color:var(--muted)}
+.tile[aria-pressed="true"]{background:var(--brand); border-color:var(--brand); color:#fff}
+.tile[aria-pressed="true"] .s{color:rgba(255,255,255,.78)}
+.subs{display:flex; flex-wrap:wrap; gap:6px}
+.chip{
+  border:1px solid var(--line-strong); background:var(--surface); border-radius:99px;
+  padding:6px 12px; font-size:13px; cursor:pointer; transition:all .12s;
+}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed="true"]{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:500}
+.confirm{
+  border:1px solid var(--brand); background:var(--brand-soft); border-radius:12px; padding:13px 14px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.confirm .lbl{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--brand); font-weight:600}
+.confirm .val{font-family:"Gowun Batang",serif; font-size:17px; font-weight:700; color:var(--ink)}
+.qpreview{display:flex; flex-direction:column; gap:7px; margin-top:2px}
+.qpreview li{
+  list-style:none; font-size:13.5px; line-height:1.5; color:var(--ink-2);
+  padding-left:16px; position:relative;
+}
+.qpreview li::before{content:""; position:absolute; left:2px; top:9px; width:5px; height:5px; border-radius:50%; background:var(--brand)}
+
+/* ── question cards ── */
+.acts{display:flex; gap:4px; background:var(--surface-2); padding:3px; border-radius:10px}
+.act{
+  flex:1; border:0; background:transparent; border-radius:8px; padding:7px 4px;
+  font-size:12.5px; font-weight:500; cursor:pointer; color:var(--muted); line-height:1.3;
+}
+.act[aria-selected="true"]{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.qcards{display:flex; flex-direction:column; gap:8px}
+.qcard{
+  border:1px solid var(--line); border-radius:12px; padding:12px 13px; background:var(--surface);
+  text-align:left; cursor:pointer; display:flex; gap:10px; align-items:flex-start; transition:border-color .12s;
+}
+.qcard:hover{border-color:var(--brand)}
+.qcard.big{border-color:var(--line-strong)}
+.qcard .lv{
+  flex:none; font-size:10px; font-weight:600; letter-spacing:.04em; padding:3px 6px; border-radius:5px;
+  background:var(--surface-2); color:var(--muted); margin-top:2px; white-space:nowrap;
+}
+.qcard .lv.a{background:var(--brand-soft); color:var(--brand)}
+.qcard .lv.b{background:var(--accent-soft); color:var(--accent)}
+.qcard .q{font-size:14px; line-height:1.5}
+.more-toggle{
+  border:1px dashed var(--line-strong); background:transparent; border-radius:10px; padding:9px;
+  font-size:13px; color:var(--muted); cursor:pointer; width:100%;
+}
+.more-toggle:hover{border-color:var(--brand); color:var(--brand)}
+
+/* ── record flow ── */
+.qbanner{
+  border-left:3px solid var(--brand); background:var(--surface-2); padding:11px 13px;
+  border-radius:0 10px 10px 0; font-family:"Gowun Batang",serif; font-size:16px; line-height:1.45; font-weight:700;
+}
+.recwrap{display:flex; flex-direction:column; align-items:center; gap:12px; padding:14px 0}
+.recbtn{
+  width:78px; height:78px; border-radius:50%; border:0; cursor:pointer;
+  background:var(--accent); color:#fff; font-size:13px; font-weight:600; line-height:1.25;
+  box-shadow:0 6px 18px -6px rgba(191,79,28,.6); transition:transform .1s;
+  display:flex; align-items:center; justify-content:center;
+}
+.recbtn:active{transform:scale(.95)}
+.recbtn.on{background:var(--ink); box-shadow:none}
+.wave{display:flex; align-items:center; justify-content:center; gap:3px; height:34px}
+.wave i{display:block; width:3px; border-radius:2px; background:var(--line-strong); height:6px; transition:height .12s}
+.wave.on i{background:var(--accent)}
+.timer{font-variant-numeric:tabular-nums; font-size:13px; color:var(--muted); letter-spacing:.04em}
+.bubble{
+  border-radius:12px; padding:11px 13px; font-size:14px; line-height:1.55; max-width:92%;
+}
+.bubble.ai{background:var(--brand-soft); color:var(--ink); align-self:flex-start; border-bottom-left-radius:3px}
+.bubble.me{background:var(--surface-2); color:var(--ink-2); align-self:flex-end; border-bottom-right-radius:3px; font-style:normal}
+.thread{display:flex; flex-direction:column; gap:8px}
+.toggle-row{display:flex; gap:4px; background:var(--surface-2); padding:3px; border-radius:9px}
+.toggle-row button{flex:1; border:0; background:transparent; padding:6px; border-radius:7px; font-size:12.5px; cursor:pointer; color:var(--muted)}
+.toggle-row button[aria-selected="true"]{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.draft{
+  border:1px solid var(--line); border-radius:12px; padding:13px; background:var(--ground);
+  font-size:14px; line-height:1.7; white-space:pre-line; min-height:120px;
+}
+.draft .ttl{font-family:"Gowun Batang",serif; font-weight:700; font-size:15.5px; display:block; margin-bottom:6px}
+.raw{font-size:13.5px; color:var(--muted); line-height:1.65}
+.cta{
+  border:0; background:var(--brand); color:#fff; border-radius:11px; padding:13px;
+  font-size:15px; font-weight:600; cursor:pointer; width:100%;
+}
+.cta.ghost{background:transparent; color:var(--muted); border:1px solid var(--line-strong); font-weight:500; padding:10px; font-size:13.5px}
+.fanout{display:flex; flex-direction:column; gap:7px}
+.fan{
+  display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:11px;
+  padding:10px 12px; font-size:13.5px; background:var(--surface);
+}
+.fan .ic{
+  width:26px; height:26px; border-radius:7px; flex:none; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; background:var(--surface-2); color:var(--muted); letter-spacing:-.02em;
+}
+.fan .st{margin-left:auto; font-size:11.5px; font-weight:600; color:var(--brand)}
+.fan .st.manual{color:var(--accent)}
+.stepdots{display:flex; gap:5px; justify-content:center; padding-top:2px}
+.stepdots i{width:5px;height:5px;border-radius:50%;background:var(--line-strong);display:block}
+.stepdots i.on{background:var(--brand); width:16px; border-radius:3px}
+
+/* ── bank ── */
+.bank-toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:18px}
+.filter{
+  border:1px solid var(--line-strong); background:var(--surface); border-radius:99px;
+  padding:6px 14px; font-size:13.5px; cursor:pointer;
+}
+.filter[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--ground); font-weight:500}
+.count{margin-left:auto; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+.banklist{
+  columns:2; column-gap:28px; border-top:1px solid var(--line); padding-top:14px;
+}
+@media (max-width:760px){ .banklist{columns:1} }
+.bankitem{
+  break-inside:avoid; display:grid; grid-template-columns:30px 1fr; gap:10px;
+  padding:7px 0; font-size:14.5px; line-height:1.55; align-items:baseline;
+}
+.bankitem .n{
+  font-variant-numeric:tabular-nums; font-size:12px; color:var(--muted); text-align:right;
+  font-family:"IBM Plex Sans KR",sans-serif;
+}
+.bankitem .txt{color:var(--ink-2)}
+.bankitem .lvdot{display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; vertical-align:1px}
+.lv1{background:var(--brand)} .lv2{background:var(--muted)} .lv3{background:var(--accent)}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:16px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+
+/* ── slot table ── */
+.tblwrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:560px; font-size:14.5px}
+th,td{text-align:left; padding:11px 16px; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{
+  font-family:"IBM Plex Sans KR",sans-serif; font-size:12px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); background:var(--surface-2); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.you{color:var(--brand); font-weight:600}
+td.warn{color:var(--accent)}
+.mono{font-family:"IBM Plex Sans KR",monospace; font-size:13.5px; background:var(--surface-2); padding:1px 6px; border-radius:5px}
+
+/* ── progress / book ── */
+.progress-card{
+  border:1px solid var(--line); border-radius:var(--radius); background:var(--surface);
+  padding:22px 24px; display:flex; flex-direction:column; gap:18px; box-shadow:var(--shadow);
+}
+.bigline{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.bignum{font-family:"Gowun Batang",serif; font-size:44px; font-weight:700; line-height:1; color:var(--brand); font-variant-numeric:tabular-nums}
+.bigline .of{font-size:15px; color:var(--muted)}
+.bar{height:9px; border-radius:99px; background:var(--surface-2); overflow:hidden; display:flex}
+.bar i{display:block; height:100%}
+.bar .s1{background:var(--brand)} .bar .s2{background:var(--muted)} .bar .s3{background:var(--accent)}
+.barkey{display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--muted)}
+.barkey b{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+.streak{
+  display:flex; align-items:center; gap:12px; padding-top:16px; border-top:1px dashed var(--line);
+  font-size:14.5px; color:var(--ink-2);
+}
+.streak .weeks{display:flex; gap:3px}
+.streak .weeks i{width:9px; height:20px; border-radius:2px; background:var(--surface-2); display:block}
+.streak .weeks i.done{background:var(--brand)}
+.streak .weeks i.miss{background:var(--line-strong)}
+
+/* ── plan list ── */
+.plan{display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:var(--surface)}
+.planrow{display:grid; grid-template-columns:104px 1fr auto; gap:16px; padding:14px 18px; border-bottom:1px solid var(--line); align-items:baseline}
+.planrow:last-child{border-bottom:0}
+.planrow .when{font-size:12.5px; font-weight:600; color:var(--brand); letter-spacing:.02em}
+.planrow .what{font-size:15px}
+.planrow .what small{display:block; color:var(--muted); font-size:13px; margin-top:2px; line-height:1.5}
+.planrow .who{font-size:12px; color:var(--muted); white-space:nowrap}
+.planrow.wait{background:var(--surface-2)}
+.planrow.wait .when{color:var(--accent)}
+
+.callout{
+  border-left:3px solid var(--accent); background:var(--accent-soft); padding:16px 20px;
+  border-radius:0 var(--radius) var(--radius) 0; margin-top:26px;
+}
+.callout p{font-size:15px; line-height:1.65; color:var(--ink)}
+.callout b{font-weight:600}
+
+footer{padding:44px 0 64px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; line-height:1.7}
+footer b{color:var(--ink-2); font-weight:600}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="brandline">
+      <span class="logo">ONSTORI</span>
+      <span class="docmeta">전략기획실 · 기술참모 제안 · 2026-09-05 · 회장님 검토용</span>
+    </div>
+    <h1>홈페이지를 파는 대신,<br><em>가게의 이야기</em>를 팝니다.</h1>
+    <p class="sub">재밋은 3분 만에 사이트를 만듭니다. 홈온은 로고와 명함까지 줍니다. 두 곳 다 잘합니다 — 그리고 두 곳 다, 만든 다음 날부터 그 사이트는 아무것도 하지 않습니다. 온스토리가 들어갈 자리는 거기입니다.</p>
+
+    <dl class="thesis">
+      <div><dt>재밋 zaemit.com</dt><dd>한 줄로 3분 사이트. 무료~$7.99. <span class="hit">이야기·블로그·SNS 없음</span></dd></div>
+      <div><dt>홈온 homon.co.kr</dt><dd>제작 49,000 + 월 9,900~39,900. 로고·명함·도장. <span class="hit">SNS 자동 게시 없음</span></dd></div>
+      <div><dt>Remento remento.co</dt><dd>주 1회 질문 → 음성 답변 → 책. 연 $99. <span class="hit">가족용, 팔리지 않음</span></dd></div>
+      <div><dt>온스토리</dt><dd>업종별 질문 100개 → 음성 → 홈페이지·인스타·쓰레드. <span class="hit">손님이 읽는 이야기</span></dd></div>
+    </dl>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">포지셔닝</span>
+      <h2>사이트 만들기로는 싸우지 않습니다</h2>
+      <p class="lede">재밋과 홈온이 잘하는 층에서 이기려면 몇 년이 걸립니다. 그 층은 따라만 가고, 승부는 그들이 비워둔 2층에서 봅니다.</p>
+    </div>
+
+    <div class="stack">
+      <div class="layer">
+        <div class="no">1</div>
+        <div class="body">
+          <h3>집 — 홈페이지</h3>
+          <p>생성·편집·발행·문의 접수. 이미 라이브입니다. 여기서는 재밋·홈온과 <b>비기기만 하면 됩니다.</b> 더 잘할 필요가 없습니다.</p>
+        </div>
+      </div>
+      <div class="layer core">
+        <div class="no">2</div>
+        <div class="body">
+          <h3>이야기 엔진<span class="tagpill">여기가 승부처</span></h3>
+          <p>업종별 질문 100개 → 매주 10개 제시 → 사장님이 골라서 <b>음성으로 답변</b> → AI가 두 번 되묻고 → 초안 → 승인. 국내에 없고, 재밋에도 홈온에도 없습니다.</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="no">3</div>
+        <div class="body">
+          <h3>배포 — 이야기가 돈이 되는 곳</h3>
+          <p>같은 이야기가 홈페이지·인스타그램·쓰레드로 자동, 네이버 블로그로 복사 한 번. 발행 API 비용은 0원, 장벽은 Meta 심사 6~8주뿐입니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><b>한 문장으로:</b> Remento는 가족이 읽을 이야기를 만듭니다. 온스토리는 <b>손님이 읽을 이야기</b>를 만듭니다. 같은 구조인데 결과물이 팔린다는 것 — 그것이 연 14만 원과 연 59만 원의 차이입니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">데모 1</span>
+      <h2>업종이 틀리면 질문 100개가 통째로 틀립니다</h2>
+      <p class="lede">회장님이 가장 중요하다고 하신 부분입니다. 지금 온스토리는 "하는 일 한 줄"로 업종을 자동 분류하고, 사장님은 그 결과를 <b>보지도 고치지도 못합니다.</b> 눌러서 직접 정하는 화면으로 바꿉니다.</p>
+    </div>
+
+    <div class="demo">
+      <div class="notes">
+        <div class="note">
+          <h4>① AI가 먼저 맞히고, 확인을 받습니다</h4>
+          <p>"주거 인테리어 리모델링을 해요"를 읽고 <b>인테리어 · 주거 리모델링</b>을 제안합니다. 사장님은 [맞아요] 한 번이면 끝. 틀렸으면 [다른 업종]으로 직접 고릅니다. 알리바바 万小智의 "확인받고 나서 짓는다" 패턴입니다.</p>
+        </div>
+        <div class="note">
+          <h4>② 대분류 8 → 세부업종 48</h4>
+          <p>"인테리어"만으로는 부족합니다. <b>주거 리모델링</b>이면 "몇 평이었어요?"가 되고, <b>도배·장판</b>이면 "벽지는 몇 롤 들어갔어요?"가 됩니다. 세부업종까지 내려가야 질문이 그 가게 것이 됩니다.</p>
+        </div>
+        <div class="note">
+          <h4>③ 고르는 즉시 질문 3개를 보여줍니다</h4>
+          <p>이게 결정적입니다. 업종을 누르는 순간 <b>"아, 이런 걸 물어보는구나"</b>가 이해됩니다. 설명 문구 열 줄보다 질문 세 줄이 낫습니다. 오른쪽에서 직접 눌러보십시오.</p>
+        </div>
+        <div class="note">
+          <h4>④ 나중에 바꿀 수 있습니다</h4>
+          <p>설정에서 업종을 바꾸면 질문 은행이 교체됩니다. 업종을 바꿔도 이미 쓴 이야기는 남습니다. 범위 밖 업종은 <span class="mono">그 외 · 직접 입력</span>으로 받아 사장님이 쓴 한 줄로 질문을 만듭니다.</p>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-bar"><span><span class="dot"></span>onstori.com/new</span><span>1 / 4 단계</span></div>
+        <div class="screen">
+          <h5>어떤 일을 하세요?</h5>
+          <div class="searchbox"><span>🔍</span><span id="searchLabel">주거 인테리어 리모델링을 해요</span></div>
+
+          <div class="confirm" id="confirmBox">
+            <span class="lbl">AI 추천 · 이게 맞나요?</span>
+            <span class="val" id="confirmVal">인테리어 · 주거 리모델링</span>
+            <ul class="qpreview" id="qPreview"></ul>
+          </div>
+
+          <p class="hint">다른 업종이면 아래에서 눌러 주세요.</p>
+          <div class="tiles" id="tiles"></div>
+          <div class="subs" id="subs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">데모 2</span>
+      <h2>매주 10개, 고르는 재미</h2>
+      <p class="lede">Remento는 정해진 질문 하나를 보냅니다. 우리는 <b>10개를 펼쳐 놓고 고르게</b> 합니다. 오늘 답하고 싶은 게 있으면 답하고, 없으면 다음 주에 답합니다. 고를 수 있으면 응답률이 올라갑니다.</p>
+    </div>
+
+    <div class="demo">
+      <div class="notes">
+        <div class="note">
+          <h4>3막 구조 — "말기"라는 말은 쓰지 않습니다</h4>
+          <p>가게에는 말기가 없습니다. 폐업이 말기입니다. 그래서 인생 3단계를 <b>시작 / 지금 / 앞으로</b>로 번역했습니다. 사장님 눈에는 <b>1막·2막·3막</b>으로 보입니다.</p>
+        </div>
+        <div class="note">
+          <h4>10개를 다 크게 보여주지 않습니다</h4>
+          <p>회장님 말씀대로 <b>10개를 드리되</b>, 화면에는 <b>3장을 크게</b> 놓고 나머지 7장은 [다른 질문 더 보기]로 접습니다. 열 개를 한 번에 펼치면 고르다 지쳐서 아무것도 안 고릅니다.</p>
+        </div>
+        <div class="note">
+          <h4>난이도가 주 단위로 깊어집니다</h4>
+          <p>1~4주차는 <b>30초짜리 사실 질문</b>만. 5주차부터 사연이 필요한 질문. 3개월이 지나면 "왜 이 일을 계속하세요?" 같은 질문이 섞입니다. 첫 주에 인생 질문을 던지면 도망갑니다.</p>
+        </div>
+        <div class="note">
+          <h4>"오늘은 직접 쓸래요"는 항상 열어둡니다</h4>
+          <p>질문이 마음에 안 드는 날이 반드시 있습니다. 도망갈 구멍이 없으면 앱을 안 엽니다.</p>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-bar"><span><span class="dot"></span>화요일 12:00 · 문자로 도착</span><span id="weekLabel">7주차</span></div>
+        <div class="screen">
+          <h5>사장님, 이번 주엔 어떤 이야기를 남겨볼까요?</h5>
+          <div class="acts" id="acts" role="tablist"></div>
+          <div class="qcards" id="qcards"></div>
+          <button class="more-toggle" id="moreBtn" type="button">다른 질문 7개 더 보기</button>
+          <button class="cta ghost" type="button">오늘은 그냥 직접 쓸래요</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">데모 3</span>
+      <h2>말 한 번, 되묻기 두 번, 네 곳 발행</h2>
+      <p class="lede">Remento는 녹음하면 끝입니다. 우리는 <b>두 번 되묻습니다.</b> 답변 길이가 5배가 되고, 그 안에 평수·자재·기간 같은 구체적인 숫자가 저절로 들어옵니다. 그게 네이버 저품질을 막는 방패이기도 합니다.</p>
+    </div>
+
+    <div class="demo">
+      <div class="notes">
+        <div class="note">
+          <h4>로그인부터 없앱니다</h4>
+          <p>Remento의 카피가 정확합니다 — <b>"앱 없음. 로그인 없음. 비밀번호 없음. 두 번 누르면 녹음 중."</b> 문자로 온 링크를 누르면 바로 녹음 화면이어야 합니다. 카카오 로그인은 <b>게시 직전 딱 한 번</b>으로 미룹니다. 이건 기존 결정을 바꾸자는 제안입니다.</p>
+        </div>
+        <div class="note">
+          <h4>되묻기는 최대 두 번, 업종별로 다르게</h4>
+          <p>인테리어면 평수·기간·자재를, 미용이면 시술·소요시간을, 카페면 재료·가격을 묻습니다. 가게마다 되묻는 내용이 달라지니 <b>같은 문장이 여러 블로그에 퍼지는 사고</b>도 함께 막힙니다.</p>
+        </div>
+        <div class="note">
+          <h4>원문을 숨기지 않습니다</h4>
+          <p>[사장님이 하신 말] / [다듬은 글] 토글을 항상 둡니다. AI가 없는 말을 지어냈는지 사장님이 3초면 확인합니다. Remento도 <span class="mono">Word-for-word transcript</span>를 남깁니다 — 신뢰 장치입니다.</p>
+        </div>
+        <div class="note">
+          <h4>네 곳으로 나가되, 네이버만 손이 갑니다</h4>
+          <p>홈페이지·인스타그램·쓰레드는 자동. 네이버 블로그는 API가 2020년에 폐지돼서 <b>복사 버튼 + 앱 열기</b>가 최선입니다. 세계 어느 서비스도 못 합니다.</p>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-bar"><span><span class="dot"></span>이야기 남기기</span><span id="stepLabel">1 / 5</span></div>
+        <div class="screen" id="recScreen"></div>
+        <div style="padding:0 18px 16px"><div class="stepdots" id="stepdots"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">질문 은행</span>
+      <h2>인테리어 업종 질문 100개 — 실제로 다 썼습니다</h2>
+      <p class="lede">"AI로 100개 뽑는다"는 말은 쉽습니다. 문제는 AI가 매번 새로 뽑으면 이상한 질문이 섞이고, 가게마다 같은 질문이 나가면 답변도 비슷해진다는 것입니다. 그래서 <b>미리 뽑아 사람이 검수한 100개</b>를 은행에 넣고, 표현만 그 가게 말투로 한 번 다듬습니다.</p>
+    </div>
+
+    <div class="bank-toolbar">
+      <button class="filter" data-act="all" aria-pressed="true" type="button">전체</button>
+      <button class="filter" data-act="1" aria-pressed="false" type="button">1막 · 시작</button>
+      <button class="filter" data-act="2" aria-pressed="false" type="button">2막 · 지금</button>
+      <button class="filter" data-act="3" aria-pressed="false" type="button">3막 · 앞으로</button>
+      <span class="count" id="bankCount">100개</span>
+    </div>
+    <div class="banklist" id="banklist"></div>
+    <div class="legend">
+      <span><span class="lvdot lv1"></span>30초 · 사실만 말하면 되는 질문</span>
+      <span><span class="lvdot lv2"></span>1분 · 사연이 필요한 질문</span>
+      <span><span class="lvdot lv3"></span>2분 · 생각을 묻는 질문</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">확장 구조</span>
+      <h2>업종이 48개인데 질문을 4,800개 쓰지는 않습니다</h2>
+      <p class="lede">공통 60개 + 업종 40개로 100개를 만들고, 공통 60개 안의 <b>명사만 업종 사전으로 갈아 끼웁니다.</b> 문장 하나가 업종마다 다르게 읽히고, 가게마다 문장이 갈라져 중복 문서 위험도 줄어듭니다.</p>
+    </div>
+
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>공통 질문 원형</th><th>인테리어</th><th>미용실</th><th>카페</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">{작업} 중에 제일 손이 많이 간 건 뭐였어요?</span></td>
+            <td class="you">시공</td><td>시술</td><td>메뉴 준비</td>
+          </tr>
+          <tr>
+            <td><span class="mono">이번 주 {현장}은 어디였어요?</span></td>
+            <td class="you">현장</td><td>자리</td><td>매장</td>
+          </tr>
+          <tr>
+            <td><span class="mono">제일 아끼는 {도구}가 뭐예요?</span></td>
+            <td class="you">공구</td><td>가위</td><td>머신</td>
+          </tr>
+          <tr>
+            <td><span class="mono">{손님}이 제일 많이 걱정하는 게 뭐예요?</span></td>
+            <td class="you">집주인</td><td>손님</td><td>단골</td>
+          </tr>
+          <tr>
+            <td><span class="mono">{단위} 얼마나 되는 일이었어요?</span></td>
+            <td class="you">평수</td><td>시간</td><td>잔 수</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p><b>이 표가 dup-guard의 절반입니다.</b> 질문이 가게마다 갈라지면 답변이 갈라지고, 답변이 갈라지면 AI가 쓴 문장도 갈라집니다. 네이버가 원본 하나만 남기고 나머지를 복사글로 처리하는 사고를 <b>질문 설계 단계에서</b> 막는 것이 사후 중복 검사보다 훨씬 쌉니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">유지의 이유</span>
+      <h2>12편이 쌓이면 해지 버튼을 못 누릅니다</h2>
+      <p class="lede">2주 체험으로 10~14편이 쌓입니다. 그 글은 템플릿 홈페이지가 아니라 <b>사장님이 자기 목소리로 남긴 기록</b>입니다. 그리고 1년을 채우면 그 기록이 책이 됩니다.</p>
+    </div>
+
+    <div class="progress-card">
+      <div class="bigline">
+        <span class="bignum">27</span>
+        <span class="of">/ 100개 답변 완료 · 바른전기 사장님</span>
+      </div>
+      <div class="bar" role="img" aria-label="1막 14개, 2막 11개, 3막 2개 완료">
+        <i class="s1" style="width:14%"></i><i class="s2" style="width:11%"></i><i class="s3" style="width:2%"></i>
+      </div>
+      <div class="barkey">
+        <span>1막 · 시작 <b>14 / 30</b></span>
+        <span>2막 · 지금 <b>11 / 50</b></span>
+        <span>3막 · 앞으로 <b>2 / 20</b></span>
+      </div>
+      <div class="streak">
+        <span class="weeks" role="img" aria-label="최근 12주 중 10주 기록">
+          <i class="done"></i><i class="done"></i><i class="done"></i><i class="miss"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="miss"></i><i class="done"></i><i class="done"></i><i class="done"></i>
+        </span>
+        <span><b>10주 연속</b> 기록 중 · 앞으로 <b>42주</b> 더 채우면 «우리 가게 이야기책»이 나옵니다</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><b>Remento가 연 $99에 파는 책을, 우리는 유지 보상으로 줍니다.</b> 1년 결제(588,000원)를 붙잡는 이유가 "홈페이지를 계속 쓰려고"가 아니라 <b>"책이 두 달 남았으니까"</b>가 됩니다. 인쇄 원가는 권당 2~3만 원, 12개월 매출의 5%가 안 됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">비교</span>
+      <h2>같은 표에 놓고 보면</h2>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th></th><th>재밋</th><th>홈온</th><th>Remento</th><th>온스토리(안)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>사이트 생성</td><td>3분, 매우 좋음</td><td>11단계 위저드</td><td>없음</td><td class="you">있음 · 비기면 됨</td></tr>
+          <tr><td>업종별 질문 은행</td><td class="warn">없음</td><td class="warn">없음</td><td>수백 개(일반)</td><td class="you">업종별 100개</td></tr>
+          <tr><td>질문을 고를 수 있나</td><td>—</td><td>—</td><td>있음</td><td class="you">매주 10개 제시</td></tr>
+          <tr><td>음성 답변</td><td>편집 명령만</td><td class="warn">없음</td><td>있음</td><td class="you">있음</td></tr>
+          <tr><td>AI 되묻기</td><td class="warn">없음</td><td class="warn">없음</td><td class="warn">없음</td><td class="you">2회</td></tr>
+          <tr><td>SNS 자동 게시</td><td class="warn">없음</td><td class="warn">없음</td><td class="warn">없음</td><td class="you">인스타·쓰레드</td></tr>
+          <tr><td>결과물이 팔리나</td><td>사이트</td><td>사이트</td><td class="warn">가족용 책</td><td class="you">손님이 읽는 기록</td></tr>
+          <tr><td>가격(연)</td><td>무료~약 13만</td><td>약 17만~48만</td><td>약 14만</td><td class="you">588,000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <p><b>가격이 제일 비쌉니다. 그래서 이야기 엔진이 없으면 안 팔립니다.</b> 사이트만 놓고 보면 재밋이 무료이고 더 예쁩니다. 우리가 588,000원을 받을 근거는 "홈페이지를 드립니다"가 아니라 <b>"매주 사장님 대신 이야기를 만들어 네 곳에 뿌리고, 1년 뒤 책으로 묶어 드립니다"</b>여야 합니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head narrow">
+      <span class="eyebrow">순서</span>
+      <h2>Meta 심사 6~8주가 이 기획의 시간표입니다</h2>
+      <p class="lede">인스타·쓰레드 발행 권한 심사는 신청해두고 기다리는 것 말고 할 게 없습니다. 그 대기 시간에 이야기 엔진을 만들면 일정이 정확히 맞습니다.</p>
+    </div>
+
+    <div class="plan">
+      <div class="planrow wait">
+        <span class="when">오늘</span>
+        <span class="what">Meta 앱 심사 신청<small>사업자등록증 · 개인정보처리방침 · 기능 시연 영상. 오늘 넣지 않으면 11월에도 못 켭니다.</small></span>
+        <span class="who">회장님 + 클코팀장</span>
+      </div>
+      <div class="planrow">
+        <span class="when">1~2주차</span>
+        <span class="what">업종 고르기 화면 + 세부업종 48개<small>지금의 자동 분류를 "AI 추천 → 사장님 확인"으로. 스키마 변경 없음.</small></span>
+        <span class="who">Sonnet 2세션</span>
+      </div>
+      <div class="planrow">
+        <span class="when">2~3주차</span>
+        <span class="what">질문 은행 + 매주 10개 제시<small>인테리어·미용·카페 3업종 300개 먼저. 나머지는 팔리는 업종부터.</small></span>
+        <span class="who">참모(질문) + Sonnet 1세션</span>
+      </div>
+      <div class="planrow">
+        <span class="when">3~5주차</span>
+        <span class="what">녹음 → 되묻기 2회 → 초안 → 승인<small>로그인 없는 링크 진입. 원문/다듬은 글 토글.</small></span>
+        <span class="who">Sonnet 3세션</span>
+      </div>
+      <div class="planrow">
+        <span class="when">5~6주차</span>
+        <span class="what">빈 섹션 정리 · 완성도 점수 · AI 검색 노출<small>이미 발견해 둔 반나절짜리들. 시연 전에 끝내야 할 위생 작업.</small></span>
+        <span class="who">Sonnet 1세션</span>
+      </div>
+      <div class="planrow">
+        <span class="when">6~8주차</span>
+        <span class="what">플로팅 위젯<small>섹션 스키마 변경 — Opus + ultracode 단독 세션.</small></span>
+        <span class="who">Opus 1세션</span>
+      </div>
+      <div class="planrow wait">
+        <span class="when">심사 통과 후</span>
+        <span class="what">인스타·쓰레드 자동 게시 켜기<small>이야기가 이미 쌓여 있는 상태에서 켭니다. 순서가 뒤집히면 평범한 글이 여러 계정에 퍼집니다.</small></span>
+        <span class="who">Sonnet 2세션</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap narrow">
+    <p><b>이 페이지는 제안입니다.</b> 회장님이 확정하시기 전까지 저장소 코드는 한 줄도 바뀌지 않습니다. 확정하시면 항목별로 클코팀장 세션 카드를 만들어 드립니다.</p>
+    <p style="margin-top:14px">근거 문서 — 해외 AI 홈페이지 벤치마크(2026-09-04) · 음성→SNS 실행 타당성 검증(2026-09-04) · 3분 인터뷰와 가게 두뇌(2026-09-04). 경쟁 정보는 zaemit.com, homon.co.kr, remento.co 공개 페이지 기준이며 조사 시점은 2026-09-05입니다.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ─────────── 데모 1 · 업종 ─────────── */
+  var INDUSTRIES = [
+    { id:"interior", t:"인테리어·시공", s:"리모델링·도배·타일", subs:[
+        { n:"주거 리모델링", q:["이번 주 다녀오신 집은 몇 평이었어요?","철거부터 준공까지 며칠 걸렸어요?","집주인이 제일 좋아한 부분은 어디였어요?"] },
+        { n:"욕실·주방", q:["방수는 몇 번 치셨어요?","오래된 배관 만났을 때 어떻게 하세요?","타일 줄눈 색은 어떻게 정해 드리세요?"] },
+        { n:"도배·장판", q:["벽지는 몇 롤 들어갔어요?","곰팡이 있는 벽은 어떻게 잡으세요?","실크와 합지, 손님께 어떻게 설명하세요?"] },
+        { n:"창호·샷시", q:["단열 얘기는 어떻게 설명하세요?","실측할 때 꼭 확인하는 게 뭐예요?","결로 문의는 얼마나 들어와요?"] },
+        { n:"상업 인테리어", q:["공사 기간을 어떻게 줄이세요?","가게 오픈 날짜를 맞추는 요령이 있나요?","사장님들이 제일 많이 놓치는 게 뭐예요?"] }
+      ]},
+    { id:"repair", t:"수리·설비", s:"전기·보일러·수도", subs:[
+        { n:"전기·조명", q:["이번 주 출동한 집은 어떤 문제였어요?","누전 잡을 때 순서가 어떻게 되나요?","조명 하나로 방 분위기가 바뀐 집이 있나요?"] },
+        { n:"보일러·난방", q:["겨울철 하루에 몇 집이나 도세요?","고장 전에 미리 알 수 있는 신호가 있나요?","제일 오래된 보일러를 살린 이야기 있으세요?"] },
+        { n:"수도·배관", q:["누수 위치는 어떻게 찾으세요?","새벽에 나갔던 현장 이야기 들려주세요.","오래된 아파트에서 자주 나는 문제가 뭐예요?"] },
+        { n:"에어컨·환기", q:["청소 한 번에 얼마나 나오나요?","여름 성수기엔 하루 몇 대 하세요?","실외기 자리 잡을 때 뭘 보세요?"] }
+      ]},
+    { id:"beauty", t:"미용·뷰티", s:"헤어·네일·피부", subs:[
+        { n:"헤어살롱", q:["이번 주 제일 오래 걸린 시술은 뭐였어요?","손님 머릿결 상태는 어디서 판단하세요?","요즘 제일 많이 찾는 스타일이 뭐예요?"] },
+        { n:"네일·속눈썹", q:["한 분 시술에 보통 몇 시간 걸려요?","계절마다 색이 어떻게 바뀌어요?","제일 어려웠던 디자인 이야기 있으세요?"] },
+        { n:"피부·왁싱", q:["첫 방문 손님께 꼭 여쭤보는 게 뭐예요?","집에서 관리할 때 뭘 조심해야 해요?","기억에 남는 변화 사례가 있나요?"] }
+      ]},
+    { id:"food", t:"카페·음식점", s:"카페·식당·베이커리", subs:[
+        { n:"카페", q:["요즘 제일 많이 나가는 메뉴가 뭐예요?","원두는 어디서 어떻게 고르세요?","단골손님이 늘 시키는 메뉴가 있나요?"] },
+        { n:"식당", q:["이 메뉴는 어떻게 만들게 되셨어요?","재료는 몇 시에 받으세요?","손님이 제일 많이 남기는 말이 뭐예요?"] },
+        { n:"베이커리", q:["몇 시에 반죽을 시작하세요?","제일 손이 많이 가는 빵이 뭐예요?","다 팔린 날 기분이 어떠세요?"] }
+      ]},
+    { id:"pro", t:"전문·상담", s:"세무·법무·부동산", subs:[
+        { n:"세무·회계", q:["이번 달 제일 많이 받은 질문이 뭐예요?","사장님들이 제일 많이 놓치는 게 있나요?","처음 오신 분께 뭐부터 챙기라고 하세요?"] },
+        { n:"부동산", q:["이 동네는 요즘 어떤 분위기예요?","집 보러 갈 때 꼭 보라고 하는 게 뭐예요?","기억에 남는 계약 이야기 있으세요?"] },
+        { n:"법무·행정", q:["가장 흔한 오해가 뭐예요?","서류 준비할 때 뭐가 제일 오래 걸려요?","말씀드리기 어려웠던 상담이 있었나요?"] }
+      ]},
+    { id:"health", t:"건강·운동", s:"헬스·필라테스·한의", subs:[
+        { n:"헬스·PT", q:["회원님들이 제일 먼저 포기하는 게 뭐예요?","3개월 만에 달라진 분 이야기 있으세요?","운동 시작할 때 뭐부터 시키세요?"] },
+        { n:"필라테스·요가", q:["수업 한 타임에 몇 분 오세요?","자세 하나 고쳐서 달라진 분이 있나요?","처음 오신 분께 뭐라고 말해주세요?"] }
+      ]},
+    { id:"edu", t:"교육·공방", s:"학원·과외·클래스", subs:[
+        { n:"학원·교습소", q:["학부모님이 제일 많이 물어보는 게 뭐예요?","아이가 달라지는 순간이 언제예요?","수업 준비는 몇 시간 하세요?"] },
+        { n:"공방·클래스", q:["한 작품 만드는 데 얼마나 걸려요?","재료는 어디서 구하세요?","수강생이 제일 뿌듯해할 때가 언제예요?"] }
+      ]},
+    { id:"etc", t:"그 외 · 직접 입력", s:"목록에 없으면 여기", subs:[
+        { n:"직접 설명할게요", q:["하시는 일을 한 줄로 적어주시면 질문을 만들어 드립니다.","비슷한 업종을 하나 골라주시면 더 잘 맞습니다.","첫 질문은 언제나 «이번 주에 무슨 일 하셨어요?» 입니다."] }
+      ]}
+  ];
+
+  var tilesEl = document.getElementById("tiles");
+  var subsEl = document.getElementById("subs");
+  var confirmVal = document.getElementById("confirmVal");
+  var qPreview = document.getElementById("qPreview");
+  var searchLabel = document.getElementById("searchLabel");
+  var curInd = 0, curSub = 0;
+
+  function renderPreview(){
+    var ind = INDUSTRIES[curInd], sub = ind.subs[curSub];
+    confirmVal.textContent = ind.t.replace("·", " · ").split(" · ")[0] + " · " + sub.n;
+    qPreview.innerHTML = "";
+    sub.q.forEach(function(q){
+      var li = document.createElement("li");
+      li.textContent = q;
+      qPreview.appendChild(li);
+    });
+  }
+  function renderSubs(){
+    subsEl.innerHTML = "";
+    INDUSTRIES[curInd].subs.forEach(function(sub, i){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.setAttribute("aria-pressed", i === curSub ? "true" : "false");
+      b.textContent = sub.n;
+      b.addEventListener("click", function(){ curSub = i; renderSubs(); renderPreview(); });
+      subsEl.appendChild(b);
+    });
+  }
+  INDUSTRIES.forEach(function(ind, i){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tile";
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.innerHTML = '<span class="t"></span><span class="s"></span>';
+    b.querySelector(".t").textContent = ind.t;
+    b.querySelector(".s").textContent = ind.s;
+    b.addEventListener("click", function(){
+      curInd = i; curSub = 0;
+      Array.prototype.forEach.call(tilesEl.children, function(c, j){
+        c.setAttribute("aria-pressed", j === i ? "true" : "false");
+      });
+      searchLabel.textContent = ind.id === "etc" ? "하시는 일을 직접 적어주세요" : ind.t + " 쪽 일을 해요";
+      renderSubs(); renderPreview();
+    });
+    tilesEl.appendChild(b);
+  });
+  renderSubs(); renderPreview();
+
+  /* ─────────── 질문 은행 100개 (인테리어) ─────────── */
+  // lv: 1=30초 사실 · 2=1분 사연 · 3=2분 생각
+  var BANK = [
+    [1,1,"이 일을 처음 시작한 게 언제세요?"],
+    [1,1,"어디서 일을 배우셨어요?"],
+    [1,2,"처음 배울 때 제일 먼저 시킨 일이 뭐였어요?"],
+    [1,2,"독립하기로 마음먹은 결정적인 순간이 있었나요?"],
+    [1,1,"가게 이름은 어떻게 지으셨어요?"],
+    [1,2,"첫 현장은 어디였고 무슨 공사였어요?"],
+    [1,2,"첫 손님은 어떻게 만나셨어요?"],
+    [1,2,"첫 계약서에 도장 찍던 날, 기분이 어떠셨어요?"],
+    [1,2,"처음으로 «이 일 할 만하다» 싶었던 순간은요?"],
+    [1,2,"처음 크게 실수했던 일, 지금은 웃으며 말할 수 있나요?"],
+    [1,2,"사장님을 가르쳐준 분 중에 제일 기억나는 분은요?"],
+    [1,3,"그분한테 배운 것 중에 지금도 지키는 게 있나요?"],
+    [1,1,"처음 산 공구가 뭐였어요? 아직 쓰세요?"],
+    [1,2,"처음 사람을 쓰던 날 이야기 들려주세요."],
+    [1,2,"개업하고 제일 무서웠던 게 뭐였어요?"],
+    [1,1,"지금 사무실은 언제부터 쓰셨어요?"],
+    [1,2,"이 동네에서 일하게 된 이유가 있어요?"],
+    [1,2,"처음 받은 칭찬 중에 기억나는 게 있나요?"],
+    [1,2,"그만둘까 고민했던 시기가 있었나요?"],
+    [1,2,"그때 버티게 해준 게 뭐였어요?"],
+    [1,1,"첫 명함에는 뭐라고 적으셨어요?"],
+    [1,2,"첫 하자보수 나갔던 날 이야기해 주세요."],
+    [1,2,"가족은 이 일을 어떻게 생각했어요?"],
+    [1,3,"10년 전의 나에게 한마디 한다면요?"],
+    [1,2,"처음 견적서 쓸 때 제일 어려웠던 게 뭐예요?"],
+    [1,1,"예전엔 없었는데 지금은 꼭 챙기는 도구가 있나요?"],
+    [1,2,"초창기와 지금, 일하는 방식이 가장 많이 바뀐 건요?"],
+    [1,2,"처음 소개를 받아 일한 날 이야기해 주세요."],
+    [1,3,"그때부터 지금까지 한 번도 안 바뀐 원칙이 있나요?"],
+    [1,2,"돌아보면 그때 꼭 알았어야 했던 게 뭐예요?"],
+
+    [2,1,"이번 주에 어떤 현장 다녀오셨어요?"],
+    [2,1,"그 집은 몇 평이었어요? 어떤 공사였어요?"],
+    [2,2,"이번 주에 제일 손이 많이 간 작업은 뭐였어요?"],
+    [2,2,"이번 주 손님이 제일 좋아한 부분은 어디였어요?"],
+    [2,2,"이번 주에 예상 못 한 일이 생겼나요?"],
+    [2,1,"오늘 아침 몇 시에 나가셨어요?"],
+    [2,2,"이번 주에 새로 써본 자재나 방법이 있나요?"],
+    [2,2,"오늘 현장에서 찍은 사진 한 장, 설명해 주세요."],
+    [2,2,"이번 주에 거절한 일이 있나요? 왜요?"],
+    [2,1,"이번 주에 제일 많이 쓴 공구는요?"],
+    [2,2,"이번 주 손님이 물어본 것 중 제일 좋은 질문은요?"],
+    [2,2,"이번 주에 고쳐놓고 뿌듯했던 부분은요?"],
+    [2,1,"요즘 제일 많이 들어오는 문의가 뭐예요?"],
+    [2,2,"이번 주에 도와준 사람이 있나요?"],
+    [2,2,"이번 주에 제일 오래 고민한 결정은요?"],
+    [2,2,"실측하러 갈 때 꼭 확인하는 게 뭐예요?"],
+    [2,2,"견적서에 남들은 안 쓰는데 사장님은 쓰는 항목이 있나요?"],
+    [2,2,"철거부터 준공까지 보통 며칠이에요? 뭐가 제일 오래 걸려요?"],
+    [2,2,"공정 순서를 바꿔야 할 때는 어떤 경우예요?"],
+    [2,2,"현장 정리는 언제 어떻게 하세요?"],
+    [2,2,"다른 기술자와 손발이 맞으려면 뭐가 중요해요?"],
+    [2,2,"하루 일과를 순서대로 얘기해 주세요."],
+    [2,2,"자재는 어디서 어떻게 고르세요?"],
+    [2,2,"값싼 자재와 좋은 자재, 차이가 어디서 나요?"],
+    [2,3,"남들은 대충 넘어가는데 사장님은 안 넘어가는 부분이 있나요?"],
+    [2,2,"마감 하나로 집 분위기가 달라진 사례가 있나요?"],
+    [2,2,"곰팡이나 결로 같은 문제는 어떻게 잡으세요?"],
+    [2,2,"오래된 집과 새 집, 작업이 어떻게 달라요?"],
+    [2,1,"요즘 손님들이 제일 많이 찾는 스타일은요?"],
+    [2,2,"유행이지만 사장님은 안 권하는 게 있나요?"],
+    [2,2,"기억에 남는 손님 이야기 하나 들려주세요."],
+    [2,2,"손님이 제일 많이 걱정하는 게 뭐예요?"],
+    [2,2,"그 걱정을 어떻게 풀어드리세요?"],
+    [2,2,"예산이 빠듯한 손님에게는 뭐부터 하라고 하세요?"],
+    [2,2,"손님과 의견이 갈렸을 때 어떻게 하세요?"],
+    [2,2,"공사 끝나고 손님이 했던 말 중 기억나는 게 있나요?"],
+    [2,2,"다시 찾아온 손님이 있나요?"],
+    [2,2,"소개로 온 손님은 어떤 이야기를 듣고 오시나요?"],
+    [2,2,"손님이 미리 준비해두면 좋은 게 있나요?"],
+    [2,2,"공사 중에 사는 손님은 어떻게 배려하세요?"],
+    [2,2,"아이나 반려동물이 있는 집은 뭐가 달라요?"],
+    [2,2,"하자 연락이 왔을 때 어떻게 대응하세요?"],
+    [2,2,"이 일에서 제일 힘든 게 뭐예요?"],
+    [2,2,"제일 까다로웠던 현장은 어디였어요?"],
+    [2,2,"그걸 어떻게 해결하셨어요?"],
+    [2,2,"밤에 잠 못 잔 현장이 있나요?"],
+    [2,2,"사진으로 남기고 싶은 작업이 있나요?"],
+    [2,3,"이 일 하면서 제일 뿌듯한 순간은 언제예요?"],
+    [2,2,"남들은 모르는데 사장님만 아는 고생이 있나요?"],
+    [2,1,"요즘 자재값이나 인건비는 어때요?"],
+
+    [3,3,"어떤 가게로 기억되고 싶으세요?"],
+    [3,3,"손님이 뭐라고 말해줄 때 제일 좋으세요?"],
+    [3,3,"이 일을 계속하는 이유가 뭐예요?"],
+    [3,3,"5년 뒤에 어떤 모습이면 좋겠어요?"],
+    [3,3,"배우고 싶은 기술이 있나요?"],
+    [3,3,"후배가 이 일 하겠다고 하면 뭐라고 하시겠어요?"],
+    [3,3,"절대 타협 안 하는 게 있나요?"],
+    [3,3,"돈보다 중요하게 생각하는 게 있나요?"],
+    [3,3,"이 동네에서 해보고 싶은 일이 있나요?"],
+    [3,2,"새로 시작해보고 싶은 분야가 있나요?"],
+    [3,3,"일을 놓으면 뭐 하고 싶으세요?"],
+    [3,3,"자식에게 이 일을 물려주고 싶으세요?"],
+    [3,3,"손님에게 꼭 하고 싶은 말이 있나요?"],
+    [3,3,"10년 뒤 이 일은 어떻게 바뀔 것 같아요?"],
+    [3,2,"요즘 새로 배우고 있는 게 있나요?"],
+    [3,3,"함께 일하는 사람들에게 하고 싶은 말은요?"],
+    [3,3,"사장님만의 «잘한 공사»의 기준은 뭐예요?"],
+    [3,3,"이 일을 한마디로 하면 뭐라고 하시겠어요?"],
+    [3,2,"다음 달에 꼭 하고 싶은 일이 있나요?"],
+    [3,3,"이 홈페이지를 보는 손님에게 첫인사를 한다면요?"]
+  ];
+
+  var banklist = document.getElementById("banklist");
+  var bankCount = document.getElementById("bankCount");
+  function renderBank(act){
+    banklist.innerHTML = "";
+    var n = 0;
+    BANK.forEach(function(row, i){
+      if (act !== "all" && String(row[0]) !== act) return;
+      n++;
+      var d = document.createElement("div");
+      d.className = "bankitem";
+      var a = document.createElement("span"); a.className = "n"; a.textContent = i + 1;
+      var b = document.createElement("span"); b.className = "txt";
+      var dot = document.createElement("span"); dot.className = "lvdot lv" + row[1];
+      b.appendChild(dot);
+      b.appendChild(document.createTextNode(row[2]));
+      d.appendChild(a); d.appendChild(b);
+      banklist.appendChild(d);
+    });
+    bankCount.textContent = n + "개";
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(f){
+    f.addEventListener("click", function(){
+      Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(o){
+        o.setAttribute("aria-pressed", o === f ? "true" : "false");
+      });
+      renderBank(f.dataset.act);
+    });
+  });
+  renderBank("all");
+
+  /* ─────────── 데모 2 · 이번 주 질문 10개 ─────────── */
+  var ACTS = [
+    { k:"2", label:"2막 · 지금", pick:[30,31,32,35,36,37,38,39,40,41] },
+    { k:"1", label:"1막 · 시작", pick:[0,1,2,4,5,6,12,15,16,20] },
+    { k:"3", label:"3막 · 앞으로", pick:[80,81,82,84,88,89,94,96,97,99] }
+  ];
+  var actsEl = document.getElementById("acts");
+  var qcardsEl = document.getElementById("qcards");
+  var moreBtn = document.getElementById("moreBtn");
+  var curAct = 0, expanded = false;
+  var LVNAME = { 1:"30초", 2:"1분", 3:"2분" };
+
+  function renderCards(){
+    var picks = ACTS[curAct].pick;
+    var show = expanded ? picks : picks.slice(0, 3);
+    qcardsEl.innerHTML = "";
+    show.forEach(function(idx, i){
+      var row = BANK[idx];
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "qcard" + (i < 3 ? " big" : "");
+      var lv = document.createElement("span");
+      lv.className = "lv " + (row[1] === 1 ? "a" : row[1] === 3 ? "b" : "");
+      lv.textContent = LVNAME[row[1]];
+      var q = document.createElement("span");
+      q.className = "q"; q.textContent = row[2];
+      b.appendChild(lv); b.appendChild(q);
+      qcardsEl.appendChild(b);
+    });
+    moreBtn.textContent = expanded ? "접기" : "다른 질문 7개 더 보기";
+  }
+  ACTS.forEach(function(a, i){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "act"; b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", i === 0 ? "true" : "false");
+    b.textContent = a.label;
+    b.addEventListener("click", function(){
+      curAct = i; expanded = false;
+      Array.prototype.forEach.call(actsEl.children, function(c, j){
+        c.setAttribute("aria-selected", j === i ? "true" : "false");
+      });
+      renderCards();
+    });
+    actsEl.appendChild(b);
+  });
+  moreBtn.addEventListener("click", function(){ expanded = !expanded; renderCards(); });
+  renderCards();
+
+  /* ─────────── 데모 3 · 녹음 → 되묻기 → 발행 ─────────── */
+  var recScreen = document.getElementById("recScreen");
+  var stepLabel = document.getElementById("stepLabel");
+  var stepdots = document.getElementById("stepdots");
+  var step = 0, recording = false, secs = 0, tick = null, waveTimer = null;
+  var QUESTION = "이번 주 손님이 제일 좋아한 부분은 어디였어요?";
+
+  var ANSWER_RAW = "어, 이번 주에 뭐 광진구 쪽에 아파트 하나 했는데요. 거실이랑 주방 사이에 벽이 하나 있었는데 그거를 터달라고 하셔가지고. 근데 그게 내력벽인지 아닌지를 봐야 되니까 도면 떼서 확인하고, 아니어서 텄어요. 근데 트고 나니까 집이 확 넓어 보인다고 사모님이 되게 좋아하시더라고요.";
+  var ANSWER_2 = "24평이요. 아, 스물네 평.";
+  var ANSWER_3 = "거실이 넓어진 거요. 처음에 좁아서 답답하다고 하셨는데 벽 트고 나니까 딴 집 같다고.";
+
+  var DRAFT_TITLE = "광진구 24평, 벽 하나 트고 딴 집이 됐습니다";
+  var DRAFT_BODY = "이번 주에는 광진구 아파트 24평 현장을 다녀왔습니다. 거실과 주방 사이 벽을 터달라는 요청이었는데, 내력벽인지부터 확인해야 해서 도면을 떼어 확인하고 작업했습니다.\n\n벽을 트고 나니 집이 훨씬 넓어 보인다고 하셨습니다. 처음에 좁아서 답답하다고 하셨던 거실이 «딴 집 같다»는 말을 들었습니다. 이런 말을 들으면 하루가 짧게 느껴집니다.";
+
+  function makeWave(on){
+    var w = document.createElement("div");
+    w.className = "wave" + (on ? " on" : "");
+    for (var i = 0; i < 21; i++){ w.appendChild(document.createElement("i")); }
+    return w;
+  }
+  function animateWave(waveEl){
+    if (waveTimer) clearInterval(waveTimer);
+    waveTimer = setInterval(function(){
+      Array.prototype.forEach.call(waveEl.children, function(bar){
+        bar.style.height = (5 + Math.random() * 26) + "px";
+      });
+    }, 130);
+  }
+  function stopWave(){ if (waveTimer){ clearInterval(waveTimer); waveTimer = null; } }
+  function fmt(s){ return "0:" + (s < 10 ? "0" + s : s); }
+
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function render(){
+    stopWave();
+    if (tick){ clearInterval(tick); tick = null; }
+    recScreen.innerHTML = "";
+    stepLabel.textContent = (step + 1) + " / 5";
+    Array.prototype.forEach.call(stepdots.children, function(d, i){
+      d.className = i === step ? "on" : "";
+    });
+
+    if (step === 0){
+      recScreen.appendChild(el("div","qbanner", QUESTION));
+      recScreen.appendChild(el("p","hint", "말씀하시는 대로 저희가 글로 옮겨 드립니다. 30초에서 1분이면 충분해요. 로그인은 게시하실 때 한 번만 합니다."));
+      var wrap = el("div","recwrap");
+      var wave = makeWave(recording);
+      var btn = el("button","recbtn" + (recording ? " on" : ""), recording ? "멈추기" : "눌러서\n말하기");
+      btn.type = "button";
+      btn.style.whiteSpace = "pre-line";
+      var timer = el("div","timer", recording ? fmt(secs) : "0:00");
+      btn.addEventListener("click", function(){
+        if (!recording){
+          recording = true; secs = 0; render();
+        } else {
+          recording = false; step = 1; render();
+        }
+      });
+      wrap.appendChild(wave); wrap.appendChild(btn); wrap.appendChild(timer);
+      recScreen.appendChild(wrap);
+      if (recording){
+        animateWave(wave);
+        tick = setInterval(function(){
+          secs++; timer.textContent = fmt(secs);
+          if (secs >= 32){ recording = false; step = 1; render(); }
+        }, 900);
+      } else {
+        Array.prototype.forEach.call(wave.children, function(bar, i){
+          bar.style.height = (5 + (i % 5) * 3) + "px";
+        });
+      }
+      return;
+    }
+
+    if (step === 1){
+      recScreen.appendChild(el("div","qbanner", QUESTION));
+      var t1 = el("div","thread");
+      t1.appendChild(el("div","bubble me", ANSWER_RAW));
+      t1.appendChild(el("div","bubble ai", "벽을 트셨군요. 그 집은 몇 평이었어요?"));
+      recScreen.appendChild(t1);
+      recScreen.appendChild(el("p","hint","되묻기 1 / 2 · 짧게 한마디만 하시면 됩니다."));
+      var b1 = el("button","cta","«24평이요» 라고 답하기");
+      b1.type = "button";
+      b1.addEventListener("click", function(){ step = 2; render(); });
+      recScreen.appendChild(b1);
+      return;
+    }
+
+    if (step === 2){
+      recScreen.appendChild(el("div","qbanner", QUESTION));
+      var t2 = el("div","thread");
+      t2.appendChild(el("div","bubble me", ANSWER_2));
+      t2.appendChild(el("div","bubble ai", "손님이 제일 좋아하신 건 어느 부분이었어요?"));
+      recScreen.appendChild(t2);
+      recScreen.appendChild(el("p","hint","되묻기 2 / 2 · 이게 마지막입니다."));
+      var b2 = el("button","cta","«거실이 넓어진 거요» 라고 답하기");
+      b2.type = "button";
+      b2.addEventListener("click", function(){ step = 3; render(); });
+      recScreen.appendChild(b2);
+      var skip = el("button","cta ghost","그냥 이대로 올릴게요");
+      skip.type = "button";
+      skip.addEventListener("click", function(){ step = 3; render(); });
+      recScreen.appendChild(skip);
+      return;
+    }
+
+    if (step === 3){
+      recScreen.appendChild(el("h5", null, "이렇게 정리했어요"));
+      var tog = el("div","toggle-row");
+      var bA = el("button", null, "다듬은 글"); bA.type = "button"; bA.setAttribute("aria-selected","true");
+      var bB = el("button", null, "제가 한 말"); bB.type = "button"; bB.setAttribute("aria-selected","false");
+      var box = el("div","draft");
+      function showDraft(){
+        box.className = "draft"; box.innerHTML = "";
+        box.appendChild(el("span","ttl", DRAFT_TITLE));
+        box.appendChild(document.createTextNode(DRAFT_BODY));
+      }
+      function showRaw(){
+        box.className = "draft raw";
+        box.textContent = ANSWER_RAW + "\n\n— 24평이요.\n— 거실이 넓어진 거요. 처음에 좁아서 답답하다고 하셨는데 벽 트고 나니까 딴 집 같다고.";
+      }
+      bA.addEventListener("click", function(){ bA.setAttribute("aria-selected","true"); bB.setAttribute("aria-selected","false"); showDraft(); });
+      bB.addEventListener("click", function(){ bB.setAttribute("aria-selected","true"); bA.setAttribute("aria-selected","false"); showRaw(); });
+      tog.appendChild(bA); tog.appendChild(bB);
+      recScreen.appendChild(tog);
+      showDraft();
+      recScreen.appendChild(box);
+      recScreen.appendChild(el("p","hint","없는 말이 들어갔는지 «제가 한 말»로 확인해 보세요. 사진은 3장까지 붙일 수 있어요."));
+      var go = el("button","cta","네 곳에 올리기");
+      go.type = "button";
+      go.addEventListener("click", function(){ step = 4; render(); });
+      recScreen.appendChild(go);
+      return;
+    }
+
+    recScreen.appendChild(el("h5", null, "올라갔습니다"));
+    recScreen.appendChild(el("p","hint","같은 이야기가 채널마다 길이와 말투를 바꿔서 나갑니다."));
+    var fan = el("div","fanout");
+    [
+      ["집","홈페이지 이야기 12번째 글","게시 완료"],
+      ["IG","인스타그램 · 사진 3장 + 해시태그","게시 완료"],
+      ["TH","쓰레드 · 두 문장으로 줄여서","게시 완료"],
+      ["N","네이버 블로그 · 1,600자 초안","복사 대기"]
+    ].forEach(function(r){
+      var f = el("div","fan");
+      f.appendChild(el("span","ic", r[0]));
+      f.appendChild(el("span", null, r[1]));
+      var st = el("span","st" + (r[2] === "복사 대기" ? " manual" : ""), r[2]);
+      f.appendChild(st);
+      fan.appendChild(f);
+    });
+    recScreen.appendChild(fan);
+    recScreen.appendChild(el("p","hint","네이버는 공식 API가 2020년에 폐지돼 자동 발행이 불가능합니다. [글 복사] [사진 복사] 버튼과 30초 안내로 대신합니다."));
+    var again = el("button","cta ghost","처음부터 다시 보기");
+    again.type = "button";
+    again.addEventListener("click", function(){ step = 0; recording = false; secs = 0; render(); });
+    recScreen.appendChild(again);
+  }
+
+  for (var i = 0; i < 5; i++){ stepdots.appendChild(document.createElement("i")); }
+  render();
+})();
+</script>
+</body>
+</html>

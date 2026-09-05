@@ -18,6 +18,12 @@ export type GenerateInput = {
   mood: "clean" | "warm" | "premium" | "lively";
   address?: string;
   whyStarted?: string;   // 첫 스토리 재료
+  /** 온보딩 2단계에서 고른 업종(config/industries.ts id) — 있으면 분류를 건너뛴다 (2026-09-05 온보딩 5단계) */
+  industryId?: string;
+  /** 세부 업종 표시명("욕실 리모델링") — 카피 프롬프트에 넣어 문구를 세밀하게 */
+  industryLabel?: string;
+  /** 온보딩 4단계 색 — theme.accent (스키마에 이미 있는 optional 필드) */
+  accent?: string;
 };
 
 /* ── 1) 업종 분류 ── */
@@ -28,6 +34,11 @@ const ClassifyOut = z.object({
 });
 
 export async function classify(input: GenerateInput): Promise<{ industry: Industry; confidence: number; method: string }> {
+  // 온보딩에서 업종을 직접 골랐으면 그것이 정답 — 사전·LLM 추론을 건너뛴다
+  if (input.industryId) {
+    const picked = INDUSTRIES.find((i) => i.id === input.industryId);
+    if (picked) return { industry: picked, confidence: 1, method: "picked" };
+  }
   const hit = matchIndustry(`${input.businessName} ${input.oneLiner}`);
   if (hit) return { industry: hit, confidence: 0.95, method: "keyword" };
 
@@ -62,7 +73,7 @@ async function generateCopy(input: GenerateInput, industry: Industry) {
     `너는 한국 소상공인 홈페이지 카피라이터다. 아래 가게의 홈페이지 문구를 작성하라.
 
 가게: ${input.businessName}
-업종: ${industry.name}
+업종: ${input.industryLabel ? `${input.industryLabel} (${industry.name})` : industry.name}
 하는 일: ${input.oneLiner}
 ${input.whyStarted ? `시작한 이유: ${input.whyStarted}` : ""}
 
@@ -149,7 +160,7 @@ export async function generateSite(input: GenerateInput) {
     schemaVersion: 1,
     template: cat.template,
     businessName: input.businessName,
-    theme: { palette: input.mood, font: "pretendard" },
+    theme: { palette: input.mood, font: "pretendard", ...(input.accent ? { accent: input.accent } : {}) },
     sections,
   });
 

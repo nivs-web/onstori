@@ -50,6 +50,15 @@ async function recordError(siteId: string, channel: string, msg: string) {
   }
 }
 
+/** 문자 1건 — 이야기 녹화 링크·무료 기간 안내 등 문의 외 용도 (2026-09-05). env 없으면 false, 실패는 throw 하지 않는다. */
+export async function sendSmsRaw(to: string, text: string): Promise<boolean> {
+  if (!notifyChannels().sms) return false;
+  try { await sendSms(to, text); return true; } catch (e) {
+    console.error(JSON.stringify({ evt: "sms_raw_fail", err: String(e).slice(0, 200) }));
+    return false;
+  }
+}
+
 /** 솔라피 REST 인증 — HMAC-SHA256(date + salt, apiSecret) */
 async function sendSms(to: string, text: string): Promise<void> {
   const apiKey = process.env.SOLAPI_API_KEY!.trim();

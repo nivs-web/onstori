@@ -32,6 +32,9 @@
   .side .head{padding:22px 20px 14px;border-bottom:1px solid var(--side-line)}
   .side h1{font-family:var(--display);font-size:26px;margin:0;letter-spacing:.02em;font-weight:400}
   .side h1 small{display:block;font-family:var(--body);font-size:11.5px;color:var(--side-muted);letter-spacing:.12em;margin-top:2px}
+  .side .rooms{display:flex;gap:6px;margin-bottom:12px}
+  .side .rooms a{flex:1;text-align:center;padding:6px 6px;border-radius:999px;border:1px solid var(--side-line);color:var(--side-ink);font-size:12.5px;text-decoration:none}
+  .side .rooms a[aria-current="true"]{background:#E1EB6E;color:#1B2A41;border-color:#E1EB6E;font-weight:700}
   .side .home{margin-top:12px;display:flex;gap:6px}
   .side .home button,.side .home a{flex:1;text-align:center;padding:7px 8px;border-radius:8px;border:1px solid var(--side-line);color:var(--side-ink);font-size:12.5px;text-decoration:none}
   .side .home button[aria-current="true"]{background:var(--side-hi);border-color:transparent}
@@ -139,10 +142,15 @@
 <div class="app">
   <aside class="side">
     <div class="head">
-      <h1>전략기획실 <small>ONSTORI · PLANNING DEPT</small></h1>
+      <div class="rooms" aria-label="기획실 이동">
+        <a href="/mainplan">기획1</a>
+        <a href="/plandept" aria-current="true">기획2</a>
+        <a href="/onstoriplandept">기획3</a>
+      </div>
+      <h1>전략기획실 <small>ONSTORI · PLANNING DEPT · 기획2</small></h1>
       <div class="home">
         <button id="btn-board" aria-current="true">전체 보드</button>
-        <a href="https://onstori.com/onstoriplandept" target="_blank" rel="noopener">설계서 ↗</a>
+        <a href="/mainplan">기획1 ↗</a>
       </div>
     </div>
     <div class="search"><input id="q" type="search" placeholder="아이디어 검색 (제목·요약·영역)" aria-label="검색"></div>

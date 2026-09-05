@@ -4,6 +4,8 @@
 
 ## 현재 상태
 
+- **2026-09-05 전환 — "이야기 엔진"(기획1 `/mainplan`).** 첫 페이지·메뉴 5개(작동방식·사업이야기·자주묻는질문·리뷰·블로그)·비교 페이지를 레멘토(remento.co) 구조로 재제작(`components/site/*`, 확정 히어로 "홈페이지는 텅 빈 상가입니다. 스토리에는 진짜 사람이 있습니다."). 온보딩 5단계(`app/new/wizard.tsx`), 14일 무료→정회원 49,000원(`lib/trial.ts`, `api/billing/*`, `api/cron/expire`, `admin/members`), 60초 녹화 `/rec/{slug}?k=`(`lib/story-link.ts`, `api/story/*`). 기획실 3개: 기획1 `/mainplan` · 기획2 `/plandept` · 기획3 `/onstoriplandept`. **적용 대기: `supabase db push`(20260905090000), Vercel env(CRON_SECRET·NAVER_*·TOSS_*), 자막 워커(STEP 4)·발행 연동(STEP 6~7)은 `/mainplan` #plan 순서대로.**
+
 - **P4 (계정·세션) 완료 — 2026-09-01 착수·종료, `main` 배포 완료.** 로그인 2종 E2E 통과(로컬·프로덕션): 이메일 OTP + **카카오는 OIDC 직결**(Supabase 프로바이더는 scope에 `account_email`이 하드코딩돼 KOE205로 막힘 — DECISIONS 2026-09-01, `lib/kakao.ts`). 소유권 차단·다른 기기 owner_id 귀속·anon claim까지 **프로덕션 실검증**, 403 거부화면 두 갈래 실화면 확인. 진행 위치의 단일 출처는 `docs/PLAN.md`.
 - P7 이월: 운영자 인증 교체(ADMIN_KEY → 화이트리스트) · 운영자 로그아웃 라우트. 둘은 한 묶음이다.
 - 다음: `docs/specs/2026-09-03-sprint-plan.md` 순서대로. 첫 작업은 R2-1(`docs/specs/storage-r2.md`).
@@ -20,7 +22,8 @@
 
 - `app/` 페이지 + API Route Handlers. `app/[slug]/` = 고객 사이트 — 주소 체계는 경로 방식 `onstori.com/{slug}` (2026-08-31 전환, DECISIONS 참조)
 - 미들웨어 없음 — 과거 서브도메인 링크는 `next.config.ts` redirects로 호환. 서브도메인은 본사 내부 전용 보류
-- `config/` **제품 정책의 단일 출처** — industries.ts(업종→카테고리→템플릿 매핑), completeness.ts(완성도 100점 규칙), tours.ts(가이드 투어 스텝)
+- `config/` **제품 정책의 단일 출처** — industries.ts(업종→카테고리→템플릿 매핑), industry-picker.ts(온보딩 세부 업종→업종 id), palettes.ts(다크/화이트×8색), questions.ts(질문 은행 100), faq.ts(FAQ), completeness.ts(완성도 100점 규칙), tours.ts(가이드 투어 스텝)
+- `components/site/` 본사 페이지 공용 크롬(헤더·푸터·질문 위젯·결제 모달) — 레멘토 구조. `content/mainplan/` 기획1(운영자 전용, `app/mainplan` 라우트)
 - `components/sections/` 섹션 렌더러 컴포넌트 (에디터 미리보기와 공유)
 - `lib/` schema.ts(zod), ai.ts, billing.ts, track.ts 등
 - `supabase/migrations/` DB 변경의 유일한 경로

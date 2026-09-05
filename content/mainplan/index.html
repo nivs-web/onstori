@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>기획1 · 온스토리 이야기 엔진 기획실</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --forest:#1E332D; --forest-2:#223B34; --cream:#F4F0E6; --cream-2:#EFE9DC; --lime:#E1EB6E; --lime-2:#D4E15A;
+    --terra:#C4553A; --teal:#4C7C74; --mustard:#D9A93A; --ink:#1B2C2C; --muted:#5F6B69; --line:#DDD6C6; --surface:#FFFFFF;
+    --green:#005B2A;
+    --display:"Noto Serif KR",serif; --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--body);font-size:14.5px;line-height:1.65;word-break:keep-all;overflow-wrap:break-word}
+  a{color:inherit}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+  :focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+  .app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}
+  .side{background:var(--forest);color:var(--cream);position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column}
+  .side .head{padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .rooms{display:flex;gap:6px;margin-bottom:12px}
+  .rooms a{flex:1;text-align:center;padding:7px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.25);font-size:12.5px;text-decoration:none;color:var(--cream)}
+  .rooms a[aria-current="true"]{background:var(--lime);color:var(--forest);border-color:var(--lime);font-weight:700}
+  .side h1{font-family:var(--display);font-size:22px;margin:0;font-weight:700;line-height:1.25}
+  .side h1 small{display:block;font-family:var(--body);font-size:11px;letter-spacing:.14em;opacity:.65;margin-top:4px;font-weight:400}
+  .side .search{padding:12px 16px 4px}
+  .side input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--cream);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px}
+  .side input::placeholder{color:rgba(244,240,230,.55)}
+  .nav{padding:8px 10px 30px}
+  .nav a{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:13.5px;color:rgba(244,240,230,.85);margin:1px 0}
+  .nav a .n{display:inline-block;width:22px;font-family:var(--mono);font-size:11px;opacity:.6}
+  .nav a:hover{background:rgba(255,255,255,.07)}
+  .nav a[aria-current="true"]{background:rgba(225,235,110,.16);color:#fff;font-weight:700}
+  .nav .grp{font-size:10.5px;letter-spacing:.14em;opacity:.5;padding:14px 10px 4px;text-transform:uppercase}
+  .foot{margin-top:auto;padding:12px 18px 18px;font-size:11.5px;opacity:.6;line-height:1.5}
+  .main{padding:28px 40px 90px;max-width:1040px}
+  .bar{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .menu{display:none}
+  .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:var(--teal);text-transform:uppercase}
+  h2.title{font-family:var(--display);font-size:32px;margin:6px 0 10px;line-height:1.2}
+  .lead{font-size:16px;color:var(--muted);margin:0 0 22px;max-width:760px}
+  .doc h3{font-family:var(--display);font-size:20px;margin:34px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+  .doc h4{font-size:15px;margin:22px 0 6px}
+  .doc p{margin:8px 0}
+  .doc ul,.doc ol{padding-left:22px;margin:8px 0}
+  .doc li{margin:4px 0}
+  .doc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--surface);border:1px solid var(--line)}
+  .doc th,.doc td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  .doc th{background:var(--cream-2);font-weight:700;font-size:12.5px}
+  .doc tr:last-child td{border-bottom:0}
+  .tblwrap{overflow-x:auto}
+  .doc code{font-family:var(--mono);font-size:12.5px;background:#EAE4D3;padding:1px 5px;border-radius:5px}
+  .doc pre{background:var(--forest);color:var(--cream);padding:14px 16px;border-radius:12px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+  .card.dark{background:var(--forest);color:var(--cream);border-color:transparent}
+  .card.lime{background:var(--lime);color:var(--forest);border-color:transparent}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);margin-right:4px}
+  .tag.done{background:#E3F1E7;color:#1F5F4B;border-color:#BFDCC8}
+  .tag.wip{background:#FBF0D5;color:#8A5B00;border-color:#EBD6A0}
+  .tag.todo{background:#F1EEE6;color:#5F6B69}
+  .tag.new{background:#FBE5DF;color:#9A3A22;border-color:#EFC3B6}
+  .hero-demo{background:var(--cream-2);border-radius:18px;padding:34px 34px 30px;border:1px solid var(--line);margin:14px 0}
+  .hero-demo .h{font-family:var(--display);font-size:34px;line-height:1.25;margin:0 0 12px}
+  .hero-demo .s{font-size:17px;margin:0 0 16px}
+  .hero-demo .b{display:flex;flex-wrap:wrap;gap:8px}
+  .hero-demo .b span{background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:999px;font-size:13px}
+  .pill{display:inline-block;background:var(--lime);color:var(--forest);font-weight:700;padding:10px 20px;border-radius:999px}
+  .q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .q small{display:block;font-size:11px;letter-spacing:.1em;color:var(--teal);margin-bottom:4px}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+  .flow span{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+  .flow i{font-style:normal;opacity:.5}
+  iframe.proto{width:100%;height:1400px;border:1px solid var(--line);border-radius:14px;background:#fff}
+  .note{font-size:12.5px;color:var(--muted)}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  mark{background:var(--lime);padding:0 2px}
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;left:0;top:0;width:290px;transform:translateX(-100%);transition:transform .2s;z-index:30}
+    .side.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.35)}
+    .main{padding:18px 16px 70px}
+    .menu{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:13px}
+    .grid2,.grid3{grid-template-columns:1fr}
+    h2.title{font-size:26px}
+    .hero-demo{padding:22px}
+    .hero-demo .h{font-size:26px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="head">
+      <div class="rooms" aria-label="기획실 이동">
+        <a href="/mainplan" aria-current="true">기획1</a>
+        <a href="/plandept">기획2</a>
+        <a href="/onstoriplandept">기획3</a>
+      </div>
+      <h1>온스토리 이야기 엔진 기획실 <small>ONSTORI · MAINPLAN · 기획1</small></h1>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="기획 검색 (제목·본문)" aria-label="검색"></div>
+    <nav class="nav" id="nav" aria-label="기획 목록"></nav>
+    <div class="foot">기획1 = 이야기 엔진 · 레멘토 구조 · 온보딩 · 작업지시서<br>기획2 = 전략기획실(아이디어 보드) · 기획3 = 사업 설계서<br>갱신 <span id="updated"></span> · 운영자 전용</div>
+  </aside>
+  <main class="main" id="main">
+    <div class="bar"><button class="menu" id="menu">☰ 목록</button></div>
+    <div id="content"></div>
+  </main>
+</div>
+<script src="/mainplan/data.js"></script>
+<script>
+(function(){
+  const D = window.MAINPLAN, $ = s => document.querySelector(s);
+  $('#updated').textContent = D.updated;
+  const nav = $('#nav');
+  function renderNav(filter){
+    const f = (filter||'').trim().toLowerCase();
+    let html = '';
+    let grp = '';
+    D.sections.forEach((s, i) => {
+      if (f && !(s.title + ' ' + s.html.replace(/<[^>]+>/g,' ')).toLowerCase().includes(f)) return;
+      if (s.group && s.group !== grp) { grp = s.group; html += '<div class="grp">' + grp + '</div>'; }
+      html += '<a href="#/' + s.id + '" data-id="' + s.id + '"><span class="n">' + String(i+1).padStart(2,'0') + '</span>' + s.title + '</a>';
+    });
+    nav.innerHTML = html || '<div class="grp">검색 결과 없음</div>';
+    mark();
+  }
+  function current(){ const m = location.hash.match(/^#\/([a-z0-9-]+)/); return m ? m[1] : D.sections[0].id; }
+  function mark(){ nav.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === current() ? 'true' : 'false')); }
+  function render(){
+    const id = current();
+    const s = D.sections.find(x => x.id === id) || D.sections[0];
+    const idx = D.sections.indexOf(s);
+    $('#content').innerHTML =
+      '<div class="kicker">' + (s.group || '기획1') + ' · ' + String(idx+1).padStart(2,'0') + ' / ' + D.sections.length + '</div>' +
+      '<h2 class="title">' + s.title + '</h2>' +
+      (s.lead ? '<p class="lead">' + s.lead + '</p>' : '') +
+      '<div class="doc">' + s.html + '</div>' +
+      '<p class="note" style="margin-top:40px">' +
+      (idx > 0 ? '<a href="#/' + D.sections[idx-1].id + '">← ' + D.sections[idx-1].title + '</a> · ' : '') +
+      (idx < D.sections.length-1 ? '<a href="#/' + D.sections[idx+1].id + '">' + D.sections[idx+1].title + ' →</a>' : '') + '</p>';
+    document.title = '기획1 · ' + s.title;
+    mark();
+    $('#side').classList.remove('open');
+    window.scrollTo(0,0);
+  }
+  $('#q').addEventListener('input', e => renderNav(e.target.value));
+  $('#menu').addEventListener('click', () => $('#side').classList.toggle('open'));
+  window.addEventListener('hashchange', render);
+  renderNav(''); render();
+})();
+</script>
+</body>
+</html>

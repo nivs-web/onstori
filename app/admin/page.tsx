@@ -8,8 +8,10 @@ export default async function AdminHome() {
   if (!(await isAdmin())) return <AdminLogin />;
 
   const menus = [
-    { href: "/plandept", title: "전략기획실", desc: "아이디어 단계 보드 · 기획서 · 결정 대기 (운영자 전용)", ready: true },
-    { href: "/onstoriplandept", title: "사업 설계서", desc: "최종 기획안 v3.3 · PROGRESS · DECISIONS (운영자 전용)", ready: true },
+    { href: "/mainplan", title: "기획1 · 이야기 엔진 기획실", desc: "레멘토 구조 · 온보딩 · 작업지시서 · 현황 (운영자 전용)", ready: true },
+    { href: "/plandept", title: "기획2 · 전략기획실", desc: "아이디어 단계 보드 · 기획서 · 결정 대기 (운영자 전용)", ready: true },
+    { href: "/onstoriplandept", title: "기획3 · 사업 설계서", desc: "최종 기획안 v3.3 · PROGRESS · DECISIONS (운영자 전용)", ready: true },
+    { href: "/admin/members", title: "회원 목록", desc: "개설일 · 결제일 · 무료 남은 기간 · 연락처 · 완성도 · 이메일", ready: true },
     { href: "/admin/bank", title: "이미지뱅크 관리", desc: "생성 이미지 검수·점수·삭제 — 품질은 선별에서 나온다", ready: true },
     { href: "/admin/showcase", title: "랜딩 포트폴리오 관리", desc: "URL 등록·태그·순서·추천 — 첫 화면 전시 지정", ready: true },
     { href: "/admin/sites", title: "사이트 관리", desc: "전체 고객 사이트 목록·상태", ready: true },

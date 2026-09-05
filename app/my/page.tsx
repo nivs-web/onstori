@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getSessionUser } from "@/lib/supabase/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { LogoutButton } from "./ui";
+import { trialInfo } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ type MySite = {
   business_name: string;
   published_at: string | null;
   updated_at: string;
+  status: string;
+  trial_ends_at: string | null;
 };
 
 /** 계정 표시 이름 — 카카오는 닉네임, 이메일 로그인은 주소 */
@@ -29,7 +32,7 @@ export default async function MyPage() {
   // 데이터 접근은 service-role + 서버 세션 검증 (CLAUDE.md 아키텍처 유지)
   const { data } = await sbAdmin()
     .from("sites")
-    .select("slug, business_name, published_at, updated_at")
+    .select("slug, business_name, published_at, updated_at, status, trial_ends_at")
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
   const sites = (data ?? []) as MySite[];
@@ -77,6 +80,11 @@ export default async function MyPage() {
                     onstori.com/{s.slug}
                     {s.published_at ? "" : " · 아직 발행 전"}
                   </p>
+                  {(() => { const t = trialInfo(s); return (
+                    <p className="mt-1 text-[12px] font-bold" style={{ color: t.paid ? "var(--green)" : t.expired ? "var(--terra)" : t.daysLeft <= 3 ? "var(--terra)" : "var(--forest)" }}>
+                      {t.paid ? "정회원" : t.expired ? "무료 기간 종료 — 정회원 전환 필요" : `무료 기간 D-${t.daysLeft} · 14일 이내 결제 시 계속 유지`}
+                    </p>
+                  ); })()}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Link

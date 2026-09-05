@@ -4,6 +4,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
 import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
+import { TRIAL_DAYS } from "@/lib/trial";
 
 export const maxDuration = 60; // LLM 호출 여유
 
@@ -16,6 +17,10 @@ const Input = z.object({
   address: z.string().max(120).optional(),
   whyStarted: z.string().max(300).optional(),
   anonId: z.string().max(64).optional(),
+  // 온보딩 5단계 (2026-09-05) — 업종 직접 선택 · 세부 업종명 · 포인트색
+  industryId: z.string().max(40).optional(),
+  industryLabel: z.string().max(40).optional(),
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export async function POST(req: Request) {
@@ -53,7 +58,7 @@ export async function POST(req: Request) {
     const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
     const { doc, industry, category, copy, inferred } = await generateSite(input as GenerateInput);
 
-    const trialEnds = new Date(Date.now() + 30 * 24 * 3600 * 1000); // 1개월 무료 (당근 트랙 정책)
+    const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000); // 14일 무료 (2026-09-05 정회원 정책, lib/trial.ts)
     const { data: site, error } = await sb
       .from("sites")
       .insert({
@@ -70,7 +75,7 @@ export async function POST(req: Request) {
         status: "trial",
         trial_ends_at: trialEnds.toISOString(),
         theme: doc.theme,
-        settings: { phone: input.phone, address: input.address ?? null, oneLiner: input.oneLiner },
+        settings: { phone: input.phone, address: input.address ?? null, oneLiner: input.oneLiner, industryLabel: input.industryLabel ?? null },
         draft: doc,
         published: doc,
         published_at: new Date().toISOString(),
