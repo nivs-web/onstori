@@ -192,7 +192,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <button type="button" onClick={() => setScreen("ask")} className="mt-2 self-start text-[13px] underline opacity-70">질문 바꾸기</button>
             <div className="mt-8 grid gap-3">
               {([["video", "영상으로", "얼굴이 나옵니다. 가장 반응이 좋아요."], ["audio", "음성만", "얼굴 없이 목소리만. 사진과 자막으로 영상을 만듭니다."]] as const).map(([m, t, d]) => (
-                <button key={m} type="button" onClick={() => setMode(m)} className="rounded-2xl border p-4 text-left" style={{ borderColor: mode === m ? "var(--lime)" : "rgba(255,255,255,.25)", background: mode === m ? "rgba(225,235,110,.12)" : "transparent" }}>
+                <button key={m} type="button" onClick={() => setMode(m)} className="rounded-2xl border p-4 text-left" style={{ borderColor: mode === m ? "var(--lime)" : "rgba(255,255,255,.25)", background: mode === m ? "rgba(183,220,198,.14)" : "transparent" }}>
                   <p className="text-[16px] font-bold">{mode === m ? "● " : "○ "}{t}</p>
                   <p className="mt-1 text-[13px] opacity-75">{d}</p>
                 </button>

@@ -167,7 +167,7 @@ export default async function Home() {
               ["스토리 카드", "464 × 464", "인스타 · 쓰레드 사진. 질문 + 한 줄 답.", "aspect-square"],
             ].map(([t, size, d, ratio]) => (
               <div key={t} className="rounded-2xl border bg-white p-4" style={{ borderColor: "var(--line)" }}>
-                <div className={`${ratio} w-full rounded-xl`} style={{ background: "linear-gradient(160deg,#2C4A42,#1E332D)" }} aria-hidden>
+                <div className={`${ratio} w-full rounded-xl`} style={{ background: "linear-gradient(160deg,#33514F,#273D3D)" }} aria-hidden>
                   <div className="flex h-full flex-col justify-end p-3 text-[11px] text-white/80">
                     <span className="rounded bg-white/90 px-2 py-1 font-semibold" style={{ color: "var(--forest)" }}>&ldquo;처음엔 안 하려고 했어요&rdquo;</span>
                   </div>

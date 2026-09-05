@@ -51,7 +51,7 @@ function ChannelMark({ id }: { id: string }) {
 export function RecMockup({ question = "이 일을 처음 시작하던 날, 무엇이 가장 두려웠나요?", state = "rec" }: { question?: string; state?: "rec" | "done" | "ask" }) {
   return (
     <div className="mx-auto w-[250px] rounded-[34px] border-[6px] bg-black p-2 shadow-2xl" style={{ borderColor: "#111" }} aria-label="60초 녹화 화면 예시">
-      <div className="relative h-[500px] overflow-hidden rounded-[26px]" style={{ background: "linear-gradient(180deg,#2C4A42 0%,#1E332D 60%,#15241F 100%)" }}>
+      <div className="relative h-[500px] overflow-hidden rounded-[26px]" style={{ background: "linear-gradient(180deg,#33514F 0%,#273D3D 60%,#1B2C2C 100%)" }}>
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-3 text-[10px] text-white/70">
           <span>onstori.com/rec</span><span>크롬</span>
         </div>
@@ -59,7 +59,7 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
           <div className="absolute inset-x-4 top-14 space-y-2">
             <p className="text-[11px] font-bold tracking-[0.14em] text-white/70">오늘의 질문</p>
             {[question, "가장 힘들었던 작업은 무엇이었나요?", "이번 주 손님 한 분 이야기", "우리만 고집하는 게 있다면?"].map((t, i) => (
-              <div key={i} className={`rounded-xl px-3 py-2.5 text-[12px] leading-snug ${i === 0 ? "bg-white text-[#1E332D] font-semibold" : "bg-white/10 text-white/85"}`}>{t}</div>
+              <div key={i} className={`rounded-xl px-3 py-2.5 text-[12px] leading-snug ${i === 0 ? "bg-white text-[#273D3D] font-semibold" : "bg-white/10 text-white/85"}`}>{t}</div>
             ))}
             <div className="mt-3 rounded-full py-2 text-center text-[12px] font-bold" style={{ background: "var(--lime)", color: "var(--forest)" }}>⇄ 랜덤 질문 바꾸기</div>
           </div>

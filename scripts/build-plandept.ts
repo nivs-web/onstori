@@ -339,7 +339,7 @@ a{color:var(--accent)}
 .side{width:290px;flex:0 0 290px;background:var(--surface);border-right:1px solid var(--line);height:100vh;position:sticky;top:0;overflow-y:auto;padding:20px 0 40px}
 .rooms{display:flex;gap:6px;padding:0 16px 12px}
 .rooms a{flex:1;text-align:center;padding:6px;border-radius:999px;border:1px solid var(--line2);color:var(--ink);font-size:12.5px;text-decoration:none}
-.rooms a[aria-current="true"]{background:#E1EB6E;color:#1B2C2C;border-color:#E1EB6E;font-weight:700}
+.rooms a[aria-current="true"]{background:#005B2A;color:#fff;border-color:#005B2A;font-weight:700}
 .brand{padding:0 20px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .brand b{display:block;font-size:16px;letter-spacing:-.02em}
 .brand span{display:block;font-size:11.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace;margin-top:3px}

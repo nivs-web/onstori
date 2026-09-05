@@ -29,7 +29,7 @@ export { Logo };
 
 export function PromoBar() {
   return (
-    <Link href="/new" className="block text-center text-[13px] font-semibold" style={{ background: "var(--lime)", color: "var(--forest)" }}>
+    <Link href="/new" className="block text-center text-[13px] font-semibold" style={{ background: "var(--forest)", color: "#fff" }}>
       <span className="inline-block px-4 py-2">오픈 기념 — 14일 동안 전 기능 무료 · 이후 정회원 49,000원 · 사장님 이야기부터 들려주세요 →</span>
     </Link>
   );
@@ -39,7 +39,7 @@ export function PromoBar() {
 export async function SiteHeader({ current }: { current?: string }) {
   const user = await getSessionUser().catch(() => null);
   return (
-    <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(244,240,230,0.92)" }}>
+    <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,0.92)" }}>
       <div className="wrap flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center" aria-label="온스토리 홈">
           <Logo height={24} />

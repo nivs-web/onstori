@@ -46,7 +46,7 @@ function wordmarks(name: string, accent: string): { id: string; label: string; s
     { id: "serif", label: "세리프", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><text x="256" y="276" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="${fs}" fill="${accent}">${esc}</text><rect x="196" y="316" width="120" height="6" fill="${accent}"/></svg>` },
     { id: "sans", label: "굵은 고딕", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="64" fill="${accent}"/><text x="256" y="278" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${fs}" fill="#FFFFFF" letter-spacing="-2">${esc}</text></svg>` },
     { id: "mono", label: "모노그램", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><circle cx="256" cy="216" r="120" fill="${accent}"/><text x="256" y="262" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="120" fill="#FFFFFF">${initial}</text><text x="256" y="420" text-anchor="middle" font-family='${sans}' font-weight="700" font-size="40" fill="#1B2C2C">${esc}</text></svg>` },
-    { id: "badge", label: "배지", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#F4F0E6"/><rect x="56" y="176" width="400" height="160" rx="80" fill="none" stroke="${accent}" stroke-width="10"/><text x="256" y="272" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${Math.min(fs, 52)}" fill="${accent}">${esc}</text><text x="256" y="400" text-anchor="middle" font-family='${sans}' font-size="24" fill="#5F6B69" letter-spacing="6">SINCE ${new Date().getFullYear()}</text></svg>` },
+    { id: "badge", label: "배지", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><rect x="56" y="176" width="400" height="160" rx="80" fill="none" stroke="${accent}" stroke-width="10"/><text x="256" y="272" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${Math.min(fs, 52)}" fill="${accent}">${esc}</text><text x="256" y="400" text-anchor="middle" font-family='${sans}' font-size="24" fill="#5F6B69" letter-spacing="6">SINCE ${new Date().getFullYear()}</text></svg>` },
   ];
 }
 
@@ -203,7 +203,7 @@ export function Wizard() {
   );
 
   const nav = ({ next, canNext, label = "다음 →" }: { next: () => void; canNext: boolean; label?: string }) => (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t" style={{ background: "rgba(244,240,230,0.95)", borderColor: "var(--line)" }}>
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t" style={{ background: "rgba(255,255,255,0.95)", borderColor: "var(--line)" }}>
       <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
         <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="text-[14px] font-semibold disabled:opacity-30" style={{ color: "var(--forest)" }}>← 뒤로</button>
         <button type="button" onClick={next} disabled={!canNext} className="btn-lime disabled:opacity-40 disabled:shadow-none">{label}</button>

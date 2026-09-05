@@ -5,31 +5,41 @@
 /* 온스토리 브랜드 토큰 — 본사 페이지(랜딩·메뉴 페이지·위저드·어드민) 공통.
    고객 사이트는 자체 팔레트(--s-*)를 인라인으로 쓰므로 영향 없음.
 
-   2026-09-05 레멘토 구조 전환: 포레스트 그린 · 크림 · 라임 CTA (기획1 /mainplan #remento).
-   기존 토큰(--paper·--ink·--accent…)은 위저드·어드민·마이페이지가 아직 쓰므로 값만 새 팔레트에 맞춰 유지한다. */
+   2026-09-05 규칙 9 ② 반영 — 레멘토 색(포레스트 #1E332D · 크림 #F4F0E6 · 라임 #E1EB6E)을 버리고
+   독자 팔레트로 교체했다. 확정값의 단일 출처는 기획1 /mainplan #remento 토큰 표.
+     메인 #005B2A (로고 ON 그린) · 서브 #273D3D (진한 초록) · 바탕 흰색/연회색
+
+   ⚠ --lime 은 이름만 남은 레거시다. 라임(노랑빛)은 폐기했고 값은 **밝은 민트**다.
+     호출부 20곳이 이 변수를 두 가지 역할로 쓰기 때문에 이름을 유지했다:
+       ① 어두운 면 위의 밝은 강조  — color: var(--lime)        → 민트가 진한 초록 위에서 읽힌다
+       ② 밝은 칩 배경 + 진한 글자   — background: var(--lime)   → 민트 위 진한 초록 글자가 읽힌다
+     여기에 메인 초록(#005B2A)을 넣으면 ①②가 전부 초록 위 초록이 되어 글자가 사라진다.
+     이름 정리(--mint 로 rename)는 호출부 churn 이라 별도 작업으로 남긴다. */
 :root {
-  /* 새 브랜드 */
-  --forest: #1E332D;      /* 주색 — 밴드·푸터·본문 강조 (로고 STORI 계열) */
-  --forest-2: #223B34;
-  --green: #005B2A;       /* 로고 ON */
-  --cream: #F4F0E6;       /* 바탕 */
-  --cream-2: #EFE9DC;     /* 바탕 2단 */
-  --lime: #E1EB6E;        /* CTA */
-  --lime-2: #D4E15A;
-  --terra: #C4553A;       /* REC · 강조 */
-  --teal: #4C7C74;
-  --mustard: #D9A93A;
+  /* 브랜드 */
+  --green: #005B2A;       /* 메인 — 버튼·강조·링크 (로고 ON) */
+  --green-2: #00713A;     /* 메인 hover */
+  --forest: #273D3D;      /* 서브 — 밴드·푸터·다크 화면 */
+  --forest-2: #2F4A49;    /* 서브 2단 */
+  --lime: #B7DCC6;        /* (레거시 이름) 밝은 민트 — 위 ①② 역할 */
+  --lime-2: #A5D0B6;      /* 민트 hover·2단 */
+  --cream: #FFFFFF;       /* (레거시 이름) 바탕 — 흰색. 크림 폐기 */
+  --cream-2: #F5F7F6;     /* 바탕 2단 — 연회색 */
+  --terra: #CE3B3B;       /* REC · 경고 (테라코타 폐기 — 일반 적색).
+                             표의 확정값 #D64545 는 흰 바탕 글자 대비가 4.38:1 로 AA(4.5) 에 미달해
+                             같은 계열에서 통과하는 값으로 낮췄다 — my/page.tsx·pay-modal 에서 글자색으로 쓴다 */
+  --teal: #4F6B62;        /* 보조 텍스트 (서브색 파생) */
   --display: "Noto Serif KR", "Nanum Myeongjo", serif;
 
   /* 기존 토큰 — 값만 새 팔레트로 */
-  --paper: #F4F0E6;
-  --ink: #1B2C2C;
-  --muted: #5F6B69;
-  --line: #DDD6C6;
-  --accent: #1E332D;
+  --paper: #FFFFFF;
+  --ink: #172626;
+  --muted: #5A6664;
+  --line: #E2E8E5;        /* 베이지 라인(#DDD6C6) → 중립 회록색 */
+  --accent: #005B2A;
   --accent-strong: #005B2A;
-  --accent-soft: #E7EEE6;
-  --band: #1E332D;
+  --accent-soft: #E8F1EC;  /* 메인 8% 틴트 — 배지·소프트 카드 */
+  --band: #273D3D;
 }
 
 body {
@@ -44,27 +54,28 @@ body {
 
 h1, h2, h3 { letter-spacing: -0.03em; }
 
-/* 세리프 제목 (레멘토식) */
+/* 세리프 제목 — 세리프 자체는 일반 관행이라 유지, 무게·크기로 차이를 낸다(규칙 9 ③) */
 .font-display { font-family: var(--display); letter-spacing: -0.02em; }
 
-/* 라임 알약 CTA */
+/* 주 CTA — 메인 초록 + 흰 글자, 12px 라운드 사각(알약 아님, 규칙 9 ③).
+   클래스명 btn-lime 은 레거시 — 호출부 28곳 유지용. */
 .btn-lime {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
-  background: var(--lime); color: var(--forest);
-  border-radius: 999px; padding: 14px 26px; font-weight: 700; font-size: 15px;
-  box-shadow: 0 10px 24px -14px rgba(30,51,45,.6);
+  background: var(--green); color: #fff;
+  border-radius: 12px; padding: 14px 26px; font-weight: 700; font-size: 15px;
+  box-shadow: 0 10px 24px -14px rgba(0,91,42,.55);
   transition: transform .15s, background .15s;
 }
-.btn-lime:hover { background: var(--lime-2); transform: translateY(-1px); }
+.btn-lime:hover { background: var(--green-2); transform: translateY(-1px); }
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border: 1px solid var(--line); color: var(--forest);
-  border-radius: 999px; padding: 13px 22px; font-weight: 600; font-size: 14.5px; background: #fff;
+  border: 1px solid var(--line); color: var(--green);
+  border-radius: 12px; padding: 13px 22px; font-weight: 600; font-size: 14.5px; background: #fff;
 }
 .btn-forest {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--forest); color: var(--cream);
-  border-radius: 999px; padding: 13px 24px; font-weight: 700; font-size: 15px;
+  background: var(--forest); color: #fff;
+  border-radius: 12px; padding: 13px 24px; font-weight: 700; font-size: 15px;
 }
 
 /* 공용 섹션 폭 */

@@ -38,7 +38,7 @@ export default function BlogPage() {
         <ul className="grid gap-4 md:grid-cols-3">
           {POSTS.map(([c, t, d]) => (
             <li key={t} className="rounded-2xl border bg-white p-5" style={{ borderColor: "var(--line)" }}>
-              <div className="aspect-[16/9] rounded-xl" style={{ background: "linear-gradient(160deg,#2C4A42,#1E332D)" }} aria-hidden />
+              <div className="aspect-[16/9] rounded-xl" style={{ background: "linear-gradient(160deg,#33514F,#273D3D)" }} aria-hidden />
               <p className="mt-4 text-[11.5px] font-bold tracking-[0.14em]" style={{ color: "var(--teal)" }}>{c}</p>
               <h2 className="font-display mt-1.5 text-[19px] leading-snug" style={{ color: "var(--forest)" }}>{t}</h2>
               <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--muted)" }}>{d}</p>
