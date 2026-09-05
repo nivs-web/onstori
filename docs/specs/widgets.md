@@ -340,6 +340,7 @@ function ctaHref(action: string, ctx: Ctx): string {
 |---|---|---|
 | `app/[slug]/page.tsx` | 섹션 map(63-65)과 `<footer>`(66-69) 사이 | 반드시 `<div style={vars}>`(47) 안쪽 — `--s-*` 변수가 body/html 에는 없다 |
 | `app/[slug]/preview/preview-client.tsx` | 섹션 map(63-67)과 `<footer>`(68-71) 사이 | `doc === null` 분기(39-45)에는 넣지 않는다 — 미발행 미리보기엔 위젯이 안 보이는 것이 정상 |
+| ⚠ **정정 (2026-09-05)** | 실제 구현은 `</footer>` **뒤** 마운트 | 완료조건 7번과의 모순 때문 — 근거는 커밋 `4315370` 참고 |
 
 미리보기 iframe 안에서 `position: fixed` 는 **iframe 자체 뷰포트 기준**이라 폰 프레임 안쪽 우하단에 붙는다.
 조상에 `transform`/`filter`/`perspective` 가 없음을 확인했다. 다만 iframe 상자가 `rounded-[2rem] overflow-hidden`(`ui.tsx:446`)이라
