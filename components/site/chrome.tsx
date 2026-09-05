@@ -5,12 +5,12 @@ import { Logo } from "./logo";
 /**
  * 본사 페이지 공용 크롬 — 헤더·프로모 띠·푸터 (기획1 /mainplan #menu · 2026-09-05).
  * 레멘토 구조: 상단 띠 → 로고 · 메뉴 5 · 로그인 · [무료로 시작](라임) / 푸터 3열 + 채널.
- * 첫 페이지·작동방식·사업이야기·FAQ·리뷰·블로그·비교 페이지가 전부 이 파일을 쓴다.
+ * 첫 페이지·작동방식·온스토리·FAQ·리뷰·블로그·비교 페이지가 전부 이 파일을 쓴다.
  */
 
 export const NAV = [
   { href: "/how-it-works", label: "작동방식" },
-  { href: "/our-story", label: "사업이야기" },
+  { href: "/our-story", label: "온스토리" },
   { href: "/faq", label: "자주묻는질문" },
   { href: "/reviews", label: "리뷰" },
   { href: "/blog", label: "블로그" },
@@ -20,9 +20,9 @@ export const CHANNELS = [
   { id: "youtube", name: "유튜브 쇼츠", short: "Shorts" },
   { id: "instagram", name: "인스타 릴스", short: "Reels" },
   { id: "threads", name: "쓰레드", short: "Threads" },
-  { id: "x", name: "X", short: "X" },
+  { id: "x", name: "X(트위터)", short: "X" },
   { id: "naver", name: "네이버 블로그", short: "Naver" },
-  { id: "onstori", name: "온스토리 홈페이지", short: "onstori" },
+  { id: "onstori", name: "온스토리 사이트", short: "onstori" },
 ] as const;
 
 export { Logo };
@@ -42,7 +42,7 @@ export async function SiteHeader({ current }: { current?: string }) {
     <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,0.92)" }}>
       <div className="wrap flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center" aria-label="온스토리 홈">
-          <Logo height={24} />
+          <Logo height={19} />
         </Link>
         <nav className="hidden items-center gap-6 text-[14px] font-medium md:flex" aria-label="주 메뉴">
           {NAV.map((n) => (
@@ -66,7 +66,6 @@ export async function SiteHeader({ current }: { current?: string }) {
               {NAV.map((n) => (
                 <Link key={n.href} href={n.href} className="block rounded-xl px-4 py-2.5 text-[14px] font-medium hover:bg-neutral-50">{n.label}</Link>
               ))}
-              <Link href="/compare" className="block rounded-xl px-4 py-2.5 text-[14px] font-medium hover:bg-neutral-50">제작업체 vs 온스토리</Link>
               <Link href={user ? "/my" : "/login?next=%2Fmy"} className="block rounded-xl px-4 py-2.5 text-[14px] font-semibold hover:bg-neutral-50" style={{ color: "var(--forest)" }}>{user ? "마이페이지" : "로그인"}</Link>
             </div>
           </details>
@@ -79,19 +78,18 @@ export async function SiteHeader({ current }: { current?: string }) {
 export function SiteFooter() {
   return (
     <footer style={{ background: "var(--forest)", color: "var(--cream)" }}>
-      <div className="wrap grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="wrap grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <Logo variant="cream" height={22} />
           <p className="mt-3 max-w-xs text-[13.5px] leading-relaxed opacity-80">
-            홈페이지는 텅 빈 상가입니다. 스토리에는 진짜 사람이 있습니다.<br />사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.
+            홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다.<br />사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.
           </p>
           <p className="mt-4 flex flex-wrap gap-2 text-[11.5px] opacity-70">
             {CHANNELS.map((c) => <span key={c.id} className="rounded-full border border-white/25 px-2.5 py-1">{c.name}</span>)}
           </p>
         </div>
         <FooterCol title="둘러보기" links={[["/how-it-works", "작동방식"], ["/#portfolio", "완성 예시"], ["/#pricing", "가격"], ["/faq", "자주묻는질문"], ["/reviews", "리뷰"], ["/blog", "블로그"]]} />
-        <FooterCol title="회사" links={[["/our-story", "사업이야기"], ["/faq#privacy", "개인정보 · 보안"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
-        <FooterCol title="비교" links={[["/compare", "홈페이지 제작업체 vs 온스토리"], ["/how-it-works", "60초로 무엇이 되나"], ["/new", "14일 무료로 시작"]]} />
+        <FooterCol title="회사" links={[["/our-story", "온스토리"], ["/faq#privacy", "개인정보 · 보안"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
       </div>
       <div className="border-t border-white/10">
         <div className="wrap flex flex-wrap items-center justify-between gap-3 py-5 text-[12px] opacity-70">

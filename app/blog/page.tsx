@@ -21,7 +21,7 @@ const POSTS = [
   ["사장님 이야기", "이번 주 손님 이야기가 다음 주 손님을 부른다", "최근손님이야기 카테고리 사용법."],
   ["온스토리 소식", "홈페이지 제작업체 vs 온스토리, 정직한 비교", "비교 페이지 확장판."],
   ["온스토리 소식", "14일 무료로 무엇까지 할 수 있나", "온보딩부터 첫 영상까지 체크리스트."],
-  ["사장님 인터뷰", "온스토리를 만든 이유", "사업이야기 확장판."],
+  ["사장님 인터뷰", "온스토리를 만든 이유", "온스토리 이야기 확장판."],
 ];
 
 export default function BlogPage() {
@@ -29,7 +29,7 @@ export default function BlogPage() {
     <main className="min-h-svh" style={{ background: "var(--cream)", color: "var(--ink)" }}>
       <PromoBar />
       <SiteHeader current="/blog" />
-      <PageHero kicker="블로그" title="이야기가 쌓이면 검색이 따라옵니다" sub="온스토리 블로그는 두 층입니다. 여기(본사)와, 사장님 각자의 홈페이지 블로그. 사장님 60초는 사장님 페이지에 쌓입니다.">
+      <PageHero kicker="블로그" title="이야기가 쌓이면 검색이 따라옵니다" sub="블로그는 두 층입니다. 여기(온스토리 본사)와, 사장님의 온스토리 사이트. 사장님 60초는 사장님 사이트에 쌓입니다.">
         <div className="mt-6 flex flex-wrap gap-2" aria-label="분류">
           {CATS.map((t, i) => <span key={t} className="rounded-full border px-3.5 py-1.5 text-[13px] font-semibold" style={{ borderColor: "var(--line)", background: i === 0 ? "var(--forest)" : "#fff", color: i === 0 ? "var(--cream)" : "var(--forest)" }}>{t}</span>)}
         </div>

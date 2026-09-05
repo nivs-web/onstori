@@ -13,6 +13,7 @@ import type { TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
+import { LogoutButton } from "@/app/my/ui";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -341,7 +342,11 @@ export function EditUi({ slug }: { slug: string }) {
         <button type="button" onClick={() => setTab("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>
           받아둔 문의 보기{newCount > 0 ? ` (${newCount})` : ""}
         </button>
-        <Link href="/my" className="mt-4 text-[13px] underline text-neutral-500">마이페이지</Link>
+        <div className="mt-4 flex items-center gap-4">
+          <Link href="/my" className="text-[13px] underline text-neutral-500">마이페이지</Link>
+          {/* 다른 계정으로 잘못 로그인한 사장님의 유일한 탈출구 — 차단 화면에도 남긴다 */}
+          <LogoutButton next="/login" />
+        </div>
         {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
       </main>
     );
@@ -365,6 +370,8 @@ export function EditUi({ slug }: { slug: string }) {
             <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
               {busy === "publish" ? "반영 중…" : "사이트 반영"}
             </button>
+            {/* 로그아웃 — /my 의 컴포넌트를 그대로 쓴다. data-tour 앵커를 새로 만들지 않는다(규칙 3). */}
+            <LogoutButton next="/login" />
           </div>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
