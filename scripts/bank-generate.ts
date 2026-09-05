@@ -84,10 +84,15 @@ function hamming(a: string, b: string): number {
   return n;
 }
 
-async function generateOne(prompt: string): Promise<{ buf: Buffer } | { err: string; quota?: boolean }> {
+async function generateOne(prompt: string, role: string): Promise<{ buf: Buffer } | { err: string; quota?: boolean }> {
   const r = await vertexGenerate(MODEL, {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { responseModalities: ["IMAGE"] },
+    generationConfig: {
+      responseModalities: ["IMAGE"],
+      // 화면을 꽉 채워야 하는 건 히어로뿐이다 — 세로 폰에 object-cover 로 깔린다.
+      // about 은 3:2 카드, gallery 는 격자, process 는 작은 이미지라 4:3 이 맞다. (2026-09-06)
+      imageConfig: { aspectRatio: role === "hero" ? "9:16" : "4:3" },
+    },
   });
   if (!r.ok) {
     if (r.status === 429) return { err: "quota", quota: true };
@@ -140,13 +145,13 @@ async function main() {
 
     // 429는 분당 레이트리밋인 경우가 대부분 — 다음 조합으로 넘기지 말고 같은 조합을 재시도해야
     // seed를 고정한 모델 A/B에서 두 실행의 조합 순서가 어긋나지 않는다.
-    let r = await generateOne(prompt);
+    let r = await generateOne(prompt, j.role);
     while ("err" in r && r.quota) {
       quotaStrikes++;
       console.log(`429 (${quotaStrikes}/3) — 30초 후 같은 조합 재시도`);
       if (quotaStrikes >= 3) { abort = "429 3연속"; break; }
       await new Promise((s) => setTimeout(s, 30000));
-      r = await generateOne(prompt);
+      r = await generateOne(prompt, j.role);
     }
     if (abort) break;
     apiCalls++; // 429 외에는 과금으로 간주 (no-image 응답 포함 — 보수적 추정)
