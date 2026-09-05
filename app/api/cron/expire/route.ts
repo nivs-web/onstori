@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
-import { TRIAL_DAYS } from "@/lib/trial";
 
 /**
  * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 14일 무료 관리 (기획1 /mainplan #membership)
@@ -11,8 +10,14 @@ import { TRIAL_DAYS } from "@/lib/trial";
  */
 export const dynamic = "force-dynamic";
 
-function nudgeText(name: string, days: number, slug: string) {
-  return `[온스토리] ${name} 사장님, 무료 기간이 ${days}일 남았어요. ${TRIAL_DAYS}일 안에 정회원(49,000원)으로 전환하시면 홈페이지가 계속 유지됩니다. onstori.com/${slug}/edit`;
+/**
+ * D-3·D-1 안내 문자 (2026-09-06 단축).
+ * EUC-KR 90바이트를 넘기면 솔라피가 LMS(장문)로 보내 요금이 3배가량 붙는다. 구 문구는 155바이트였다.
+ * 상호명을 넣지 않는 이유도 같다 — business_name 은 스키마상 최대 40자라 그것만으로 예산을 넘긴다.
+ * 사장님은 링크의 슬러그로 자기 가게를 알아본다. 슬러그가 최댓값(30자)이어도 87바이트로 SMS 안이다.
+ */
+function nudgeText(days: number, slug: string) {
+  return `온스토리 무료 ${days}일 남음. 정회원 49,000원 onstori.com/${slug}/edit`;
 }
 
 export async function GET(req: Request) {
@@ -37,7 +42,7 @@ export async function GET(req: Request) {
     if (left !== 3 && left !== 1) continue;
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
-    if (await sendSmsRaw(phone, nudgeText(s.business_name, left, s.slug))) out.nudged++;
+    if (await sendSmsRaw(phone, nudgeText(left, s.slug))) out.nudged++;
   }
 
   // 2) 만료 처리
