@@ -1,5 +1,6 @@
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
 import { workCount } from "@/lib/stories";
+import { telValue } from "@/lib/phone";
 import QuoteForm from "./quote-form";
 
 /**
@@ -35,12 +36,13 @@ function SectionShell({ title, children }: { title?: string; children: React.Rea
   );
 }
 
+// 전화번호가 안내 문구면 tel: 링크가 죽는다 — 쓸 수 있는 번호일 때만 걸고, 아니면 문의 폼으로 보낸다.
+// map.phone 폴백은 뺐다: 생성 시 값이 굳고 에디터에 수정 UI가 없어 사장님이 고칠 수 없는 값이다.
 function ctaHref(action: string, ctx: Ctx): string {
-  const quote = ctx.doc.sections.find((s) => s.type === "quoteForm");
-  const map = ctx.doc.sections.find((s) => s.type === "map");
-  const phone = (quote && "phone" in quote && quote.phone) || (map && "phone" in map && map.phone) || "";
   if (action === "quote") return "#quote";
-  return phone ? `tel:${phone.replace(/[^0-9+]/g, "")}` : "#quote";
+  const q = ctx.doc.sections.find((s) => s.type === "quoteForm");
+  const tel = telValue(q && "phone" in q ? q.phone : "");
+  return tel ? `tel:${tel}` : "#quote";
 }
 
 /* ── 섹션들 ── */

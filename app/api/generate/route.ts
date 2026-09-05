@@ -5,13 +5,15 @@ import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
 import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
 import { TRIAL_DAYS } from "@/lib/trial";
+import { isValidPhone } from "@/lib/phone";
 
 export const maxDuration = 60; // LLM 호출 여유
 
 const Input = z.object({
   businessName: z.string().min(1).max(40),
   oneLiner: z.string().min(2).max(120),
-  phone: z.string().min(9).max(20),
+  // .max(20) 은 QuoteForm.phone 의 max(20) 과 맞물리므로 남긴다
+  phone: z.string().min(9).max(20).refine((v) => isValidPhone(v), "전화번호를 정확히 입력해 주세요"),
   slug: z.string().regex(/^[a-z0-9-]{3,30}$/),
   mood: z.enum(["clean", "warm", "premium", "lively"]).default("clean"),
   address: z.string().max(120).optional(),

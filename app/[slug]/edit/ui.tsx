@@ -10,6 +10,7 @@ import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
 import { PreviewPane } from "./preview-pane";
 import { PayModal, TrialBar } from "@/components/site/pay-modal";
 import type { TrialInfo } from "@/lib/trial";
+import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 
 /**
@@ -669,7 +670,13 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               <h2 className="text-sm font-bold">문의 받기</h2>
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
-                <Field label="전화번호 (문의 버튼 연결)"><input className={inp} value={s.phone} maxLength={20} onChange={(e) => patchSection(i, { phone: e.target.value })} /></Field>
+                <Field label="전화번호 (문의 버튼 연결)">
+                  <input className={inp} value={s.phone} maxLength={20} onChange={(e) => patchSection(i, { phone: e.target.value })} aria-invalid={!isValidPhone(s.phone)} />
+                  {/* 온보딩에서 막아도 여기서 지울 수 있다 — 그때 CTA 가 조용히 문의 폼으로 바뀌는 이유를 알려준다 */}
+                  {!isValidPhone(s.phone) && (
+                    <p className="mt-1.5 text-[12px] text-red-600">전화번호를 정확히 입력해 주세요 — 숫자 9자리 이상. 이대로 두면 문의 버튼이 전화 걸기 대신 문의 폼으로 연결됩니다.</p>
+                  )}
+                </Field>
               </div>
               <NotifyBox notify={notify} setNotify={setNotify} channels={channels} />
             </section>

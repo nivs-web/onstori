@@ -1,5 +1,6 @@
 import { RULES } from "@/config/completeness";
 import { sbAdmin } from "./db-admin";
+import { isValidPhone } from "./phone";
 import type { SiteDocT } from "./schema";
 
 /**
@@ -22,7 +23,7 @@ const CHECKS: Record<string, (c: Ctx) => boolean> = {
   },
   photo_real: (c) => c.storyPhotoCount >= 3,
   hours: (c) => typeof c.settings.hours === "string" && (c.settings.hours as string).length > 0,
-  contact: (c) => typeof c.settings.phone === "string" && (c.settings.phone as string).length >= 9,
+  contact: (c) => isValidPhone(typeof c.settings.phone === "string" ? c.settings.phone : ""),
   story_1: (c) => c.storyCount >= 1,
   cta_form: (c) => !!c.doc?.sections.some((s) => s.type === "quoteForm"),
   logo: () => false,     // P6 브랜드키트에서 활성
