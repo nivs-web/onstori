@@ -12,6 +12,7 @@ import { PayModal, TrialBar } from "@/components/site/pay-modal";
 import type { TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
+import { WidgetsPanel } from "./widgets-panel";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -406,7 +407,7 @@ export function EditUi({ slug }: { slug: string }) {
 
       {/* 점수 올리기 힌트 */}
       <section className="mt-4 rounded-xl bg-teal-50 p-3 text-xs leading-relaxed text-teal-900">
-        {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo", "widget_1"].includes(r.id)).slice(0, 3).map((r) => (
+        {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo"].includes(r.id)).slice(0, 3).map((r) => (
           <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
             className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600">
             ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
@@ -605,6 +606,8 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           ))}
         </div>
       </section>
+
+      <WidgetsPanel doc={doc} setDoc={setDoc} />
 
       {doc.sections.map((s, i) => {
         const card = (() => {

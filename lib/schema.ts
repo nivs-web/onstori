@@ -127,6 +127,19 @@ export const MenuPrice = z.object({
   })).min(1).max(40),
 });
 
+/* ── 플로팅 연결 위젯 ── */
+
+/**
+ * 화면 어디서나 눌리는 연결 버튼 (2026-09-05).
+ * ⚠ 위젯은 값을 갖지 않는다 — 전화번호·카톡 주소는 quoteForm 섹션에서 파생한다
+ *   (components/sections/index.tsx 의 contactOf). 같은 값의 사본을 늘리지 않기 위해서다.
+ * ⚠ Section union 에 넣지 않는다 — sections 의 순서·max(20)·RenderSection switch 와 얽힌다.
+ */
+export const Widget = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("call"),  label: z.string().max(8).default("전화") }),
+  z.object({ kind: z.literal("kakao"), label: z.string().max(8).default("카카오톡") }),
+]);
+
 /* ── 통합 ── */
 
 export const Section = z.discriminatedUnion("type", [
@@ -141,6 +154,10 @@ export const SiteDoc = z.object({
   businessName: z.string().min(1).max(40),
   theme: Theme,
   sections: z.array(Section).min(1).max(20),
+  // 플로팅 연결 위젯. optional — 이 필드가 생기기 전 발행본 호환
+  // ⚠ 필수로 만들면 lib/sites.ts 의 SiteDoc.parse(safeParse 아님)에서 기존 발행 사이트가 전부 죽는다.
+  // ⚠ .default([]) 도 쓰지 않는다 — update 라우트가 parsed.data 를 저장해 손 안 댄 사이트에도 "widgets":[] 가 덧씌워진다.
+  widgets: z.array(Widget).max(2).optional(),
 });
 
 export const StoryEntry = z.object({
@@ -154,5 +171,6 @@ export const StoryEntry = z.object({
 
 export type ThemeT = z.infer<typeof Theme>;
 export type SectionT = z.infer<typeof Section>;
+export type WidgetT = z.infer<typeof Widget>;
 export type SiteDocT = z.infer<typeof SiteDoc>;
 export type StoryEntryT = z.infer<typeof StoryEntry>;

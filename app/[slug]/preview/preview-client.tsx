@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { SiteDocT, StoryEntryT } from "@/lib/schema";
 import { PALETTES, RenderSection } from "@/components/sections";
+import { ConnectWidget } from "@/components/sections/connect-widget";
 import { PREVIEW_MSG, type PreviewMessage } from "@/lib/editor/preview-protocol";
 
 type Props = { slug: string; initialDoc: SiteDocT | null; stories: StoryEntryT[] };
@@ -69,6 +70,9 @@ export function PreviewClient({ slug, initialDoc, stories }: Props) {
           © {new Date().getFullYear()} {doc.businessName} ·{" "}
           <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
         </footer>
+        {/* 플로팅 연결 위젯 — footer '뒤'여야 스페이서가 문서 맨 끝에 붙어 고정 바가 footer 를 덮지 않는다.
+            공개 셸(app/[slug]/page.tsx)과 반드시 같이 간다 */}
+        <ConnectWidget doc={doc} />
       </main>
     </div>
   );

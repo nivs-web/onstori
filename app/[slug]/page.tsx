@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSiteBySlug } from "@/lib/sites";
 import { PALETTES, RenderSection } from "@/components/sections";
+import { ConnectWidget } from "@/components/sections/connect-widget";
 
 /**
  * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
@@ -67,6 +68,9 @@ export default async function SitePage({ params }: Props) {
           © {new Date().getFullYear()} {site.doc.businessName} ·{" "}
           <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
         </footer>
+        {/* 플로팅 연결 위젯 — footer '뒤'여야 스페이서가 문서 맨 끝에 붙어 고정 바가 footer 를 덮지 않는다.
+            미리보기 셸(preview-client.tsx)에도 같이 넣는다 — 한 곳만 넣으면 갈라진다 */}
+        <ConnectWidget doc={site.doc} />
       </main>
     </div>
   );
