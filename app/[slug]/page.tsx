@@ -47,12 +47,19 @@ export default async function SitePage({ params }: Props) {
     <div style={vars}>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
       <main
-        className="min-h-svh"
+        className="relative min-h-svh"
         style={{
           background: "var(--s-bg)",
           fontFamily: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`,
         }}
       >
+        {/* 온보딩 로고 — 히어로 위 좌상단에 얹는다. 섹션 스키마 밖(settings.logo)이라 렌더러는 그대로 (2026-09-05) */}
+        {site.logo && (
+          <div className="pointer-events-none absolute left-5 top-5 z-10 sm:left-8 sm:top-7">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={site.logo} alt={site.doc.businessName} className="h-11 w-11 rounded-xl bg-white/90 object-contain p-1 shadow sm:h-14 sm:w-14" />
+          </div>
+        )}
         {site.doc.sections.map((s, i) => (
           <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}

@@ -337,6 +337,9 @@ a{color:var(--accent)}
 
 /* 사이드바 */
 .side{width:290px;flex:0 0 290px;background:var(--surface);border-right:1px solid var(--line);height:100vh;position:sticky;top:0;overflow-y:auto;padding:20px 0 40px}
+.rooms{display:flex;gap:6px;padding:0 16px 12px}
+.rooms a{flex:1;text-align:center;padding:6px;border-radius:999px;border:1px solid var(--line2);color:var(--ink);font-size:12.5px;text-decoration:none}
+.rooms a[aria-current="true"]{background:#005B2A;color:#fff;border-color:#005B2A;font-weight:700}
 .brand{padding:0 20px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .brand b{display:block;font-size:16px;letter-spacing:-.02em}
 .brand span{display:block;font-size:11.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace;margin-top:3px}
@@ -423,7 +426,8 @@ footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--line);font-si
 <body>
 <div class="app">
   <aside class="side" id="side">
-    <div class="brand"><b>온스토리 설계도</b><span>onstori.com/onstoriplandept</span></div>
+    <div class="rooms" aria-label="기획실 이동"><a href="/mainplan">기획1</a><a href="/plandept">기획2</a><a href="/onstoriplandept" aria-current="true">기획3</a></div>
+    <div class="brand"><b>온스토리 설계도</b><span>onstori.com/onstoriplandept · 기획3</span></div>
     <div class="q"><input id="q" type="search" placeholder="문서 검색 (제목·본문)" autocomplete="off"></div>
     <div class="grp"><div class="grp-t">개요</div><ul><li><a href="#home" data-id="home"><span class="lbl">대시보드</span><span class="note">Phase 현황 한눈에</span></a></li></ul></div>
     ${v.navGroups.join("\n    ")}

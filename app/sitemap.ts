@@ -13,6 +13,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://onstori.com";
   const entries: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: "daily", priority: 1 },
+    // 본사 메뉴 페이지 (2026-09-05 레멘토 구조 전환)
+    ...["/how-it-works", "/our-story", "/faq", "/reviews", "/blog", "/compare"].map((p) => ({
+      url: `${base}${p}`, changeFrequency: "weekly" as const, priority: 0.6,
+    })),
   ];
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

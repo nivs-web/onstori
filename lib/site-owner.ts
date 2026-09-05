@@ -13,7 +13,7 @@ export async function loadOwnedSite(slug: string, anonId?: string | null) {
   const sb = sbAdmin();
   const { data: site } = await sb
     .from("sites")
-    .select("id, slug, anon_id, owner_id, business_name, status, theme, settings, draft, published")
+    .select("id, slug, anon_id, owner_id, business_name, status, trial_ends_at, theme, settings, draft, published")
     .eq("slug", slug)
     .maybeSingle();
   if (!site) return { error: "not-found" as const };

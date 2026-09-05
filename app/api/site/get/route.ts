@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
+import { trialInfo } from "@/lib/trial";
 
 /** 에디터 초기 데이터 — 소유자(anonId 또는 운영자)만 */
 export async function POST(req: Request) {
@@ -39,5 +40,7 @@ export async function POST(req: Request) {
     storyCount: storyCount ?? 0,
     isAdmin: r.admin,
     ownership,
+    // 14일 무료 판정 (2026-09-05 정회원 정책) — 에디터 상단 바·차단 화면이 이 값만 본다
+    trial: trialInfo(r.site),
   });
 }

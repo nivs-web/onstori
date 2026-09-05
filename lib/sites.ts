@@ -22,6 +22,8 @@ export type SiteData = {
   doc: SiteDocT;
   stories: StoryEntryT[];
   status: "trial" | "active";
+  /** 온보딩 3단계 로고 URL (sites.settings.logo) — 섹션 스키마 밖. 없으면 undefined (2026-09-05) */
+  logo?: string;
 };
 
 function sb() {
@@ -37,7 +39,7 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
   try {
     const { data: site } = await client
       .from("sites")
-      .select("id, slug, status, published")
+      .select("id, slug, status, published, settings")
       .eq("slug", slug)
       .maybeSingle();
     if (!site || !site.published) return null;
@@ -64,7 +66,8 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
     });
 
     const status = site.status === "active" ? "active" : "trial";
-    return { slug, doc, stories, status };
+    const logo = (site.settings as { logo?: unknown } | null)?.logo;
+    return { slug, doc, stories, status, logo: typeof logo === "string" && logo ? logo : undefined };
   } catch {
     return null;
   }
