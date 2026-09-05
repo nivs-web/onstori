@@ -32,7 +32,9 @@
       "Bash(git clean -f*)",
       "Bash(npm run deploy*)",
       "Bash(vercel env rm*)",
-      "Bash(npx vercel env rm*)"
+      "Bash(npx vercel env rm*)",
+      "Bash(vercel rm*)",
+      "Bash(npx vercel rm*)"
     ],
     "deny": [
       "Bash(git push --force*)",
