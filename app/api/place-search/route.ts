@@ -3,11 +3,15 @@ import { guessSubIndustry } from "@/config/industry-picker";
 
 /**
  * 온보딩 1단계 — "네이버 플레이스에서 불러오기" (기획1 /mainplan #onboarding).
- * 네이버 지역검색 API(v1/search/local) + 카카오 로컬 API(keyword) 로 후보를 찾아 이름·업종·주소·전화를 프리필한다.
+ * 네이버 지역검색(NAVER API HUB) + 카카오 로컬 API(keyword) 로 후보를 찾아 이름·업종·주소·전화를 프리필한다.
  * 영업시간·사진·소개는 두 API 어디에도 없다 → 사장님 입력. m.place.naver.com 크롤링은 하지 않는다(법적 위험 중~고).
  * 키가 없는 채널은 건너뛰고, 둘 다 없으면 available:false — 위저드는 버튼을 숨긴다.
  *
- * env: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (네이버 개발자센터 → 검색 API) · KAKAO_REST_API_KEY(카카오 로그인과 같은 키)
+ * ⚠ 검색 API는 2026-07-30 개발자센터 신규 신청이 닫히고 NAVER API HUB(네이버클라우드)로 이관됐다.
+ *   구 openapi.naver.com 은 유예 사용자 전용이라 HUB 키로 부르면 401(errorCode 024)만 돌아온다.
+ *   응답 JSON 스키마는 구·신이 같아 아래 파싱은 그대로 쓴다 (2026-09-05 실호출 200 확인).
+ *
+ * env: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (네이버 클라우드 플랫폼 → NAVER API HUB) · KAKAO_REST_API_KEY(카카오 로그인과 같은 키)
  */
 
 export type PlaceCandidate = {
@@ -27,8 +31,8 @@ async function naver(q: string): Promise<PlaceCandidate[]> {
   const id = process.env.NAVER_CLIENT_ID?.trim();
   const secret = process.env.NAVER_CLIENT_SECRET?.trim();
   if (!id || !secret) return [];
-  const r = await fetch(`https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(q)}&display=5&sort=random`, {
-    headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
+  const r = await fetch(`https://naverapihub.apigw.ntruss.com/search/v1/local?query=${encodeURIComponent(q)}&display=5&sort=random`, {
+    headers: { "X-NCP-APIGW-API-KEY-ID": id, "X-NCP-APIGW-API-KEY": secret },
     cache: "no-store",
   });
   if (!r.ok) return [];
