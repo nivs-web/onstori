@@ -90,7 +90,7 @@ export function SiteFooter() {
           </p>
         </div>
         <FooterCol title="둘러보기" links={[["/how-it-works", "작동방식"], ["/#portfolio", "완성 예시"], ["/#pricing", "가격"], ["/faq", "자주묻는질문"], ["/reviews", "리뷰"], ["/blog", "블로그"]]} />
-        <FooterCol title="회사" links={[["/our-story", "사업이야기"], ["/faq#privacy", "개인정보 · 보안"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
+        <FooterCol title="회사" links={[["/our-story", "사업이야기"], ["/privacy", "개인정보처리방침"], ["/terms", "이용약관"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
         <FooterCol title="비교" links={[["/compare", "홈페이지 제작업체 vs 온스토리"], ["/how-it-works", "60초로 무엇이 되나"], ["/new", "14일 무료로 시작"]]} />
       </div>
       <div className="border-t border-white/10">
