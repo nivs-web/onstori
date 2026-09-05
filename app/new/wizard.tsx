@@ -7,6 +7,7 @@ import { INDUSTRY_GROUPS, findSubIndustry, type SubIndustry } from "@/config/ind
 import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, TRIAL_NOTICE } from "@/lib/trial";
+import { isValidPhone } from "@/lib/phone";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
 
@@ -140,7 +141,9 @@ export function Wizard() {
 
   const can1 = name.trim().length >= 1;
   const can2 = !!sub;
-  const can3 = oneLiner.trim().length >= 2 && phone.replace(/\D/g, "").length >= 9 && !!slug && !!slugMsg?.ok;
+  // 비어 있을 때는 조용히 둔다 — 아직 안 적은 것을 틀렸다고 하지 않는다. 적었는데 형식이 아닐 때만 말한다.
+  const phoneErr = phone.trim() && !isValidPhone(phone) ? "전화번호를 정확히 입력해 주세요 — 숫자 9자리 이상" : "";
+  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && !!slug && !!slugMsg?.ok;
 
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
@@ -372,8 +375,21 @@ export function Wizard() {
               <input className="inp flex-1" value={slug} maxLength={30} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="mystore" />
             </div>
           </Field>
-          <Field label="전화번호" hint="홈페이지 문의 버튼과 질문 문자가 이 번호로 연결돼요">
-            <input className="inp" value={phone} maxLength={20} inputMode="tel" onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000" />
+          <Field label="전화번호 (필수)" hint={phoneErr} hintColor={phoneErr ? "text-red-600" : undefined}>
+            <input
+              className="inp"
+              value={phone}
+              maxLength={20}
+              inputMode="tel"
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="010-0000-0000"
+              aria-invalid={!!phoneErr}
+              aria-describedby="phone-why"
+            />
+            {/* 회색 힌트로 만들지 않는다 — 문의 문자가 이 번호로만 가므로 눈에 걸려야 한다 */}
+            <p id="phone-why" className="mt-2 rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed" style={{ background: "var(--accent-soft)", color: "var(--forest)" }}>
+              고객 문의가 오면 사장님 연락처로 문자가 옵니다. 반드시 사장님의 정확한 전화번호를 입력해주세요.
+            </p>
           </Field>
           <Field label="주소 (선택)" hint="오시는 길 섹션에 들어가요">
             <input className="inp" value={address} maxLength={120} onChange={(e) => setAddress(e.target.value)} placeholder="예: 서울 광진구 …" />
