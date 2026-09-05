@@ -292,7 +292,42 @@ export function EditUi({ slug }: { slug: string }) {
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;
 
   // 14일 만료 — 운영자가 아니면 차단 화면 + 결제 모달 (기획1 /mainplan #membership)
+  //
+  // ⚠ 문의함은 잠그지 않는다. 무료 기간에 이미 받아둔 손님 문의(이름·연락처·내용·사진)는
+  //   사장님 것이지 결제로 인질 잡을 대상이 아니다. 알림 문자가 심는 링크가 바로
+  //   `?tab=inbox` 라(lib/notify.ts) 여기를 막으면 문자를 받고도 열 곳이 없어진다.
+  //   페이월이 잠그는 것은 편집·저장·발행·미리보기까지다 — 차단 화면 문구가 약속한 범위와 같다.
   if (data.trial?.expired && !data.isAdmin) {
+    if (tab === "inbox") {
+      return (
+        <main className="mx-auto max-w-xl px-5 pb-24 pt-8">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-600">
+              받아두신 문의는 그대로 보실 수 있어요. 손님에게 연락도 지금 하실 수 있습니다.
+              내용 수정·사이트 반영은 정회원으로 전환하시면 다시 열려요.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setPayOpen(true)}
+                className="rounded-full bg-teal-700 px-4 py-2 text-xs font-semibold text-white">
+                정회원 이용하기 — 49,000원
+              </button>
+              <button type="button" onClick={() => setTab("content")}
+                className="rounded-full border border-neutral-300 px-4 py-2 text-xs font-semibold">
+                돌아가기
+              </button>
+            </div>
+          </section>
+          {inboxDone ? (
+            <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
+          ) : (
+            <p className="mt-8 text-center text-sm text-neutral-400">문의를 불러오는 중…</p>
+          )}
+          {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
+          {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
+        </main>
+      );
+    }
     return (
       <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
         <p className="text-[11.5px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>{data.businessName}</p>
@@ -301,6 +336,9 @@ export function EditUi({ slug }: { slug: string }) {
           홈페이지는 지금 비공개 상태입니다. 정회원(49,000원)으로 전환하시면 바로 다시 공개되고, 이야기·영상·발행 기능이 모두 열립니다. 전환하지 않으시면 30일 뒤 삭제됩니다.
         </p>
         <button type="button" onClick={() => setPayOpen(true)} className="btn-lime mt-8 w-full !py-4 !text-[16px]">정회원 이용하기 — 49,000원</button>
+        <button type="button" onClick={() => setTab("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>
+          받아둔 문의 보기{newCount > 0 ? ` (${newCount})` : ""}
+        </button>
         <Link href="/my" className="mt-4 text-[13px] underline text-neutral-500">마이페이지</Link>
         {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
       </main>

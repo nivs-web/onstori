@@ -2,7 +2,7 @@
    2026-09-05 회장님 지시: "기획은 더 이상 추가·수정하지 않는다. 이 문서대로 만든다."
    섹션 순서 = 왼쪽 메뉴 순서. html 은 그대로 렌더된다(백틱 사용 금지). */
 window.MAINPLAN = {
-  updated: "2026-09-05",
+  updated: "2026-09-05 (저녁 · 레멘토 참고 방침 확정 반영)",
   sections: [
 
 /* ───────────────────────── 01 새로운 기획안 ───────────────────────── */
@@ -36,7 +36,7 @@ window.MAINPLAN = {
 <h3>현황 분석 — 남은 것 (이번 기획으로 새로 생기는 일)</h3>
 <table><tr><th>#</th><th>남은 작업</th><th>크기</th><th>이번 세션</th></tr>
 <tr><td>1</td><td>기획1 <code>/mainplan</code> + 기획1·2·3 교차 버튼</td><td>소</td><td><span class="tag done">완료</span></td></tr>
-<tr><td>2</td><td>첫 페이지를 레멘토 구조로 전면 재제작 (확정 히어로·ONSTORI 로고·포레스트그린/크림/라임)</td><td>중</td><td><span class="tag done">완료</span></td></tr>
+<tr><td>2</td><td>첫 페이지 전면 재제작 — 레이아웃·순서는 레멘토 참고, 확정 히어로·ONSTORI 로고</td><td>중</td><td><span class="tag done">완료</span> <span class="tag wip">색·세부 UI 조정 남음(#remento)</span></td></tr>
 <tr><td>3</td><td>상단 메뉴 5개 페이지 — 작동방식·사업이야기·자주묻는질문·리뷰·블로그 + 비교 페이지</td><td>중</td><td><span class="tag done">완료</span></td></tr>
 <tr><td>4</td><td>랜덤 질문 위젯("사장님, 어떤 이야기를 들려주시겠습니까?" · 랜덤 질문 바꾸기 · 4장) + 질문 은행 100개</td><td>소</td><td><span class="tag done">완료</span></td></tr>
 <tr><td>5</td><td>온보딩 5단계(상호명·플레이스 불러오기 → 세부 업종 → 한 줄·로고·주소·전화 → 다크/화이트 8색 → 1→100% 진행 → 정회원 안내)</td><td>대</td><td><span class="tag done">완료</span></td></tr>
@@ -128,15 +128,15 @@ window.MAINPLAN = {
 
 /* ───────────────────────── 03 히어로 ───────────────────────── */
 { id: "hero", group: "첫 페이지", title: "히어로 섹션 기획안",
-  lead: "레멘토 히어로의 뼈대(좌 텍스트 · 신뢰 3줄 · CTA 2개 · 우측 실물 목업)를 그대로 쓰고, 내용만 온스토리로.",
+  lead: "레멘토 히어로의 뼈대(좌 텍스트 · 신뢰 3줄 · CTA 2개 · 우측 목업)를 참고하고, 내용·색·버튼 형태는 온스토리 것으로.",
   html: `
-<h3>레이아웃 (레멘토 1:1)</h3>
+<h3>레이아웃 (배치는 레멘토 참고 · 색·형태는 독자)</h3>
 <table><tr><th>레멘토</th><th>온스토리</th></tr>
-<tr><td>상단 프로모 띠 "Get $10 off…"</td><td>"오픈 기념 — 14일 전 기능 무료 · 이후 49,000원" (라임 배경, 포레스트 글자)</td></tr>
+<tr><td>상단 프로모 띠 "Get $10 off…"</td><td>"오픈 기념 — 14일 전 기능 무료 · 이후 49,000원" (서브색 #273D3D 얇은 띠, 흰 글자)</td></tr>
 <tr><td>세리프 헤드라인 2줄</td><td>"홈페이지는 텅 빈 상가입니다. / 스토리에는 진짜 사람이 있습니다." (Noto Serif KR 700)</td></tr>
 <tr><td>서브 1줄</td><td>"사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다. 온스토리."</td></tr>
 <tr><td>체크 3줄 (No writing / Just click / No app)</td><td>3배지: ✎ 글쓰기 금지 · 🔗 문자 링크만 누르세요(카톡 로그인) · ⤓ 다운로드 없음</td></tr>
-<tr><td>CTA "Buy now" 라임 + "How it works" 텍스트</td><td>"녹화를 시도해보세요 · 60초" 라임 알약 → /new + "작동방식 보기 →"</td></tr>
+<tr><td>CTA "Buy now" 라임 알약 + "How it works" 텍스트</td><td>"녹화를 시도해보세요 · 60초" <b>#005B2A 초록 12px 버튼</b> → /new + "작동방식 보기 →"</td></tr>
 <tr><td>별 5개 · 1,500+ reviews</td><td>정직 원칙: 리뷰 수 대신 "질문 100개 · 6개 채널 · 14일 무료" 사실 3개</td></tr>
 <tr><td>우측: 책+폰 실물 사진</td><td>우측: 실제 작동 중인 고객 사이트 폰 프레임(기존 PhoneFrame 유지) + 녹화 화면 카드 겹침</td></tr></table>
 
@@ -149,7 +149,7 @@ window.MAINPLAN = {
 
 /* ───────────────────────── 04 첫페이지 섹션 ───────────────────────── */
 { id: "sections", group: "첫 페이지", title: "첫 페이지 섹션 기획안 (순서표)",
-  lead: "레멘토 홈 20섹션 ↔ 온스토리 대응. 기존 온스토리 섹션(포트폴리오·3단계·차별점·가격)은 버리지 않고 자리만 잡는다 — 지울지는 회장님이 나중에 결정.",
+  lead: "레멘토 홈 20섹션의 배치·순서를 참고한 온스토리 섹션 순서표(방침 ①). 색·세부 UI는 독자(방침 ②③). 기존 온스토리 섹션(포트폴리오·3단계·차별점·가격)은 버리지 않고 자리만 잡는다 — 지울지는 회장님이 나중에 결정.",
   html: `
 <div class="tblwrap"><table><tr><th>#</th><th>레멘토</th><th>온스토리 섹션</th><th>내용 출처</th><th>상태</th></tr>
 <tr><td>0</td><td>프로모 띠</td><td>오픈 띠 (14일 무료)</td><td>02 카피</td><td><span class="tag done">완료</span></td></tr>
@@ -177,21 +177,48 @@ window.MAINPLAN = {
 `},
 
 /* ───────────────────────── 05 레멘토 닮은 온스토리 ───────────────────────── */
-{ id: "remento", group: "첫 페이지", title: "레멘토 닮은 온스토리 기획안 (디자인 토큰 · 구조 · 마케팅 대응)",
-  lead: "109장 캡처 + 실사이트 전 메뉴 클릭 분석 결과. 색·서체·레이아웃·메뉴·마케팅 장치를 1:1로 옮기고 내용만 바꾼다.",
+{ id: "remento", group: "첫 페이지", title: "레멘토 참고 방침 · 디자인 토큰 · 파일 분류 ①②",
+  lead: "109장 캡처 + 실사이트 전 메뉴 클릭 분석 결과. 회장님 확정 방침(09-05 저녁): 레이아웃·섹션 순서·마케팅 흐름·정보 구조는 적극 벤치마킹, 색상은 독자 팔레트(#005B2A/#273D3D), 아이콘·이미지·세부 UI는 유사하되 변형. 내용은 전부 온스토리.",
   html: `
-<h3>디자인 토큰</h3>
-<table><tr><th>역할</th><th>레멘토</th><th>온스토리</th><th>CSS 변수</th></tr>
-<tr><td>주색(배경 밴드·푸터·버튼 글자)</td><td>포레스트 그린 #1E332D</td><td>로고 STORI 색 #1B2C2C 와 같은 계열 → <b>#1E332D</b></td><td><code>--forest</code></td></tr>
-<tr><td>포인트(로고 ON)</td><td>—</td><td>로고 ON 그린 <b>#005B2A</b></td><td><code>--green</code></td></tr>
-<tr><td>바탕</td><td>크림 #F4F0E6</td><td>동일 <b>#F4F0E6</b> / 카드 #FFFFFF</td><td><code>--cream</code></td></tr>
-<tr><td>CTA</td><td>라임 #E1EB6E 알약</td><td>동일 <b>#E1EB6E</b>, 글자 포레스트</td><td><code>--lime</code></td></tr>
-<tr><td>강조(별·REC)</td><td>테라코타 #C4553A</td><td>동일 — REC 점·경고</td><td><code>--terra</code></td></tr>
-<tr><td>보조</td><td>틸 #4C7C74 · 머스터드 #D9A93A</td><td>동일</td><td><code>--teal</code> <code>--mustard</code></td></tr>
-<tr><td>제목 서체</td><td>세리프(Tiempos 류)</td><td>Noto Serif KR 700 (한글 세리프)</td><td><code>--display</code></td></tr>
-<tr><td>본문</td><td>산세리프</td><td>Pretendard(기존 유지)</td><td>—</td></tr>
-<tr><td>모서리</td><td>카드 12~16px · 버튼 999px</td><td>동일</td><td>—</td></tr>
-<tr><td>사진</td><td>실제 따뜻한 인물 사진</td><td>이미지뱅크 사진 + 실제 사장님 사진(있을 때)</td><td>—</td></tr></table>
+<div class="card lime"><b>방침 확정 (2026-09-05 저녁, CLAUDE.md 규칙 9)</b><br>
+① 레이아웃 배치 · 섹션 순서 · 마케팅 흐름 · 정보 구조 — 레멘토를 최대한 가깝게 (적극 벤치마킹)<br>
+② 색상 — 레멘토와 다르게. <b>메인 #005B2A</b>(초록, 로고 ON) · <b>서브 #273D3D</b>(진한 초록). 레멘토의 포레스트 #1E332D · 크림 #F4F0E6 · 라임 #E1EB6E 조합은 쓰지 않는다<br>
+③ 아이콘 스타일 · 이미지 처리 · 세부 UI — 뉘앙스만 비슷하게, 베낀 티가 나지 않을 만큼 변형</div>
+
+<h3>디자인 토큰 (방침 반영 — app/globals.css 가 단일 출처)</h3>
+<table><tr><th>역할</th><th>레멘토</th><th>09-05 1차본 (조정 전)</th><th>확정 팔레트 (조정 후)</th><th>CSS 변수</th></tr>
+<tr><td>메인(버튼·강조·링크)</td><td>라임 #E1EB6E 알약</td><td>라임 그대로</td><td><b>#005B2A</b> 초록 + 흰 글자, 모서리 12px(알약 아님)</td><td><code>--green</code></td></tr>
+<tr><td>서브(밴드·푸터·다크 화면)</td><td>포레스트 #1E332D</td><td>#1E332D 그대로</td><td><b>#273D3D</b> 진한 초록</td><td><code>--forest</code>(값만 교체)</td></tr>
+<tr><td>바탕</td><td>크림 #F4F0E6</td><td>크림 그대로</td><td>흰색 #FFFFFF / 연회색 #F5F7F6 (크림 아님)</td><td><code>--paper</code> <code>--cream</code></td></tr>
+<tr><td>연한 초록 면(배지·소프트 카드)</td><td>—</td><td>라임 띠</td><td>#005B2A 8% 틴트 #E8F1EC</td><td><code>--accent-soft</code></td></tr>
+<tr><td>강조(REC·경고)</td><td>테라코타 #C4553A</td><td>테라코타</td><td>#D64545 (일반 적색 — 특정 브랜드 색 회피)</td><td><code>--terra</code></td></tr>
+<tr><td>보조 텍스트</td><td>틸 #4C7C74</td><td>틸</td><td>#4F6B62 (서브색 파생)</td><td><code>--teal</code></td></tr>
+<tr><td>제목 서체</td><td>세리프</td><td>Noto Serif KR</td><td>유지하되 무게·크기 다르게 (세리프는 일반 관행)</td><td><code>--display</code></td></tr>
+<tr><td>본문</td><td>산세리프</td><td>Pretendard</td><td>Pretendard 유지</td><td>—</td></tr>
+<tr><td>버튼 형태</td><td>999px 알약</td><td>알약</td><td>12px 라운드 사각</td><td><code>.btn-*</code></td></tr>
+<tr><td>카드 모서리</td><td>12~16px</td><td>16~24px</td><td>12px + 얇은 초록 상단선(변형)</td><td>—</td></tr>
+<tr><td>상단 프로모 띠</td><td>라임 띠</td><td>라임 띠</td><td>서브색 #273D3D 얇은 띠 + 흰 글자</td><td><code>PromoBar</code></td></tr>
+<tr><td>폰 목업</td><td>검정 폰 + 포레스트 화면</td><td>동일 톤</td><td>연회색 베젤 + 서브색 화면, REC 점만 적색</td><td><code>RecMockup</code></td></tr>
+<tr><td>사진</td><td>실제 따뜻한 인물 사진</td><td>—</td><td>이미지뱅크 + 실제 사장님 사진, 모서리 12px·초록 캡션 띠</td><td>—</td></tr></table>
+
+<h3>68개 파일 분류 — ① 사업 로직(그대로 유지) / ② 시각 디자인(방침대로 조정)</h3>
+<table><tr><th>구분</th><th>파일</th><th>비고</th></tr>
+<tr><td rowspan="9"><b>① 사업 로직<br>(손대지 않음)</b></td><td>lib/trial.ts · lib/story-link.ts · lib/storage.ts · lib/notify.ts · lib/site-owner.ts · lib/sites.ts · lib/generate.ts</td><td>14일·서명·업로드·문자·소유권·로고·생성</td></tr>
+<tr><td>app/api/billing/checkout · confirm · app/api/cron/expire · vercel.json</td><td>결제·만료 크론</td></tr>
+<tr><td>app/api/generate · api/site/get · api/site/logo · api/place-search · api/story/send-link · upload-url · upload · submit</td><td>온보딩·녹화 API</td></tr>
+<tr><td>app/mainplan/[[...path]]/route.ts · next.config.ts · supabase/migrations/20260905090000 · .env.example</td><td>라우트·트레이싱·DB</td></tr>
+<tr><td>config/questions.ts · faq.ts · industry-picker.ts · palettes.ts</td><td>질문 은행·FAQ·세부 업종·고객 사이트 8색(브랜드색 아님)</td></tr>
+<tr><td>app/admin/members/page.tsx · app/admin/page.tsx · app/billing/success/* · fail · app/my/page.tsx · app/sitemap.ts · app/layout.tsx</td><td>운영자·결제 결과·마이페이지·메타</td></tr>
+<tr><td>app/[slug]/edit/ui.tsx(무료 바·차단·모달 배선) · app/[slug]/edit/story-link.tsx · app/[slug]/page.tsx(로고 표시)</td><td>에디터·고객 사이트 로직</td></tr>
+<tr><td>app/new/page.tsx · app/new/wizard.tsx 의 단계 흐름·검증·API 호출</td><td>온보딩 5단계 (색·버튼만 ②)</td></tr>
+<tr><td>CLAUDE.md · docs/DECISIONS.md · docs/PLAN.md · content/mainplan/* · content/plandept/index.html · scripts/build-plandept.ts · public/brand/*</td><td>문서·기획실·로고(로고는 그대로)</td></tr>
+<tr><td rowspan="6"><b>② 시각 디자인<br>(방침대로 조정)</b></td><td><b>app/globals.css</b></td><td>토큰 교체 — 여기만 바꿔도 80% 반영: --green 메인, --forest→#273D3D, 크림→흰/연회색, 라임 폐기, 버튼 알약→12px</td></tr>
+<tr><td>components/site/chrome.tsx (헤더·프로모 띠·푸터·PageHero·CtaBand) · blocks.tsx (채널 띠·RecMockup·말→글·비교 콜아웃·FAQ) · question-shuffle.tsx · pay-modal.tsx</td><td>라임 CTA·크림 배경·알약·목업 톤·카드 모서리</td></tr>
+<tr><td>app/page.tsx (20섹션 색·밴드·카드) · how-it-works · our-story · faq · reviews · blog · compare</td><td>섹션 배치는 유지, 색·세부 UI만</td></tr>
+<tr><td>app/new/wizard.tsx (진행 바·칩·미리보기 카드·버튼 색) · app/rec/[slug]/rec-client.tsx · page.tsx (다크 화면 = 서브색, REC 적색)</td><td>흐름·검증 로직은 손대지 않음</td></tr>
+<tr><td>content/mainplan/index.html · content/plandept/index.html · scripts/build-plandept.ts 의 기획1·2·3 버튼 색</td><td>내부 화면 — 라임 → 메인 초록 (선택)</td></tr>
+<tr><td>코드 주석의 "레멘토 1:1" 표현 (page.tsx·chrome.tsx·rec-client.tsx 상단)</td><td>"레이아웃 참고·색 독자" 로 문구 정리</td></tr></table>
+<p class="note">조정 순서: globals.css 토큰 → chrome/blocks 부품 → 첫 페이지 → 메뉴 6 → 위저드·녹화 → 내부 화면. 각 단계마다 빌드·캡처로 확인. 사업 로직 파일은 diff 0 이 조건.</p>
 
 <h3>로고</h3>
 <p>ONSTORI 워드마크(ON 그린 #005B2A + STORI 다크 #192C2C). <code>public/brand/onstori-logo.png</code>(투명 1170×202), 헤더 600px판, 어두운 배경용 크림판. 헤더 높이 28px, 푸터 22px.</p>
