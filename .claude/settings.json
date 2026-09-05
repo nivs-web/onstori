@@ -22,15 +22,19 @@
       "Bash(npm ci*)",
       "Bash(npx tsc*)",
       "Bash(git push)",
-      "Bash(git merge*)"
+      "Bash(git merge*)",
+      "Bash(vercel*)",
+      "Bash(npx vercel*)"
     ],
     "ask": [
       "Bash(git rebase*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
-      "Bash(vercel*)",
-      "Bash(npx vercel*)",
-      "Bash(npm run deploy*)"
+      "Bash(npm run deploy*)",
+      "Bash(vercel env rm*)",
+      "Bash(npx vercel env rm*)",
+      "Bash(vercel rm*)",
+      "Bash(npx vercel rm*)"
     ],
     "deny": [
       "Bash(git push --force*)",
@@ -51,16 +55,6 @@
       "Bash(supabase migration repair*)",
       "Bash(npx supabase migration repair*)",
       "Bash(psql*)",
-      "Bash(vercel --prod*)",
-      "Bash(npx vercel --prod*)",
-      "Bash(vercel deploy --prod*)",
-      "Bash(npx vercel deploy --prod*)",
-      "Bash(vercel promote*)",
-      "Bash(npx vercel promote*)",
-      "Bash(vercel rollback*)",
-      "Bash(npx vercel rollback*)",
-      "Bash(vercel redeploy*)",
-      "Bash(npx vercel redeploy*)",
       "Bash(git push origin +*)"
     ]
   }
