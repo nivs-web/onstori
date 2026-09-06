@@ -70,16 +70,28 @@ function split(key: string): { bucket: string; path: string } {
   return { bucket: key.slice(0, i), path: key.slice(i + 1) };
 }
 
+/**
+ * 이미지·영상 캐시 정책 — 1년 · immutable.
+ * 키가 UUID 라서 **같은 주소의 내용이 바뀌는 일이 없다.** 파일을 바꾸면 새 UUID 가 나온다.
+ * 그래서 브라우저·CDN 이 다시 물어볼 필요가 전혀 없다 (docs/PERFORMANCE.md).
+ * 이게 없으면 R2 기본값으로 나가 손님이 올 때마다 사진을 재검증한다.
+ */
+const IMMUTABLE = "public, max-age=31536000, immutable";
+
 export async function put(bucket: Bucket, key: string, body: Buffer, contentType: string): Promise<{ key: string }> {
   const env = r2Env();
   if (env) {
     await client(env).send(
-      new PutObjectCommand({ Bucket: r2Bucket(env, bucket), Key: key, Body: body, ContentType: contentType })
+      new PutObjectCommand({
+        Bucket: r2Bucket(env, bucket), Key: key, Body: body, ContentType: contentType,
+        CacheControl: IMMUTABLE,
+      })
     );
     return { key };
   }
   const { bucket: sbBucket, path } = split(key);
-  const { error } = await sbAdmin().storage.from(sbBucket).upload(path, body, { contentType });
+  // Supabase 는 초 단위 문자열만 받는다 — immutable 지시어는 지원하지 않는다
+  const { error } = await sbAdmin().storage.from(sbBucket).upload(path, body, { contentType, cacheControl: "31536000" });
   if (error) throw new Error(error.message);
   return { key };
 }
@@ -111,6 +123,9 @@ export async function signedGetUrl(key: string, expiresSec = 600): Promise<strin
 export async function signedPutUrl(bucket: Bucket, key: string, contentType: string, expiresSec = 600): Promise<string | null> {
   const env = r2Env();
   if (!env) return null;
+  // ⚠ 여기에는 CacheControl 을 넣지 않는다. 서명 URL 에 넣으면 그 헤더가 **서명에 포함**돼
+  //   브라우저가 똑같은 Cache-Control 헤더를 같이 보내야만 업로드가 성공한다(안 보내면 403).
+  //   녹화 영상은 한 번 보고 마는 파일이라 1년 캐시의 이득도 작다.
   return getSignedUrl(client(env), new PutObjectCommand({ Bucket: r2Bucket(env, bucket), Key: key, ContentType: contentType }), { expiresIn: expiresSec });
 }
 

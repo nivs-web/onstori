@@ -1,92 +1,421 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
-@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&display=swap");
+@import "./fonts.css";
 @import "tailwindcss";
 
-/* 온스토리 브랜드 토큰 — 본사 페이지(랜딩·메뉴 페이지·위저드·어드민) 공통.
-   고객 사이트는 자체 팔레트(--s-*)를 인라인으로 쓰므로 영향 없음.
+/* ═══════════════════════════════════════════════════════════════════════════
+   온스토리 디자인 시스템 v1 — 색·글자·간격·모서리·그림자·모션의 **유일한 출처**.
+   정의와 규칙은 docs/DESIGN.md · docs/MOTION.md · docs/PERFORMANCE.md.
 
-   2026-09-05 규칙 9 ② 반영 — 레멘토 색(포레스트 #1E332D · 크림 #F4F0E6 · 라임 #E1EB6E)을 버리고
-   독자 팔레트로 교체했다. 확정값의 단일 출처는 기획1 /mainplan #remento 토큰 표.
-     메인 #005B2A (로고 ON 그린) · 서브 #273D3D (진한 초록) · 바탕 흰색/연회색
+   여기 없는 값을 컴포넌트에 직접 적지 않는다 (CLAUDE.md 규칙 11).
+   하드코딩 금지: 색상값(#/rgb/hsl) · letter-spacing · box-shadow · border-radius ·
+                 transition · animation.
 
-   ⚠ --lime 은 이름만 남은 레거시다. 라임(노랑빛)은 폐기했고 값은 **밝은 민트**다.
-     호출부 20곳이 이 변수를 두 가지 역할로 쓰기 때문에 이름을 유지했다:
-       ① 어두운 면 위의 밝은 강조  — color: var(--lime)        → 민트가 진한 초록 위에서 읽힌다
-       ② 밝은 칩 배경 + 진한 글자   — background: var(--lime)   → 민트 위 진한 초록 글자가 읽힌다
-     여기에 메인 초록(#005B2A)을 넣으면 ①②가 전부 초록 위 초록이 되어 글자가 사라진다.
-     이름 정리(--mint 로 rename)는 호출부 churn 이라 별도 작업으로 남긴다. */
+   고객 사이트(app/[slug])는 사장님이 고른 자체 팔레트를 `--s-*` 로 인라인 주입한다 —
+   그 스코프는 이 토큰과 별개다. 여기 있는 건 본사 화면(랜딩·메뉴·위저드·에디터·어드민).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* 브랜드 */
-  --green: #005B2A;       /* 메인 — 버튼·강조·링크 (로고 ON) */
-  --green-2: #00713A;     /* 메인 hover */
-  --forest: #273D3D;      /* 서브 — 밴드·푸터·다크 화면 */
-  --forest-2: #2F4A49;    /* 서브 2단 */
-  --lime: #B7DCC6;        /* (레거시 이름) 밝은 민트 — 위 ①② 역할 */
-  --lime-2: #A5D0B6;      /* 민트 hover·2단 */
-  --cream: #FFFFFF;       /* (레거시 이름) 바탕 — 흰색. 크림 폐기 */
-  --cream-2: #F5F7F6;     /* 바탕 2단 — 연회색 */
-  --terra: #CE3B3B;       /* REC · 경고 (테라코타 폐기 — 일반 적색).
-                             표의 확정값 #D64545 는 흰 바탕 글자 대비가 4.38:1 로 AA(4.5) 에 미달해
-                             같은 계열에서 통과하는 값으로 낮췄다 — my/page.tsx·pay-modal 에서 글자색으로 쓴다 */
-  --teal: #4F6B62;        /* 보조 텍스트 (서브색 파생) */
-  --display: "Noto Serif KR", "Nanum Myeongjo", serif;
+  /* ── 초록 (브랜드) ── --green-700 이 로고 ON 그린이자 주 버튼 색이다 */
+  --green-50: #EEF6F1;
+  --green-100: #D6EADD;
+  --green-200: #ADD5BC;
+  --green-300: #7DBB97;
+  --green-400: #4A9C70;
+  --green-500: #237D4F;
+  --green-600: #0F6A3B;
+  --green-700: #005B2A;
+  --green-800: #00451F;
+  --green-900: #002E14;
 
-  /* 기존 토큰 — 값만 새 팔레트로 */
-  --paper: #FFFFFF;
-  --ink: #172626;
-  --muted: #5A6664;
-  --line: #E2E8E5;        /* 베이지 라인(#DDD6C6) → 중립 회록색 */
-  --accent: #005B2A;
-  --accent-strong: #005B2A;
-  --accent-soft: #E8F1EC;  /* 메인 8% 틴트 — 배지·소프트 카드 */
-  --band: #273D3D;
+  /* ── 중성 (화면의 70%) ── */
+  --n-0: #FFFFFF;
+  --n-50: #F6F8F7;
+  --n-100: #EDF1EF;
+  --n-200: #DCE3E0;
+  --n-300: #C2CCC8;
+  --n-400: #98A6A2;
+  --n-500: #6E7E7A;
+  --n-600: #4E605C;
+  --n-700: #364B49;
+  --n-800: #273D3D;
+  --n-900: #16262A;
+
+  /* ── 포인트 (화면의 2%) ── "남은 자리"·가격 강조에만. 그 외 사용 금지 */
+  --accent: #E09A3C;
+  --accent-soft: #FBF1E2;
+  --accent-ink: #8A5A12;
+  --danger: #B93A2C;
+  --danger-soft: #FAE9E6;
+
+  /* ── 글자 크기 ── clamp 로 폰↔PC 사이를 잇는다. px 를 따로 적지 않는다 */
+  --t-display: clamp(2.25rem, 1.6rem + 2.6vw, 3.5rem);
+  --t-h1: clamp(1.875rem, 1.4rem + 1.9vw, 2.625rem);
+  --t-h2: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --t-h3: clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem);
+  --t-lead: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
+  --t-body: 1rem;
+  --t-small: 0.875rem;
+  --t-caption: 0.75rem;
+
+  /* ── 간격 ── 4의 배수. 사이값을 만들지 않는다 */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+
+  /* ── 모서리 ── */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-full: 999px;
+
+  /* ── 그림자 ── 카드에 기본으로 넣지 않는다. hover 에만 --shadow-1 */
+  --shadow-1: 0 1px 2px rgba(22, 38, 42, .06), 0 8px 24px rgba(22, 38, 42, .06);
+  --shadow-2: 0 24px 48px rgba(22, 38, 42, .14);
+
+  /* ── 모션 ── 허용 8가지는 docs/MOTION.md. 그 외 애니메이션 금지 */
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 480ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(.34, 1.32, .64, 1);
+
+  /* ── 레이아웃 ── */
+  --container: 1200px;
+  --gutter: var(--s-5);          /* 모바일 20~24 */
+  --gutter-lg: var(--s-6);       /* PC 32 */
+  --section-y: var(--s-8);       /* 모바일 64 */
+  --section-y-lg: var(--s-10);   /* PC 128 */
+  --measure: 38em;               /* 본문 한 줄 최대 폭 */
+  --control-h: 52px;             /* 버튼 높이 (모바일 48) */
+  --control-h-sm: 48px;
+  --field-h: 48px;               /* 입력창 높이 */
+  --tap: 48px;                   /* 최소 터치 목표 */
+  --bar-h: 56px;                 /* 상단 바 */
+  --dock-h: 64px;                /* 손님 사이트 하단 고정 바 */
+
+  /* ── 글꼴 ── */
+  --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --font-display: var(--font-serif-kr), "Noto Serif KR", "Nanum Myeongjo", serif;
+
+  /* ═══ 레거시 별칭 ═══
+     호출부 수백 곳이 이 이름들을 쓴다. 값은 전부 위 토큰을 가리키게 바꿨다 —
+     이름만 남은 통로이고, 새 코드에서는 쓰지 않는다.
+     ⚠ --accent 는 예전엔 초록이었다. 지금은 포인트 주황이다.
+        초록이 필요하면 --green-700 을 쓴다. */
+  --green: var(--green-700);
+  --green-2: var(--green-600);
+  --forest: var(--n-800);
+  --forest-2: var(--n-700);
+  --lime: var(--green-200);      /* (레거시 이름) 밝은 민트 — 어두운 면 위 강조 / 밝은 칩 배경 */
+  --lime-2: var(--green-300);
+  --cream: var(--n-0);
+  --cream-2: var(--n-50);
+  --terra: var(--danger);
+  --teal: var(--n-600);
+  --paper: var(--n-0);
+  --ink: var(--n-900);
+  --muted: var(--n-600);
+  --line: var(--n-200);
+  --band: var(--n-800);
+  --display: var(--font-display);
+  --accent-strong: var(--green-700);
 }
+
+/* ───────────────────────── 바탕 ───────────────────────── */
 
 body {
-  background: var(--paper);
-  color: var(--ink);
-  /* 폰트 폴백·자간·행간은 nivs.com(회장님 자사) 기준에 맞춘다 — 2026-09-06.
-     자간은 nivs 의 -.05em 을 그대로 쓰지 않는다: 본문이 13~15px 구간이 많아 한글 자모가 붙는다. */
-  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.7;
-  letter-spacing: -0.035em;
+  background: var(--n-50);
+  color: var(--n-700);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.75;
+  letter-spacing: -0.02em;
   word-break: keep-all;
   overflow-wrap: break-word;
+  /* 폰에서 가로로 밀리는 사고를 원천 차단 — 넘치는 표·격자는 자기 안에서 스크롤한다 */
+  overflow-x: hidden;
 }
 
-h1, h2, h3 { letter-spacing: -0.03em; }
+/* 숫자는 자리가 흔들리지 않게 (가격·건수·D-day) */
+body { font-variant-numeric: tabular-nums; }
 
-/* 세리프 제목 — 세리프 자체는 일반 관행이라 유지, 무게·크기로 차이를 낸다(규칙 9 ③) */
-.font-display { font-family: var(--display); letter-spacing: -0.02em; }
+/* ───────────────────────── 글자 ───────────────────────── */
 
-/* 주 CTA — 메인 초록 + 흰 글자, 12px 라운드 사각(알약 아님, 규칙 9 ③).
-   클래스명 btn-lime 은 레거시 — 호출부 28곳 유지용. */
-.btn-lime {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
-  background: var(--green); color: #fff;
-  border-radius: 12px; padding: 14px 26px; font-weight: 700; font-size: 15px;
-  box-shadow: 0 10px 24px -14px rgba(0,91,42,.55);
-  transition: transform .15s, background .15s;
+/* Display·H1·H2 = 세리프 600. H3 이하와 본문·UI = Pretendard */
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--n-900);
 }
-.btn-lime:hover { background: var(--green-2); transform: translateY(-1px); }
-.btn-ghost {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border: 1px solid var(--line); color: var(--green);
-  border-radius: 12px; padding: 13px 22px; font-weight: 600; font-size: 14.5px; background: #fff;
+h1 { font-size: var(--t-h1); letter-spacing: -0.03em; line-height: 1.25; }
+h2 { font-size: var(--t-h2); letter-spacing: -0.025em; line-height: 1.3; }
+h3, h4, h5, h6 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--n-900);
+  letter-spacing: -0.02em;
 }
-.btn-forest {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--forest); color: #fff;
-  border-radius: 12px; padding: 13px 24px; font-weight: 700; font-size: 15px;
+h3 { font-size: var(--t-h3); line-height: 1.4; }
+
+.t-display { font-family: var(--font-display); font-weight: 600; font-size: var(--t-display); letter-spacing: -0.03em; line-height: 1.15; }
+.t-h1 { font-family: var(--font-display); font-weight: 600; font-size: var(--t-h1); letter-spacing: -0.03em; line-height: 1.25; }
+.t-h2 { font-family: var(--font-display); font-weight: 600; font-size: var(--t-h2); letter-spacing: -0.025em; line-height: 1.3; }
+.t-h3 { font-family: var(--font-body); font-weight: 700; font-size: var(--t-h3); letter-spacing: -0.02em; line-height: 1.4; }
+.t-lead { font-size: var(--t-lead); line-height: 1.65; color: var(--n-600); }
+.t-body { font-size: var(--t-body); }
+.t-small { font-size: var(--t-small); line-height: 1.6; }
+.t-caption { font-size: var(--t-caption); line-height: 1.5; color: var(--n-500); }
+
+/* 본문 한 줄 최대 38em — 길면 눈이 줄을 놓친다 */
+.measure { max-width: var(--measure); }
+
+/* 레거시 이름 — 호출부 유지용 */
+.font-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.03em; }
+
+/* ───────────────────────── 레이아웃 ───────────────────────── */
+
+.wrap {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@media (min-width: 768px) {
+  .wrap { padding-inline: var(--gutter-lg); }
 }
 
-/* 공용 섹션 폭 */
-.wrap { max-width: 1120px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+/* 섹션 세로 여백 — 모바일 64 / PC 128 */
+.section { padding-block: var(--section-y); }
+@media (min-width: 768px) {
+  .section { padding-block: var(--section-y-lg); }
+}
+
+/* 섹션 배경 3종 — 같은 배경을 연속으로 두지 않는다 */
+.surface-0 { background: var(--n-0); color: var(--n-700); }
+.surface-50 { background: var(--n-50); color: var(--n-700); }
+.surface-900 { background: var(--n-900); color: var(--n-200); }
+.surface-900 h1, .surface-900 h2, .surface-900 h3 { color: var(--n-0); }
+.surface-900 .t-lead { color: var(--n-300); }
+
+/* ───────────────────────── 버튼 ───────────────────────── */
+/* 주 버튼(초록 배경)은 뷰포트당 1개. 나머지는 보조(테두리)나 글자 버튼. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  white-space: nowrap;
+  min-height: var(--control-h-sm);
+  min-width: var(--tap);
+  padding-inline: var(--s-5);
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+    color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+}
+@media (min-width: 768px) {
+  .btn { min-height: var(--control-h); }
+}
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--n-0), 0 0 0 5px var(--green-300); }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+
+.btn-primary { background: var(--green-700); color: var(--n-0); }
+.btn-primary:hover { background: var(--green-600); }
+
+.btn-secondary { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
+.btn-secondary:hover { border-color: var(--green-400); background: var(--green-50); }
+
+.btn-text { background: transparent; color: var(--green-700); padding-inline: var(--s-2); }
+.btn-text:hover { color: var(--green-600); text-decoration: underline; text-underline-offset: 4px; }
+
+/* 어두운 면 위 */
+.surface-900 .btn-secondary { background: transparent; color: var(--n-0); border-color: rgba(255, 255, 255, .35); }
+.surface-900 .btn-secondary:hover { background: rgba(255, 255, 255, .08); border-color: var(--n-0); }
+
+/* 레거시 클래스 — 호출부 다수 유지용. 새 코드에서는 .btn .btn-* 를 쓴다 */
+.btn-lime, .btn-ghost, .btn-forest {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  white-space: nowrap; min-height: var(--control-h-sm); padding-inline: var(--s-5);
+  border-radius: var(--r-md); font-size: var(--t-body); font-weight: 600; line-height: 1;
+  letter-spacing: -0.02em; border: 1px solid transparent;
+  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+    color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+}
+@media (min-width: 768px) { .btn-lime, .btn-ghost, .btn-forest { min-height: var(--control-h); } }
+.btn-lime:active, .btn-ghost:active, .btn-forest:active { transform: translateY(1px); }
+.btn-lime { background: var(--green-700); color: var(--n-0); }
+.btn-lime:hover { background: var(--green-600); }
+.btn-ghost { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
+.btn-ghost:hover { border-color: var(--green-400); background: var(--green-50); }
+.btn-forest { background: var(--n-800); color: var(--n-0); }
+.btn-forest:hover { background: var(--n-700); }
+
+/* ───────────────────────── 카드 ───────────────────────── */
+/* 배경 흰색 · 테두리 1px · 그림자 없음. hover 에만 그림자. */
+
+.card {
+  background: var(--n-0);
+  border: 1px solid var(--n-200);
+  border-radius: var(--r-lg);
+  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+a.card:hover, .card-hover:hover { border-color: var(--n-300); box-shadow: var(--shadow-1); }
+
+/* 사진은 테두리·여백 없이. 사진 카드는 4:3 고정(CLS 0) */
+.photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--n-100); }
+
+/* ───────────────────────── 입력창 ───────────────────────── */
+
+.field {
+  width: 100%;
+  min-height: var(--field-h);
+  padding: var(--s-3) var(--s-4);
+  background: var(--n-0);
+  color: var(--n-900);
+  border: 1px solid var(--n-300);
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  font-family: inherit;
+  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+.field::placeholder { color: var(--n-400); }
+.field:focus {
+  outline: none;
+  border-color: var(--green-500);
+  border-width: 2px;
+  box-shadow: 0 0 0 4px var(--green-100);
+}
+textarea.field { min-height: calc(var(--field-h) * 2.5); line-height: 1.7; }
+
+/* ───────────────────────── 칩·배지 ───────────────────────── */
+
+.chip {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
+  font-size: var(--t-caption);
+  font-weight: 600;
+  background: var(--n-100);
+  color: var(--n-600);
+}
+.chip-accent { background: var(--accent-soft); color: var(--accent-ink); }
+.chip-green { background: var(--green-50); color: var(--green-700); }
+.chip-danger { background: var(--danger-soft); color: var(--danger); }
+
+/* ───────────────────────── 표 ───────────────────────── */
+/* 폰에서 표는 가로로 밀리지 않는다 — 자기 안에서 스크롤하고 첫 열이 고정된다 */
+
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll > table { min-width: max-content; }
+.table-scroll th:first-child, .table-scroll td:first-child {
+  position: sticky; left: 0; z-index: 1; background: var(--n-0);
+}
+.table-scroll thead th:first-child { z-index: 2; }
+
+/* ───────────────────────── 모션 ───────────────────────── */
+/* 허용 8가지만. 목록과 금지 항목은 docs/MOTION.md. */
+
+/* ① 섹션 등장 fade-up — CSS 만으로. JS 폴리필을 넣지 않는다.
+   ⚠ @supports 로 감싸지 않으면 미지원 브라우저에서 전 섹션이 로드 즉시 깜빡인다.
+   ⚠ 히어로에는 .reveal 을 붙이지 않는다 (LCP 악화). */
+.reveal { opacity: 1; }
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: fade-up var(--dur-2) var(--ease) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ④ 시트 열림 · ⑤ 시트 안 목록 순차 */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+.sheet-open { animation: sheet-in var(--dur-3) var(--ease-spring) both; }
+.sheet-item { animation: fade-up var(--dur-2) var(--ease) both; }
+.sheet-item:nth-child(1) { animation-delay: 0ms; }
+.sheet-item:nth-child(2) { animation-delay: 24ms; }
+.sheet-item:nth-child(3) { animation-delay: 48ms; }
+.sheet-item:nth-child(4) { animation-delay: 72ms; }
+.sheet-item:nth-child(5) { animation-delay: 96ms; }
+.sheet-item:nth-child(n+6) { animation-delay: 120ms; }
+
+/* ⑦ 사진 blur-up */
+@keyframes blur-up {
+  from { opacity: 0; filter: blur(12px); }
+  to { opacity: 1; filter: none; }
+}
+.blur-up { animation: blur-up var(--dur-3) var(--ease) both; }
+
+/* ⑧ 상태 토스트 — fade-in 120ms → 2초 유지 → fade-out 200ms */
+@keyframes toast {
+  0% { opacity: 0; transform: translateY(8px); }
+  5% { opacity: 1; transform: none; }
+  92% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--s-6) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-full);
+  background: var(--n-900);
+  color: var(--n-0);
+  font-size: var(--t-small);
+  font-weight: 600;
+  box-shadow: var(--shadow-2);
+  animation: toast 2320ms var(--ease) both;
+}
+
+/* 움직이는 건 transform 과 opacity 만. width/height/top/left 애니메이션 금지. */
+
+/* 접근성 — 모션을 줄여 달라고 한 사용자에게는 전역 차단 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ───────────────────────── 잡동사니 ───────────────────────── */
+
+/* 시트가 열린 동안 뒤 배경이 따라 움직이지 않게 */
+body.sheet-locked { overflow: hidden; }
 
 /* FAQ 아코디언 */
 details.faq > summary { list-style: none; cursor: pointer; }
 details.faq > summary::-webkit-details-marker { display: none; }
-details.faq > summary .chev { transition: transform .2s; }
+details.faq > summary .chev { transition: transform var(--dur-2) var(--ease); }
 details.faq[open] > summary .chev { transform: rotate(45deg); }
+
+/* 키보드 사용자에게만 보이는 초점 링 */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--green-500);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
