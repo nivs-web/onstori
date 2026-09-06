@@ -28,10 +28,10 @@ export const MOOD_TONE: Record<string, string> = {
 export const INDUSTRY_SCENES: Record<string, string[]> = {
   interior: [
     "freshly renovated Korean apartment living room with new flooring and built-in storage",
-    "modern kitchen renovation with matte cabinets and tiled backsplash",
-    "bedroom makeover with new wallpaper and warm lighting",
-    "bathroom remodel with large-format tiles and glass shower",
-    "hallway with herringbone wood floor and clean white moldings",
+    "modern Korean apartment kitchen renovation with matte cabinets and tiled backsplash",
+    "Korean apartment bedroom makeover with new wallpaper and warm lighting",
+    "Korean apartment bathroom remodel with large-format tiles and glass shower",
+    "Korean apartment hallway with herringbone wood floor and clean white moldings, typical Korean apartment layout (no Western-style crown molding or wainscoting)",
   ],
   construction: [
     "small commercial building under neat renovation with scaffolding",
