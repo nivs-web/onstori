@@ -5,17 +5,19 @@ import { PromoBar, SiteHeader, SiteFooter } from "@/components/site/chrome";
 import { ChannelStrip, RecMockup, SpeechToStory, CompareCallout, FaqList } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 import { FAQ_FEATURED } from "@/config/faq";
+import { sectionVisibility } from "@/lib/page-sections";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
 
-/** 첫 페이지 섹션 노출 스위치 — E-4-부속(어드민 섹션 관리)이 들어오면 DB 로 옮긴다. 2026-09-06 회장님 지시로 off. */
-const SHOW_INSIDE: boolean = false;
+// 섹션 노출 스위치는 DB(page_sections)로 옮겼다 — /admin/pages 에서 켜고 끈다.
+// DB 를 못 읽으면 안전 기본값(대부분 보임)으로 떨어진다 — lib/page-sections.ts
 
 /**
  * 본사 첫 페이지 v3 — 레멘토(remento.co) 홈 구조 1:1, 내용은 온스토리 (기획1 /mainplan #sections · 2026-09-05)
  * 기존 섹션(포트폴리오·3단계·차별점·가격 밴드)은 버리지 않고 자리만 잡았다 — 지울지는 회장님 결정.
  */
 export default async function Home() {
+  const show = await sectionVisibility();
   const items = await loadShowcase();
   const heroSite = items.find((i) => i.featured) ?? items[0];
 
@@ -158,7 +160,7 @@ export default async function Home() {
       </section>
 
       {/* ── 9. 스토리 페이지 들여다보기 (Inside our books) ── */}
-      {SHOW_INSIDE && (
+      {show.inside && (
       <section id="inside" style={{ background: "var(--cream-2)" }}>
         <div className="wrap py-20">
           <p className="text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>스토리 페이지 들여다보기</p>

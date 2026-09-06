@@ -223,7 +223,7 @@ export async function GET(req: Request) {
           last_charge_at: new Date(now).toISOString(), next_charge_at: next.toISOString(), fail_count: 0,
         }).eq("site_id", b.site_id);
         await sb.from("payments").insert({
-          site_id: site.id, site_slug: site.slug, order_id: orderId,
+          site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "recurring",
           payment_key: paid.data.paymentKey, amount: paid.data.totalAmount ?? MEMBERSHIP_PRICE,
           status: "paid", method: paid.data.method ?? null,
           approved_at: paid.data.approvedAt ?? new Date(now).toISOString(),
@@ -234,7 +234,7 @@ export async function GET(req: Request) {
         // 카드 한도·유효기간 문제는 흔하다. 바로 끊지 않고 3번까지 다음 날 다시 시도한다.
         const fails = (b.fail_count ?? 0) + 1;
         await sb.from("payments").insert({
-          site_id: site.id, site_slug: site.slug, order_id: orderId, amount: MEMBERSHIP_PRICE,
+          site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "recurring", amount: MEMBERSHIP_PRICE,
           status: "failed", fail_code: paid.code, fail_message: paid.message,
         });
         if (fails >= 3) {

@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   if (!paid.ok) {
     await sb.from("billing").update({ status: "failed", fail_count: 1 }).eq("site_id", site.id);
     await sb.from("payments").insert({
-      site_id: site.id, site_slug: site.slug, order_id: orderId, amount: MEMBERSHIP_PRICE,
+      site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "recurring", amount: MEMBERSHIP_PRICE,
       status: "failed", fail_code: paid.code, fail_message: paid.message,
     });
     console.error(JSON.stringify({ evt: "billing_first_charge_failed", slug, code: paid.code }));
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
 
   // 5) 원장 기록 + 사이트 활성화
   await sb.from("payments").insert({
-    site_id: site.id, site_slug: site.slug, order_id: orderId,
+    site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "recurring",
     payment_key: paid.data.paymentKey, amount: paid.data.totalAmount ?? MEMBERSHIP_PRICE,
     status: "paid", method: paid.data.method ?? null,
     approved_at: paid.data.approvedAt ?? new Date().toISOString(),

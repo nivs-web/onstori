@@ -35,12 +35,24 @@ export async function POST(req: Request) {
   const pay = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     console.error(JSON.stringify({ evt: "toss_confirm_fail", slug, status: res.status, code: pay.code, msg: pay.message }));
+    // 실패도 원장에 남긴다 — 어드민 "결제 실패" 탭이 이 기록으로 센다 (docs/admin.md §3-4)
+    await sb.from("payments").insert({
+      site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "oneshot",
+      amount: MEMBERSHIP_PRICE, status: "failed",
+      fail_code: String(pay.code ?? ""), fail_message: String(pay.message ?? ""),
+    }).then(() => {}, () => {}); // 원장 실패가 결제 응답을 막지 않게
     return NextResponse.json({ error: String(pay.message ?? "결제 승인에 실패했어요") }, { status: 402 });
   }
 
   const now = new Date().toISOString();
   const payment = { paymentKey, orderId, amount: MEMBERSHIP_PRICE, approvedAt: pay.approvedAt ?? now, method: pay.method ?? null };
   const settings = { ...(site.settings as Record<string, unknown>), pending_order: null, last_payment: payment };
+  await sb.from("payments").insert({
+    site_id: site.id, site_slug: site.slug, order_id: orderId, kind: "oneshot",
+    payment_key: paymentKey, amount: MEMBERSHIP_PRICE, status: "paid",
+    method: String(pay.method ?? "") || null, approved_at: (pay.approvedAt as string) ?? now,
+    raw: pay,
+  }).then(() => {}, () => {});
   const full = await sb.from("sites").update({ status: "active", plan: "light", paid_at: now, payment, settings }).eq("id", site.id);
   if (full.error) {
     // 마이그레이션 전(paid_at 없음) — 최소 갱신으로 재시도
