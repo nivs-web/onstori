@@ -70,7 +70,8 @@ export default function BlogPage() {
               <p className="t-h3">사장님이 답하기 좋은 질문 20개</p>
               <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--text)" }}>홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.</p>
             </div>
-            <Link href="/new" className="btn btn-primary" style={{ marginTop: "var(--s-4)" }}>질문 20개 받기</Link>
+            {/* 페이지 끝 CtaBand 가 이 페이지의 주 버튼이다 — 한 화면에 초록이 둘 잡혀서 보조로 내린다 */}
+            <Link href="/new" className="btn btn-secondary" style={{ marginTop: "var(--s-4)" }}>질문 20개 받기</Link>
           </div>
         </div>
       </section>

@@ -89,9 +89,9 @@ export function LoginUi() {
 
   return (
     <main className="mx-auto w-full max-w-sm px-6 py-20">
-      <Link href="/" className="text-sm font-bold" style={{ color: "var(--accent)" }}>온스토리</Link>
+      <Link href="/" className="t-body font-bold" style={{ color: "var(--accent)" }}>온스토리</Link>
       <h1 className="mt-4 text-2xl font-bold tracking-tight">로그인</h1>
-      <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
+      <p className="mt-2 t-body" style={{ color: "var(--muted)" }}>
         로그인하면 내 홈페이지를 어느 기기에서든 수정할 수 있어요.
       </p>
 
@@ -136,7 +136,7 @@ export function LoginUi() {
         </form>
       ) : (
         <form onSubmit={verify} className="space-y-3">
-          <p className="text-sm">
+          <p className="t-body">
             <b>{email}</b> 로 보낸 인증번호를 입력해주세요.
           </p>
           {/* Supabase의 Email OTP Length는 대시보드에서 6~10자리로 바뀔 수 있다(현재 8자리).
@@ -162,7 +162,7 @@ export function LoginUi() {
           <button
             type="button"
             onClick={() => { setStep("email"); setCode(""); setErr(""); }}
-            className="w-full py-2 text-sm underline"
+            className="w-full py-2 t-body underline"
             style={{ color: "var(--muted)" }}
           >
             다른 이메일로 받기
@@ -170,7 +170,7 @@ export function LoginUi() {
         </form>
       )}
 
-      {err && <p className="mt-4 text-sm text-danger">{err}</p>}
+      {err && <p className="mt-4 t-body text-danger">{err}</p>}
     </main>
   );
 }

@@ -47,7 +47,8 @@ export default function ReviewsPage() {
                 아직 후기가 없습니다. 없는 후기를 만들어 채우지 않습니다. 첫 사장님 10분의 홈페이지와 60초 영상이 이 자리에 올라옵니다 — 사장님 가게 링크와 함께.
               </p>
               <div style={{ marginTop: "var(--s-5)" }}>
-                <Link href="/new" className="btn btn-primary">첫 10명에 들어가기 (30일 무료)</Link>
+                {/* 페이지 끝 CtaBand 가 이 페이지의 주 버튼이다 — 한 화면에 초록이 둘 잡혀서 보조로 내린다 */}
+                <Link href="/new" className="btn btn-secondary">첫 10명에 들어가기 (30일 무료)</Link>
               </div>
             </div>
           ) : (

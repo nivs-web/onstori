@@ -79,7 +79,8 @@ export default function HowItWorks() {
               로그인은 따로 없습니다. 문자·카카오톡으로 받은 링크를 크롬에서 여는 것이 곧 로그인입니다. 카카오톡 안에서 열렸다면 &ldquo;크롬으로 열기&rdquo;를 눌러 주세요 — 카톡 안에서는 카메라가 켜지지 않습니다.
             </p>
             <div style={{ marginTop: "var(--s-6)" }}>
-              <Link href="/new" className="btn btn-primary">지금 시작하기</Link>
+              {/* 페이지 끝 CtaBand 가 이 페이지의 주 버튼이다 — 한 화면에 초록이 둘 잡혀서 보조로 내린다 */}
+              <Link href="/new" className="btn btn-secondary">지금 시작하기</Link>
             </div>
           </div>
           <RecMockup state="ask" />

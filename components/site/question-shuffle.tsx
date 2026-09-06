@@ -62,7 +62,10 @@ export function QuestionShuffle({
           );
         })}
       </ul>
-      <button type="button" onClick={shuffle} className="btn btn-primary" style={{ marginTop: "var(--s-6)" }} aria-label="랜덤 질문 바꾸기">
+      {/* ⚠ 주 버튼(초록)이 아니다. 이건 전환 CTA 가 아니라 위젯 조작 장치이고,
+          바로 아래 섹션의 진짜 CTA 와 한 화면에 같이 보여 주 버튼이 둘이 됐다
+          (2026-09-07 /how-it-works 에서 428px 간격으로 나란히 잡혔다). */}
+      <button type="button" onClick={shuffle} className="btn btn-secondary" style={{ marginTop: "var(--s-6)" }} aria-label="랜덤 질문 바꾸기">
         <span aria-hidden>⇄</span> 랜덤 질문 바꾸기
       </button>
     </div>

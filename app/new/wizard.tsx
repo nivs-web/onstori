@@ -198,7 +198,7 @@ export function Wizard() {
     <main className="min-h-svh" style={{ background: "var(--cream)", color: "var(--ink)" }}>
       <div className="mx-auto max-w-2xl px-5 pb-28 pt-6 sm:pt-10">
         <div className="flex items-center justify-between">
-          <Link href="/" aria-label="온스토리 홈"><Logo height={20} /></Link>
+          <Link href="/" aria-label="온스토리 홈" className="flex items-center" style={{ minHeight: "var(--tap)" }}><Logo height={20} /></Link>
           <span className="t-caption">{TRIAL_DAYS}일 전 기능 무료</span>
         </div>
         {/* 진행 바 2px. width 가 아니라 scaleX 를 움직인다 — width 애니메이션은 매 프레임
