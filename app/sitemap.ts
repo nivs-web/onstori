@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: "daily", priority: 1 },
     // 본사 메뉴 페이지 (2026-09-05 레멘토 구조 전환)
-    ...["/how-it-works", "/our-story", "/faq", "/reviews", "/blog", "/compare"].map((p) => ({
+    ...["/how-it-works", "/our-story", "/faq", "/reviews", "/blog"].map((p) => ({
       url: `${base}${p}`, changeFrequency: "weekly" as const, priority: 0.6,
     })),
   ];

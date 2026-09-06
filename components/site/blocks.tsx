@@ -20,7 +20,7 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
 }
 
 /** 채널 6개 로고 띠 — 레멘토 언론 로고 띠 대응 */
-export function ChannelStrip({ title = "한 번 말하면 여섯 곳으로" }: { title?: string }) {
+export function ChannelStrip({ title = "한 번 말하면 6곳에 퍼지는 자동화 엔진" }: { title?: string }) {
   return (
     <section className="border-y bg-white" style={{ borderColor: "var(--line)" }}>
       <div className="wrap flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-6">
@@ -36,14 +36,15 @@ export function ChannelStrip({ title = "한 번 말하면 여섯 곳으로" }: {
 }
 
 function ChannelMark({ id }: { id: string }) {
-  const s = { width: 20, height: 20 } as const;
+  const s = { width: 18, height: 18 } as const;
   switch (id) {
     case "youtube": return <svg {...s} viewBox="0 0 24 24" fill="#FF0000" aria-hidden><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-4.8.5-4.8s0-2.9-.5-4.8zM9.8 15.1V8.9L15.8 12l-6 3.1z" /></svg>;
     case "instagram": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="#C13584" strokeWidth="2" aria-hidden><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#C13584" /></svg>;
     case "threads": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" aria-hidden><path d="M12 3c-5 0-8 3.5-8 9s3 9 8 9c4 0 6.5-2 6.5-5 0-2.5-2-4-5-4-2.5 0-4 1.2-4 3s1.5 2.7 3.2 2.7c2 0 3.3-1.3 3.5-4.2.2-3-1.5-5-4.5-5" /></svg>;
     case "x": return <svg {...s} viewBox="0 0 24 24" fill="#000" aria-hidden><path d="M18.9 2H22l-7.4 8.5L23 22h-6.8l-5.3-6.9L4.8 22H1.7l7.9-9L1 2h7l4.8 6.3L18.9 2zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20z" /></svg>;
     case "naver": return <svg {...s} viewBox="0 0 24 24" fill="#03C75A" aria-hidden><path d="M3 3h6l6 9V3h6v18h-6l-6-9v9H3z" /></svg>;
-    default: return <span className="inline-block h-5 w-5 rounded-full" style={{ background: "var(--green)" }} aria-hidden />;
+    // eslint-disable-next-line @next/next/no-img-element
+    default: return <img src="/brand/on-mark-64.png" alt="" width={18} height={18} className="inline-block" aria-hidden />;
   }
 }
 
@@ -128,7 +129,7 @@ export function CompareCallout() {
           <p className="text-[12px] font-bold tracking-[0.18em] opacity-60">아직 고민 중이신가요?</p>
           <h2 className="font-display mt-3 text-[26px] leading-tight sm:text-[34px]">제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</h2>
           <p className="mt-4 text-[15px] opacity-80">비용·시간·글쓰기·영상·SNS·검색·소유권·해지 — 11가지 항목을 정직하게 비교했습니다.</p>
-          <Link href="/compare" className="btn-lime mt-6">홈페이지 제작업체 vs 온스토리 →</Link>
+          <Link href="/our-story#compare" className="btn-lime mt-6">홈페이지 제작업체 vs 온스토리 →</Link>
         </div>
         <ul className="space-y-2 text-[14.5px]">
           {[["만드는 시간", "2~6주", "3분"], ["글쓰기", "사장님 몫", "없음"], ["영상", "편당 30만원~", "매주 포함"], ["SNS 발행", "없음", "6곳"], ["만든 뒤", "끝", "매주 쌓임"]].map(([k, a, b]) => (

@@ -65,7 +65,7 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
           {trial?.expired ? `${TRIAL_DAYS}일 무료 기간이 끝났어요. 결제하시면 홈페이지가 다시 공개되고 모든 기능이 열립니다.` : trial ? `무료 기간이 ${trial.daysLeft}일 남았어요. 지금 결제하시면 ${TRIAL_DAYS}일 이후에도 홈페이지가 계속 유지됩니다.` : "홈페이지를 계속 유지하려면 정회원 전환이 필요해요."}
         </p>
         <ul className="mt-4 grid gap-1.5 text-[13.5px]">
-          {["홈페이지 유지 · 검색 등록", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 세로·가로 두 판", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림"].map((t) => (
+          {["홈페이지 유지 · 검색 등록", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림"].map((t) => (
             <li key={t} className="flex gap-2"><span style={{ color: "var(--green)" }}>✓</span>{t}</li>
           ))}
         </ul>

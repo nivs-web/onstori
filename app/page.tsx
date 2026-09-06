@@ -8,6 +8,9 @@ import { FAQ_FEATURED } from "@/config/faq";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
 
+/** 첫 페이지 섹션 노출 스위치 — E-4-부속(어드민 섹션 관리)이 들어오면 DB 로 옮긴다. 2026-09-06 회장님 지시로 off. */
+const SHOW_INSIDE: boolean = false;
+
 /**
  * 본사 첫 페이지 v3 — 레멘토(remento.co) 홈 구조 1:1, 내용은 온스토리 (기획1 /mainplan #sections · 2026-09-05)
  * 기존 섹션(포트폴리오·3단계·차별점·가격 밴드)은 버리지 않고 자리만 잡았다 — 지울지는 회장님 결정.
@@ -25,13 +28,13 @@ export default async function Home() {
       <section className="wrap grid items-center gap-12 pb-16 pt-12 lg:grid-cols-[1.3fr_1fr] lg:gap-8 lg:pt-20">
         <div className="max-w-[660px]">
           <h1 className="font-display text-[34px] leading-[1.18] sm:text-[44px] lg:text-[48px]" style={{ textWrap: "balance" }}>
-            홈페이지는 텅 빈 상가입니다.<br />스토리에는 <span style={{ color: "var(--green)" }}>진짜 사람</span>이 있습니다.
+            홈페이지는 빈 집입니다.<br />스토리에는 <span style={{ color: "var(--green)" }}>진짜 사람</span>이 있습니다.
           </h1>
           <p className="mt-5 text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "var(--muted)" }}>
-            사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다. 온스토리.
+            사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2 text-[13.5px] font-semibold" aria-label="세 가지 약속">
-            {[["✎", "글쓰기 금지"], ["🔗", "문자 링크만 누르세요 (카톡 로그인)"], ["⤓", "다운로드 없음"]].map(([i, t]) => (
+            {[["✎", "글쓰기 금지"], ["🔗", "링크만 클릭"], ["⤓", "다운로드 없음"]].map(([i, t]) => (
               <li key={t} className="flex items-center gap-2 rounded-full border bg-white px-3.5 py-2" style={{ borderColor: "var(--line)" }}>
                 <span aria-hidden>{i}</span>{t}
               </li>
@@ -42,7 +45,7 @@ export default async function Home() {
             <Link href="/how-it-works" className="text-[14.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>작동방식 보기 →</Link>
           </div>
           <dl className="mt-8 grid max-w-md grid-cols-3 gap-3 text-center">
-            {[["100개", "질문 은행"], ["6곳", "퍼지는 채널"], ["14일", "전 기능 무료"]].map(([v, k]) => (
+            {[["3분", "제작 시간"], ["6곳", "퍼지는 채널"], ["14일", "전 기능 무료"]].map(([v, k]) => (
               <div key={k} className="rounded-2xl border bg-white px-2 py-3" style={{ borderColor: "var(--line)" }}>
                 <dd className="font-display text-[22px]" style={{ color: "var(--forest)" }}>{v}</dd>
                 <dt className="text-[12px]" style={{ color: "var(--muted)" }}>{k}</dt>
@@ -73,7 +76,7 @@ export default async function Home() {
             ["60초만 말하세요.", "나머지는 온스토리가 합니다."],
             ["질문은 저희가 드립니다.", "사장님은 대답만."],
             ["얼굴이 안 나와도 됩니다.", "목소리면 충분합니다."],
-            ["3년 뒤에도 검색되는 영상,", "오늘 60초."],
+            ["3년 뒤에도 검색되는 영상,", "오늘 60초만 말하세요."],
           ].map(([a, b]) => (
             <blockquote key={a} className="rounded-2xl border-l-4 bg-white p-5" style={{ borderColor: "var(--lime)" }}>
               <p className="font-display text-[19px] leading-snug" style={{ color: "var(--forest)" }}>{a}</p>
@@ -88,13 +91,13 @@ export default async function Home() {
         <div className="grid items-start gap-10 md:grid-cols-[1fr_1.4fr]">
           <div>
             <p className="text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>온스토리란</p>
-            <h2 className="font-display mt-3 text-[30px] leading-tight sm:text-[38px]">사장님의 60초를<br />홈페이지·영상·글로 바꾸는<br />이야기 엔진입니다.</h2>
+            <h2 className="font-display mt-3 text-[30px] leading-tight sm:text-[38px]">사장님의 60초가<br />영상·글·블로그로 바뀌는<br />자동화 엔진</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {[
-              ["홈페이지", "상호명과 업종만 고르면 3분 만에 onstori.com/사장님가게 가 생깁니다. 이야기가 쌓일수록 페이지가 두꺼워집니다."],
-              ["60초 영상", "매주 질문 하나에 60초. 무음 컷·한글 자막·세로/가로 두 판. 얼굴이 싫으면 목소리만."],
-              ["6곳 발행", "유튜브 쇼츠·인스타 릴스·쓰레드·X·네이버 블로그(복사 30초)·온스토리 블로그. 하루 최대 3건."],
+              ["홈페이지", "상호명과 업종만 고르면 3분 만에 onstori.com/name 이 생깁니다. 이야기가 쌓일수록 페이지가 두꺼워집니다."],
+              ["60초 영상", "매주(혹은 매일) 질문 하나에 60초. 아직도 타이핑하고 계신가요? 목소리가 있어야 고객이 신뢰합니다."],
+              ["6곳 발행", "유튜브 쇼츠·인스타 릴스·쓰레드·X(트위터)·네이버 블로그(복사 30초)·온스토리 사이트. 하루 최대 3건."],
             ].map(([t, d]) => (
               <div key={t} className="rounded-2xl bg-white p-5" style={{ boxShadow: "0 1px 0 var(--line)" }}>
                 <h3 className="text-[17px] font-extrabold" style={{ color: "var(--forest)" }}>{t}</h3>
@@ -115,7 +118,7 @@ export default async function Home() {
               ["문자로 질문이 옵니다", "매주 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
               ["링크 누르고 60초", "크롬이 열리고 3·2·1. 앱 설치도, 글쓰기도 없습니다."],
               ["온스토리가 만듭니다", "30분 안에 자막 영상 · 다듬은 글 3종 · 사진 카드."],
-              ["6곳에 퍼지고 쌓입니다", "쇼츠·릴스·쓰레드·X·네이버·홈페이지. 검색 면적이 늘어납니다."],
+              ["6곳에 퍼지고 쌓입니다", "쇼츠·릴스·쓰레드·X(트위터)·네이버·홈페이지. 검색 면적이 늘어납니다."],
             ].map(([t, d], i) => (
               <li key={t} className="rounded-2xl border border-white/15 bg-white/5 p-6">
                 <span className="font-display text-[26px]" style={{ color: "var(--lime)" }}>{String(i + 1).padStart(2, "0")}</span>
@@ -149,12 +152,13 @@ export default async function Home() {
           </p>
           <div className="mt-6 flex items-center justify-between">
             <span className="text-[14px] font-semibold">— 온스토리 대표 권병철</span>
-            <Link href="/our-story" className="text-[14px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>사업이야기 전문 →</Link>
+            <Link href="/our-story" className="text-[14px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>온스토리 이야기 →</Link>
           </div>
         </div>
       </section>
 
       {/* ── 9. 스토리 페이지 들여다보기 (Inside our books) ── */}
+      {SHOW_INSIDE && (
       <section id="inside" style={{ background: "var(--cream-2)" }}>
         <div className="wrap py-20">
           <p className="text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>스토리 페이지 들여다보기</p>
@@ -162,8 +166,8 @@ export default async function Home() {
           <div className="mt-10 grid gap-5 md:grid-cols-4">
             {[
               ["스토리 페이지", "720px", "제목 · 날짜 · 영상 · 다듬은 글 · 사진 3장. 검색의 본진.", "aspect-[3/4]"],
-              ["가로 영상", "1440 × 810", "홈페이지 · 유튜브. 한글 어절 자막.", "aspect-video"],
-              ["세로 영상", "1080 × 1920", "쇼츠 · 릴스. 60초 규격.", "aspect-[9/16]"],
+              ["유튜브 쇼츠", "1080 × 1920", "유튜브 쇼츠 규격. 한글 어절 자막.", "aspect-[9/16]"],
+              ["인스타 릴스", "1080 × 1920", "인스타 릴스 규격. 60초.", "aspect-[9/16]"],
               ["스토리 카드", "464 × 464", "인스타 · 쓰레드 사진. 질문 + 한 줄 답.", "aspect-square"],
             ].map(([t, size, d, ratio]) => (
               <div key={t} className="rounded-2xl border bg-white p-4" style={{ borderColor: "var(--line)" }}>
@@ -180,6 +184,7 @@ export default async function Home() {
           <p className="mt-5 text-[13px]" style={{ color: "var(--muted)" }}>직접 찍은 사진으로 넣으시면 이야기에 신뢰가 쌓입니다. 사진이 없을 땐 업종별 이미지뱅크가 빈자리를 채웁니다.</p>
         </div>
       </section>
+      )}
 
       {/* ── 10. 정회원 카드 (Best-seller) + 11. 사장님 것 ── */}
       <section id="pricing" className="wrap py-20">
@@ -189,7 +194,7 @@ export default async function Home() {
             <h2 className="font-display mt-4 text-[30px] sm:text-[36px]">정회원 49,000<span className="text-[20px]">원</span></h2>
             <p className="mt-2 text-[14.5px] opacity-80">14일 동안 전 기능 무료로 써 보시고, 14일 안에 결제하시면 홈페이지가 계속 유지됩니다.</p>
             <ul className="mt-6 grid gap-2 text-[14.5px] sm:grid-cols-2">
-              {["onstori.com/사장님가게 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 세로·가로 두 판", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림 (문자·이메일)"].map((t) => (
+              {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림 (문자·이메일)"].map((t) => (
                 <li key={t} className="flex gap-2"><span style={{ color: "var(--lime)" }}>✓</span>{t}</li>
               ))}
             </ul>
@@ -202,8 +207,8 @@ export default async function Home() {
             <p className="text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>전부 사장님 것입니다</p>
             <div className="mt-4 grid gap-3">
               {[
-                ["홈페이지", "onstori.com/사장님가게. 검색 등록까지 온스토리가 준비합니다."],
-                ["영상", "자막 영상 원본·가로·세로 전부 사장님 파일입니다. 해지해도 가져갑니다."],
+                ["홈페이지", "onstori.com/name. 검색 등록까지 온스토리가 준비합니다."],
+                ["영상", "자막 영상과 원본 전부 사장님 파일입니다. 해지해도 가져갑니다."],
                 ["이야기 기록", "3년 뒤에도 검색되는 사장님의 기록. 원문은 항상 보관됩니다."],
               ].map(([t, d]) => (
                 <div key={t} className="rounded-2xl border bg-white p-5" style={{ borderColor: "var(--line)" }}>

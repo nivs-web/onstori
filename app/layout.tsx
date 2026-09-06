@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://onstori.com"),
   title: {
-    default: "온스토리 — 홈페이지는 텅 빈 상가입니다. 스토리에는 진짜 사람이 있습니다.",
+    default: "온스토리 — 홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다.",
     template: "%s", // 고객 사이트는 자체 상호명 타이틀 사용
   },
   description:

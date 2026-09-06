@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getSiteBySlug } from "@/lib/sites";
 import { PALETTES, RenderSection } from "@/components/sections";
@@ -65,7 +66,15 @@ export default async function SitePage({ params }: Props) {
           <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}
         <footer className="px-5 py-10 text-center text-[12.5px]" style={{ color: "var(--s-muted)" }}>
-          © {new Date().getFullYear()} {site.doc.businessName} ·{" "}
+          © {new Date().getFullYear()}{" "}
+          {/* 숨은 에디터 진입로 — 손님에겐 그냥 글자로 보여야 하므로 커서·밑줄·색을 바꾸지 않는다.
+              /edit 은 robots noindex 라 색인되지 않지만 nofollow 도 붙인다.
+              권한 확인은 에디터가 한다(edit/ui.tsx "수정 권한이 없어요"). 여기선 열어만 준다. */}
+          <Link href={`/${slug}/edit`} rel="nofollow" tabIndex={-1}
+                className="no-underline" style={{ color: "inherit", cursor: "inherit" }}>
+            {site.doc.businessName}
+          </Link>{" "}
+          ·{" "}
           <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
         </footer>
         {/* 플로팅 연결 위젯 — footer '뒤'여야 스페이서가 문서 맨 끝에 붙어 고정 바가 footer 를 덮지 않는다.

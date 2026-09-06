@@ -45,9 +45,13 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo",
-    "Malgun Gothic", system-ui, sans-serif;
-  letter-spacing: -0.01em;
+  /* 폰트 폴백·자간·행간은 nivs.com(회장님 자사) 기준에 맞춘다 — 2026-09-06.
+     자간은 nivs 의 -.05em 을 그대로 쓰지 않는다: 본문이 13~15px 구간이 많아 한글 자모가 붙는다. */
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: -0.035em;
   word-break: keep-all;
   overflow-wrap: break-word;
 }
