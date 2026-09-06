@@ -17,7 +17,9 @@ export const NEGATIVE =
   "no off-center vanishing point, no subject cut in half at the frame center. " +
   // 2026-09-06 — ①거실 실측에서 창밖 뉴욕 스카이라인이 주인공이 됐고, ②주방은 서브웨이 타일이 나왔다
   "No subway tile, no New York skyline, no recognizable foreign cityscape, no landscape or sky as the subject, " +
-  "no white countertop or white wall occupying the bottom third of the frame.";
+  "no white countertop or white wall occupying the bottom third of the frame, " +
+  // 2026-09-06 회장님 금지어 추가 — 서양식 첨탑(교회 스파이어)이 창밖에 끌려 나온다
+  "no church spire, no steeple, no Western tower or turret visible through a window.";
 
 /** 역할별 촬영 지시 — 화면비·구도·해상도 의도 */
 export const ROLE_DIRECTION: Record<string, string> = {
@@ -152,9 +154,30 @@ export const VARIATIONS = [
   "evening interior lighting, straight-on view",
 ];
 
+/**
+ * 히어로 전용 변주 — **각도는 흔들지 않는다.**
+ * 일반 VARIATIONS 에는 "slightly low angle"·"three-quarter view" 가 들어 있어
+ * 역할 지시의 일점 투시(정면·소실점 중앙)와 정면으로 충돌한다. 2026-09-06 시험에서
+ * ①거실·②주방이 모서리 구도로 나온 원인이다. 히어로는 빛만 흔들고 카메라는 고정한다.
+ */
+export const HERO_VARIATIONS = [
+  "morning daylight entering from a side window, cool neutral white balance, camera straight-on at eye level",
+  "late afternoon sunlight raking low across the floor, warm white balance, camera straight-on at eye level",
+  "overcast soft daylight, low contrast, even shadows, camera straight-on at eye level",
+  "evening scene lit only by the built-in interior lighting, windows dark, warm pools of light, camera straight-on at eye level",
+  "midday with sheer curtains, the view outside blown to pure white, camera straight-on at eye level",
+  "blue hour with cove lighting and downlights on, deep shadow across the lower foreground, camera straight-on at eye level",
+];
+
+/** 역할별 변주 개수 — 호출부가 조합 수를 계산할 때 쓴다 */
+export function variationsFor(role: string) {
+  return role === "hero" ? HERO_VARIATIONS : VARIATIONS;
+}
+
 export function buildPrompt(industryId: string, mood: string, role: string, sceneIdx: number, varIdx: number) {
   const scenes = INDUSTRY_SCENES[industryId] ?? INDUSTRY_SCENES.interior;
   const scene = scenes[sceneIdx % scenes.length];
-  const variation = VARIATIONS[varIdx % VARIATIONS.length];
+  const vars = variationsFor(role);
+  const variation = vars[varIdx % vars.length];
   return `${ROLE_DIRECTION[role] ?? ROLE_DIRECTION.gallery} Scene: ${scene}. ${MOOD_TONE[mood] ?? ""} ${variation}. Photorealistic, ultra high quality. ${NEGATIVE}`;
 }

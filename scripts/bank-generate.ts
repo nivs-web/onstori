@@ -28,7 +28,7 @@ import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { vertexGenerate, imageOf } from "../lib/vertex";
 import * as storage from "../lib/storage";
-import { buildPrompt, INDUSTRY_SCENES, VARIATIONS } from "../config/bank-prompts";
+import { buildPrompt, INDUSTRY_SCENES, variationsFor } from "../config/bank-prompts";
 import { INDUSTRIES } from "../config/industries";
 
 const arg = (name: string, def: string) => {
@@ -43,6 +43,10 @@ const COUNT = parseInt(arg("count", "20"), 10);
 const ROLES = arg("roles", "hero,gallery,about,process").split(",");
 const MOODS = arg("moods", "clean,warm,premium,lively").split(",");
 const INDS = arg("industries", INDUSTRIES.map((i) => i.id).join(",")).split(",");
+// --scenes 0,4 : INDUSTRY_SCENES 의 몇 번째 씬만 쓸지. 방(현관·거실·주방…)별로 장수를 정확히
+// 맞춰야 할 때 쓴다. 비우면 그 업종의 씬 전체.
+const SCENE_ARG = arg("scenes", "");
+const SCENE_IDX = SCENE_ARG === "" ? null : SCENE_ARG.split(",").map((s) => parseInt(s, 10));
 const SLEEP = parseInt(arg("sleep", "7000"), 10);
 const DRY = has("dry");
 const BATCH = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
@@ -98,7 +102,9 @@ async function generateOne(prompt: string, role: string): Promise<{ buf: Buffer;
       // 화면을 꽉 채워야 하는 건 히어로뿐이다 — 세로 폰에 object-cover 로 깔린다.
       // about 은 3:2 카드, gallery 는 격자, process 는 작은 이미지라 4:3 이 맞다. (2026-09-06)
       // imageSize 는 과금 단위인 응답 토큰을 바꾼다 — 1K·2K 동일(1,120), 4K 는 더 크다. 로그로 확인.
-      imageConfig: { aspectRatio: role === "hero" ? "9:16" : "4:3", imageSize: IMAGE_SIZE },
+      // 히어로는 **가로 16:9 한 장**으로 PC·폰을 함께 쓴다 (2026-09-06 회장님 확정).
+      // 폰은 100svh 로 채워 가운데 26% 만 남는다 — 세로 9:16 이 아니다.
+      imageConfig: { aspectRatio: role === "hero" ? "16:9" : "4:3", imageSize: IMAGE_SIZE },
     },
   });
   if (!r.ok) {
@@ -120,8 +126,10 @@ async function main() {
   type Job = { ind: string; mood: string; role: string; scene: number; vari: number };
   const jobs: Job[] = [];
   for (const ind of INDS) for (const mood of MOODS) for (const role of ROLES) {
-    const scenes = INDUSTRY_SCENES[ind]?.length ?? 3;
-    for (let s = 0; s < scenes; s++) for (let v = 0; v < VARIATIONS.length; v++) jobs.push({ ind, mood, role, scene: s, vari: v });
+    const sceneCount = INDUSTRY_SCENES[ind]?.length ?? 3;
+    const sceneList = SCENE_IDX ?? Array.from({ length: sceneCount }, (_, i) => i);
+    const varCount = variationsFor(role).length;
+    for (const s of sceneList) for (let v = 0; v < varCount; v++) jobs.push({ ind, mood, role, scene: s, vari: v });
   }
   // Fisher-Yates. --seed 를 주면 순서가 결정적이라 모델 간 "같은 프롬프트" 비교가 가능하다.
   const rand = SEED === null ? Math.random : mulberry32(SEED);
