@@ -8,7 +8,12 @@ import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
 import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
 import { PreviewPane } from "./preview-pane";
-import { PayModal, TrialBar } from "@/components/site/pay-modal";
+import dynamic from "next/dynamic";
+import { TrialBar } from "@/components/site/pay-modal";
+
+/* 결제 모달은 사장님이 [정회원 이용하기]를 눌러야 열린다 —
+   에디터 첫 화면 번들에 넣을 이유가 없다 (docs/PERFORMANCE.md §2). */
+const PayModal = dynamic(() => import("@/components/site/pay-modal").then((m) => m.PayModal), { ssr: false });
 import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
