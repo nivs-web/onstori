@@ -4,7 +4,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
 import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
-import { TRIAL_DAYS } from "@/lib/trial";
+import { TRIAL_DAYS, MONTHLY_SITE_CAP } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 
 export const maxDuration = 60; // LLM 호출 여유
@@ -46,6 +46,18 @@ export async function POST(req: Request) {
 
   const sb = sbAdmin();
 
+  // 월 생성 상한 — AI 생성 비용 안전장치 (무료 30일로 늘리면서 2026-09-06 추가).
+  // ⚠ 상한값이나 남은 수를 화면에 알리지 않는다(회장님 지시). 일반적인 안내만 준다.
+  const monthStart = new Date();
+  monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const { count: madeThisMonth } = await sb
+    .from("sites").select("id", { count: "exact", head: true })
+    .gte("created_at", monthStart.toISOString());
+  if ((madeThisMonth ?? 0) >= MONTHLY_SITE_CAP) {
+    console.error(JSON.stringify({ evt: "monthly_site_cap_hit", made: madeThisMonth, cap: MONTHLY_SITE_CAP }));
+    return NextResponse.json({ error: "지금은 홈페이지를 만들 수 없어요. 잠시 후 다시 시도해 주세요." }, { status: 503 });
+  }
+
   // 슬러그 최종 검증 (서버가 최후의 방어선)
   const [{ data: reserved }, { data: taken }] = await Promise.all([
     sb.from("reserved_slugs").select("slug").eq("slug", input.slug).maybeSingle(),
@@ -60,7 +72,7 @@ export async function POST(req: Request) {
     const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
     const { doc, industry, category, copy, inferred } = await generateSite(input as GenerateInput);
 
-    const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000); // 14일 무료 (2026-09-05 정회원 정책, lib/trial.ts)
+    const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000); // 무료 기간 (일수의 단일 출처는 lib/trial.ts)
     const { data: site, error } = await sb
       .from("sites")
       .insert({

@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     storyCount: storyCount ?? 0,
     isAdmin: r.admin,
     ownership,
-    // 14일 무료 판정 (2026-09-05 정회원 정책) — 에디터 상단 바·차단 화면이 이 값만 본다
+    // 무료 기간·정지·삭제 판정 — 에디터 상단 바·차단 화면이 이 값만 본다 (단일 출처 lib/trial.ts)
     trial: trialInfo(r.site),
   });
 }

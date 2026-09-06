@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/supabase/server";
 import { BIZ_LINE } from "@/config/company";
+import { COPY } from "@/lib/trial";
 import { Logo } from "./logo";
 
 /**
@@ -31,7 +32,7 @@ export { Logo };
 export function PromoBar() {
   return (
     <Link href="/new" className="block text-center text-[13px] font-semibold" style={{ background: "var(--forest)", color: "#fff" }}>
-      <span className="inline-block px-4 py-2">오픈 기념 — 14일 동안 전 기능 무료 · 이후 매달 49,000원 · 사장님 이야기부터 들려주세요 →</span>
+      <span className="inline-block px-4 py-2">오픈 기념 — {COPY.trialShort} · 이후 {COPY.priceLine} · 사장님 이야기부터 들려주세요 →</span>
     </Link>
   );
 }
@@ -129,7 +130,7 @@ export function PageHero({ kicker, title, sub, children }: { kicker: string; tit
 }
 
 /** 페이지 하단 공통 CTA 밴드 */
-export function CtaBand({ title = "사장님 이야기부터 들려주세요", sub = "14일 동안 전 기능 무료 · 이후 매달 49,000원 자동 결제 · 언제든 해지" }: { title?: string; sub?: string }) {
+export function CtaBand({ title = "사장님 이야기부터 들려주세요", sub = `${COPY.trialShort} · 이후 ${COPY.priceLine} 자동 결제 · 언제든 해지` }: { title?: string; sub?: string }) {
   return (
     <section style={{ background: "var(--cream-2)" }}>
       <div className="wrap py-16 text-center">

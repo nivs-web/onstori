@@ -2,29 +2,28 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
-import { GRACE_DAYS, DELETE_NOTICE_DAYS, MEMBERSHIP_PRICE, MEMBERSHIP_NAME } from "@/lib/trial";
+import {
+  TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS,
+  DELETE_NOTICE_DAYS, MEMBERSHIP_PRICE, MEMBERSHIP_NAME,
+} from "@/lib/trial";
 import { charge } from "@/lib/toss";
 
 /**
  * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 요금·기간 정책 집행
  * 정책의 단일 출처는 lib/trial.ts. 이 파일은 그 정책을 실행만 한다.
  *
- *  1) D-3 · D-1 무료 종료 안내 문자 (settings.phone 이 있는 trial 사이트)
- *  2) trial_ends_at 지난 trial → expired = **정지**(RLS 가 공개를 끊는다). 자료는 그대로 둔다.
- *  3) 접수 1년이 지난 손님 문의 파기 (사진 파일까지) — 2026-09-06
- *  4) 삭제 예고 문자 — 삭제 D-3 · D-1 (2026-09-06)
- *  5) 정지 후 유예 14일이 지난 미결제 사이트 **자동 삭제** — 파일까지 (2026-09-06)
+ * 단계가 나뉘어 있다 (2026-09-06 확정: 무료 30일 → 정지 → 정지 후 60일 삭제)
+ *   1) 무료 종료 D-3·D-1 안내 문자
+ *   2) **정지 단계** — 무료가 끝난 사이트를 expired 로 내리고 suspended_at 을 찍는다. 자료는 그대로 둔다.
+ *   3) 손님 문의 파기 — 접수 1년 경과분, 그리고 정지 60일 경과 사이트의 문의 전부
+ *   4) **삭제 예고 문자** — 삭제 30일 전·7일 전
+ *   5) **삭제 단계** — 정지 후 60일이 지난 미결제 사이트의 자료를 파일까지 영구 삭제
+ *   6-0) 결제 3일 전 사전 고지 · 6) 매달 구독 청구
  *
+ * ★ 2)와 5)는 반드시 분리돼 있어야 한다. 한 번에 지우면 사장님이 되살릴 기회가 없다.
  * 인증: Vercel 이 CRON_SECRET 을 Bearer 로 보낸다. env 가 없으면 운영자 호출만 허용하기 위해 거부.
  */
 export const dynamic = "force-dynamic";
-
-/**
- * 손님 문의 보관 기간 — 문의 폼의 동의 문구("1년 뒤 삭제")와 이용약관 제8조가 약속한 값이다.
- * ⚠ 이 숫자를 바꾸면 components/sections/quote-form.tsx 의 동의 문구,
- *   이용약관 제8조, 개인정보처리방침 §4 표를 함께 고쳐야 한다. 약속과 실제가 갈라지면 그 자체가 위법이다.
- */
-const INQUIRY_RETENTION_DAYS = 365;
 
 /**
  * D-3·D-1 안내 문자 (2026-09-06 단축).
@@ -44,7 +43,7 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, deleteBlocked: 0, sitesDeleted: 0, filesPurged: 0, chargeNoticed: 0, charged: 0, chargeFailed: 0 };
+  const out = { nudged: 0, suspended: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, deleteBlocked: 0, sitesDeleted: 0, filesPurged: 0, chargeNoticed: 0, charged: 0, chargeFailed: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -61,30 +60,43 @@ export async function GET(req: Request) {
     if (await sendSmsRaw(phone, nudgeText(left, s.slug))) out.nudged++;
   }
 
-  // 2) 만료 처리
+  // 2) 정지 단계 — 무료가 끝난 사이트를 비공개로. **자료는 건드리지 않는다.**
+  //    suspended_at 을 함께 찍어야 5)의 삭제 기한(정지 + 60일)을 정확히 셀 수 있다.
   const { data: exp } = await sb
     .from("sites")
-    .update({ status: "expired" })
+    .update({ status: "expired", suspended_at: new Date(now).toISOString() })
     .eq("status", "trial")
     .lt("trial_ends_at", new Date(now).toISOString())
     .select("slug");
-  out.expired = exp?.length ?? 0;
+  out.suspended = exp?.length ?? 0;
 
-  // 3) 접수 1년이 지난 손님 문의 파기 — 개인정보보호법 제21조(보유기간 경과 시 지체 없이 파기).
+  // 3) 손님 문의 파기 — 개인정보보호법 제21조(보유기간 경과 시 지체 없이 파기)
+  //    두 기준 중 **먼저 오는 때**에 지운다:
+  //      (a) 접수일로부터 INQUIRY_MAX_AGE_DAYS(365) — 견적 폼 동의 문구가 손님에게 약속한 값
+  //      (b) 사이트 정지일로부터 INQUIRY_RETENTION_DAYS(60) — 손님 개인정보는 오래 갖는 것 자체가 위험
   //    사진 파일을 먼저 지우고 행을 지운다. 순서를 뒤집으면 키를 잃어 파일만 남는 고아가 생긴다.
-  const cutoff = new Date(now - INQUIRY_RETENTION_DAYS * day).toISOString();
-  const { data: old } = await sb
-    .from("inquiries")
-    .select("id, photos")
-    .lt("created_at", cutoff)
-    .limit(500); // 한 번에 다 지우려다 함수 시간을 넘기지 않게. 남으면 다음 날 이어서 지운다.
-  for (const row of old ?? []) {
+  const inquiryIds = new Set<string>();
+  const inquiryRows: { id: string; photos: unknown }[] = [];
+
+  const { data: aged } = await sb.from("inquiries").select("id, photos")
+    .lt("created_at", new Date(now - INQUIRY_MAX_AGE_DAYS * day).toISOString()).limit(500);
+  for (const r of aged ?? []) if (!inquiryIds.has(r.id)) { inquiryIds.add(r.id); inquiryRows.push(r); }
+
+  // 정지 60일이 지난 사이트의 문의는 나이와 상관없이 전부
+  const { data: longSuspended } = await sb.from("sites").select("id")
+    .eq("status", "expired")
+    .lt("suspended_at", new Date(now - INQUIRY_RETENTION_DAYS * day).toISOString()).limit(200);
+  if (longSuspended?.length) {
+    const { data: theirs } = await sb.from("inquiries").select("id, photos")
+      .in("site_id", longSuspended.map((x) => x.id)).limit(500);
+    for (const r of theirs ?? []) if (!inquiryIds.has(r.id)) { inquiryIds.add(r.id); inquiryRows.push(r); }
+  }
+
+  for (const row of inquiryRows) {
     const keys = Array.isArray(row.photos) ? (row.photos as string[]) : [];
     for (const key of keys) {
-      try {
-        await storage.remove("private", key);
-        out.photosPurged++;
-      } catch (e) {
+      try { await storage.remove("private", key); out.photosPurged++; }
+      catch (e) {
         // 파일 하나가 이미 없어도 행 삭제는 계속한다 — 남기는 것보다 지우는 쪽이 안전하다
         console.error(JSON.stringify({ evt: "inquiry_photo_purge_failed", key, err: String(e).slice(0, 200) }));
       }
@@ -94,31 +106,34 @@ export async function GET(req: Request) {
     else out.inquiriesPurged++;
   }
 
-  // ── 정지된 사이트의 삭제 시각 = trial_ends_at + GRACE_DAYS (lib/trial.ts 확정 정책) ──
-  //    유예가 남은 것과 지난 것을 한 번에 뽑아 4)예고 와 5)삭제 에 나눠 쓴다.
+  // ── 정지된 사이트의 삭제 시각 = **suspended_at + DELETE_AFTER_SUSPEND_DAYS** ──
+  //    가입일 파생이 아니라 정지일 기준이다. 결제 실패로 오늘 정지된 사장님이
+  //    가입이 오래됐다는 이유로 곧바로 삭제 대상이 되면 안 된다.
   //    ★ 결제 이력이 있는 사이트는 절대 건드리지 않는다 — 전자상거래법상 5년 보존 대상이다.
   const { data: stopped } = await sb
     .from("sites")
-    .select("id, slug, settings, trial_ends_at, paid_at, payment")
+    .select("id, slug, settings, trial_ends_at, suspended_at, paid_at, payment")
     .eq("status", "expired")
     .is("paid_at", null)
     .is("payment", null)
     .limit(500);
 
   const withDeleteAt = (stopped ?? [])
-    .filter((s) => s.trial_ends_at)
-    .map((s) => ({ ...s, deleteMs: new Date(s.trial_ends_at as string).getTime() + GRACE_DAYS * day }));
+    // suspended_at 이 없는 옛 데이터는 무료 종료 시각으로 갈음한다(마이그레이션이 채워 준다)
+    .map((s) => ({ ...s, suspendedMs: new Date((s.suspended_at ?? s.trial_ends_at) as string).getTime() }))
+    .filter((s) => Number.isFinite(s.suspendedMs))
+    .map((s) => ({ ...s, deleteMs: s.suspendedMs + DELETE_AFTER_SUSPEND_DAYS * day }));
 
   // 4) 삭제 예고 문자 — 남은 일수가 예고일과 정확히 같은 날에만 (크론이 하루 한 번이라 중복되지 않는다)
   //    ★ 보낸 사실을 settings.delete_notices 에 기록한다. 5)의 삭제 게이트가 이 기록을 본다.
   for (const s of withDeleteAt) {
     const left = Math.ceil((s.deleteMs - now) / day);
-    if (!DELETE_NOTICE_DAYS.includes(left as 3 | 1)) continue;
+    if (!(DELETE_NOTICE_DAYS as readonly number[]).includes(left)) continue;
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
     // 90바이트(EUC-KR) 안 — 넘으면 LMS 로 나가 요금이 3배가 된다 (2026-09-06 nudgeText 와 같은 제약)
     // 슬러그 최댓값(30자)에서 83바이트. "홈페이지"·"지금"을 뺀 이유가 이것이다 — 넣으면 97바이트로 LMS 가 된다.
-    const sent = await sendSmsRaw(phone, `온스토리 ${left}일 뒤 삭제. 결제하면 복구 onstori.com/${s.slug}/edit`);
+    const sent = await sendSmsRaw(phone, `온스토리 ${left}일 뒤 자료 삭제. 결제하면 복구 onstori.com/${s.slug}/edit`);
     if (!sent) continue;
     out.deleteNoticed++;
     const prev = (s.settings as { delete_notices?: string[] } | null)?.delete_notices ?? [];

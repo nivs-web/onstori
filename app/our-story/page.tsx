@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "온스토리", description: "홈페�
 /** 11행 비교표 — 2026-09-06 /compare 페이지에서 옮겨 왔다. 타사 화면·문구 복제 없음, 기능 개념만 비교. */
 const COMPARE_ROWS = [
   ["만드는 데 걸리는 시간", "2~6주, 미팅 3~5회", "3분 (상호명·업종·색만)"],
-  ["비용", "제작 50~300만원 + 유지비", "14일 무료 → 매달 49,000원"],
+  ["비용", "제작 50~300만원 + 유지비", "30일 무료 → 매달 49,000원"],
   ["만든 뒤", "끝. 수정은 건당 비용", "매주 질문 → 새 이야기가 쌓임"],
   ["사장님이 할 일", "원고·사진 준비, 검수, 수정 요청", "문자 링크 누르고 60초 말하기"],
   ["글쓰기", "사장님 또는 외주 작가", "없음 — 말하면 글이 됨"],
@@ -35,7 +35,7 @@ export default function OurStory() {
     ["없는 사실을 만들지 않는다.", "연차·건수·후기·별점을 지어내지 않는다."],
     ["사장님이 찍은 것이 우선이다.", "AI 사진은 빈자리를 채울 뿐이다."],
     ["전부 사장님 것이다.", "홈페이지·영상·기록은 해지해도 가져간다."],
-    ["가격은 처음부터 공개한다.", "14일 무료, 이후 매달 49,000원. 언제든 해지."],
+    ["가격은 처음부터 공개한다.", "30일 무료, 이후 매달 49,000원. 언제든 해지."],
   ];
   return (
     <main className="min-h-svh" style={{ background: "var(--cream)", color: "var(--ink)" }}>
@@ -97,7 +97,7 @@ export default function OurStory() {
         </div>
         <div className="mt-8 rounded-3xl p-8 text-center" style={{ background: "var(--forest)", color: "var(--cream)" }}>
           <p className="font-display text-[26px] sm:text-[32px]">제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</p>
-          <Link href="/new" className="btn-lime mt-6">14일 무료로 시작</Link>
+          <Link href="/new" className="btn-lime mt-6">30일 무료로 시작</Link>
         </div>
       </section>
 

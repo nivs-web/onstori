@@ -62,7 +62,7 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
         <h2 className="font-display mt-2 text-[26px]" style={{ color: "var(--forest)" }}>정회원 {COPY.priceLine}</h2>
         <p className="mt-1 text-[13.5px]" style={{ color: "var(--muted)" }}>
           {trial?.expired
-            ? COPY.graceNotice(trial.daysUntilDelete)
+            ? COPY.suspendedNotice
             : trial
               ? `무료 기간이 ${trial.daysLeft}일 남았어요. 결제하시면 홈페이지가 끊기지 않고 계속 공개됩니다.`
               : "홈페이지를 계속 유지하려면 정회원 전환이 필요해요."}
@@ -103,12 +103,12 @@ export function TrialBar({ trial, onPay }: { trial: TrialInfo; onPay: () => void
     <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: urgent ? "var(--terra)" : "var(--line)", background: "#fff" }}>
       <div className="min-w-0">
         <p className="text-[12.5px] font-bold" style={{ color: urgent ? "var(--terra)" : "var(--forest)" }}>
-          {trial.expired ? `홈페이지 정지됨 · 삭제까지 D-${Math.max(0, trial.daysUntilDelete)}` : `무료 기간 D-${trial.daysLeft}`}
+          {trial.expired ? "홈페이지 정지됨" : `무료 기간 D-${trial.daysLeft}`}
           <span className="ml-2 font-medium" style={{ color: "var(--muted)" }}>· {trial.expired ? "결제하면 바로 되살아납니다" : "전 기능 사용 중"}</span>
         </p>
         {/* 문구는 lib/trial.ts 가 단일 출처 — 여기에 문장을 복사하지 마라 */}
         <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: "var(--muted)" }}>
-          {trial.expired ? COPY.graceNotice(trial.daysUntilDelete) : COPY.policy}
+          {trial.expired ? COPY.suspendedNotice : COPY.policy}
         </p>
       </div>
       <button type="button" onClick={onPay} className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold" style={{ background: "var(--lime)", color: "var(--forest)" }}>정회원 이용하기</button>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
-import { MEMBERSHIP_PRICE, TRIAL_DAYS } from "@/lib/trial";
+import { MEMBERSHIP_PRICE, TRIAL_DAYS, LEGAL } from "@/lib/trial";
 import { BIZ } from "@/config/company";
 
 export const metadata: Metadata = {
@@ -106,8 +106,9 @@ export default function TermsPage() {
           </p>
           <p>
             무료 기간이 끝나면 <b>홈페이지가 비공개로 바뀝니다.</b> 사장님 자료는 지우지 않고 보관하며,
-            <b>그 뒤 14일 안에</b> 결제하시면 그대로 다시 공개됩니다.
-            <b>가입 후 28일까지 결제가 없으면 자료를 자동으로 파기합니다</b> — 파기 전에 문자로 두 번 미리 알려드립니다.
+            그동안 언제든 결제하시면 그대로 다시 공개됩니다.
+            <b>{LEGAL.lifecycle}</b>{" "}
+            손님이 남긴 견적 문의는 정지일로부터 60일이 지나면 파기합니다.
             자료 보관·삭제 기준은{" "}
             <Link href="/privacy" className="underline underline-offset-2" style={{ color: "var(--forest)" }}>개인정보처리방침</Link>에 있습니다.
           </p>
@@ -301,7 +302,7 @@ export default function TermsPage() {
           <p>
             언제든 <b>수정 화면에서 버튼 한 번으로</b> 해지하실 수 있습니다. 가입만큼 쉽게 해지하실 수 있도록 해 두었습니다.
             해지하시면 <b>이미 결제하신 그 달은 끝까지 쓰시고, 다음 달부터 청구되지 않습니다.</b>
-            그 뒤 홈페이지는 비공개로 바뀌고, 14일이 더 지나면 자료가 파기됩니다.
+            그 뒤 홈페이지는 비공개로 바뀌고, 정지된 날부터 60일이 지나면 자료가 파기됩니다.
             해지하셔도 <b>홈페이지 · 영상 · 기록은 사장님 것</b>이라 그 전에 내려받아 가져가실 수 있습니다.
             자료 삭제를 원하시면{" "}
             <Link href="/privacy#delete" className="underline underline-offset-2" style={{ color: "var(--forest)" }}>삭제 요청 안내</Link>를 따라 주세요.

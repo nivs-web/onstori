@@ -45,7 +45,7 @@ export default async function Home() {
             <Link href="/how-it-works" className="text-[14.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>작동방식 보기 →</Link>
           </div>
           <dl className="mt-8 grid max-w-md grid-cols-3 gap-3 text-center">
-            {[["3분", "제작 시간"], ["6곳", "퍼지는 채널"], ["14일", "전 기능 무료"]].map(([v, k]) => (
+            {[["3분", "제작 시간"], ["6곳", "퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
               <div key={k} className="rounded-2xl border bg-white px-2 py-3" style={{ borderColor: "var(--line)" }}>
                 <dd className="font-display text-[22px]" style={{ color: "var(--forest)" }}>{v}</dd>
                 <dt className="text-[12px]" style={{ color: "var(--muted)" }}>{k}</dt>
@@ -192,14 +192,14 @@ export default async function Home() {
           <div className="rounded-3xl p-8 sm:p-10" style={{ background: "var(--forest)", color: "var(--cream)" }}>
             <p className="inline-block rounded-full px-3 py-1 text-[12px] font-bold" style={{ background: "var(--lime)", color: "var(--forest)" }}>가장 많이 선택</p>
             <h2 className="font-display mt-4 text-[30px] sm:text-[36px]">정회원 월 49,000<span className="text-[20px]">원</span></h2>
-            <p className="mt-2 text-[14.5px] opacity-80">14일 동안 전 기능 무료로 써 보시고, 마음에 드시면 매달 49,000원으로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.</p>
+            <p className="mt-2 text-[14.5px] opacity-80">30일 동안 전 기능 무료로 써 보시고, 마음에 드시면 매달 49,000원으로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.</p>
             <ul className="mt-6 grid gap-2 text-[14.5px] sm:grid-cols-2">
               {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림 (문자·이메일)"].map((t) => (
                 <li key={t} className="flex gap-2"><span style={{ color: "var(--lime)" }}>✓</span>{t}</li>
               ))}
             </ul>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link href="/new" className="btn-lime">14일 무료로 시작</Link>
+              <Link href="/new" className="btn-lime">30일 무료로 시작</Link>
               <span className="text-[13px] opacity-70">매달 자동 결제 · 언제든 해지</span>
             </div>
           </div>
@@ -272,7 +272,7 @@ export default async function Home() {
             </div>
           ))}
         </div>
-        <p className="mt-10 text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>이런 사장님께 (아직 후기가 아닙니다 — 첫 14일을 써 보신 사장님의 이야기를 기다립니다)</p>
+        <p className="mt-10 text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>이런 사장님께 (아직 후기가 아닙니다 — 첫 30일을 써 보신 사장님의 이야기를 기다립니다)</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
             ["홈페이지는 있는데 손님이 없는 사장님", "만든 지 1년, 방문자 하루 3명. 새 페이지가 안 생기니 검색도 안 됩니다."],
@@ -324,12 +324,12 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── 19. 14일 흐름 + (기존) 가격 다크 밴드 ── */}
+      {/* ── 19. 무료 기간 흐름 + (기존) 가격 다크 밴드 ── */}
       <section style={{ background: "var(--band)" }} className="text-white">
         <div className="wrap py-20 text-center">
           <h2 className="font-display text-[28px] sm:text-[36px]" style={{ textWrap: "balance" }}>따로 견적 없이, 처음부터 공개합니다</h2>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
-            {[["오늘", "3분 만에 홈페이지. 14일 전 기능 무료."], ["14일 뒤", "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["28일 뒤", "그때까지 미결제면 자료 자동 삭제. 삭제 전 문자로 알려드려요."]].map(([t, d]) => (
+            {[["오늘", "3분 만에 홈페이지. 30일 전 기능 무료."], ["30일 뒤", "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["언제든", "결제하시면 바로 다시 공개됩니다."]].map(([t, d]) => (
               <li key={t} className="rounded-2xl border border-white/15 bg-white/5 p-5">
                 <p className="text-[12px] font-bold tracking-[0.14em]" style={{ color: "var(--lime)" }}>{t}</p>
                 <p className="mt-1.5 text-[14.5px] text-white/85">{d}</p>

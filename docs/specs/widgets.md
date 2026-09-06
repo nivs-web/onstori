@@ -38,7 +38,7 @@
 |---|---|---|
 | "마이그레이션 `20260905090000` 이 없다" | **있다.** `supabase/migrations/20260905090000_mainplan_membership.sql` (1,435 bytes) | 폴더 직접 목록 |
 | "`sites.status` 를 `expired` 로 바꾸는 코드가 한 줄도 없다" | **있다.** `app/api/cron/expire/route.ts:46` `.update({ status: "expired" })`, `vercel.json` 매일 18:00 UTC | 파일·grep |
-| "생성 시 `trial_ends_at` 이 30일로 박힌다" | **14일이다.** `app/api/generate/route.ts:61` `TRIAL_DAYS * 24 * 3600 * 1000` | 파일 |
+| "생성 시 `trial_ends_at` 이 30일로 박힌다" | **맞다(2026-09-06 최종 확정으로 30일).** `app/api/generate/route.ts` `TRIAL_DAYS * 24 * 3600 * 1000` | 파일 |
 
 ---
 

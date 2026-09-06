@@ -36,7 +36,7 @@ type GetRes = {
   score: number; rulesDone: string[]; storyCount: number; isAdmin: boolean;
   /** 소유 상태 — 서버가 판정한 값(규칙 4). anon* = 이 브라우저 anonId로만 접근 중 */
   ownership: "admin" | "account" | "anon" | "anon-signedin";
-  /** 14일 무료 판정 (2026-09-05 정회원 정책) */
+  /** 무료 기간·정지·삭제 판정 (단일 출처 lib/trial.ts) */
   trial?: TrialInfo;
 };
 
@@ -294,7 +294,7 @@ export function EditUi({ slug }: { slug: string }) {
   );
   if (!data || !doc) return <main className="px-6 py-24 text-center text-neutral-400">불러오는 중…</main>;
 
-  // 14일 만료 — 운영자가 아니면 차단 화면 + 결제 모달 (기획1 /mainplan #membership)
+  // 무료 종료(정지) — 운영자가 아니면 차단 화면 + 결제 모달 (단일 출처 lib/trial.ts)
   //
   // ⚠ 문의함은 잠그지 않는다. 무료 기간에 이미 받아둔 손님 문의(이름·연락처·내용·사진)는
   //   사장님 것이지 결제로 인질 잡을 대상이 아니다. 알림 문자가 심는 링크가 바로
@@ -308,8 +308,7 @@ export function EditUi({ slug }: { slug: string }) {
             <p className="text-sm font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
             <p className="mt-1 text-xs leading-relaxed text-neutral-600">
               받아두신 문의는 그대로 보실 수 있어요. 손님에게 연락도 지금 하실 수 있습니다.
-              내용 수정·사이트 반영은 정기결제를 시작하시면 다시 열려요.
-              자료는 보관돼 있지만, 가입 후 28일이 지나면 자동으로 삭제됩니다.
+              내용 수정·사이트 반영은 정기결제를 시작하시면 다시 열려요. 자료는 그대로 보관돼 있습니다.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setPayOpen(true)}
@@ -335,11 +334,10 @@ export function EditUi({ slug }: { slug: string }) {
     return (
       <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
         <p className="text-[11.5px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>{data.businessName}</p>
-        <h1 className="font-display mt-3 text-[26px]" style={{ color: "var(--forest)" }}>14일 무료 기간이 끝났어요</h1>
+        <h1 className="font-display mt-3 text-[26px]" style={{ color: "var(--forest)" }}>홈페이지가 정지됐어요</h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-neutral-500">
-          홈페이지는 지금 비공개 상태입니다. 자료는 그대로 보관돼 있어요.<br />
-          매달 {MEMBERSHIP_PRICE.toLocaleString()}원 정기결제를 시작하시면 바로 다시 공개되고, 이야기·영상·발행 기능이 모두 열립니다.<br />
-          <b>{data.trial && data.trial.daysUntilDelete > 0 ? `${data.trial.daysUntilDelete}일 뒤` : "곧"} 자료가 자동으로 삭제됩니다.</b> 삭제 전에 문자로 다시 알려드려요.
+          손님에게는 보이지 않지만 <b>자료는 그대로 보관돼 있어요.</b><br />
+          매달 {MEMBERSHIP_PRICE.toLocaleString()}원 정기결제를 시작하시면 <b>바로 다시 켜지고</b>, 이야기·영상·발행 기능이 모두 열립니다.
         </p>
         <button type="button" onClick={() => setPayOpen(true)} className="btn-lime mt-8 w-full !py-4 !text-[16px]">정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원</button>
         <button type="button" onClick={() => setTab("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>

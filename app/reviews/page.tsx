@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 
-export const metadata: Metadata = { title: "리뷰 — 온스토리", description: "첫 14일을 써 보신 사장님들의 이야기를 기다립니다. 없는 후기를 만들지 않습니다." };
+export const metadata: Metadata = { title: "리뷰 — 온스토리", description: "첫 30일을 써 보신 사장님들의 이야기를 기다립니다. 없는 후기를 만들지 않습니다." };
 
 /**
  * 리뷰 — 레멘토 Reviews 구조(태그 필터 · 카드). 지금은 실후기 0건 → 없는 후기를 만들지 않는다 (기획1 /mainplan #reviews).
@@ -25,11 +25,11 @@ export default function ReviewsPage() {
       <section className="wrap pb-20">
         {REVIEWS.length === 0 ? (
           <div className="rounded-3xl border-2 border-dashed bg-white p-10 text-center" style={{ borderColor: "var(--line)" }}>
-            <p className="font-display text-[24px]" style={{ color: "var(--forest)" }}>첫 14일을 써 보신 사장님의 이야기를 기다립니다</p>
+            <p className="font-display text-[24px]" style={{ color: "var(--forest)" }}>첫 30일을 써 보신 사장님의 이야기를 기다립니다</p>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: "var(--muted)" }}>
               아직 후기가 없습니다. 없는 후기를 만들어 채우지 않습니다. 첫 사장님 10분의 홈페이지와 60초 영상이 이 자리에 올라옵니다 — 사장님 가게 링크와 함께.
             </p>
-            <Link href="/new" className="btn-lime mt-6">첫 10명에 들어가기 (14일 무료)</Link>
+            <Link href="/new" className="btn-lime mt-6">첫 10명에 들어가기 (30일 무료)</Link>
           </div>
         ) : (
           <ul className="grid gap-4 md:grid-cols-3">

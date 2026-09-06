@@ -82,7 +82,7 @@ export default async function MyPage() {
                   </p>
                   {(() => { const t = trialInfo(s); return (
                     <p className="mt-1 text-[12px] font-bold" style={{ color: t.paid ? "var(--green)" : t.expired ? "var(--terra)" : t.daysLeft <= 3 ? "var(--terra)" : "var(--forest)" }}>
-                      {t.paid ? "정회원 · 매달 49,000원 자동 결제" : t.expired ? `정지됨 — 삭제까지 D-${Math.max(0, t.daysUntilDelete)} · 결제하면 바로 복구` : `무료 기간 D-${t.daysLeft} · 이후 매달 49,000원`}
+                      {t.paid ? "정회원 · 매달 49,000원 자동 결제" : t.expired ? "정지됨 — 결제하시면 바로 다시 공개됩니다" : `무료 기간 D-${t.daysLeft} · 이후 매달 49,000원`}
                     </p>
                   ); })()}
                 </div>
