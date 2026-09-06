@@ -33,7 +33,7 @@ const INQUIRY_RETENTION_DAYS = 365;
  * 사장님은 링크의 슬러그로 자기 가게를 알아본다. 슬러그가 최댓값(30자)이어도 87바이트로 SMS 안이다.
  */
 function nudgeText(days: number, slug: string) {
-  return `온스토리 무료 ${days}일 남음. 정회원 49,000원 onstori.com/${slug}/edit`;
+  return `온스토리 무료 ${days}일 남음. 이후 매달 49,000원 onstori.com/${slug}/edit`;
 }
 
 export async function GET(req: Request) {
@@ -116,7 +116,8 @@ export async function GET(req: Request) {
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
     // 90바이트(EUC-KR) 안 — 넘으면 LMS 로 나가 요금이 3배가 된다 (2026-09-06 nudgeText 와 같은 제약)
-    if (await sendSmsRaw(phone, `온스토리 ${left}일 뒤 홈페이지 삭제. 지금 결제하면 복구 onstori.com/${s.slug}/edit`)) out.deleteNoticed++;
+    // 슬러그 최댓값(30자)에서 83바이트. "홈페이지"·"지금"을 뺀 이유가 이것이다 — 넣으면 97바이트로 LMS 가 된다.
+    if (await sendSmsRaw(phone, `온스토리 ${left}일 뒤 삭제. 결제하면 복구 onstori.com/${s.slug}/edit`)) out.deleteNoticed++;
   }
 
   // 5) 유예가 지난 미결제 사이트 자동 삭제 — 파일 먼저, DB 나중

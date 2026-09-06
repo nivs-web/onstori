@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const sb = sbAdmin();
   const { data: site } = await sb.from("sites").select("id, status").eq("slug", slug).maybeSingle();
   if (!site) return NextResponse.json({ error: "not-found" }, { status: 404 });
-  if (site.status === "expired" || site.status === "suspended") return NextResponse.json({ error: "정회원 전환 뒤 녹화할 수 있어요" }, { status: 402 });
+  if (site.status === "expired" || site.status === "suspended") return NextResponse.json({ error: "홈페이지가 정지 상태예요. 정기결제를 시작하시면 바로 다시 녹화하실 수 있어요 (가입 후 28일이 지나면 자료가 삭제됩니다)" }, { status: 402 });
 
   const base = { site_id: site.id, entry_type: "work", title: question.slice(0, 60), entry_date: new Date().toISOString().slice(0, 10), visible: false };
   const full = await sb.from("story_entries").insert({ ...base, body: "", question, video_key: key, media_status: "uploaded", photos: [] }).select("id").single();

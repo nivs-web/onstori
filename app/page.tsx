@@ -191,8 +191,8 @@ export default async function Home() {
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
           <div className="rounded-3xl p-8 sm:p-10" style={{ background: "var(--forest)", color: "var(--cream)" }}>
             <p className="inline-block rounded-full px-3 py-1 text-[12px] font-bold" style={{ background: "var(--lime)", color: "var(--forest)" }}>가장 많이 선택</p>
-            <h2 className="font-display mt-4 text-[30px] sm:text-[36px]">정회원 49,000<span className="text-[20px]">원</span></h2>
-            <p className="mt-2 text-[14.5px] opacity-80">14일 동안 전 기능 무료로 써 보시고, 14일 안에 결제하시면 홈페이지가 계속 유지됩니다.</p>
+            <h2 className="font-display mt-4 text-[30px] sm:text-[36px]">정회원 월 49,000<span className="text-[20px]">원</span></h2>
+            <p className="mt-2 text-[14.5px] opacity-80">14일 동안 전 기능 무료로 써 보시고, 마음에 드시면 매달 49,000원으로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.</p>
             <ul className="mt-6 grid gap-2 text-[14.5px] sm:grid-cols-2">
               {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림 (문자·이메일)"].map((t) => (
                 <li key={t} className="flex gap-2"><span style={{ color: "var(--lime)" }}>✓</span>{t}</li>
@@ -200,7 +200,7 @@ export default async function Home() {
             </ul>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link href="/new" className="btn-lime">14일 무료로 시작</Link>
-              <span className="text-[13px] opacity-70">14일 이후 자동 삭제 · 결제 뒤 언제든 해지</span>
+              <span className="text-[13px] opacity-70">매달 자동 결제 · 언제든 해지</span>
             </div>
           </div>
           <div>
@@ -329,15 +329,15 @@ export default async function Home() {
         <div className="wrap py-20 text-center">
           <h2 className="font-display text-[28px] sm:text-[36px]" style={{ textWrap: "balance" }}>따로 견적 없이, 처음부터 공개합니다</h2>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
-            {[["오늘", "3분 만에 홈페이지. 14일 전 기능 무료."], ["14일 안에", "정회원 49,000원 결제 → 홈페이지 계속 유지."], ["14일 이후", "결제하지 않으면 자동 삭제. 삭제 전 문자 두 번."]].map(([t, d]) => (
+            {[["오늘", "3분 만에 홈페이지. 14일 전 기능 무료."], ["14일 뒤", "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["28일 뒤", "그때까지 미결제면 자료 자동 삭제. 삭제 전 문자로 알려드려요."]].map(([t, d]) => (
               <li key={t} className="rounded-2xl border border-white/15 bg-white/5 p-5">
                 <p className="text-[12px] font-bold tracking-[0.14em]" style={{ color: "var(--lime)" }}>{t}</p>
                 <p className="mt-1.5 text-[14.5px] text-white/85">{d}</p>
               </li>
             ))}
           </ol>
-          <p className="mt-8 text-[34px] font-extrabold sm:text-[40px]">정회원 49,000<span className="text-[20px] font-bold">원</span></p>
-          <p className="mt-3 text-[14.5px] text-white/60">호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · 6채널 발행 포함</p>
+          <p className="mt-8 text-[34px] font-extrabold sm:text-[40px]">정회원 월 49,000<span className="text-[20px] font-bold">원</span></p>
+          <p className="mt-3 text-[14.5px] text-white/60">매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · 6채널 발행 포함</p>
           <div className="mt-9">
             <Link href="/new" className="inline-block rounded-full bg-white px-8 py-4 text-[16px] font-bold" style={{ color: "var(--band)" }}>무료로 만들어보기 →</Link>
           </div>

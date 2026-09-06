@@ -9,7 +9,7 @@ import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/sectio
 import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
 import { PreviewPane } from "./preview-pane";
 import { PayModal, TrialBar } from "@/components/site/pay-modal";
-import type { TrialInfo } from "@/lib/trial";
+import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
@@ -308,12 +308,13 @@ export function EditUi({ slug }: { slug: string }) {
             <p className="text-sm font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
             <p className="mt-1 text-xs leading-relaxed text-neutral-600">
               받아두신 문의는 그대로 보실 수 있어요. 손님에게 연락도 지금 하실 수 있습니다.
-              내용 수정·사이트 반영은 정회원으로 전환하시면 다시 열려요.
+              내용 수정·사이트 반영은 정기결제를 시작하시면 다시 열려요.
+              자료는 보관돼 있지만, 가입 후 28일이 지나면 자동으로 삭제됩니다.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setPayOpen(true)}
                 className="rounded-full bg-teal-700 px-4 py-2 text-xs font-semibold text-white">
-                정회원 이용하기 — 49,000원
+                정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원
               </button>
               <button type="button" onClick={() => setTab("content")}
                 className="rounded-full border border-neutral-300 px-4 py-2 text-xs font-semibold">
@@ -336,9 +337,11 @@ export function EditUi({ slug }: { slug: string }) {
         <p className="text-[11.5px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>{data.businessName}</p>
         <h1 className="font-display mt-3 text-[26px]" style={{ color: "var(--forest)" }}>14일 무료 기간이 끝났어요</h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-neutral-500">
-          홈페이지는 지금 비공개 상태입니다. 정회원(49,000원)으로 전환하시면 바로 다시 공개되고, 이야기·영상·발행 기능이 모두 열립니다. 전환하지 않으시면 30일 뒤 삭제됩니다.
+          홈페이지는 지금 비공개 상태입니다. 자료는 그대로 보관돼 있어요.<br />
+          매달 {MEMBERSHIP_PRICE.toLocaleString()}원 정기결제를 시작하시면 바로 다시 공개되고, 이야기·영상·발행 기능이 모두 열립니다.<br />
+          <b>{data.trial && data.trial.daysUntilDelete > 0 ? `${data.trial.daysUntilDelete}일 뒤` : "곧"} 자료가 자동으로 삭제됩니다.</b> 삭제 전에 문자로 다시 알려드려요.
         </p>
-        <button type="button" onClick={() => setPayOpen(true)} className="btn-lime mt-8 w-full !py-4 !text-[16px]">정회원 이용하기 — 49,000원</button>
+        <button type="button" onClick={() => setPayOpen(true)} className="btn-lime mt-8 w-full !py-4 !text-[16px]">정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원</button>
         <button type="button" onClick={() => setTab("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>
           받아둔 문의 보기{newCount > 0 ? ` (${newCount})` : ""}
         </button>
