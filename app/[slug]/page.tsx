@@ -3,13 +3,19 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getSiteBySlug } from "@/lib/sites";
 import { PALETTES, RenderSection } from "@/components/sections";
-import { ConnectWidget } from "@/components/sections/connect-widget";
+import { SiteChrome } from "@/components/sections/site-chrome";
 
 /**
  * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
  * (서브도메인 방식 폐기: 네이버 서치어드바이저 자동화 불가·수집 지연·도메인 권위 — DECISIONS 참조)
  * 정적 라우트(/new, /admin, /api…)가 파일시스템 우선이며, 예약어 200개는 reserved_slugs가 방어.
  */
+
+/**
+ * ISR — 손님 사이트는 매 요청마다 DB 를 볼 필요가 없다 (docs/PERFORMANCE.md).
+ * 발행 시 app/api/site/publish 가 revalidatePath 로 즉시 갱신한다. 이 둘은 한 쌍이다.
+ */
+export const revalidate = 60;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -47,25 +53,23 @@ export default async function SitePage({ params }: Props) {
 
   return (
     <div style={vars}>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
       <main
         className="relative min-h-svh"
         style={{
           background: "var(--s-bg)",
-          fontFamily: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`,
+          // 고정 상단 바가 첫 내용을 가리지 않게 자리를 비운다. 히어로가 첫 섹션이면 되가져간다.
+          paddingTop: "var(--bar-h)",
+          // 폰트는 app/fonts.css 가 자체 호스팅한다. 전에는 여기서 jsDelivr CDN 을
+          // <link> 로 불렀는데, 손님 사이트마다 렌더를 막는 사슬이 하나 더 붙는 셈이었다.
+          fontFamily: "var(--font-body)",
         }}
       >
-        {/* 온보딩 로고 — 히어로 위 좌상단에 얹는다. 섹션 스키마 밖(settings.logo)이라 렌더러는 그대로 (2026-09-05) */}
-        {site.logo && (
-          <div className="pointer-events-none absolute left-5 top-5 z-10 sm:left-8 sm:top-7">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={site.logo} alt={site.doc.businessName} className="h-11 w-11 rounded-xl bg-white/90 object-contain p-1 shadow sm:h-14 sm:w-14" />
-          </div>
-        )}
+        {/* 상단 바(로고·햄버거)와 하단 고정 바 — 미리보기 셸과 같은 컴포넌트를 쓴다 */}
+        <SiteChrome doc={site.doc} businessName={site.doc.businessName} logo={site.logo} />
         {site.doc.sections.map((s, i) => (
-          <RenderSection key={i} s={s} ctx={{ doc: site.doc, stories: site.stories, slug }} />
+          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}
-        <footer className="px-5 py-10 text-center text-[12.5px]" style={{ color: "var(--s-muted)" }}>
+        <footer className="t-caption text-center" style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-7)", color: "var(--s-muted)" }}>
           © {new Date().getFullYear()}{" "}
           {/* 숨은 에디터 진입로 — 손님에겐 그냥 글자로 보여야 하므로 커서·밑줄·색을 바꾸지 않는다.
               /edit 은 robots noindex 라 색인되지 않지만 nofollow 도 붙인다.
@@ -75,11 +79,8 @@ export default async function SitePage({ params }: Props) {
             {site.doc.businessName}
           </Link>{" "}
           ·{" "}
-          <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
+          <a href="https://onstori.com" className="tap-row underline underline-offset-2" style={{ display: "inline-flex" }}>Made with 온스토리</a>
         </footer>
-        {/* 플로팅 연결 위젯 — footer '뒤'여야 스페이서가 문서 맨 끝에 붙어 고정 바가 footer 를 덮지 않는다.
-            미리보기 셸(preview-client.tsx)에도 같이 넣는다 — 한 곳만 넣으면 갈라진다 */}
-        <ConnectWidget doc={site.doc} />
       </main>
     </div>
   );

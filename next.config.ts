@@ -12,10 +12,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /**
    * 이미지 저장소는 Cloudflare R2(`img.onstori.com`) — docs/specs/storage-r2.md, DECISIONS 2026-09-03.
-   * 지금은 <img> 직접 사용이라 필요 없지만, next/image 도입 시 외부 호스트 허용이 선행돼야 한다.
+   * 2026-09-06 부터 **히어로만** next/image 를 쓴다(LCP · docs/PERFORMANCE.md). 나머지는 <img> 이고,
+   * 히어로 URL 이 아래 호스트가 아니면 렌더러가 <img> 로 떨어진다 — 옛 사이트가 500 이 되면 안 된다.
+   * supabase 는 R2 이전(2026-09-03) 사이트들의 이미지가 아직 거기 있어서 남긴다.
    */
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "img.onstori.com" }],
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "img.onstori.com" },
+      { protocol: "https", hostname: "wpsrfjqfbhmeriscdacu.supabase.co" },
+    ],
   },
   /**
    * sharp 의 리눅스 네이티브 파일을 서버리스 함수 번들에 강제 포함.

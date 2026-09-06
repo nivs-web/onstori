@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { SiteDocT, StoryEntryT } from "@/lib/schema";
 import { PALETTES, RenderSection } from "@/components/sections";
-import { ConnectWidget } from "@/components/sections/connect-widget";
+import { SiteChrome } from "@/components/sections/site-chrome";
 import { PREVIEW_MSG, type PreviewMessage } from "@/lib/editor/preview-protocol";
 
 type Props = { slug: string; initialDoc: SiteDocT | null; stories: StoryEntryT[] };
@@ -58,21 +58,21 @@ export function PreviewClient({ slug, initialDoc, stories }: Props) {
         className="min-h-svh"
         style={{
           background: "var(--s-bg)",
-          fontFamily: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`,
+          // 고정 상단 바가 첫 내용을 가리지 않게 자리를 비운다. 히어로가 첫 섹션이면 되가져간다.
+          paddingTop: "var(--bar-h)",
+          fontFamily: "var(--font-body)",
         }}
       >
+        <SiteChrome doc={doc} businessName={doc.businessName} />
         {doc.sections.map((s, i) => (
           <div key={i} id={`sec-${i}`}>
-            <RenderSection s={s} ctx={{ doc, stories, slug }} />
+            <RenderSection s={s} index={i} ctx={{ doc, stories, slug }} />
           </div>
         ))}
-        <footer className="px-5 py-10 text-center text-[12.5px]" style={{ color: "var(--s-muted)" }}>
+        <footer className="t-caption text-center" style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-7)", color: "var(--s-muted)" }}>
           © {new Date().getFullYear()} {doc.businessName} ·{" "}
-          <a href="https://onstori.com" className="underline underline-offset-2">Made with 온스토리</a>
+          <a href="https://onstori.com" className="tap-row underline underline-offset-2" style={{ display: "inline-flex" }}>Made with 온스토리</a>
         </footer>
-        {/* 플로팅 연결 위젯 — footer '뒤'여야 스페이서가 문서 맨 끝에 붙어 고정 바가 footer 를 덮지 않는다.
-            공개 셸(app/[slug]/page.tsx)과 반드시 같이 간다 */}
-        <ConnectWidget doc={doc} />
       </main>
     </div>
   );

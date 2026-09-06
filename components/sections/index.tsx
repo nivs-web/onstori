@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
 import { workCount } from "@/lib/stories";
 import { telValue } from "@/lib/phone";
@@ -6,7 +7,10 @@ import QuoteForm from "./quote-form";
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
  * ⚠ 스키마 변경 시 4곳 동시 수정 (CLAUDE.md 불변 규칙 2)
- * 스타일은 테마 CSS 변수(--s-*)만 사용 — 색을 하드코딩하지 않는다.
+ *
+ * 색은 사장님 팔레트(--s-*)만 쓴다 — 색을 하드코딩하지 않는다.
+ * 간격·모서리·글자 크기·모션은 app/globals.css 의 공용 토큰(--s-1…, --r-*, --t-*, --dur-*)을 쓴다.
+ * ⚠ 팔레트 변수(--s-bg 등)와 간격 변수(--s-1 등)는 이름이 겹치지 않는다 — 앞쪽은 낱말, 뒤쪽은 숫자다.
  */
 
 export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
@@ -18,15 +22,50 @@ export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
 
 type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string };
 
+/* ── 앵커 ── 햄버거 시트가 이 목록으로 차례를 만든다 (site-chrome.tsx) */
+
+/** 섹션 종류 → 앵커 id. 같은 종류가 두 번 있어도 첫 번째만 차례에 올린다. */
+export const ANCHOR_OF: Partial<Record<SectionT["type"], string>> = {
+  about: "about", storyFeed: "stories", gallery: "gallery", portfolioGallery: "portfolio",
+  processSteps: "process", reviews: "reviews", menuPrice: "menu", hoursCard: "hours",
+  map: "map", quoteForm: "quote",
+};
+
+/** 시트에 올릴 차례. 제목이 비어 있으면 종류의 기본 이름을 쓴다. */
+export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[] {
+  const fallback: Partial<Record<SectionT["type"], string>> = {
+    about: "소개", storyFeed: "작업 기록", gallery: "사진", portfolioGallery: "시공 사례",
+    processSteps: "진행 과정", reviews: "후기", menuPrice: "가격", hoursCard: "영업시간",
+    map: "오시는 길", quoteForm: "견적 문의",
+  };
+  const seen = new Set<string>();
+  const out: { href: string; label: string }[] = [];
+  for (const s of doc.sections) {
+    const id = ANCHOR_OF[s.type];
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const title = "title" in s && typeof s.title === "string" ? s.title.trim() : "";
+    out.push({ href: `#${id}`, label: title || fallback[s.type] || id });
+  }
+  return out;
+}
+
 /* ── 공통 부품 ── */
 
-function SectionShell({ title, children }: { title?: string; children: React.ReactNode }) {
+function SectionShell({ id, title, children }: { id?: string; title?: string; children: React.ReactNode }) {
   return (
-    <section className="px-5 py-12 sm:py-16">
+    <section
+      id={id}
+      className="reveal"
+      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)", scrollMarginTop: "var(--bar-h)" }}
+    >
       <div className="mx-auto max-w-3xl">
         {title && (
-          <h2 className="mb-6 text-xl font-bold tracking-tight sm:text-2xl" style={{ color: "var(--s-ink)" }}>
-            <span className="mr-2 inline-block h-[3px] w-6 translate-y-[-4px]" style={{ background: "var(--s-accent)" }} />
+          <h2 className="t-h2" style={{ marginBottom: "var(--s-5)", color: "var(--s-ink)", fontFamily: "inherit" }}>
+            <span
+              className="mr-2 inline-block"
+              style={{ height: 3, width: 24, transform: "translateY(-4px)", background: "var(--s-accent)" }}
+            />
             {title}
           </h2>
         )}
@@ -37,8 +76,8 @@ function SectionShell({ title, children }: { title?: string; children: React.Rea
 }
 
 /**
- * 연결 수단의 단일 출처 — 히어로 CTA 와 플로팅 위젯이 같은 값을 본다.
- * 위젯은 값을 갖지 않고 여기서 파생한다(사본을 늘리지 않기 위해).
+ * 연결 수단의 단일 출처 — 히어로 CTA·햄버거 시트·하단 고정 바가 같은 값을 본다.
+ * 값을 사본으로 늘리지 않고 여기서 파생한다.
  * 전화번호가 안내 문구면 tel 이 "" 로 돌아온다 — 호출부가 죽은 링크를 만들지 않게 한다.
  * map.phone 은 쓰지 않는다: 생성 시 값이 굳고 에디터에 수정 UI가 없어 사장님이 고칠 수 없는 값이다.
  */
@@ -56,34 +95,81 @@ function ctaHref(action: string, ctx: Ctx): string {
   return tel ? `tel:${tel}` : "#quote";
 }
 
+/** next/image 가 쓸 수 있는 호스트인지 — next.config.ts 의 remotePatterns 와 같이 간다.
+ *  옛 사이트의 낯선 호스트에 next/image 를 물리면 그 페이지가 통째로 500 이 된다. */
+const OPTIMIZABLE = /^https:\/\/(img\.onstori\.com|wpsrfjqfbhmeriscdacu\.supabase\.co)\//;
+
 /* ── 섹션들 ── */
 
-function HeroSec({ s, ctx }: { s: Extract<SectionT, { type: "hero" }>; ctx: Ctx }) {
+function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ctx: Ctx; first?: boolean }) {
   const works = workCount(ctx.stories);
+  const optimizable = Boolean(s.image && OPTIMIZABLE.test(s.image));
   return (
-    <header className="relative flex min-h-[72svh] flex-col justify-end overflow-hidden px-5 pb-12 pt-24">
+    /* 폰에서 화면을 꽉 채운다(100svh) — svh 라 주소창이 접혔다 펴져도 높이가 안 튄다.
+       PC 는 100 이면 과하다. .reveal 을 붙이지 않는다 — 히어로가 LCP 요소다. */
+    <header
+      id="top"
+      className="relative flex flex-col justify-end overflow-hidden"
+      style={{
+        /* 첫 섹션일 때만 화면을 꽉 채운다(100svh).
+           위에 띠가 있으면 100svh 는 화면을 넘어가 리드·CTA 가 아래로 밀려 안 보인다 —
+           실제로 sample-interior 가 그랬다. 그때는 72svh 로 줄인다. */
+        minHeight: first ? "100svh" : "72svh",
+        /* main 이 고정 바만큼 위를 비워 뒀다. 히어로가 첫 섹션일 때만 그 자리를 되가져와
+           사진이 바 뒤까지 꽉 찬다. 띠가 먼저 오는 사이트에서는 되가져오면 띠를 덮는다. */
+        marginTop: first ? "calc(var(--bar-h) * -1)" : undefined,
+        paddingInline: "var(--gutter)",
+        paddingTop: "calc(var(--bar-h) + var(--s-7))",
+        paddingBottom: "calc(var(--dock-h) + var(--s-6) + env(safe-area-inset-bottom))",
+      }}
+    >
       {s.image ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={s.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(10,12,16,0.25) 0%, rgba(10,12,16,0.72) 100%)" }} />
+          {optimizable ? (
+            <Image
+              src={s.image}
+              alt=""
+              fill
+              priority
+              fetchPriority="high"
+              sizes="100vw"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={s.image} alt="" fetchPriority="high" decoding="async"
+                 className="absolute inset-0 h-full w-full" style={{ objectFit: "cover" }} />
+          )}
+          {/* 아래 40% 에만 그라데이션 — 흰 글자가 얹히는 자리다. 위쪽 사진은 가리지 않는다. */}
+          <div
+            className="absolute inset-x-0 bottom-0"
+            style={{ height: "40%", background: "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--n-900) 60%, transparent) 100%)" }}
+          />
         </>
       ) : (
         <div className="absolute inset-0" style={{ background: "linear-gradient(150deg, var(--s-accent) 0%, var(--s-ink) 100%)" }} />
       )}
-      <div className="relative mx-auto w-full max-w-3xl text-white">
-        {s.eyebrow && <p className="mb-3 text-[13px] font-medium tracking-[0.18em]">{s.eyebrow}</p>}
-        <h1 className="text-3xl font-bold leading-snug sm:text-4xl" style={{ textWrap: "balance" }}>{s.headline}</h1>
-        {s.sub && <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-white/85">{s.sub}</p>}
-        <div className="mt-7 flex items-center gap-4">
-          <a href={ctaHref(s.cta.action, ctx)}
-             className="rounded-full px-6 py-3 text-[15px] font-semibold shadow-lg"
-             style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>
+      <div className="relative mx-auto w-full max-w-3xl" style={{ color: "#FFFFFF" }}>
+        {s.eyebrow && (
+          <p className="t-caption font-medium" style={{ marginBottom: "var(--s-3)", color: "inherit", letterSpacing: "0.18em" }}>{s.eyebrow}</p>
+        )}
+        <h1 className="t-h1" style={{ color: "inherit", fontFamily: "inherit", textWrap: "balance" }}>{s.headline}</h1>
+        {/* 리드는 한 줄 — 히어로에 문장을 쌓지 않는다 */}
+        {s.sub && <p className="t-lead measure" style={{ marginTop: "var(--s-3)", color: "inherit" }}>{s.sub}</p>}
+        <div className="flex flex-wrap items-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
+          <a
+            href={ctaHref(s.cta.action, ctx)}
+            className="t-body inline-flex items-center justify-center font-semibold"
+            style={{
+              minHeight: "var(--control-h-sm)", paddingInline: "var(--s-5)",
+              borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)",
+            }}
+          >
             {s.cta.label}
           </a>
           {works > 0 && (
-            <span className="text-[13.5px] text-white/80">
-              기록으로 증명 — <b className="text-white">작업 기록 {works}건</b>
+            <span className="t-small" style={{ color: "inherit" }}>
+              기록으로 증명 — <b>작업 기록 {works}건</b>
             </span>
           )}
         </div>
@@ -94,21 +180,24 @@ function HeroSec({ s, ctx }: { s: Extract<SectionT, { type: "hero" }>; ctx: Ctx 
 
 function AboutSec({ s }: { s: Extract<SectionT, { type: "about" }> }) {
   return (
-    <SectionShell title={s.title}>
+    <SectionShell id="about" title={s.title}>
       {/* 사진이 있으면 본문 옆에 붙인다(모바일은 위). 뱅크 about 이미지는 3:2 중간 샷이라 비율을 유지한다 */}
-      <div className={s.image ? "flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6" : undefined}>
+      <div className={s.image ? "flex flex-col sm:flex-row sm:items-start" : undefined} style={s.image ? { gap: "var(--s-5)" } : undefined}>
         {s.image && (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={s.image} alt="" className="aspect-[3/2] w-full rounded-2xl object-cover sm:w-56 sm:flex-shrink-0" />
+          <img src={s.image} alt="" loading="lazy" decoding="async"
+               className="w-full sm:w-56 sm:flex-shrink-0"
+               style={{ aspectRatio: "3 / 2", objectFit: "cover", borderRadius: "var(--r-lg)", background: "var(--s-soft)" }} />
         )}
-        <p className="whitespace-pre-line text-[15.5px] leading-8" style={{ color: "var(--s-ink)" }}>{s.body}</p>
+        <p className="t-body whitespace-pre-line" style={{ color: "var(--s-ink)" }}>{s.body}</p>
       </div>
       {s.stats && s.stats.length > 0 && (
-        <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 sm:grid-cols-4" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)" }}>
           {s.stats.map((st) => (
-            <div key={st.label} className="rounded-xl border p-4 text-center" style={{ borderColor: "var(--s-line)", background: "var(--s-soft)" }}>
-              <dd className="text-xl font-bold" style={{ color: "var(--s-accent)" }}>{st.value}</dd>
-              <dt className="mt-1 text-[12.5px]" style={{ color: "var(--s-muted)" }}>{st.label}</dt>
+            <div key={st.label} className="text-center"
+                 style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", padding: "var(--s-4)", background: "var(--s-soft)" }}>
+              <dd className="t-h3" style={{ color: "var(--s-accent)" }}>{st.value}</dd>
+              <dt className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--s-muted)" }}>{st.label}</dt>
             </div>
           ))}
         </dl>
@@ -122,42 +211,44 @@ function StoryFeedSec({ s, ctx }: { s: Extract<SectionT, { type: "storyFeed" }>;
   if (items.length === 0) return null;
   const label: Record<StoryEntryT["entryType"], string> = { work: "작업 기록", news: "소식", milestone: "이정표", guest: "손님 이야기" };
   return (
-    <SectionShell title={s.title}>
-      <ol className="relative space-y-8 border-l-2 pl-6" style={{ borderColor: "var(--s-line)" }}>
+    <SectionShell id="stories" title={s.title}>
+      <ol className="relative" style={{ borderLeft: "2px solid var(--s-line)", paddingLeft: "var(--s-5)" }}>
         {items.map((e) => (
-          <li key={e.id} className="relative">
-            <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full border-2"
-                  style={{ background: "var(--s-bg)", borderColor: "var(--s-accent)" }} />
-            <p className="text-[12px] font-medium tracking-wide" style={{ color: "var(--s-muted)" }}>
-              {e.entryDate} · {label[e.entryType]}
-            </p>
-            <h3 className="mt-1 text-[16px] font-semibold" style={{ color: "var(--s-ink)" }}>{e.title}</h3>
-            <p className="mt-1 text-[14.5px] leading-7" style={{ color: "var(--s-muted)" }}>{e.body}</p>
+          <li key={e.id} className="relative" style={{ marginBottom: "var(--s-6)" }}>
+            <span
+              className="absolute"
+              style={{ left: "calc((var(--s-5) + 7px) * -1)", top: 6, width: 12, height: 12, borderRadius: "var(--r-full)", background: "var(--s-bg)", border: "2px solid var(--s-accent)" }}
+            />
+            <p className="t-caption font-medium" style={{ color: "var(--s-muted)" }}>{e.entryDate} · {label[e.entryType]}</p>
+            <h3 className="t-h3" style={{ marginTop: "var(--s-1)", color: "var(--s-ink)", fontFamily: "inherit" }}>{e.title}</h3>
+            <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--s-muted)" }}>{e.body}</p>
             {e.photos.length > 0 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto">
+              <div className="flex overflow-x-auto" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
                 {e.photos.map((p) => (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={p} src={p} alt={e.title} className="h-24 w-32 flex-shrink-0 rounded-lg object-cover" />
+                  <img key={p} src={p} alt={e.title} loading="lazy" decoding="async" width={128} height={96}
+                       className="flex-shrink-0" style={{ width: 128, height: 96, objectFit: "cover", borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
                 ))}
               </div>
             )}
           </li>
         ))}
       </ol>
-      <p className="mt-6 text-[13px]" style={{ color: "var(--s-muted)" }}>
+      <p className="t-small" style={{ marginTop: "var(--s-5)", color: "var(--s-muted)" }}>
         이야기가 쌓일수록 이 페이지가 두꺼워집니다 — 온스토리의 방식입니다.
       </p>
     </SectionShell>
   );
 }
 
+/** 사진 격자 — 모바일 1열 / 태블릿 2 / PC 3 (지시서 2-4). 비율 고정이라 로딩 중 안 튄다. */
 function GallerySec({ s }: { s: Extract<SectionT, { type: "gallery" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <SectionShell id="gallery" title={s.title}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-3)" }}>
         {s.photos.map((p) => (
           /* eslint-disable-next-line @next/next/no-img-element */
-          <img key={p} src={p} alt="" className="aspect-square w-full rounded-xl object-cover" />
+          <img key={p} src={p} alt="" loading="lazy" decoding="async" className="photo" style={{ background: "var(--s-soft)" }} />
         ))}
       </div>
     </SectionShell>
@@ -166,12 +257,12 @@ function GallerySec({ s }: { s: Extract<SectionT, { type: "gallery" }> }) {
 
 function ReviewsSec({ s }: { s: Extract<SectionT, { type: "reviews" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <div className="grid gap-3 sm:grid-cols-2">
+    <SectionShell id="reviews" title={s.title}>
+      <div className="grid sm:grid-cols-2" style={{ gap: "var(--s-3)" }}>
         {s.items.map((r) => (
-          <figure key={r.title} className="rounded-xl border p-5" style={{ borderColor: "var(--s-line)", background: "var(--s-soft)" }}>
-            <blockquote className="text-[14.5px] leading-7" style={{ color: "var(--s-ink)" }}>“{r.body}”</blockquote>
-            <figcaption className="mt-3 text-[12.5px]" style={{ color: "var(--s-muted)" }}>
+          <figure key={r.title} style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", padding: "var(--s-5)", background: "var(--s-soft)" }}>
+            <blockquote className="t-body" style={{ color: "var(--s-ink)" }}>“{r.body}”</blockquote>
+            <figcaption className="t-caption" style={{ marginTop: "var(--s-3)", color: "var(--s-muted)" }}>
               {r.title}{r.source ? ` · ${r.source}` : ""}
             </figcaption>
           </figure>
@@ -183,22 +274,22 @@ function ReviewsSec({ s }: { s: Extract<SectionT, { type: "reviews" }> }) {
 
 function MapSecC({ s }: { s: Extract<SectionT, { type: "map" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <div className="rounded-xl border p-6" style={{ borderColor: "var(--s-line)" }}>
-        <p className="text-[15.5px] font-medium" style={{ color: "var(--s-ink)" }}>{s.address}</p>
-        {s.note && <p className="mt-1 text-[13.5px]" style={{ color: "var(--s-muted)" }}>{s.note}</p>}
-        <div className="mt-4 flex flex-wrap gap-3">
+    <SectionShell id="map" title={s.title}>
+      <div style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", padding: "var(--s-5)" }}>
+        <p className="t-body font-medium" style={{ color: "var(--s-ink)" }}>{s.address}</p>
+        {s.note && <p className="t-small" style={{ marginTop: "var(--s-1)", color: "var(--s-muted)" }}>{s.note}</p>}
+        <div className="flex flex-wrap" style={{ marginTop: "var(--s-4)", gap: "var(--s-3)" }}>
           {s.naverMapUrl && (
             <a href={s.naverMapUrl} target="_blank" rel="noreferrer"
-               className="rounded-full border px-5 py-2 text-[13.5px] font-medium"
-               style={{ borderColor: "var(--s-accent)", color: "var(--s-accent)" }}>
+               className="t-small inline-flex items-center justify-center font-medium"
+               style={{ minHeight: "var(--tap)", paddingInline: "var(--s-5)", borderRadius: "var(--r-full)", border: "1px solid var(--s-accent)", color: "var(--s-accent)" }}>
               네이버 지도에서 보기 ↗
             </a>
           )}
           {s.phone && (
             <a href={`tel:${s.phone.replace(/[^0-9+]/g, "")}`}
-               className="rounded-full px-5 py-2 text-[13.5px] font-semibold"
-               style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>
+               className="t-small inline-flex items-center justify-center font-semibold"
+               style={{ minHeight: "var(--tap)", paddingInline: "var(--s-5)", borderRadius: "var(--r-full)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}>
               전화하기 {s.phone}
             </a>
           )}
@@ -208,9 +299,13 @@ function MapSecC({ s }: { s: Extract<SectionT, { type: "map" }> }) {
   );
 }
 
+/** 상단 띠 — 높이를 고정한다. 조건부로 나타나면 아래가 통째로 밀린다(CLS). */
 function BannerSec({ s }: { s: Extract<SectionT, { type: "banner" }> }) {
   const inner = (
-    <div className="px-5 py-3 text-center text-[13.5px] font-medium" style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>
+    <div
+      className="t-small flex items-center justify-center text-center font-medium"
+      style={{ minHeight: "var(--s-7)", paddingInline: "var(--gutter)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
+    >
       {s.text}{s.link ? " →" : ""}
     </div>
   );
@@ -219,20 +314,20 @@ function BannerSec({ s }: { s: Extract<SectionT, { type: "banner" }> }) {
 
 function PortfolioSec({ s }: { s: Extract<SectionT, { type: "portfolioGallery" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <SectionShell id="portfolio" title={s.title}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-4)" }}>
         {s.items.map((it) => (
-          <figure key={it.title} className="overflow-hidden rounded-xl border" style={{ borderColor: "var(--s-line)" }}>
+          <figure key={it.title} className="overflow-hidden" style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={it.image} alt={it.title} className="aspect-[4/3] w-full object-cover" />
-            <figcaption className="flex items-baseline justify-between gap-2 p-4">
+            <img src={it.image} alt={it.title} loading="lazy" decoding="async" className="photo" style={{ borderRadius: 0, background: "var(--s-soft)" }} />
+            <figcaption className="flex items-baseline justify-between" style={{ gap: "var(--s-2)", padding: "var(--s-4)" }}>
               <div>
-                <p className="text-[15px] font-semibold" style={{ color: "var(--s-ink)" }}>{it.title}</p>
-                {it.date && <p className="mt-0.5 text-[12.5px]" style={{ color: "var(--s-muted)" }}>{it.date}</p>}
+                <p className="t-body font-semibold" style={{ color: "var(--s-ink)" }}>{it.title}</p>
+                {it.date && <p className="t-caption" style={{ color: "var(--s-muted)" }}>{it.date}</p>}
               </div>
               {it.tag && (
-                <span className="rounded-full px-2.5 py-0.5 text-[11.5px] font-medium"
-                      style={{ background: "var(--s-soft)", color: "var(--s-accent)" }}>{it.tag}</span>
+                <span className="t-caption font-medium"
+                      style={{ borderRadius: "var(--r-full)", padding: "var(--s-1) var(--s-2)", background: "var(--s-soft)", color: "var(--s-accent)" }}>{it.tag}</span>
               )}
             </figcaption>
           </figure>
@@ -244,20 +339,22 @@ function PortfolioSec({ s }: { s: Extract<SectionT, { type: "portfolioGallery" }
 
 function ProcessSec({ s }: { s: Extract<SectionT, { type: "processSteps" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <ol className="grid gap-3 sm:grid-cols-2">
+    <SectionShell id="process" title={s.title}>
+      <ol className="grid sm:grid-cols-2" style={{ gap: "var(--s-3)" }}>
         {s.steps.map((st, i) => (
-          <li key={st.name} className="flex items-start gap-4 rounded-xl border p-4" style={{ borderColor: "var(--s-line)" }}>
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
-                  style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}>{i + 1}</span>
+          <li key={st.name} className="flex items-start"
+              style={{ gap: "var(--s-4)", border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", padding: "var(--s-4)" }}>
+            <span className="t-small flex flex-shrink-0 items-center justify-center font-bold"
+                  style={{ width: 32, height: 32, borderRadius: "var(--r-full)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}>{i + 1}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold" style={{ color: "var(--s-ink)" }}>{st.name}</p>
-              {st.desc && <p className="mt-0.5 text-[13.5px] leading-6" style={{ color: "var(--s-muted)" }}>{st.desc}</p>}
+              <p className="t-body font-semibold" style={{ color: "var(--s-ink)" }}>{st.name}</p>
+              {st.desc && <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--s-muted)" }}>{st.desc}</p>}
             </div>
             {/* 단계 사진 — 번호·글 다음 오른쪽 끝에 작게. 2단 그리드라 폭을 많이 못 준다 */}
             {st.image && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={st.image} alt="" className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" />
+              <img src={st.image} alt="" loading="lazy" decoding="async" width={56} height={56}
+                   className="flex-shrink-0" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
             )}
           </li>
         ))}
@@ -269,7 +366,11 @@ function ProcessSec({ s }: { s: Extract<SectionT, { type: "processSteps" }> }) {
 function QuoteFormSec({ s, ctx }: { s: Extract<SectionT, { type: "quoteForm" }>; ctx: Ctx }) {
   // 실제 접수 폼은 클라이언트 컴포넌트로 분리 — docs/specs/inquiry.md 5장
   return (
-    <section id="quote" className="px-5 py-14" style={{ background: "var(--s-soft)" }}>
+    <section
+      id="quote"
+      className="reveal"
+      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)", background: "var(--s-soft)", scrollMarginTop: "var(--bar-h)" }}
+    >
       <QuoteForm s={s} slug={ctx.slug} />
     </section>
   );
@@ -277,10 +378,10 @@ function QuoteFormSec({ s, ctx }: { s: Extract<SectionT, { type: "quoteForm" }>;
 
 function HoursSec({ s }: { s: Extract<SectionT, { type: "hoursCard" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <div className="rounded-xl border p-6" style={{ borderColor: "var(--s-line)", background: "var(--s-soft)" }}>
-        <p className="whitespace-pre-line text-[15px] leading-8" style={{ color: "var(--s-ink)" }}>{s.hours}</p>
-        {s.holidayNote && <p className="mt-2 text-[13px]" style={{ color: "var(--s-muted)" }}>{s.holidayNote}</p>}
+    <SectionShell id="hours" title={s.title}>
+      <div style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", padding: "var(--s-5)", background: "var(--s-soft)" }}>
+        <p className="t-body whitespace-pre-line" style={{ color: "var(--s-ink)" }}>{s.hours}</p>
+        {s.holidayNote && <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--s-muted)" }}>{s.holidayNote}</p>}
       </div>
     </SectionShell>
   );
@@ -288,15 +389,15 @@ function HoursSec({ s }: { s: Extract<SectionT, { type: "hoursCard" }> }) {
 
 function MenuSec({ s }: { s: Extract<SectionT, { type: "menuPrice" }> }) {
   return (
-    <SectionShell title={s.title}>
-      <ul className="divide-y rounded-xl border" style={{ borderColor: "var(--s-line)" }}>
+    <SectionShell id="menu" title={s.title}>
+      <ul className="divide-y" style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)", borderColor: "var(--s-line)" }}>
         {s.items.map((m) => (
-          <li key={m.name} className="flex items-baseline justify-between gap-4 p-4" style={{ borderColor: "var(--s-line)" }}>
+          <li key={m.name} className="flex items-baseline justify-between" style={{ gap: "var(--s-4)", padding: "var(--s-4)", borderColor: "var(--s-line)" }}>
             <div>
-              <p className="text-[15px] font-medium" style={{ color: "var(--s-ink)" }}>{m.name}</p>
-              {m.desc && <p className="mt-0.5 text-[13px]" style={{ color: "var(--s-muted)" }}>{m.desc}</p>}
+              <p className="t-body font-medium" style={{ color: "var(--s-ink)" }}>{m.name}</p>
+              {m.desc && <p className="t-small" style={{ marginTop: "var(--s-1)", color: "var(--s-muted)" }}>{m.desc}</p>}
             </div>
-            <p className="whitespace-nowrap text-[15px] font-semibold" style={{ color: "var(--s-accent)" }}>{m.price}</p>
+            <p className="t-body whitespace-nowrap font-semibold" style={{ color: "var(--s-accent)" }}>{m.price}</p>
           </li>
         ))}
       </ul>
@@ -306,9 +407,9 @@ function MenuSec({ s }: { s: Extract<SectionT, { type: "menuPrice" }> }) {
 
 /* ── 레지스트리 ── */
 
-export function RenderSection({ s, ctx }: { s: SectionT; ctx: Ctx }) {
+export function RenderSection({ s, ctx, index }: { s: SectionT; ctx: Ctx; index?: number }) {
   switch (s.type) {
-    case "hero": return <HeroSec s={s} ctx={ctx} />;
+    case "hero": return <HeroSec s={s} ctx={ctx} first={index === 0} />;
     case "about": return <AboutSec s={s} />;
     case "storyFeed": return <StoryFeedSec s={s} ctx={ctx} />;
     case "gallery": return <GallerySec s={s} />;

@@ -2,6 +2,10 @@ import type { SiteDocT, WidgetT } from "@/lib/schema";
 import { contactOf } from "./index";
 
 /**
+ * ⚠ 2026-09-06 부로 화면에 그리지 않는다 — 하단 고정 바(components/sections/site-chrome.tsx)가
+ *   같은 자리를 쓰고, 둘을 같이 두면 겹친다(지시서 2-4). ICON·ARIA 는 그 고정 바가 가져다 쓰고,
+ *   나머지는 C 배치(SNS 위젯 6채널)에서 다시 볼 수 있게 남겨 둔다.
+ *
  * 플로팅 연결 위젯 (2026-09-05) — 스크롤 어디서나 전화·카톡이 눌린다.
  *
  * ⚠ "use client" 를 붙이지 않는다. 순수 <a> 뿐이라 JS 가 필요 없고, 미리보기 셸
@@ -12,7 +16,7 @@ import { contactOf } from "./index";
  *   글자가 배경에 묻힌다. 아래 두 조합만 팔레트 4종 전부에서 대비가 성립한다.
  */
 
-const ICON: Record<WidgetT["kind"], React.ReactElement> = {
+export const ICON: Record<WidgetT["kind"], React.ReactElement> = {
   call: (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor">
       <path d="M6.6 10.8a15.3 15.3 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.15.38 2.36.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.6a1 1 0 0 1-.25 1z" />
@@ -26,7 +30,7 @@ const ICON: Record<WidgetT["kind"], React.ReactElement> = {
 };
 
 /** 버튼 이름은 사장님이 바꿀 수 있으므로, 읽어주는 문구는 행동으로 고정한다. */
-const ARIA: Record<WidgetT["kind"], string> = {
+export const ARIA: Record<WidgetT["kind"], string> = {
   call: "전화 걸기",
   kakao: "카카오톡으로 문의하기",
 };

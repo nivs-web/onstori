@@ -120,20 +120,24 @@ export default function QuoteForm({ s, slug }: Props) {
   }
 
   const tel = s.phone.replace(/[^0-9+]/g, "");
-  const field = "w-full rounded-xl border px-4 py-3 text-[15px] outline-none";
+  // 입력창은 공용 .field — 높이 48, focus 시 초록 2px + 바깥 4px 링 (docs/DESIGN.md)
+  const field = "field";
   const fieldStyle = { borderColor: "var(--s-line)", background: "var(--s-bg)", color: "var(--s-ink)" };
 
   return (
     <div className="mx-auto max-w-xl">
       <div className="text-center">
-        <h2 className="text-xl font-bold sm:text-2xl" style={{ color: "var(--s-ink)" }}>{s.title}</h2>
-        <p className="mt-2 text-[14.5px]" style={{ color: "var(--s-muted)" }}>{s.sub ?? COPY.sub}</p>
+        <h2 className="t-h2" style={{ color: "var(--s-ink)", fontFamily: "inherit" }}>{s.title}</h2>
+        <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--s-muted)" }}>{s.sub ?? COPY.sub}</p>
       </div>
 
       {state === "done" ? (
         <p
-          className="mt-6 rounded-xl border px-5 py-8 text-center text-[15px] font-semibold"
-          style={{ background: "var(--s-bg)", color: "var(--s-ink)", borderColor: "var(--s-line)" }}
+          className="t-body text-center font-semibold"
+          style={{
+            marginTop: "var(--s-5)", border: "1px solid var(--s-line)", borderRadius: "var(--r-md)",
+            padding: "var(--s-6) var(--s-5)", background: "var(--s-bg)", color: "var(--s-ink)",
+          }}
         >
           {COPY.done}
         </p>
@@ -153,7 +157,7 @@ export default function QuoteForm({ s, slug }: Props) {
               style={fieldStyle}
             />
             {phoneError && (
-              <p className="mt-1 text-[13px]" style={{ color: "var(--s-accent)" }}>{COPY.phoneError}</p>
+              <p className="t-small" style={{ marginTop: "var(--s-1)", color: "var(--s-accent)" }}>{COPY.phoneError}</p>
             )}
           </div>
 
@@ -172,13 +176,13 @@ export default function QuoteForm({ s, slug }: Props) {
                 {photos.map((p, i) => (
                   <div key={i} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt="" className="h-20 w-20 rounded-lg object-cover" />
+                    <img src={p.url} alt="" width={80} height={80} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: "var(--r-sm)" }} />
                     <button
                       type="button"
                       aria-label="사진 삭제"
                       onClick={() => setPhotos((ps) => ps.filter((_, k) => k !== i))}
-                      className="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-full text-[13px] leading-none text-white"
-                      style={{ background: "var(--s-ink)" }}
+                      className="t-small absolute leading-none"
+                      style={{ right: -6, top: -6, width: 24, height: 24, borderRadius: "var(--r-full)", background: "var(--s-ink)", color: "var(--s-bg)" }}
                     >
                       ×
                     </button>
@@ -186,8 +190,8 @@ export default function QuoteForm({ s, slug }: Props) {
                 ))}
                 {photos.length < MAX_PHOTOS && (
                   <label
-                    className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border text-[13px]"
-                    style={{ borderColor: "var(--s-line)", color: "var(--s-muted)" }}
+                    className="t-small flex cursor-pointer items-center justify-center"
+                    style={{ width: 80, height: 80, border: "1px solid var(--s-line)", borderRadius: "var(--r-sm)", color: "var(--s-muted)" }}
                   >
                     + 사진
                     <input
@@ -204,13 +208,13 @@ export default function QuoteForm({ s, slug }: Props) {
                   </label>
                 )}
               </div>
-              <p className="mt-1.5 text-[13px]" style={{ color: "var(--s-muted)" }}>
+              <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--s-muted)" }}>
                 현장 사진 최대 {MAX_PHOTOS}장
               </p>
             </div>
           )}
 
-          <label className="flex items-start gap-2 text-[13.5px]" style={{ color: "var(--s-muted)" }}>
+          <label className="t-body flex items-start" style={{ gap: "var(--s-2)", minHeight: "var(--tap)", color: "var(--s-muted)" }}>
             <input
               type="checkbox"
               name="consent"
@@ -222,7 +226,7 @@ export default function QuoteForm({ s, slug }: Props) {
             />
             <span>{COPY.consent}</span>
           </label>
-          <p className="-mt-1 pl-6 text-[12.5px]" style={{ color: "var(--s-muted)" }}>{COPY.consentNote}</p>
+          <p className="t-caption" style={{ paddingLeft: "var(--s-5)", color: "var(--s-muted)" }}>{COPY.consentNote}</p>
 
           {/* 허니팟 — 사람 눈에 보이지 않는다. 채워져 오면 서버가 400 */}
           <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0" />
@@ -230,26 +234,28 @@ export default function QuoteForm({ s, slug }: Props) {
           <button
             type="submit"
             disabled={state === "sending" || inPreview}
-            className="w-full rounded-full px-7 py-3.5 text-[15px] font-semibold shadow disabled:opacity-60"
-            style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}
+            className="t-body w-full font-semibold disabled:opacity-60"
+            style={{ minHeight: "var(--control-h-sm)", paddingInline: "var(--s-6)", borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
           >
             {state === "sending" ? COPY.sending : COPY.submit}
           </button>
 
           {inPreview && (
-            <p className="text-center text-[13px]" style={{ color: "var(--s-muted)" }}>{COPY.preview}</p>
+            <p className="t-small text-center" style={{ color: "var(--s-muted)" }}>{COPY.preview}</p>
           )}
           {state === "error" && (
-            <p className="text-center text-[13.5px]" style={{ color: "var(--s-accent)" }}>{COPY.fail}</p>
+            <p className="t-body text-center" style={{ color: "var(--s-accent)" }}>{COPY.fail}</p>
           )}
         </form>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+      {/* ⚠ 주 버튼은 뷰포트당 1개 — 위 [보내기]가 이 화면의 주 버튼이다.
+          아래 전화·카톡은 둘 다 테두리만 있는 보조 버튼으로 둔다. */}
+      <div className="flex flex-wrap items-center justify-center" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
         <a
           href={`tel:${tel}`}
-          className="rounded-full px-7 py-3.5 text-[15px] font-semibold shadow"
-          style={{ background: "var(--s-accent)", color: "var(--s-on-accent)" }}
+          className="t-body inline-flex items-center justify-center font-semibold"
+          style={{ minHeight: "var(--control-h-sm)", paddingInline: "var(--s-6)", borderRadius: "var(--r-md)", border: "1px solid var(--s-accent)", color: "var(--s-accent)" }}
         >
           📞 {s.phone}
         </a>
@@ -258,8 +264,8 @@ export default function QuoteForm({ s, slug }: Props) {
             href={s.kakaoUrl}
             target="_blank"
             rel="noreferrer"
-            className="rounded-full border px-7 py-3.5 text-[15px] font-semibold"
-            style={{ borderColor: "var(--s-accent)", color: "var(--s-accent)" }}
+            className="t-body inline-flex items-center justify-center font-semibold"
+            style={{ minHeight: "var(--control-h-sm)", paddingInline: "var(--s-6)", borderRadius: "var(--r-md)", border: "1px solid var(--s-accent)", color: "var(--s-accent)" }}
           >
             카카오톡 문의
           </a>
