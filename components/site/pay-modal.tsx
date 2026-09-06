@@ -9,7 +9,7 @@ import { COPY, type TrialInfo } from "@/lib/trial";
  * ready:true 면 js.tosspayments.com/v2/standard 를 그때 로드해 결제창을 연다 — successUrl 에서 서버 confirm.
  */
 declare global {
-  interface Window { TossPayments?: (clientKey: string) => { payment: (o: { customerKey: string }) => { requestPayment: (o: Record<string, unknown>) => Promise<void> } } }
+  interface Window { TossPayments?: (clientKey: string) => { payment: (o: { customerKey: string }) => { requestBillingAuth: (o: Record<string, unknown>) => Promise<void> } } }
 }
 
 function loadToss(): Promise<void> {
@@ -42,11 +42,10 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
       if (!d.ready) { setNotReady(true); setBusy(false); return; }
       await loadToss();
       const toss = window.TossPayments!(d.clientKey!);
-      await toss.payment({ customerKey: d.customerKey! }).requestPayment({
+      // 정기결제 — 1회 결제창(requestPayment)이 아니라 **카드 등록창**을 연다.
+      // 성공하면 successUrl 로 authKey·customerKey 가 붙어 돌아오고, 거기서 서버가 빌링키를 발급한다.
+      await toss.payment({ customerKey: d.customerKey! }).requestBillingAuth({
         method: "CARD",
-        amount: { currency: "KRW", value: d.amount },
-        orderId: d.orderId,
-        orderName: d.orderName,
         successUrl: `${location.origin}/billing/success?slug=${encodeURIComponent(slug)}`,
         failUrl: `${location.origin}/billing/fail?slug=${encodeURIComponent(slug)}`,
       });
@@ -84,7 +83,7 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
               {COPY.autopay}
             </p>
             <button type="button" onClick={pay} disabled={busy} className="btn-lime mt-3 w-full !py-4 !text-[16px] disabled:opacity-50">
-              {busy ? "결제창 여는 중…" : `${COPY.priceLine} 결제하기`}
+              {busy ? "카드 등록창 여는 중…" : `${COPY.priceLine} 정기결제 등록`}
             </button>
           </>
         )}

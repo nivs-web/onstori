@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
-import { GRACE_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
+import { GRACE_DAYS, DELETE_NOTICE_DAYS, MEMBERSHIP_PRICE, MEMBERSHIP_NAME } from "@/lib/trial";
+import { charge } from "@/lib/toss";
 
 /**
  * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 요금·기간 정책 집행
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, sitesDeleted: 0, filesPurged: 0 };
+  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, sitesDeleted: 0, filesPurged: 0, charged: 0, chargeFailed: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -136,6 +137,62 @@ export async function GET(req: Request) {
       console.log(JSON.stringify({ evt: "site_auto_deleted", slug: s.slug, trialEndedAt: s.trial_ends_at }));
     } catch (e) {
       console.error(JSON.stringify({ evt: "site_delete_failed", slug: s.slug, err: String(e).slice(0, 300) }));
+    }
+  }
+
+  // 6) 매달 구독 청구 — next_charge_at 이 지난 active 구독
+  //    ⚠ 가맹 심사 전에는 TOSS_SECRET_KEY 가 없어 charge() 가 던진다. 그때는 조용히 건너뛴다.
+  if (process.env.TOSS_SECRET_KEY?.trim()) {
+    const { data: due } = await sb
+      .from("billing")
+      .select("site_id, customer_key, billing_key, next_charge_at, fail_count")
+      .eq("status", "active")
+      .lte("next_charge_at", new Date(now).toISOString())
+      .limit(200);
+
+    for (const b of due ?? []) {
+      const { data: site } = await sb.from("sites").select("id, slug, business_name").eq("id", b.site_id).maybeSingle();
+      if (!site) continue;
+      const orderId = `os-${site.slug}-${new Date(now).toISOString().slice(0, 10)}-${b.fail_count}`;
+      const paid = await charge({
+        billingKey: b.billing_key,
+        customerKey: b.customer_key,
+        amount: MEMBERSHIP_PRICE,
+        orderId,
+        orderName: `${MEMBERSHIP_NAME} (${site.business_name})`,
+      });
+
+      if (paid.ok) {
+        const next = new Date(b.next_charge_at);
+        next.setMonth(next.getMonth() + 1);
+        await sb.from("billing").update({
+          last_charge_at: new Date(now).toISOString(), next_charge_at: next.toISOString(), fail_count: 0,
+        }).eq("site_id", b.site_id);
+        await sb.from("payments").insert({
+          site_id: site.id, site_slug: site.slug, order_id: orderId,
+          payment_key: paid.data.paymentKey, amount: paid.data.totalAmount ?? MEMBERSHIP_PRICE,
+          status: "paid", method: paid.data.method ?? null,
+          approved_at: paid.data.approvedAt ?? new Date(now).toISOString(),
+          raw: paid.data as unknown as Record<string, unknown>,
+        });
+        out.charged++;
+      } else {
+        // 카드 한도·유효기간 문제는 흔하다. 바로 끊지 않고 3번까지 다음 날 다시 시도한다.
+        const fails = (b.fail_count ?? 0) + 1;
+        await sb.from("payments").insert({
+          site_id: site.id, site_slug: site.slug, order_id: orderId, amount: MEMBERSHIP_PRICE,
+          status: "failed", fail_code: paid.code, fail_message: paid.message,
+        });
+        if (fails >= 3) {
+          await sb.from("billing").update({ status: "failed", fail_count: fails }).eq("site_id", b.site_id);
+          await sb.from("sites").update({ status: "expired" }).eq("id", site.id);
+          console.error(JSON.stringify({ evt: "subscription_failed_final", slug: site.slug, code: paid.code }));
+        } else {
+          const retry = new Date(now + day);
+          await sb.from("billing").update({ fail_count: fails, next_charge_at: retry.toISOString() }).eq("site_id", b.site_id);
+        }
+        out.chargeFailed++;
+      }
     }
   }
 
