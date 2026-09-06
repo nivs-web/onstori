@@ -50,7 +50,7 @@ function Sec({ n, title, children }: { n: string; title: string; children: React
 
 function Table({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--line)" }}>
+    <div className="table-scroll card">
       <table className="w-full min-w-[560px] t-small">
         <thead style={{ background: "var(--cream-2)" }}>
           <tr>{head.map((h) => <th key={h} className="px-3 py-2.5 text-left font-bold">{h}</th>)}</tr>

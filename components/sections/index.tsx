@@ -149,9 +149,9 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
       ) : (
         <div className="absolute inset-0" style={{ background: "linear-gradient(150deg, var(--s-accent) 0%, var(--s-ink) 100%)" }} />
       )}
-      <div className="relative mx-auto w-full max-w-3xl" style={{ color: "#FFFFFF" }}>
+      <div className="relative mx-auto w-full max-w-3xl" style={{ color: "var(--n-0)" }}>
         {s.eyebrow && (
-          <p className="t-caption font-medium" style={{ marginBottom: "var(--s-3)", color: "inherit", letterSpacing: "0.18em" }}>{s.eyebrow}</p>
+          <p className="t-caption font-medium" style={{ marginBottom: "var(--s-3)", color: "inherit", letterSpacing: "var(--tracking-kicker)" }}>{s.eyebrow}</p>
         )}
         <h1 className="t-h1" style={{ color: "inherit", fontFamily: "inherit", textWrap: "balance" }}>{s.headline}</h1>
         {/* 리드는 한 줄 — 히어로에 문장을 쌓지 않는다 */}

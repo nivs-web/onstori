@@ -211,7 +211,7 @@ export function Wizard() {
             }}
           />
         </div>
-        <p className="t-caption font-bold" style={{ marginTop: "var(--s-2)", color: "var(--green-700)", letterSpacing: "0.18em" }}>
+        <p className="t-caption font-bold" style={{ marginTop: "var(--s-2)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
           STEP {step + 1} / {STEPS.length} · {STEPS[step]}
         </p>
         {children}
@@ -351,7 +351,7 @@ export function Wizard() {
             <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
               {INDUSTRY_GROUPS.map((g) => (
                 <button key={g.id} type="button" onClick={() => setGroup(g.id)} className="shrink-0 rounded-full border px-3.5 py-2 t-small font-semibold"
-                  style={{ borderColor: group === g.id ? "var(--forest)" : "var(--line)", background: group === g.id ? "var(--forest)" : "#fff", color: group === g.id ? "var(--cream)" : "var(--forest)" }}>
+                  style={{ borderColor: group === g.id ? "var(--n-800)" : "var(--n-200)", background: group === g.id ? "var(--n-800)" : "var(--n-0)", color: group === g.id ? "var(--n-0)" : "var(--n-800)", minHeight: "var(--tap)" }}>
                   {g.emoji} {g.name}
                 </button>
               ))}
@@ -365,7 +365,7 @@ export function Wizard() {
               const on = sub?.label === s.label;
               return (
                 <button key={s.label} type="button" onClick={() => setSub(s)} className="rounded-xl border px-3.5 py-2.5 t-small font-medium"
-                  style={{ borderColor: on ? "var(--green)" : "var(--line)", background: on ? "var(--accent-soft)" : "#fff", color: on ? "var(--green)" : "var(--ink)", fontWeight: on ? 700 : 500 }}>
+                  style={{ borderColor: on ? "var(--green-700)" : "var(--n-200)", background: on ? "var(--green-50)" : "var(--n-0)", color: on ? "var(--green-700)" : "var(--n-900)", fontWeight: on ? 700 : 500, minHeight: "var(--tap)" }}>
                   {on ? "✓ " : ""}{s.label}
                 </button>
               );

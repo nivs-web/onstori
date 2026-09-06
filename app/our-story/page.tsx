@@ -62,12 +62,12 @@ export default function OurStory() {
       {/* ── 이정표 ── */}
       <section className="surface-900 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.18em" }}>이정표</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>이정표</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>여기까지 왔습니다</h2>
           <ol className="grid md:grid-cols-3" style={{ marginTop: "var(--s-7)", gap: "var(--s-4)" }}>
             {milestones.map(([d, t]) => (
               <li key={d + t} style={{ background: "var(--n-800)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
-                <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.14em" }}>{d}</p>
+                <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>{d}</p>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>{t}</p>
               </li>
             ))}
@@ -78,7 +78,7 @@ export default function OurStory() {
       {/* ── 11행 비교표 ── 폰에서는 표가 자기 안에서 스크롤하고 첫 열이 고정된다 */}
       <section id="compare" className="surface-0 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>비교</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>비교</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>홈페이지 제작업체 vs 온스토리</h2>
           <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
             홈페이지 제작이 아닙니다. 사업이 굴러가게 만듭니다. 일반 제작업체와 온스토리를 11가지로 정직하게 비교했습니다.
@@ -117,7 +117,7 @@ export default function OurStory() {
       {/* ── 원칙 다섯 ── */}
       <section className="surface-50 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>원칙 다섯</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>원칙 다섯</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>지키는 것</h2>
           <ol className="grid md:grid-cols-5" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
             {principles.map(([t, d], i) => (

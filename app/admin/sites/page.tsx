@@ -18,7 +18,7 @@ export default async function SitesAdmin() {
     <main className="mx-auto max-w-4xl px-6 py-10">
       <Link href="/admin" className="text-xs text-n-400">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">사이트 관리 <span className="text-sm font-normal text-n-400">({rows?.length ?? 0})</span></h1>
-      <div className="mt-6 overflow-x-auto rounded-xl border border-n-200">
+      <div className="table-scroll card mt-6">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-n-50 text-xs text-n-500">
             <tr>{["주소", "상호", "업종", "템플릿", "상태", "체험 만료", "생성일"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr>

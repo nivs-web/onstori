@@ -333,7 +333,7 @@ export function EditUi({ slug }: { slug: string }) {
     }
     return (
       <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
-        <p className="text-[11.5px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>{data.businessName}</p>
+        <p className="text-[11.5px] font-bold" style={{ color: "var(--teal)" }}>{data.businessName}</p>
         <h1 className="font-display mt-3 text-[26px]" style={{ color: "var(--forest)" }}>홈페이지가 정지됐어요</h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-n-500">
           손님에게는 보이지 않지만 <b>자료는 그대로 보관돼 있어요.</b><br />

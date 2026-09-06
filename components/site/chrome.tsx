@@ -102,7 +102,7 @@ export function SiteFooter() {
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "0.18em" }}>{title}</p>
+      <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "var(--tracking-kicker)" }}>{title}</p>
       <ul style={{ marginTop: "var(--s-3)" }}>
         {links.map(([href, label]) => (
           <li key={href + label}>
@@ -118,7 +118,7 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
 export function PageHero({ kicker, title, sub, children }: { kicker: string; title: React.ReactNode; sub?: string; children?: React.ReactNode }) {
   return (
     <section className="wrap" style={{ paddingTop: "var(--s-7)", paddingBottom: "var(--s-6)" }}>
-      <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.2em" }}>{kicker}</p>
+      <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{kicker}</p>
       <h1 className="t-h1" style={{ marginTop: "var(--s-3)", maxWidth: "18ch", textWrap: "balance" }}>{title}</h1>
       {sub && <p className="t-lead measure" style={{ marginTop: "var(--s-4)" }}>{sub}</p>}
       {children}

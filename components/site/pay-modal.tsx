@@ -58,7 +58,7 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
   return (
     <div role="dialog" aria-modal="true" aria-label="정회원 이용하기" className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6">
       <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl" style={{ color: "var(--ink)" }}>
-        <p className="t-caption font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>정회원 이용하기</p>
+        <p className="t-caption font-bold" style={{ color: "var(--teal)" }}>정회원 이용하기</p>
         <h2 className="font-display mt-2 t-h1" style={{ color: "var(--forest)" }}>정회원 {COPY.priceLine}</h2>
         <p className="mt-1 t-small" style={{ color: "var(--muted)" }}>
           {trial?.expired
@@ -100,7 +100,7 @@ export function TrialBar({ trial, onPay }: { trial: TrialInfo; onPay: () => void
   if (trial.paid) return null;
   const urgent = trial.daysLeft <= 3;
   return (
-    <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: urgent ? "var(--terra)" : "var(--line)", background: "#fff" }}>
+    <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: urgent ? "var(--danger)" : "var(--n-200)", background: "var(--n-0)", borderRadius: "var(--r-md)" }}>
       <div className="min-w-0">
         <p className="t-caption font-bold" style={{ color: urgent ? "var(--terra)" : "var(--forest)" }}>
           {trial.expired ? "홈페이지 정지됨" : `무료 기간 D-${trial.daysLeft}`}

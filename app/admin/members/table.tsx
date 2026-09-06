@@ -143,8 +143,10 @@ export function MembersTable({ rows: initial }: { rows: MemberRow[] }) {
         </p>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-n-200 bg-white">
-        <table className="w-full min-w-[1250px] t-small">
+      {/* .table-scroll — 표는 자기 안에서만 가로로 움직이고 첫 열(상호명)은 고정된다.
+          전에는 폰에서 이 표가 화면을 통째로 옆으로 밀었다 (2026-09-06 회장님 지적). */}
+      <div className="table-scroll card mt-4">
+        <table className="w-full t-small" style={{ minWidth: 1250 }}>
           <thead className="bg-n-50 text-left t-caption text-n-500">
             <tr>
               {th("상호명", "businessName")}{th("홈페이지 주소")}{th("상태")}{th("개설일", "createdAt")}{th("결제일", "paidAt")}

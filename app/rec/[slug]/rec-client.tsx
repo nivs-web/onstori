@@ -189,7 +189,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         {/* 1 인사 */}
         {screen === "greet" && (
           <section className="flex flex-1 flex-col justify-center text-center">
-            <p className="t-caption font-bold tracking-[0.18em] opacity-60">온스토리</p>
+            <p className="t-caption font-bold opacity-60">온스토리</p>
             <h1 className="font-display mt-3 t-h1 leading-tight">안녕하세요,<br />{businessName} 사장님</h1>
             <p className="mt-4 t-body leading-relaxed opacity-80">오늘 질문 하나에 60초만 말씀해 주세요. 자막 영상과 글은 온스토리가 만듭니다.</p>
             <ul className="mx-auto mt-6 flex flex-wrap justify-center gap-2 t-caption font-semibold">
@@ -222,12 +222,12 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         {/* 3 영상/음성 */}
         {screen === "mode" && (
           <section className="flex flex-1 flex-col justify-center">
-            <p className="t-caption font-bold tracking-[0.18em] opacity-60">오늘의 질문</p>
+            <p className="t-caption font-bold opacity-60">오늘의 질문</p>
             <p className="font-display mt-2 t-h2 leading-snug">{questionText}</p>
             <button type="button" onClick={() => setScreen("ask")} className="mt-2 self-start t-small underline opacity-70">질문 바꾸기</button>
             <div className="mt-8 grid gap-3">
               {([["video", "영상으로", "매장·상품·손만 찍어도 됩니다. 얼굴은 선택이에요."], ["audio", "음성만", "목소리만 남깁니다. 사진과 자막으로 영상을 만들어 드려요."]] as const).map(([m, t, d]) => (
-                <button key={m} type="button" onClick={() => setMode(m)} className="rounded-2xl border p-4 text-left" style={{ borderColor: mode === m ? "var(--lime)" : "rgba(255,255,255,.25)", background: mode === m ? "rgba(183,220,198,.14)" : "transparent" }}>
+                <button key={m} type="button" onClick={() => setMode(m)} className="rounded-2xl border p-4 text-left" style={{ borderColor: mode === m ? "var(--green-200)" : "var(--n-700)", background: mode === m ? "var(--n-800)" : "transparent", borderRadius: "var(--r-lg)" }}>
                   <p className="t-body font-bold">{mode === m ? "● " : "○ "}{t}</p>
                   <p className="mt-1 t-small opacity-75">{d}</p>
                 </button>
@@ -242,7 +242,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         {/* 4·5 카메라 확인 */}
         {screen === "setup" && (
           <section className="flex flex-1 flex-col">
-            <p className="mt-4 t-caption font-bold tracking-[0.18em] opacity-60">카메라 확인</p>
+            <p className="mt-4 t-caption font-bold opacity-60">카메라 확인</p>
             <div className="relative mt-3 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
               {mode === "video" ? (
                 <video ref={liveRef} autoPlay muted playsInline className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
@@ -277,7 +277,9 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
               ) : (
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center">
                   <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 t-small font-bold text-white">
-                    <span className={`inline-block h-2.5 w-2.5 rounded-full ${paused ? "" : "animate-pulse"}`} style={{ background: paused ? "#bbb" : "var(--terra)" }} /> {paused ? "일시정지" : "REC"} {mm(sec)} / {mm(MAX_SEC)}
+                    {/* 깜빡이지 않는다 — 무한 루프 애니메이션은 MOTION.md 금지 목록이다.
+                        멈춤/녹화 중은 색으로 구분한다. */}
+                    <span className="inline-block" style={{ width: 10, height: 10, borderRadius: "var(--r-full)", background: paused ? "var(--n-400)" : "var(--danger)" }} /> {paused ? "일시정지" : "REC"} {mm(sec)} / {mm(MAX_SEC)}
                   </span>
                 </div>
               )}
@@ -297,11 +299,11 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         {/* 8 확인 */}
         {screen === "review" && (
           <section className="flex flex-1 flex-col">
-            <p className="mt-4 t-caption font-bold tracking-[0.18em] opacity-60">확인 · {mm(sec)}</p>
+            <p className="mt-4 t-caption font-bold opacity-60">확인 · {mm(sec)}</p>
             <div className="mt-3 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
               {mode === "video" ? <video src={blobUrl} controls playsInline className="h-full w-full object-contain" /> : <div className="flex h-full flex-col items-center justify-center gap-4"><span className="t-h1">🎙</span><audio src={blobUrl} controls /></div>}
             </div>
-            {err && <p className="mt-3 t-small" style={{ color: "#F5B7A6" }}>{err}</p>}
+            {err && <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--danger-soft)" }}>{err}</p>}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button type="button" onClick={reRecord} className="rounded-full border border-white/40 py-4 t-body font-bold">다시 찍기</button>
               <button type="button" onClick={send} className="btn-lime !py-4 !t-body">보내기</button>

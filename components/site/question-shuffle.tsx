@@ -42,7 +42,7 @@ export function QuestionShuffle({
         {qs.map((q) => {
           const inner = (
             <>
-              <span className="t-caption block font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.14em" }}>
+              <span className="t-caption block font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
                 {QUESTION_CATEGORIES[q.cat].name}
               </span>
               <span className="t-body block font-semibold" style={{ marginTop: "var(--s-2)", color: "var(--n-900)" }}>{q.text}</span>

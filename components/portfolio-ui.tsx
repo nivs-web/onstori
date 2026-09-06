@@ -13,23 +13,28 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
 
   return (
     <div>
-      <div className="mt-6 flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap" style={{ marginTop: "var(--s-5)", gap: "var(--s-2)" }}>
         {tabs.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className="rounded-full px-4 py-1.5 t-small font-semibold transition"
-            style={tab === t
-              ? { background: "var(--ink)", color: "#fff" }
-              : { border: "1px solid var(--line)", color: "var(--muted)", background: "#fff" }}>
+            className="t-small inline-flex items-center font-semibold"
+            style={{
+              minHeight: "var(--tap)", paddingInline: "var(--s-4)", borderRadius: "var(--r-full)",
+              transition: "background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease)",
+              ...(tab === t
+                ? { background: "var(--n-900)", color: "var(--n-0)", border: "1px solid var(--n-900)" }
+                : { border: "1px solid var(--n-200)", color: "var(--n-600)", background: "var(--n-0)" }),
+            }}>
             {t}
           </button>
         ))}
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {/* hover 로 들어올리지 않는다 — MOTION.md 허용 목록에 없다 */}
         {shown.map((it) => (
-          <figure key={it.slug} className="mx-auto w-full max-w-[270px] transition-transform duration-300 hover:-translate-y-1.5">
+          <figure key={it.slug} className="mx-auto w-full" style={{ maxWidth: 270 }}>
             <PhoneFrame slug={it.slug} title={it.name} />
-            <figcaption className="mt-3.5 flex items-center justify-between gap-2 px-1">
+            <figcaption className="flex items-center justify-between" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
               <div className="min-w-0">
                 <p className="truncate t-small font-bold">
                   {it.featured && <span className="mr-1 text-accent">★</span>}{it.name}
@@ -37,8 +42,12 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
                 <p className="t-caption" style={{ color: "var(--muted)" }}>{it.tag}</p>
               </div>
               <a href={`/${it.slug}`} target="_blank" rel="noreferrer"
-                className="whitespace-nowrap rounded-full px-3.5 py-1.5 t-caption font-semibold transition-colors"
-                style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
+                className="t-small inline-flex items-center whitespace-nowrap font-semibold"
+                style={{
+                  minHeight: "var(--tap)", paddingInline: "var(--s-4)", borderRadius: "var(--r-full)",
+                  border: "1px solid var(--n-200)", color: "var(--n-900)",
+                  transition: "border-color var(--dur-2) var(--ease)",
+                }}>
                 라이브 보기 ↗
               </a>
             </figcaption>

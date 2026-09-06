@@ -46,7 +46,7 @@ export default function HowItWorks() {
                 >
                   {i + 1}
                 </span>
-                <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.14em" }}>{when}</p>
+                <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{when}</p>
                 <h2 className="t-h3" style={{ marginTop: "var(--s-1)" }}>{t}</h2>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
               </li>
@@ -57,7 +57,7 @@ export default function HowItWorks() {
 
       <section className="surface-50 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>말→글 3모드</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>말→글 3모드</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>말하면 글이 됩니다</h2>
           <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
             입력에 없는 연차·건수·자격은 절대 만들지 않습니다. 사장님이 말한 숫자만 씁니다.
@@ -73,7 +73,7 @@ export default function HowItWorks() {
       <section className="surface-0 section reveal">
         <div className="wrap grid items-center md:grid-cols-[1fr_auto_auto]" style={{ gap: "var(--s-7)" }}>
           <div>
-            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>녹화 화면 미리보기</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>녹화 화면 미리보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>녹화를 시도해보세요.<br />60초 정도 걸립니다.</h2>
             <p className="t-body measure" style={{ marginTop: "var(--s-4)", color: "var(--n-600)" }}>
               로그인은 따로 없습니다. 문자·카카오톡으로 받은 링크를 크롬에서 여는 것이 곧 로그인입니다. 카카오톡 안에서 열렸다면 &ldquo;크롬으로 열기&rdquo;를 눌러 주세요 — 카톡 안에서는 카메라가 켜지지 않습니다.

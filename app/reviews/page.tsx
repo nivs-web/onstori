@@ -54,7 +54,7 @@ export default function ReviewsPage() {
             <ul className="grid md:grid-cols-3" style={{ gap: "var(--s-4)" }}>
               {REVIEWS.map((r) => (
                 <li key={r.name} className="card" style={{ padding: "var(--s-5)" }}>
-                  <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.14em" }}>{r.industry} · {r.region}</p>
+                  <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{r.industry} · {r.region}</p>
                   <p className="t-body" style={{ marginTop: "var(--s-2)" }}>{r.body}</p>
                   <p className="t-small font-semibold" style={{ marginTop: "var(--s-3)" }}>
                     {r.name} {r.slug && <Link href={`/${r.slug}`} className="btn btn-text">홈페이지</Link>}
@@ -64,7 +64,7 @@ export default function ReviewsPage() {
             </ul>
           )}
 
-          <p className="t-caption font-bold" style={{ marginTop: "var(--s-7)", color: "var(--green-700)", letterSpacing: "0.18em" }}>
+          <p className="t-caption font-bold" style={{ marginTop: "var(--s-7)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
             이런 사장님께 — 후기가 아니라 저희가 생각하는 첫 손님입니다
           </p>
           <div className="grid md:grid-cols-3" style={{ marginTop: "var(--s-4)", gap: "var(--s-4)" }}>

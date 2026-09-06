@@ -43,7 +43,7 @@ export function StoryLinkButton({ slug, phone }: { slug: string; phone: string }
           <a href={res.link} target="_blank" rel="noopener" className="mt-2 inline-block rounded-full border border-white/40 px-3 py-1 font-bold">지금 열기 ↗</a>
         </div>
       )}
-      {err && <p className="mt-2 text-xs" style={{ color: "#F5B7A6" }}>{err}</p>}
+      {err && <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--danger)" }}>{err}</p>}
     </section>
   );
 }

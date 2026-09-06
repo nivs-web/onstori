@@ -56,6 +56,10 @@
   --t-small: 0.875rem;
   --t-caption: 0.75rem;
 
+  /* 자간 — 제목 자간은 위 h1/h2 규칙에, 여기는 작은 대문자형 라벨(키커)용이다 */
+  --tracking-kicker: 0.18em;
+  --tracking-wide: 0.25em;
+
   /* ── 간격 ── 4의 배수. 사이값을 만들지 않는다 */
   --s-1: 4px;
   --s-2: 8px;
@@ -212,6 +216,11 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
 .t-body { font-size: var(--t-body); }
 .t-small { font-size: var(--t-small); line-height: 1.6; }
 .t-caption { font-size: var(--t-caption); line-height: 1.5; color: var(--n-500); }
+
+/* 키커 — 섹션 위에 붙는 작은 대문자형 라벨. 자간을 컴포넌트에 적지 않는다. */
+.kicker { font-size: var(--t-caption); font-weight: 700; letter-spacing: var(--tracking-kicker); color: var(--green-700); }
+.kicker-wide { letter-spacing: var(--tracking-wide); }
+.surface-900 .kicker { color: var(--green-200); }
 
 /* 본문 한 줄 최대 38em — 길면 눈이 줄을 놓친다 */
 .measure { max-width: var(--measure); }

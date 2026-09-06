@@ -63,7 +63,7 @@ function TopBar({
 
   // 사진 히어로 위에 떠 있을 때만 투명 + 흰 글자. 그 외에는 처음부터 불투명이다.
   const solid = !canFloat || scrolled;
-  const fg = solid ? "var(--s-ink)" : "#FFFFFF";
+  const fg = solid ? "var(--s-ink)" : "var(--n-0)";
 
   return (
     <header

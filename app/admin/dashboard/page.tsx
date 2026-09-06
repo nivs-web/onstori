@@ -76,7 +76,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <p className="text-xs font-semibold tracking-[0.25em] text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 
       <h2 className="mt-8 t-body font-bold">오늘 밤 03:00 크론이 할 일</h2>

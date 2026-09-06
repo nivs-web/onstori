@@ -99,6 +99,7 @@ export function LoginUi() {
         onClick={kakao}
         disabled={busy}
         className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 t-body font-semibold disabled:opacity-50"
+        // 카카오 브랜드색 — 남의 로고/버튼 색이라 토큰으로 바꾸지 않는다 (docs/DESIGN.md §9 예외)
         style={{ background: "#FEE500", color: "#191919" }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -147,7 +148,7 @@ export function LoginUi() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_MAX))}
             placeholder="인증번호"
-            className="w-full rounded-xl border bg-white px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:border-green-700"
+            className="field kicker-wide text-center text-lg"
             style={{ borderColor: "var(--line)" }}
           />
           <button

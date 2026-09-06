@@ -32,7 +32,7 @@ export function ChannelStrip({ title = "한 번 말하면 6곳에 퍼지는 자�
         className="wrap flex flex-wrap items-center justify-center"
         style={{ columnGap: "var(--s-6)", rowGap: "var(--s-3)", paddingBlock: "var(--s-5)" }}
       >
-        <span className="t-caption font-bold" style={{ color: "var(--n-500)", letterSpacing: "0.16em" }}>{title}</span>
+        <span className="t-caption font-bold" style={{ color: "var(--n-500)", letterSpacing: "var(--tracking-kicker)" }}>{title}</span>
         {CHANNELS.map((c) => (
           <span
             key={c.id}
@@ -82,7 +82,7 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
         </div>
         {state === "ask" ? (
           <div className="absolute" style={{ insetInline: "var(--s-4)", top: "var(--s-7)" }}>
-            <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "0.14em" }}>오늘의 질문</p>
+            <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "var(--tracking-kicker)" }}>오늘의 질문</p>
             {[question, "가장 힘들었던 작업은 무엇이었나요?", "이번 주 손님 한 분 이야기", "우리만 고집하는 게 있다면?"].map((t, i) => (
               <div
                 key={i}
@@ -110,7 +110,7 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
               className="absolute t-caption font-semibold"
               style={{ insetInline: "var(--s-4)", top: "var(--s-6)", background: "var(--n-0)", borderRadius: "var(--r-sm)", padding: "var(--s-3)", color: "var(--n-900)" }}
             >
-              <span className="t-caption block font-bold" style={{ marginBottom: "var(--s-1)", color: "var(--green-700)", letterSpacing: "0.14em" }}>오늘의 질문</span>
+              <span className="t-caption block font-bold" style={{ marginBottom: "var(--s-1)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>오늘의 질문</span>
               {question}
             </div>
             <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: 190 }}>
@@ -164,7 +164,7 @@ export function SpeechToStory() {
     <div className="grid md:grid-cols-3" style={{ gap: "var(--s-4)" }}>
       {cols.map((c, i) => (
         <div key={c.t} className="card" style={{ padding: "var(--s-5)" }}>
-          <p className="t-caption font-bold" style={{ color: i === 0 ? "var(--n-500)" : "var(--green-700)", letterSpacing: "0.14em" }}>
+          <p className="t-caption font-bold" style={{ color: i === 0 ? "var(--n-500)" : "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
             {String(i + 1).padStart(2, "0")} · {c.t}
           </p>
           <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--n-500)" }}>{c.d}</p>
@@ -185,7 +185,7 @@ export function CompareCallout() {
           style={{ gap: "var(--s-6)", borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}
         >
           <div>
-            <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.18em" }}>아직 고민 중이신가요?</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>아직 고민 중이신가요?</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</h2>
             <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--n-300)" }}>
               비용·시간·글쓰기·영상·SNS·검색·소유권·해지 — 11가지 항목을 정직하게 비교했습니다.

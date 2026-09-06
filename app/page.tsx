@@ -116,7 +116,7 @@ export default async function Home() {
       <section className="surface-50 section reveal">
         <div className="wrap grid items-start md:grid-cols-[1fr_1.4fr]" style={{ gap: "var(--s-7)" }}>
           <div>
-            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>온스토리란</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>온스토리란</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>사장님의 60초가<br />영상·글·블로그로 바뀌는<br />자동화 엔진</h2>
           </div>
           <div className="grid sm:grid-cols-3" style={{ gap: "var(--s-4)" }}>
@@ -137,7 +137,7 @@ export default async function Home() {
       {/* ── 작동방식 4단계 ── */}
       <section className="surface-900 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.18em" }}>이렇게 작동합니다</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>이렇게 작동합니다</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>사장님이 할 일은 60초뿐입니다</h2>
           <ol className="grid md:grid-cols-4" style={{ marginTop: "var(--s-7)", gap: "var(--s-4)" }}>
             {[
@@ -172,7 +172,7 @@ export default async function Home() {
       <section className="surface-50 section reveal">
         <div className="wrap">
           <div className="card mx-auto" style={{ maxWidth: "48rem", padding: "var(--s-6)" }}>
-            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>왜 온스토리를 만들었나</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>왜 온스토리를 만들었나</p>
             <p className="t-h3" style={{ marginTop: "var(--s-4)", lineHeight: 1.7 }}>
               홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 사진은 예쁘고 문구도 그럴듯한데, 그 안에 사람이 없었습니다. 손님은 상품이 아니라 사람을 믿는데 말입니다.
             </p>
@@ -191,7 +191,7 @@ export default async function Home() {
       <SectionGate show={show} id="inside">
         <section id="inside" className="surface-0 section reveal">
           <div className="wrap">
-            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>스토리 페이지 들여다보기</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>스토리 페이지 들여다보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>60초 하나가 네 가지 모양이 됩니다</h2>
             <div className="grid md:grid-cols-4" style={{ marginTop: "var(--s-7)", gap: "var(--s-4)" }}>
               {[
@@ -254,7 +254,7 @@ export default async function Home() {
               </div>
             </div>
             <div>
-              <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>전부 사장님 것입니다</p>
+              <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>전부 사장님 것입니다</p>
               <div className="grid" style={{ marginTop: "var(--s-4)", gap: "var(--s-3)" }}>
                 {[
                   ["홈페이지", "onstori.com/name. 검색 등록까지 온스토리가 준비합니다."],
@@ -296,7 +296,7 @@ export default async function Home() {
       <section className="surface-900 section reveal">
         <div className="wrap grid items-center md:grid-cols-[1fr_auto_auto]" style={{ gap: "var(--s-7)" }}>
           <div>
-            <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.18em" }}>녹화 화면 미리보기</p>
+            <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>녹화 화면 미리보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>녹화를 시도해보세요.<br />60초 정도 걸립니다.</h2>
             <p className="t-body measure" style={{ marginTop: "var(--s-4)", color: "var(--n-300)" }}>
               문자로 온 링크를 크롬에서 열면 이 화면이 뜹니다. 질문을 고르고, 3·2·1, 말씀하시고, 보내기. 카카오톡 안에서 열렸다면 &ldquo;크롬으로 열기&rdquo; 한 번만 눌러 주세요.
@@ -336,7 +336,7 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <p className="t-caption font-bold" style={{ marginTop: "var(--s-7)", color: "var(--green-700)", letterSpacing: "0.18em" }}>
+          <p className="t-caption font-bold" style={{ marginTop: "var(--s-7)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
             이런 사장님께 (아직 후기가 아닙니다 — 첫 30일을 써 보신 사장님의 이야기를 기다립니다)
           </p>
           <div className="grid sm:grid-cols-3" style={{ marginTop: "var(--s-4)", gap: "var(--s-4)" }}>
@@ -357,7 +357,7 @@ export default async function Home() {
       {/* ── 말→글 ── */}
       <section className="surface-50 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>말하면 글이 됩니다</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>말하면 글이 됩니다</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>사장님이 말한 그대로, 그리고 다듬어서</h2>
           <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
             입력에 없는 연차·건수·자격은 절대 만들지 않습니다. 사장님이 말한 숫자만 씁니다.
@@ -377,7 +377,7 @@ export default async function Home() {
       {/* ── 스토리 예시 3 ── */}
       <section className="surface-50 section reveal">
         <div className="wrap">
-          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>이런 이야기가 됩니다 (예시)</p>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>이런 이야기가 됩니다 (예시)</p>
           <div className="grid md:grid-cols-3" style={{ marginTop: "var(--s-4)", gap: "var(--s-4)" }}>
             {[
               ["시작이야기", "처음엔 안 하려고 했어요", "아버지가 도배를 하셨습니다. 군대를 다녀와 따라다니기 시작했는데, 그게 벌써 12년이 됐습니다."],
@@ -385,7 +385,7 @@ export default async function Home() {
               ["최근손님이야기", "세 번째 오신 손님", "처음엔 소개로, 두 번째는 이사 가서, 이번엔 부모님 집. 사진을 찍어 가시더라고요."],
             ].map(([c, t, d]) => (
               <article key={t} className="card" style={{ padding: "var(--s-5)" }}>
-                <span className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.14em" }}>{c}</span>
+                <span className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{c}</span>
                 <h3 className="t-h3" style={{ marginTop: "var(--s-2)" }}>{t}</h3>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
                 <p className="t-caption" style={{ marginTop: "var(--s-3)" }}>예시 문장 · 실제 사장님 이야기가 아닙니다</p>
@@ -402,7 +402,7 @@ export default async function Home() {
           <ol className="mx-auto grid text-left sm:grid-cols-3" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "48rem" }}>
             {[["오늘", "3분 만에 홈페이지. 30일 전 기능 무료."], ["30일 뒤", "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["언제든", "결제하시면 바로 다시 공개됩니다."]].map(([t, d]) => (
               <li key={t} style={{ background: "var(--n-800)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
-                <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "0.14em" }}>{t}</p>
+                <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>{t}</p>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>{d}</p>
               </li>
             ))}
@@ -424,7 +424,7 @@ export default async function Home() {
         <section className="surface-0 section reveal">
           <div className="wrap grid lg:grid-cols-[1fr_1.4fr]" style={{ gap: "var(--s-7)" }}>
             <div>
-              <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.18em" }}>자주 묻는 질문</p>
+              <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>자주 묻는 질문</p>
               <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>궁금한 것부터</h2>
               <Link href="/faq" className="btn btn-text" style={{ marginTop: "var(--s-3)" }}>전체 질문 보기 →</Link>
               <div style={{ marginTop: "var(--s-6)", background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
