@@ -18,9 +18,9 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
 
   let q = sbAdmin()
     .from("image_bank")
-    .select("id, industry, mood, role, url, quality_ok, quality_score, used_count, model, prompt, tags, width, height")
-    .eq("deleted", false)
-    .order("created_at", { ascending: false })
+    .select("id, industry, mood, role, url, quality_ok, quality_score, used_count, model, prompt, tags, width, height, deleted, deleted_at, deleted_reason")
+    .eq("deleted", sp.q === "trash")   // 휴지통 탭이면 내려간 것만
+    .order(sp.q === "trash" ? "deleted_at" : "created_at", { ascending: false })
     .limit(120);
   if (sp.industry) q = q.eq("industry", sp.industry);
   if (sp.role) q = q.eq("role", sp.role);
@@ -33,6 +33,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
     id: r.id, industry: r.industry, mood: r.mood, role: r.role, url: r.url,
     quality_ok: r.quality_ok, quality_score: r.quality_score, used_count: r.used_count,
     prompt: r.prompt, tags: r.tags, width: r.width, height: r.height,
+    deleted: !!r.deleted, deletedAt: r.deleted_at ?? null, deletedReason: r.deleted_reason ?? null,
     usedBy: usage.get(r.url) ?? [],
   }));
 
@@ -79,9 +80,11 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
         {filter("q", undefined, "전체", !sp.q)}
         {filter("q", "pending", "검수 대기", sp.q === "pending")}
         {filter("q", "ok", "승인됨", sp.q === "ok")}
+        {filter("q", "trash", "🗑 휴지통", sp.q === "trash")}
         <span className="mx-1 text-neutral-300">|</span>
         {filter("role", undefined, "역할 전체", !sp.role)}
-        {["hero", "gallery", "about", "process"].map((r) => filter("role", r, r, sp.role === r))}
+        {/* story = 세로 9:16. 히어로로는 안 쓰고 SNS·이야기 페이지 재고로 둔다 (2026-09-06) */}
+        {["hero", "gallery", "about", "process", "story"].map((r) => filter("role", r, r, sp.role === r))}
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {filter("industry", undefined, "업종 전체", !sp.industry)}

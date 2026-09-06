@@ -10,11 +10,35 @@ export const NEGATIVE =
   // 2026-09-06 — 무드 지시문만으로 서양 고급 주택·호텔이 끌려 나오는 것을 막는다.
   // "premium" 무드 실측에서 씬에 "Korean apartment"를 박아도 유럽 호텔 복도가 나왔다.
   "No chandelier, no Western crown molding, no wainscoting or panelled walls, no marble columns, " +
-  "no hotel lobby, no arched doorways, no fireplace, no bay window.";
+  "no hotel lobby, no arched doorways, no fireplace, no bay window. " +
+  // 2026-09-06 — 폰에서 가운데 26% 만 남는다. 구도가 어긋나면 그 26% 가 못 쓰게 된다.
+  "No tilted or converging verticals, no dutch angle, no two-point perspective, no corner-of-the-room view, " +
+  "no 85mm telephoto compression, no empty blank wall in the center of the frame, " +
+  "no off-center vanishing point, no subject cut in half at the frame center.";
 
 /** 역할별 촬영 지시 — 화면비·구도·해상도 의도 */
 export const ROLE_DIRECTION: Record<string, string> = {
-  hero: "Wide establishing shot, 16:9 landscape, professional architectural/commercial photography, shallow depth only where natural, crisp focus, high dynamic range, magazine cover quality. Composition leaves clear negative space in upper-left for headline text overlay.",
+  // ★ 히어로 = 가로 1장으로 PC·폰을 함께 쓴다 (2026-09-06 회장님 확정).
+  //   폰에서는 100svh 로 꽉 채워 **가로의 가운데 26% 만 남는다.**
+  //   그 26% 가 그것만으로 완성된 사진이어야 한다 — 빈 벽·벽 모서리·잘린 사물만 남으면 탈락이다.
+  //   그래서 일반 히어로 관행("가운데를 비워 글자 자리를 만든다")과 **정반대**로 간다.
+  hero:
+    "16:9 landscape architectural interior photograph, wide lens (24-35mm equivalent). " +
+    // ① 일점 투시 — 소실점이 화면 정중앙
+    "ONE-POINT PERSPECTIVE: camera on the exact center line of the room, pointed straight ahead, " +
+    "vanishing point at the dead center of the frame, perfectly straight vertical lines, no tilt, no dutch angle, " +
+    "no two-point perspective corner view. " +
+    // ② 가운데 세로 앵커 — 중앙 26% 를 혼자 지탱하는 수직 요소
+    "CENTER VERTICAL ANCHOR: the exact middle of the frame is filled by one strong vertical subject — " +
+    "an open doorway, a tall narrow window, floor-to-ceiling cabinetry, or a pendant light over an island. " +
+    "The center must be FULL and self-sufficient, never an empty wall and never a wall corner. " +
+    // ③ 세로 3층 — 위·중간·아래가 각각 제 몫을 한다
+    "THREE HORIZONTAL BANDS: top band shows the ceiling with indirect cove or linear lighting; " +
+    "middle band holds the main subject at eye level; bottom band shows the flooring material with a " +
+    "foreground anchor (rug edge, threshold strip, or furniture base). " +
+    // ④ 좌우는 잘려도 되는 배경
+    "The left and right thirds are croppable background only — nothing essential there. " +
+    "Sharp focus throughout, natural window light, high dynamic range, magazine quality.",
   gallery: "4:3 or square detail shot, editorial photography, one clear subject, tight composition, natural imperfections kept for realism.",
   about: "3:2 medium shot conveying craft and care, warm human presence implied without visible faces (tools, hands at work, materials).",
   process: "Clean documentary style shot of work in progress, honest and unglamorous but tidy, 4:3.",

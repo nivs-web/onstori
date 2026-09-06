@@ -8,6 +8,8 @@ export type BankRow = {
   url: string; quality_ok: boolean | null; quality_score: number;
   used_count: number; prompt: string | null; tags: string[] | null;
   width: number | null; height: number | null;
+  /** 휴지통 — 파일은 지우지 않는다. deleted=true 는 표시만 내린 상태다 */
+  deleted?: boolean; deletedAt?: string | null; deletedReason?: string | null;
   /** 지금 이 이미지를 쓰고 있는 발행 사이트들 (lib/image-usage) */
   usedBy: { slug: string; businessName: string; role: string }[];
 };
@@ -111,6 +113,13 @@ function Card({ r, checked, onToggle, bulkApproved }: {
           {ok === false && <span className="rounded bg-red-100 px-1 text-red-600">거부</span>}
           <UsedBadge usedBy={r.usedBy} />
         </p>
+        {r.deleted && (
+          <p className="rounded bg-neutral-100 px-1.5 py-1 text-[10.5px] text-neutral-500">
+            휴지통 · {r.deletedAt ? new Date(r.deletedAt).toLocaleDateString("ko-KR") : "시각 없음"}
+            {r.deletedReason ? ` · ${r.deletedReason}` : ""}
+            <span className="block text-neutral-400">파일은 지우지 않았습니다 — 복구하면 그대로 돌아옵니다</span>
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <button disabled={busy} onClick={() => act({ quality_ok: true })}
@@ -121,14 +130,27 @@ function Card({ r, checked, onToggle, bulkApproved }: {
             className="rounded-full border border-neutral-300 px-2 py-1">
             {[90, 70, 50, 30].map((v) => <option key={v} value={v}>{v}점</option>)}
           </select>
-          <button disabled={busy}
-            onClick={async () => {
-              if (!confirm("이미지를 목록에서 제거할까요?")) return;
-              setBusy(true);
-              if (await patch(r.id, { deleted: true, quality_ok: false })) setState((s) => ({ ...s, gone: true }));
-              setBusy(false);
-            }}
-            className="rounded-full border border-neutral-300 px-2.5 py-1 text-neutral-400">삭제</button>
+          {r.deleted ? (
+            <button disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                // 복구 = 표시를 되돌리는 것뿐. 파일은 애초에 지운 적이 없다
+                if (await patch(r.id, { deleted: false })) setState((s) => ({ ...s, gone: true }));
+                setBusy(false);
+              }}
+              className="rounded-full bg-teal-700 px-2.5 py-1 font-semibold text-white">↩ 복구</button>
+          ) : (
+            <button disabled={busy}
+              onClick={async () => {
+                // ★ 파일은 지우지 않는다. 목록에서만 내린다(휴지통) — 언제든 복구할 수 있다.
+                const reason = prompt("휴지통으로 내립니다. 파일은 지우지 않아 언제든 복구할 수 있어요. 사유(선택):", "");
+                if (reason === null) return;
+                setBusy(true);
+                if (await patch(r.id, { deleted: true, reason })) setState((s) => ({ ...s, gone: true }));
+                setBusy(false);
+              }}
+              className="rounded-full border border-neutral-300 px-2.5 py-1 text-neutral-400">🗑 휴지통</button>
+          )}
         </div>
 
         <TagEditor id={r.id} initial={r.tags ?? []} />
