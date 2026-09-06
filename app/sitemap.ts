@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: "daily", priority: 1 },
     // 본사 메뉴 페이지 (2026-09-05 레멘토 구조 전환)
+    // ⚠ /privacy·/terms 는 빈칸(사업자등록번호·통신판매업신고번호·주소)을 채우고 공개할 때 여기 더한다 (2026-09-07)
     ...["/how-it-works", "/our-story", "/faq", "/reviews", "/blog"].map((p) => ({
       url: `${base}${p}`, changeFrequency: "weekly" as const, priority: 0.6,
     })),

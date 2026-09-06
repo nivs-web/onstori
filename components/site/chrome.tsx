@@ -89,6 +89,9 @@ export function SiteFooter() {
           </p>
         </div>
         <FooterCol title="둘러보기" links={[["/how-it-works", "작동방식"], ["/#portfolio", "완성 예시"], ["/#pricing", "가격"], ["/faq", "자주묻는질문"], ["/reviews", "리뷰"], ["/blog", "블로그"]]} />
+        {/* ⚠ /privacy·/terms 는 빈칸 3개(사업자등록번호·통신판매업신고번호·주소) 때문에 아직 링크하지 않는다.
+            빈칸을 채우면 아래 "개인정보 · 보안"(/faq#privacy) 을 지우고
+            ["/privacy","개인정보처리방침"], ["/terms","이용약관"] 두 줄로 바꾼다. 2026-09-07 */}
         <FooterCol title="회사" links={[["/our-story", "온스토리"], ["/faq#privacy", "개인정보 · 보안"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
       </div>
       <div className="border-t border-white/10">
