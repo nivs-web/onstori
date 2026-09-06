@@ -13,7 +13,7 @@ export default async function AdminPagesPage() {
   if (!(await isAdmin())) return <AdminLogin />;
   const { data } = await sbAdmin().from("page_sections").select("id, label, visible, sort").order("sort", { ascending: true });
   return (
-    <main className="mx-auto max-w-3xl min-w-0 px-6 py-10">
+    <main className="mx-auto w-full max-w-3xl min-w-0 px-6 py-10">
       <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">홈페이지 관리</h1>
       <p className="mt-2 t-small text-[var(--text-soft)]">

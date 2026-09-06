@@ -15,7 +15,7 @@ export default async function SitesAdmin() {
     .limit(200);
 
   return (
-    <main className="mx-auto max-w-4xl min-w-0 px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl min-w-0 px-6 py-10">
       <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">사이트 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows?.length ?? 0})</span></h1>
       <div className="table-scroll card mt-6">

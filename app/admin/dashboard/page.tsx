@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   const slugs = (list: { slug: string }[]) => (list.length ? list.map((r) => r.slug).join(", ") : "없음");
 
   return (
-    <main className="mx-auto max-w-6xl min-w-0 px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
       <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 

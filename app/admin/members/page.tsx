@@ -91,7 +91,7 @@ export default async function MembersPage() {
   const c = { total: list.length, active: list.filter((r) => r.paid).length, trial: list.filter((r) => !r.paid && !r.expired).length, expired: list.filter((r) => r.expired).length };
 
   return (
-    <main className="mx-auto max-w-7xl min-w-0 px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl min-w-0 px-6 py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>

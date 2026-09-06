@@ -52,7 +52,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
   };
 
   return (
-    <main className="mx-auto max-w-6xl min-w-0 px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
       <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows.length}장 표시)</span></h1>
 
