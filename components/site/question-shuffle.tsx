@@ -25,7 +25,7 @@ export function QuestionShuffle({
 
   // 어두운 면(.surface-900) 위인지에 따라 제목·설명 색만 바뀐다
   const fg = dark ? "var(--n-0)" : "var(--n-900)";
-  const sub = dark ? "var(--n-300)" : "var(--n-600)";
+  const sub = dark ? "var(--n-300)" : "var(--text)";
   return (
     <div className="text-center">
       <h2 className="t-h2" style={{ color: fg, textWrap: "balance" }}>

@@ -76,7 +76,7 @@ export function SiteHeaderClient({
               href={n.href}
               className="t-small"
               style={{
-                color: current === n.href ? "var(--n-900)" : "var(--n-600)",
+                color: current === n.href ? "var(--n-900)" : "var(--text)",
                 fontWeight: current === n.href ? 700 : 500,
               }}
             >
@@ -86,7 +86,7 @@ export function SiteHeaderClient({
         </nav>
 
         <div className="flex items-center" style={{ gap: "var(--s-3)" }}>
-          <Link href={myHref} className="hidden t-small md:flex md:items-center" style={{ color: "var(--n-600)", minHeight: "var(--tap)" }}>
+          <Link href={myHref} className="hidden t-small md:flex md:items-center" style={{ color: "var(--text)", minHeight: "var(--tap)" }}>
             {myLabel}
           </Link>
           {/* ⚠ 주 버튼은 뷰포트당 1개 — 첫 화면에서 히어로 CTA 와 나란히 보이므로
@@ -170,7 +170,7 @@ function MenuSheet({
           href={myHref}
           onClick={onClose}
           className="sheet-item t-h3 flex items-center"
-          style={{ height: "var(--bar-h)", color: "var(--n-600)" }}
+          style={{ height: "var(--bar-h)", color: "var(--text)" }}
         >
           {myLabel}
         </Link>

@@ -85,7 +85,7 @@ export function LoginUi() {
     await finish();
   }
 
-  if (step === "check") return <main className="px-6 py-24 text-center text-n-400">확인 중…</main>;
+  if (step === "check") return <main className="px-6 py-24 text-center text-[var(--text-soft)]">확인 중…</main>;
 
   return (
     <main className="mx-auto w-full max-w-sm px-6 py-20">

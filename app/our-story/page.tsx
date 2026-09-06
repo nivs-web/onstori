@@ -80,15 +80,15 @@ export default function OurStory() {
         <div className="wrap">
           <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>비교</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>홈페이지 제작업체 vs 온스토리</h2>
-          <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
+          <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>
             홈페이지 제작이 아닙니다. 사업이 굴러가게 만듭니다. 일반 제작업체와 온스토리를 11가지로 정직하게 비교했습니다.
           </p>
           <div className="table-scroll card" style={{ marginTop: "var(--s-6)" }}>
             <table className="t-small w-full">
               <thead>
                 <tr style={{ background: "var(--n-50)" }}>
-                  <th className="t-caption text-left font-bold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--n-500)" }}>항목</th>
-                  <th className="t-caption text-left font-bold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--n-500)" }}>일반 홈페이지 제작업체</th>
+                  <th className="t-caption text-left font-bold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--text-soft)" }}>항목</th>
+                  <th className="t-caption text-left font-bold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--text-soft)" }}>일반 홈페이지 제작업체</th>
                   <th className="t-caption text-left font-bold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--green-700)" }}>온스토리</th>
                 </tr>
               </thead>
@@ -96,7 +96,7 @@ export default function OurStory() {
                 {COMPARE_ROWS.map(([k, a, b]) => (
                   <tr key={k} style={{ borderTop: "1px solid var(--n-200)" }}>
                     <td className="font-semibold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--n-900)" }}>{k}</td>
-                    <td style={{ padding: "var(--s-4) var(--s-5)", color: "var(--n-600)" }}>{a}</td>
+                    <td style={{ padding: "var(--s-4) var(--s-5)", color: "var(--text)" }}>{a}</td>
                     <td className="font-semibold" style={{ padding: "var(--s-4) var(--s-5)", color: "var(--n-900)" }}>
                       <span style={{ marginRight: "var(--s-1)", color: "var(--green-700)" }}>✓</span>{b}
                     </td>
@@ -124,7 +124,7 @@ export default function OurStory() {
               <li key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <span className="t-h3" style={{ fontFamily: "var(--font-display)", color: "var(--green-700)" }}>{String(i + 1).padStart(2, "0")}</span>
                 <p className="t-body font-bold" style={{ marginTop: "var(--s-2)", color: "var(--n-900)" }}>{t}</p>
-                <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--text)" }}>{d}</p>
               </li>
             ))}
           </ol>

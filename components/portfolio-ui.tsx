@@ -22,7 +22,7 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
               transition: "background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease)",
               ...(tab === t
                 ? { background: "var(--n-900)", color: "var(--n-0)", border: "1px solid var(--n-900)" }
-                : { border: "1px solid var(--n-200)", color: "var(--n-600)", background: "var(--n-0)" }),
+                : { border: "1px solid var(--n-200)", color: "var(--text)", background: "var(--n-0)" }),
             }}>
             {t}
           </button>

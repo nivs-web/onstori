@@ -77,23 +77,27 @@ function TopBar({
         transition: "background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease)",
       }}
     >
-      <div className="mx-auto flex h-full max-w-3xl items-center justify-between" style={{ paddingInline: "var(--gutter)" }}>
-        <a href="#top" className="flex items-center" style={{ gap: "var(--s-2)", minHeight: "var(--tap)", color: fg }}>
+      {/* PC 에서는 본문(max-w-3xl)보다 넓게 잡는다 — 차례가 여러 개면 768px 안에서 두 줄로
+          접히면서 상호명과 겹친다(2026-09-07 1440 캡처에서 실제로 그랬다). */}
+      <div className="mx-auto flex h-full max-w-3xl items-center justify-between md:max-w-[var(--container)]" style={{ paddingInline: "var(--gutter)", gap: "var(--s-4)" }}>
+        <a href="#top" className="flex min-w-0 items-center" style={{ gap: "var(--s-2)", minHeight: "var(--tap)", color: fg }}>
           {logo && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={logo} alt="" width={28} height={28} style={{ width: 28, height: 28, borderRadius: "var(--r-sm)", objectFit: "contain" }} />
           )}
-          <span className="t-small truncate font-bold" style={{ maxWidth: "14ch" }}>{businessName}</span>
+          <span className="t-small truncate font-bold" style={{ maxWidth: "16ch" }}>{businessName}</span>
         </a>
 
         {/* PC — 차례를 가로로 펼친다. 햄버거는 숨는다.
             손님이 마우스를 쓰는 화면에서 메뉴를 한 번 더 눌러 열게 만들 이유가 없다. */}
-        <nav className="hidden items-center md:flex" style={{ gap: "var(--s-5)" }} aria-label="이 사이트의 차례">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="t-small font-medium" style={{ color: fg }}>{l.label}</a>
+        <nav className="hidden min-w-0 items-center md:flex" style={{ gap: "var(--s-5)" }} aria-label="이 사이트의 차례">
+          {/* 상단에 다 걸지 않는다 — 다섯 개까지만. 나머지는 스크롤하다 만난다.
+              열 개를 걸면 줄이 접히고, 접히면 헤더 높이가 무너진다. */}
+          {links.slice(0, 5).map((l) => (
+            <a key={l.href} href={l.href} className="t-small whitespace-nowrap font-medium" style={{ color: fg }}>{l.label}</a>
           ))}
         </nav>
-        <div className="hidden md:flex" style={{ minWidth: 0 }}>
+        <div className="hidden shrink-0 md:flex">
           {/* PC 우측 버튼은 하나뿐이다 — 견적이 있으면 견적, 없으면 전화 */}
           {quoteHref ? (
             <a

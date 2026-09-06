@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "로그인 — 온스토리", robots:
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="px-6 py-24 text-center text-n-400">불러오는 중…</main>}>
+    <Suspense fallback={<main className="px-6 py-24 text-center text-[var(--text-soft)]">불러오는 중…</main>}>
       <LoginUi />
     </Suspense>
   );

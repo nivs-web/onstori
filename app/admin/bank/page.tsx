@@ -53,8 +53,8 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <Link href="/admin" className="text-xs text-n-400">← 운영자 콘솔</Link>
-      <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-n-400">({rows.length}장 표시)</span></h1>
+      <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
+      <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows.length}장 표시)</span></h1>
 
       {low.length > 0 && (
         <section className="mt-4 rounded-xl border border-accent bg-accent-soft p-3.5">
@@ -92,7 +92,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-n-400">
+        <p className="mt-16 text-center text-sm text-[var(--text-soft)]">
           아직 이미지가 없어요. <code className="rounded bg-n-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
         </p>
       ) : (

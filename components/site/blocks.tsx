@@ -17,7 +17,7 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
             {it.q}
             <span className="plusminus" style={{ color: "var(--green-700)" }} aria-hidden />
           </summary>
-          <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>{it.a}</p>
+          <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>{it.a}</p>
         </details>
       ))}
     </div>
@@ -32,7 +32,7 @@ export function ChannelStrip({ title = "한 번 말하면 6곳에 퍼지는 자�
         className="wrap flex flex-wrap items-center justify-center"
         style={{ columnGap: "var(--s-6)", rowGap: "var(--s-3)", paddingBlock: "var(--s-5)" }}
       >
-        <span className="t-caption font-bold" style={{ color: "var(--n-500)", letterSpacing: "var(--tracking-kicker)" }}>{title}</span>
+        <span className="t-caption font-bold" style={{ color: "var(--text-soft)", letterSpacing: "var(--tracking-kicker)" }}>{title}</span>
         {CHANNELS.map((c) => (
           <span
             key={c.id}
@@ -164,10 +164,10 @@ export function SpeechToStory() {
     <div className="grid md:grid-cols-3" style={{ gap: "var(--s-4)" }}>
       {cols.map((c, i) => (
         <div key={c.t} className="card" style={{ padding: "var(--s-5)" }}>
-          <p className="t-caption font-bold" style={{ color: i === 0 ? "var(--n-500)" : "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
+          <p className="t-caption font-bold" style={{ color: i === 0 ? "var(--text-soft)" : "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
             {String(i + 1).padStart(2, "0")} · {c.t}
           </p>
-          <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--n-500)" }}>{c.d}</p>
+          <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--text-soft)" }}>{c.d}</p>
           <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--n-700)" }}>{c.body}</p>
         </div>
       ))}
@@ -202,7 +202,7 @@ export function CompareCallout() {
                 style={{ gap: "var(--s-2)", marginBottom: "var(--s-2)", background: "var(--n-800)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-4)" }}
               >
                 <span style={{ color: "var(--n-400)" }}>{k}</span>
-                <span style={{ color: "var(--n-500)", textDecoration: "line-through" }}>{a}</span>
+                <span style={{ color: "var(--text-soft)", textDecoration: "line-through" }}>{a}</span>
                 <span className="font-bold" style={{ color: "var(--green-200)" }}>{b}</span>
               </li>
             ))}

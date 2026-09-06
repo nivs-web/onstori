@@ -92,7 +92,7 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
   return (
     <section data-tour="panel-widgets" className="rounded-2xl border border-n-200 p-4">
       <h2 className="text-sm font-bold">연결 버튼</h2>
-      <p className="mt-1 t-caption leading-relaxed text-n-500">
+      <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
         손님이 어디를 보고 있든 화면 아래에 떠 있는 버튼이에요. 스크롤을 되돌리지 않아도 바로 연락할 수 있어요.
       </p>
 
@@ -119,7 +119,7 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
           ) : (
             isOn("call") && (
               <label className="mt-2 block">
-                <span className="mb-1 block t-caption text-n-500">버튼 이름 (최대 8자)</span>
+                <span className="mb-1 block t-caption text-[var(--text-soft)]">버튼 이름 (최대 8자)</span>
                 <input className={inp} value={labelOf("call")} maxLength={8} onChange={(e) => rename("call", e.target.value)} />
               </label>
             )
@@ -135,14 +135,14 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
           {hasQuoteForm && (
             <>
               <label className="mt-2 block">
-                <span className="mb-1 block t-caption text-n-500">카카오톡 채널 · 오픈채팅 주소</span>
+                <span className="mb-1 block t-caption text-[var(--text-soft)]">카카오톡 채널 · 오픈채팅 주소</span>
                 <input
                   className={inp} value={kakaoDraft} maxLength={200} inputMode="url"
                   placeholder="예: pf.kakao.com/_xxxxx"
                   onChange={(e) => writeKakaoUrl(e.target.value)}
                 />
               </label>
-              <p className="mt-1 t-caption leading-relaxed text-n-500">
+              <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
                 문의 받기 섹션의 카카오톡 버튼도 이 주소를 씁니다.
               </p>
               {isOn("kakao") && !kakaoUrl && (
@@ -150,7 +150,7 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
               )}
               {isOn("kakao") && (
                 <label className="mt-2 block">
-                  <span className="mb-1 block t-caption text-n-500">버튼 이름 (최대 8자)</span>
+                  <span className="mb-1 block t-caption text-[var(--text-soft)]">버튼 이름 (최대 8자)</span>
                   <input className={inp} value={labelOf("kakao")} maxLength={8} onChange={(e) => rename("kakao", e.target.value)} />
                 </label>
               )}

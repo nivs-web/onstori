@@ -43,7 +43,7 @@ export default function ReviewsPage() {
               style={{ border: "2px dashed var(--n-200)", background: "var(--n-0)", borderRadius: "var(--r-lg)", padding: "var(--s-7) var(--s-5)" }}
             >
               <p className="t-h2">첫 30일을 써 보신 사장님의 이야기를 기다립니다</p>
-              <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
+              <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>
                 아직 후기가 없습니다. 없는 후기를 만들어 채우지 않습니다. 첫 사장님 10분의 홈페이지와 60초 영상이 이 자리에 올라옵니다 — 사장님 가게 링크와 함께.
               </p>
               <div style={{ marginTop: "var(--s-5)" }}>
@@ -75,7 +75,7 @@ export default function ReviewsPage() {
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
               </div>
             ))}
           </div>

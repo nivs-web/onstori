@@ -31,7 +31,7 @@ export default async function AdminHome() {
           <Link key={m.title} href={m.href}
             className={`rounded-2xl border p-5 ${m.ready ? "border-n-200 hover:border-green-700" : "pointer-events-none border-dashed border-n-200 opacity-50"}`}>
             <h2 className="font-bold">{m.title}</h2>
-            <p className="mt-1 text-sm text-n-500">{m.desc}</p>
+            <p className="mt-1 text-sm text-[var(--text-soft)]">{m.desc}</p>
           </Link>
         ))}
       </div>

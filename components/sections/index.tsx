@@ -163,16 +163,14 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
             <img src={s.image} alt="" fetchPriority="high" decoding="async"
                  className="absolute inset-0 h-full w-full" style={{ objectFit: "cover" }} />
           )}
-          {/* 아래 40% 에만 그라데이션 — 흰 글자가 얹히는 자리다. 위쪽 사진은 가리지 않는다. */}
-          <div
-            className="absolute inset-x-0 bottom-0"
-            style={{ height: "40%", background: "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--n-900) 60%, transparent) 100%)" }}
-          />
+          {/* ⚠ 사진 **전체**를 덮는다. 아래 40% 에만 깔았더니 밝은 사진에서는 위쪽 제목이
+              흰 배경에 흰 글자가 돼 안 읽혔다(2026-09-07). 위는 옅게, 아래로 갈수록 진하게. */}
+          <div className="absolute inset-0" style={{ background: "var(--scrim)" }} />
         </>
       ) : (
         <div className="absolute inset-0" style={{ background: "linear-gradient(150deg, var(--s-accent) 0%, var(--s-ink) 100%)" }} />
       )}
-      <div className="relative mx-auto w-full max-w-3xl" style={{ color: "var(--n-0)" }}>
+      <div className="on-photo relative mx-auto w-full max-w-3xl">
         {s.eyebrow && (
           <p className="t-caption font-medium" style={{ marginBottom: "var(--s-3)", color: "inherit", letterSpacing: "var(--tracking-kicker)" }}>{s.eyebrow}</p>
         )}

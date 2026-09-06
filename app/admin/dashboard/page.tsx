@@ -23,9 +23,9 @@ function Card({ label, value, sub, tone }: { label: string; value: string; sub?:
   const color = tone === "danger" ? "text-danger" : tone === "warn" ? "text-accent" : "text-green-700";
   return (
     <div className="rounded-2xl border border-n-200 bg-white p-5">
-      <p className="t-caption text-n-500">{label}</p>
+      <p className="t-caption text-[var(--text-soft)]">{label}</p>
       <p className={`mt-1 t-h1 font-bold ${color}`}>{value}</p>
-      {sub ? <p className="mt-1 t-caption text-n-400">{sub}</p> : null}
+      {sub ? <p className="mt-1 t-caption text-[var(--text-soft)]">{sub}</p> : null}
     </div>
   );
 }
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 
       <h2 className="mt-8 t-body font-bold">오늘 밤 03:00 크론이 할 일</h2>
-      <p className="mt-1 t-caption text-n-500">
+      <p className="mt-1 t-caption text-[var(--text-soft)]">
         무료 {TRIAL_DAYS}일 → 정지(자료 보관) → 정지 후 {DELETE_AFTER_SUSPEND_DAYS}일 삭제.
         되돌릴 수 없는 것은 삭제뿐이고, 예고 문자를 한 번도 못 보내면 삭제하지 않습니다.
       </p>
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
         <Card label="AI 이미지 누적 비용" value={`$${aiUsd.toFixed(2)}`} sub={`${(bank ?? []).length}장 · 검수 대기 ${pendingReview}장`} />
       </div>
       {paidRows.length === 0 && (
-        <p className="mt-3 rounded-xl bg-n-50 p-3 t-caption text-n-500">
+        <p className="mt-3 rounded-xl bg-n-50 p-3 t-caption text-[var(--text-soft)]">
           아직 결제가 한 건도 없습니다. 토스 정기결제 가맹 심사가 끝나고 첫 결제가 들어오면 여기부터 채워집니다.
         </p>
       )}
@@ -127,8 +127,8 @@ export default async function DashboardPage() {
             const t = trialInfo(r);
             return (
               <li key={r.slug} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                <span><b>{r.business_name}</b> <span className="text-n-400">onstori.com/{r.slug}</span></span>
-                <span className={t.expired ? "text-n-500" : t.daysLeft <= 3 ? "font-bold text-danger" : ""}>
+                <span><b>{r.business_name}</b> <span className="text-[var(--text-soft)]">onstori.com/{r.slug}</span></span>
+                <span className={t.expired ? "text-[var(--text-soft)]" : t.daysLeft <= 3 ? "font-bold text-danger" : ""}>
                   {t.expired
                     ? `정지 · 삭제까지 D-${Math.max(0, t.daysUntilDelete)} (${fmt(t.deleteAt)})`
                     : `무료 D-${t.daysLeft} (${fmt(r.trial_ends_at)})`}
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
               </li>
             );
           })}
-        {rows.length === 0 && <li className="px-4 py-8 text-center text-n-400">아직 홈페이지가 없어요</li>}
+        {rows.length === 0 && <li className="px-4 py-8 text-center text-[var(--text-soft)]">아직 홈페이지가 없어요</li>}
       </ul>
     </main>
   );

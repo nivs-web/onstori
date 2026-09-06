@@ -255,10 +255,10 @@ export function Wizard() {
           <section className="mt-8 text-center">
             <p className="t-display">🎉</p>
             <h1 className="t-h1" style={{ marginTop: "var(--s-3)" }}>홈페이지가 완성됐어요</h1>
-            <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{result.url.replace("https://", "")}</p>
+            <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{result.url.replace("https://", "")}</p>
             <div className="card text-left" style={{ marginTop: "var(--s-6)", padding: "var(--s-5)" }}>
               <p className="t-body font-semibold" style={{ color: "var(--n-900)" }}>{COPY.policy}</p>
-              <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>
+              <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
                 {signedIn ? "지금 바로 전 기능을 쓰실 수 있어요. 첫 질문은 문자로 보내드릴게요." : "정회원 이용은 회원가입(카카오 또는 이메일)이 필요해요. 가입하면 이 홈페이지가 사장님 계정에 연결되고, 첫 질문이 문자로 갑니다."}
               </p>
             </div>
@@ -278,7 +278,7 @@ export function Wizard() {
         ) : (
           <section className="mt-10 text-center">
             <h1 className="t-h1">홈페이지를 만들고 있어요</h1>
-            <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>문구를 쓰고, 사진을 고르고, 구조를 짜는 중입니다. 30초쯤 걸려요.</p>
+            <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>문구를 쓰고, 사진을 고르고, 구조를 짜는 중입니다. 30초쯤 걸려요.</p>
             <div className="card mx-auto" style={{ marginTop: "var(--s-7)", maxWidth: "24rem", padding: "var(--s-6)" }}>
               <p className="t-display" style={{ color: "var(--n-900)", lineHeight: 1 }}>{progress}%</p>
               <div className="overflow-hidden" style={{ marginTop: "var(--s-4)", height: 2, borderRadius: "var(--r-full)", background: "var(--n-200)" }}>
@@ -290,9 +290,9 @@ export function Wizard() {
               {/* ⚠ 92% 까지는 시간 기반 추정이다 — 서버가 진행 상황을 흘려보내지 않는다.
                   진짜 서버 진행률은 /api/generate 를 스트리밍(SSE)으로 바꿔야 나온다(별도 작업).
                   93% 부터는 추정이 아니라 실제로 일어난 일이다: 응답을 받았고 로고를 올리는 중. */}
-              <p className="t-small" style={{ marginTop: "var(--s-4)", color: "var(--n-600)" }}>{stageText}</p>
+              <p className="t-small" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>{stageText}</p>
             </div>
-            <ul className="t-body mx-auto text-left" style={{ marginTop: "var(--s-6)", maxWidth: "24rem", color: "var(--n-600)" }}>
+            <ul className="t-body mx-auto text-left" style={{ marginTop: "var(--s-6)", maxWidth: "24rem", color: "var(--text)" }}>
               <li>✎ 글쓰기 금지 — 사장님은 이제 말만 하시면 됩니다.</li>
               <li>🔗 문자 링크만 누르세요 — 매주 질문이 문자로 갑니다.</li>
               <li>⤓ 다운로드 없음 — 앱 설치 없이 크롬에서 60초.</li>
@@ -489,7 +489,7 @@ function Field({ label, hint, hintColor, children }: { label: string; hint?: str
     <div className="block">
       <span className="t-body block font-bold" style={{ marginBottom: "var(--s-2)" }}>{label}</span>
       {children}
-      {hint && <span className={`t-small block ${hintColor ?? ""}`} style={hintColor ? { marginTop: "var(--s-1)" } : { marginTop: "var(--s-1)", color: "var(--n-600)" }}>{hint}</span>}
+      {hint && <span className={`t-small block ${hintColor ?? ""}`} style={hintColor ? { marginTop: "var(--s-1)" } : { marginTop: "var(--s-1)", color: "var(--text)" }}>{hint}</span>}
     </div>
   );
 }

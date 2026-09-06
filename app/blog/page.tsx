@@ -57,7 +57,7 @@ export default function BlogPage() {
                 <div style={{ aspectRatio: "16 / 9", borderRadius: "var(--r-md)", background: "var(--n-800)" }} aria-hidden />
                 <p className="t-caption font-bold" style={{ marginTop: "var(--s-4)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{c}</p>
                 <h2 className="t-h3" style={{ marginTop: "var(--s-1)" }}>{t}</h2>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
                 <p className="t-caption font-semibold" style={{ marginTop: "var(--s-3)" }}>준비 중 · 곧 올립니다</p>
               </li>
             ))}
@@ -68,7 +68,7 @@ export default function BlogPage() {
           >
             <div>
               <p className="t-h3">사장님이 답하기 좋은 질문 20개</p>
-              <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--n-600)" }}>홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.</p>
+              <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--text)" }}>홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.</p>
             </div>
             <Link href="/new" className="btn btn-primary" style={{ marginTop: "var(--s-4)" }}>질문 20개 받기</Link>
           </div>

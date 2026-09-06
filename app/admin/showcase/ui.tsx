@@ -47,7 +47,7 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
             {busy ? "확인 중…" : "등록"}
           </button>
         </div>
-        {msg && <p className="mt-2 text-xs text-n-500">{msg}</p>}
+        {msg && <p className="mt-2 text-xs text-[var(--text-soft)]">{msg}</p>}
       </div>
 
       <ul className="space-y-2">
@@ -58,15 +58,15 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
               className="rounded-full border border-n-300 px-2.5 py-1 text-xs">
               {TAGS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            <label className="flex items-center gap-1 text-xs text-n-500">
+            <label className="flex items-center gap-1 text-xs text-[var(--text-soft)]">
               순서 <input type="number" value={r.sort} onChange={(e) => patch(r.id, { sort: Number(e.target.value) })}
                 className="w-16 rounded-lg border border-n-300 px-2 py-1" />
             </label>
             <button onClick={() => patch(r.id, { featured: !r.featured })}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${r.featured ? "bg-accent text-accent-ink" : "border border-n-300 text-n-400"}`}>
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${r.featured ? "bg-accent text-accent-ink" : "border border-n-300 text-[var(--text-soft)]"}`}>
               ★ 추천
             </button>
-            <button onClick={() => remove(r.id, r.slug)} className="ml-auto rounded-full border border-n-300 px-2.5 py-1 text-xs text-n-400">빼기</button>
+            <button onClick={() => remove(r.id, r.slug)} className="ml-auto rounded-full border border-n-300 px-2.5 py-1 text-xs text-[var(--text-soft)]">빼기</button>
           </li>
         ))}
       </ul>

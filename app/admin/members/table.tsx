@@ -127,7 +127,7 @@ export function MembersTable({ rows: initial }: { rows: MemberRow[] }) {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {TABS.map(([id, label, n]) => (
           <button key={id} type="button" onClick={() => setTab(id)}
-            className={`rounded-full px-3.5 py-1.5 t-small font-semibold ${tab === id ? "bg-green-700 text-white" : "border border-n-300 text-n-600"}`}>
+            className={`rounded-full px-3.5 py-1.5 t-small font-semibold ${tab === id ? "bg-green-700 text-white" : "border border-n-300 text-[var(--text)]"}`}>
             {label} {n}
           </button>
         ))}
@@ -137,7 +137,7 @@ export function MembersTable({ rows: initial }: { rows: MemberRow[] }) {
       </div>
       {msg && <p className="mt-2 t-small text-green-700">{msg}</p>}
       {tab === "failed" && counts.failed === 0 && (
-        <p className="mt-3 rounded-xl bg-n-50 p-3 t-caption text-n-500">
+        <p className="mt-3 rounded-xl bg-n-50 p-3 t-caption text-[var(--text-soft)]">
           아직 결제 실패 기록이 없습니다. 토스 가맹 심사가 끝나고 첫 결제가 시작되면 여기에 쌓입니다.
           마지막 성공 결제 <b>이후</b>의 실패만 셉니다 — 예전에 실패했다가 결제에 성공한 분은 여기 안 뜹니다.
         </p>
@@ -147,7 +147,7 @@ export function MembersTable({ rows: initial }: { rows: MemberRow[] }) {
           전에는 폰에서 이 표가 화면을 통째로 옆으로 밀었다 (2026-09-06 회장님 지적). */}
       <div className="table-scroll card mt-4">
         <table className="w-full t-small" style={{ minWidth: 1250 }}>
-          <thead className="bg-n-50 text-left t-caption text-n-500">
+          <thead className="bg-n-50 text-left t-caption text-[var(--text-soft)]">
             <tr>
               {th("상호명", "businessName")}{th("홈페이지 주소")}{th("상태")}{th("개설일", "createdAt")}{th("결제일", "paidAt")}
               {th("무료 남은", "daysLeft")}{th("연락처")}{th("완성도", "score")}{th("문의")}{th("마지막 편집")}{th("마지막 로그인")}{th("이메일")}{th("")}
@@ -158,7 +158,7 @@ export function MembersTable({ rows: initial }: { rows: MemberRow[] }) {
               <RowView key={r.id} r={r} open={open === r.id} busy={busy === r.id}
                 onToggle={() => setOpen(open === r.id ? null : r.id)} onPatch={patch} onAct={act} />
             ))}
-            {view.length === 0 && <tr><td colSpan={13} className="px-3 py-10 text-center text-n-400">해당하는 회원이 없어요</td></tr>}
+            {view.length === 0 && <tr><td colSpan={13} className="px-3 py-10 text-center text-[var(--text-soft)]">해당하는 회원이 없어요</td></tr>}
           </tbody>
         </table>
       </div>
@@ -175,32 +175,32 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
   const [name, setName] = useState(r.contactName);
   const [reason, setReason] = useState(r.blacklistReason);
 
-  const badge = r.paid ? "bg-green-100 text-green-800" : r.expired ? "bg-n-200 text-n-600" : r.daysLeft <= 3 ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-ink";
+  const badge = r.paid ? "bg-green-100 text-green-800" : r.expired ? "bg-n-200 text-[var(--text)]" : r.daysLeft <= 3 ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-ink";
   return (
     <>
       <tr className={`border-t border-n-100 align-top ${r.blacklisted ? "bg-danger-soft" : ""}`}>
         <td className="px-3 py-2.5 font-semibold">
           {r.blacklisted && <span title={r.blacklistReason || "블랙리스트"} className="mr-1 text-danger">⚑</span>}
           {r.businessName}
-          {r.contactName && <span className="block t-caption font-normal text-n-400">{r.contactName}</span>}
+          {r.contactName && <span className="block t-caption font-normal text-[var(--text-soft)]">{r.contactName}</span>}
         </td>
         <td className="px-3 py-2.5">
           <a href={`/${r.slug}`} target="_blank" rel="noopener" className="text-green-700 underline">onstori.com/{r.slug}</a>
-          {" · "}<Link href={`/${r.slug}/edit`} className="text-n-500 underline">편집</Link>
+          {" · "}<Link href={`/${r.slug}/edit`} className="text-[var(--text-soft)] underline">편집</Link>
         </td>
         <td className="px-3 py-2.5"><span className={`rounded-full px-2 py-0.5 t-caption font-bold ${badge}`}>{r.paid ? "정회원" : r.expired ? "정지" : "무료"}</span></td>
         <td className="px-3 py-2.5">{fmt(r.createdAt)}</td>
         <td className="px-3 py-2.5">{fmt(r.paidAt)}</td>
         <td className="px-3 py-2.5">
           {r.paid ? "—" : r.expired ? "정지" : `D-${r.daysLeft}`}
-          <span className="block t-caption text-n-400">{r.expired ? `${fmt(r.suspendedAt)} 정지` : `${fmt(r.trialEndsAt)} 까지`}</span>
+          <span className="block t-caption text-[var(--text-soft)]">{r.expired ? `${fmt(r.suspendedAt)} 정지` : `${fmt(r.trialEndsAt)} 까지`}</span>
         </td>
         <td className="px-3 py-2.5">{r.phone || "—"}</td>
         <td className="px-3 py-2.5"><b className="text-green-700">{r.score}</b>점</td>
         <td className="px-3 py-2.5">{r.inquiryCount || "—"}</td>
         <td className="px-3 py-2.5">{fmt(r.updatedAt)}</td>
         <td className="px-3 py-2.5">{fmt(r.lastSignInAt)}</td>
-        <td className="px-3 py-2.5 max-w-[180px] truncate" title={r.email}>{r.email || <span className="text-n-400">미가입</span>}</td>
+        <td className="px-3 py-2.5 max-w-[180px] truncate" title={r.email}>{r.email || <span className="text-[var(--text-soft)]">미가입</span>}</td>
         <td className="px-3 py-2.5">
           <button type="button" onClick={onToggle} className="rounded-full border border-n-300 px-3 py-1 t-caption font-semibold">
             {open ? "닫기" : "관리"}
@@ -212,18 +212,18 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
           <td colSpan={13} className="px-4 py-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
               <div>
-                <label className="t-caption font-semibold text-n-500">메모 (운영자만 봅니다 · 최대 20,000자)</label>
+                <label className="t-caption font-semibold text-[var(--text-soft)]">메모 (운영자만 봅니다 · 최대 20,000자)</label>
                 <textarea value={memo} onChange={(e) => setMemo(e.target.value.slice(0, 20000))} rows={6}
                   className="mt-1 w-full rounded-xl border border-n-300 p-3 t-small" placeholder="날짜별 메모·요청사항·참고사항" />
                 <div className="mt-1 flex items-center gap-2">
                   <button type="button" disabled={busy} onClick={() => onPatch(r.id, { memo })}
                     className="rounded-full bg-green-700 px-4 py-1.5 t-caption font-semibold text-white disabled:opacity-50">메모 저장</button>
-                  <span className="t-caption text-n-400">{memo.length.toLocaleString()} / 20,000</span>
+                  <span className="t-caption text-[var(--text-soft)]">{memo.length.toLocaleString()} / 20,000</span>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="t-caption font-semibold text-n-500">이름</label>
+                  <label className="t-caption font-semibold text-[var(--text-soft)]">이름</label>
                   <div className="mt-1 flex gap-2">
                     <input value={name} onChange={(e) => setName(e.target.value)} placeholder="사장님 성함"
                       className="w-full rounded-full border border-n-300 px-3.5 py-1.5 t-small" />
@@ -239,10 +239,10 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
                   </label>
                   <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="사유 (선택)"
                     className="mt-2 w-full rounded-lg border border-n-300 px-3 py-1.5 t-caption" />
-                  <p className="mt-1.5 t-caption text-n-500">표시만 합니다. 이용을 막지 않습니다.</p>
+                  <p className="mt-1.5 t-caption text-[var(--text-soft)]">표시만 합니다. 이용을 막지 않습니다.</p>
                 </div>
                 <div className="rounded-xl border border-n-200 bg-white p-3">
-                  <p className="t-caption font-semibold text-n-500">상태 조작</p>
+                  <p className="t-caption font-semibold text-[var(--text-soft)]">상태 조작</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button type="button" disabled={busy} onClick={() => onAct(r.id, "activate")}
                       className="rounded-full border border-green-300 px-3 py-1.5 t-caption font-semibold text-green-800 disabled:opacity-50">정회원으로</button>
@@ -251,12 +251,12 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
                         className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold disabled:opacity-50">무료 {d}일 연장</button>
                     ))}
                   </div>
-                  <p className="mt-1.5 t-caption text-n-500">바꾸면 메모에 자동으로 기록이 남습니다.</p>
+                  <p className="mt-1.5 t-caption text-[var(--text-soft)]">바꾸면 메모에 자동으로 기록이 남습니다.</p>
                 </div>
                 {r.failCount > 0 && (
                   <div className="rounded-xl border border-danger bg-danger-soft p-3 t-caption">
                     <b className="text-danger">결제 실패 {r.failCount}회</b>
-                    <span className="block text-n-600">마지막 {fmt(r.lastFailAt)} · {r.lastFailMessage || "사유 없음"}</span>
+                    <span className="block text-[var(--text)]">마지막 {fmt(r.lastFailAt)} · {r.lastFailMessage || "사유 없음"}</span>
                   </div>
                 )}
               </div>

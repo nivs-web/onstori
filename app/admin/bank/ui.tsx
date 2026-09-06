@@ -32,7 +32,7 @@ function UsedBadge({ usedBy }: { usedBy: BankRow["usedBy"] }) {
   return (
     <span
       title={usedBy.map((u) => `${u.businessName} (${u.role})`).join("\n")}
-      className={`rounded px-1.5 py-0.5 t-caption font-medium ${asHero ? "bg-green-100 text-green-800" : "bg-n-100 text-n-600"}`}
+      className={`rounded px-1.5 py-0.5 t-caption font-medium ${asHero ? "bg-green-100 text-green-800" : "bg-n-100 text-[var(--text)]"}`}
     >
       {label}{asHero && " · 히어로"}
     </span>
@@ -102,11 +102,11 @@ function Card({ r, checked, onToggle, bulkApproved }: {
         </a>
         <label className="absolute left-2 top-2 flex cursor-pointer items-center gap-1 rounded bg-white/90 px-1.5 py-1 backdrop-blur">
           <input type="checkbox" checked={checked} onChange={onToggle} className="h-3.5 w-3.5 accent-green-700" />
-          <span className="t-caption text-n-600">선택</span>
+          <span className="t-caption text-[var(--text)]">선택</span>
         </label>
       </div>
       <figcaption className="space-y-1.5 p-2.5">
-        <p className="flex flex-wrap items-center gap-1 t-caption text-n-500">
+        <p className="flex flex-wrap items-center gap-1 t-caption text-[var(--text-soft)]">
           <span>{r.industry} · {r.mood} · <b>{r.role}</b> · {r.width}×{r.height}</span>
           {ok === null && <span className="rounded bg-accent-soft px-1 text-accent-ink">대기</span>}
           {ok === true && <span className="rounded bg-green-100 px-1 text-green-700">승인</span>}
@@ -114,10 +114,10 @@ function Card({ r, checked, onToggle, bulkApproved }: {
           <UsedBadge usedBy={r.usedBy} />
         </p>
         {r.deleted && (
-          <p className="rounded bg-n-100 px-1.5 py-1 t-caption text-n-500">
+          <p className="rounded bg-n-100 px-1.5 py-1 t-caption text-[var(--text-soft)]">
             휴지통 · {r.deletedAt ? new Date(r.deletedAt).toLocaleDateString("ko-KR") : "시각 없음"}
             {r.deletedReason ? ` · ${r.deletedReason}` : ""}
-            <span className="block text-n-400">파일은 지우지 않았습니다 — 복구하면 그대로 돌아옵니다</span>
+            <span className="block text-[var(--text-soft)]">파일은 지우지 않았습니다 — 복구하면 그대로 돌아옵니다</span>
           </p>
         )}
 
@@ -149,13 +149,13 @@ function Card({ r, checked, onToggle, bulkApproved }: {
                 if (await patch(r.id, { deleted: true, reason })) setState((s) => ({ ...s, gone: true }));
                 setBusy(false);
               }}
-              className="rounded-full border border-n-300 px-2.5 py-1 text-n-400">🗑 휴지통</button>
+              className="rounded-full border border-n-300 px-2.5 py-1 text-[var(--text-soft)]">🗑 휴지통</button>
           )}
         </div>
 
         <TagEditor id={r.id} initial={r.tags ?? []} />
 
-        <details className="t-caption text-n-400">
+        <details className="t-caption text-[var(--text-soft)]">
           <summary className="cursor-pointer">프롬프트</summary>
           <p className="mt-1 leading-4">{r.prompt}</p>
         </details>
@@ -214,7 +214,7 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
           {busy ? "승인 중…" : `선택 ${sel.size}장 일괄 승인`}
         </button>
         {msg && <span className="text-xs text-green-700">{msg}</span>}
-        <span className="ml-auto t-caption text-n-400">거부·삭제는 오판 위험이 커서 한 장씩</span>
+        <span className="ml-auto t-caption text-[var(--text-soft)]">거부·삭제는 오판 위험이 커서 한 장씩</span>
       </div>
 
       {fast && (

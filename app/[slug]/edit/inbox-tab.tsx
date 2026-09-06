@@ -38,8 +38,8 @@ type Status = Inquiry["status"];
 const STATUS: Record<Status, { label: string; chip: string }> = {
   new: { label: "새 문의", chip: "bg-green-700 text-white" },
   contacted: { label: "연락함", chip: "bg-accent-soft text-accent-ink" },
-  done: { label: "완료", chip: "bg-n-200 text-n-600" },
-  spam: { label: "스팸", chip: "bg-n-100 text-n-400" },
+  done: { label: "완료", chip: "bg-n-200 text-[var(--text)]" },
+  spam: { label: "스팸", chip: "bg-n-100 text-[var(--text-soft)]" },
 };
 
 const FILTERS: { id: "all" | Status; label: string }[] = [
@@ -153,7 +153,7 @@ export function InboxTab({ slug, anonId, initial, onNewCount }: {
   if (failed) {
     return (
       <div className="mt-5 rounded-2xl border border-n-200 p-6 text-center">
-        <p className="text-sm text-n-500">{COPY.loadFail}</p>
+        <p className="text-sm text-[var(--text-soft)]">{COPY.loadFail}</p>
         <button onClick={reload} disabled={reloading}
           className="mt-3 rounded-full border border-n-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
           {reloading ? "불러오는 중…" : "다시 불러오기"}
@@ -168,19 +168,19 @@ export function InboxTab({ slug, anonId, initial, onNewCount }: {
         {FILTERS.map((f) => (
           <button key={f.id} onClick={() => setFilter(f.id)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-              filter === f.id ? "bg-n-900 text-white" : "border border-n-300 text-n-600"
+              filter === f.id ? "bg-n-900 text-white" : "border border-n-300 text-[var(--text)]"
             }`}>
             {f.label}{counts[f.id] ? <span className="ml-1 opacity-70">{counts[f.id]}</span> : null}
           </button>
         ))}
         <button onClick={reload} disabled={reloading}
-          className="ml-auto self-center text-xs text-n-500 underline underline-offset-4 disabled:opacity-40">
+          className="ml-auto self-center text-xs text-[var(--text-soft)] underline underline-offset-4 disabled:opacity-40">
           {reloading ? "새로고침 중…" : "새로고침"}
         </button>
       </div>
 
       {shown.length === 0 ? (
-        <p className="mt-8 rounded-2xl bg-n-50 p-6 text-center text-sm leading-relaxed text-n-500">
+        <p className="mt-8 rounded-2xl bg-n-50 p-6 text-center text-sm leading-relaxed text-[var(--text-soft)]">
           {items.length === 0 ? COPY.empty : COPY.emptyFiltered}
         </p>
       ) : (
@@ -220,12 +220,12 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.chip}`}>{s.label}</span>
-            <span className="text-xs text-n-400">{when(row.created_at)}</span>
+            <span className="text-xs text-[var(--text-soft)]">{when(row.created_at)}</span>
           </div>
           <p className="mt-1.5 truncate text-sm font-bold">
-            {row.name} <span className="font-normal text-n-500">{row.phone}</span>
+            {row.name} <span className="font-normal text-[var(--text-soft)]">{row.phone}</span>
           </p>
-          {row.message && <p className="mt-0.5 truncate text-xs text-n-500">{row.message}</p>}
+          {row.message && <p className="mt-0.5 truncate text-xs text-[var(--text-soft)]">{row.message}</p>}
         </div>
         {row.photos.length > 0 && !open && (
           <div className="flex shrink-0 gap-1">
@@ -242,7 +242,7 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
         <div className="space-y-3 border-t border-n-200 px-4 pb-4 pt-3">
           {row.photos.length > 0 && (
             photoBroken ? (
-              <div className="rounded-xl bg-n-50 p-4 text-center text-xs text-n-500">
+              <div className="rounded-xl bg-n-50 p-4 text-center text-xs text-[var(--text-soft)]">
                 {COPY.photoFail}
                 <button onClick={onReload} className="ml-2 font-semibold text-green-700 underline underline-offset-2">
                   다시 불러오기

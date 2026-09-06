@@ -106,7 +106,7 @@ export default async function Home() {
               style={{ padding: "var(--s-5)", borderLeft: "4px solid var(--green-300)" }}
             >
               <p className="t-h3" style={{ color: "var(--n-900)" }}>{a}</p>
-              <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{b}</p>
+              <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{b}</p>
             </blockquote>
           ))}
         </div>
@@ -127,7 +127,7 @@ export default async function Home() {
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
               </div>
             ))}
           </div>
@@ -176,7 +176,7 @@ export default async function Home() {
             <p className="t-h3" style={{ marginTop: "var(--s-4)", lineHeight: 1.7 }}>
               홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 사진은 예쁘고 문구도 그럴듯한데, 그 안에 사람이 없었습니다. 손님은 상품이 아니라 사람을 믿는데 말입니다.
             </p>
-            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--n-600)" }}>
+            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
               사장님들은 글을 쓰기 싫어하십니다. 그런데 말은 잘하십니다. 손님 앞에서, 전화로, 현장에서 매일 이야기를 하십니다. 그 말을 그대로 기록으로 바꿔 드리면 어떨까 — 온스토리는 거기서 시작했습니다.
             </p>
             <div className="flex flex-wrap items-center justify-between" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
@@ -218,11 +218,11 @@ export default async function Home() {
                   <p className="t-body font-bold" style={{ marginTop: "var(--s-3)", color: "var(--n-900)" }}>
                     {t} <span className="t-caption font-medium">{size}</span>
                   </p>
-                  <p className="t-small" style={{ marginTop: "var(--s-1)", color: "var(--n-600)" }}>{d}</p>
+                  <p className="t-small" style={{ marginTop: "var(--s-1)", color: "var(--text)" }}>{d}</p>
                 </div>
               ))}
             </div>
-            <p className="t-small" style={{ marginTop: "var(--s-5)", color: "var(--n-500)" }}>
+            <p className="t-small" style={{ marginTop: "var(--s-5)", color: "var(--text-soft)" }}>
               직접 찍은 사진으로 넣으시면 이야기에 신뢰가 쌓입니다. 사진이 없을 땐 업종별 이미지뱅크가 빈자리를 채웁니다.
             </p>
           </div>
@@ -263,7 +263,7 @@ export default async function Home() {
                 ].map(([t, d]) => (
                   <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                     <h3 className="t-h3">{t}</h3>
-                    <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                    <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
                   </div>
                 ))}
               </div>
@@ -285,7 +285,7 @@ export default async function Home() {
               <li key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <span className="t-small font-bold" style={{ color: "var(--green-700)" }}>{String(i + 1).padStart(2, "0")}</span>
                 <h3 style={{ marginTop: "var(--s-2)" }}>{t}</h3>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
               </li>
             ))}
           </ol>
@@ -347,7 +347,7 @@ export default async function Home() {
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
               </div>
             ))}
           </div>
@@ -359,7 +359,7 @@ export default async function Home() {
         <div className="wrap">
           <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>말하면 글이 됩니다</p>
           <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>사장님이 말한 그대로, 그리고 다듬어서</h2>
-          <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>
+          <p className="t-body measure" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>
             입력에 없는 연차·건수·자격은 절대 만들지 않습니다. 사장님이 말한 숫자만 씁니다.
           </p>
           <div style={{ marginTop: "var(--s-6)" }}><SpeechToStory /></div>
@@ -387,7 +387,7 @@ export default async function Home() {
               <article key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <span className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{c}</span>
                 <h3 className="t-h3" style={{ marginTop: "var(--s-2)" }}>{t}</h3>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
                 <p className="t-caption" style={{ marginTop: "var(--s-3)" }}>예시 문장 · 실제 사장님 이야기가 아닙니다</p>
               </article>
             ))}
@@ -429,7 +429,7 @@ export default async function Home() {
               <Link href="/faq" className="btn btn-text" style={{ marginTop: "var(--s-3)" }}>전체 질문 보기 →</Link>
               <div style={{ marginTop: "var(--s-6)", background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
                 <p className="t-h3">사장님이 답하기 좋은 질문 20개</p>
-                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
                   시작·경험·나만의·실적·최근손님 5가지 × 4. 홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.
                 </p>
                 <Link href="/new" className="btn btn-secondary" style={{ marginTop: "var(--s-4)" }}>질문 20개 받기 (무료 시작)</Link>

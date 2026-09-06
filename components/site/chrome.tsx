@@ -135,7 +135,7 @@ export function CtaBand({
     <section className="surface-50 section reveal">
       <div className="wrap text-center">
         <h2 className="t-h2" style={{ textWrap: "balance" }}>{title}</h2>
-        <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>{sub}</p>
+        <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>{sub}</p>
         <div style={{ marginTop: "var(--s-6)" }}>
           <Link href="/new" className="btn btn-primary">녹화를 시도해보세요 · 60초</Link>
         </div>
