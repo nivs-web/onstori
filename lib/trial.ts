@@ -30,6 +30,13 @@ export const GRACE_DAYS = 14;
 /** 가입일로부터 이 날이 지나면 자동 삭제 (= 무료 + 유예) */
 export const DELETE_DAYS = TRIAL_DAYS + GRACE_DAYS;
 
+/**
+ * 자동 삭제 며칠 전에 예고 문자를 보낼지.
+ * ⚠ 예고 없이 지우면 안 된다 — 이용약관이 "삭제 전에 미리 알려드립니다" 라고 약속한다.
+ *   이 배열을 비우면 그 약속이 깨진다.
+ */
+export const DELETE_NOTICE_DAYS = [3, 1] as const;
+
 /** 월 구독료(원). 금액의 단일 출처 — 서버가 재계산한다 (CLAUDE.md 규칙 4) */
 export const MEMBERSHIP_PRICE = 49_000;
 export const MEMBERSHIP_NAME = "온스토리 정회원";

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { sbAdmin } from "./db-admin";
 
@@ -123,4 +123,51 @@ export async function remove(bucket: Bucket, key: string): Promise<void> {
   const { bucket: sbBucket, path } = split(key);
   const { error } = await sbAdmin().storage.from(sbBucket).remove([path]);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * prefix 로 시작하는 키를 전부 나열한다. (예: "uploads/my-shop/")
+ * 사이트 자동 삭제에서 쓴다 — DB 에 URL 이 남아 있지 않은 파일까지 확실히 지우기 위해서다.
+ * 페이지네이션을 끝까지 따라간다. 안전장치로 최대 5,000개에서 멈춘다(그 이상이면 호출부가 다시 부른다).
+ */
+export async function listPrefix(bucket: Bucket, prefix: string): Promise<string[]> {
+  const env = r2Env();
+  const keys: string[] = [];
+  if (env) {
+    let token: string | undefined;
+    do {
+      const r = await client(env).send(
+        new ListObjectsV2Command({ Bucket: r2Bucket(env, bucket), Prefix: prefix, ContinuationToken: token, MaxKeys: 1000 })
+      );
+      for (const o of r.Contents ?? []) if (o.Key) keys.push(o.Key);
+      token = r.IsTruncated ? r.NextContinuationToken : undefined;
+    } while (token && keys.length < 5000);
+    return keys;
+  }
+  // Supabase 폴백 — prefix 는 "{버킷}/{경로}" 형식이라 첫 segment 를 버킷으로 쪼갠다
+  const { bucket: sbBucket, path } = split(prefix.replace(/\/+$/, "") + "/x");
+  const dir = path.replace(/\/x$/, "");
+  const { data, error } = await sbAdmin().storage.from(sbBucket).list(dir, { limit: 1000 });
+  if (error) throw new Error(error.message);
+  for (const f of data ?? []) keys.push(`${sbBucket}/${dir}/${f.name}`);
+  return keys;
+}
+
+/**
+ * prefix 아래 파일을 전부 지우고 지운 개수를 준다.
+ * ⚠ 되돌릴 수 없다. 호출부가 삭제 대상을 정확히 좁혔는지 먼저 확인할 것.
+ * 개별 실패는 삼키고 계속한다 — 하나 때문에 멈추면 파일이 반만 남는다.
+ */
+export async function removePrefix(bucket: Bucket, prefix: string): Promise<number> {
+  const keys = await listPrefix(bucket, prefix);
+  let n = 0;
+  for (const key of keys) {
+    try {
+      await remove(bucket, key);
+      n++;
+    } catch (e) {
+      console.error(JSON.stringify({ evt: "storage_remove_failed", key, err: String(e).slice(0, 200) }));
+    }
+  }
+  return n;
 }

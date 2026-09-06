@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
+import { GRACE_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
 
 /**
- * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 14일 무료 관리 (기획1 /mainplan #membership)
- *  1) D-3 · D-1 문자 안내 (settings.phone 이 있는 trial 사이트)
- *  2) trial_ends_at 지난 trial → expired (RLS 가 공개를 끊는다). 삭제는 30일 뒤 사람이 어드민에서.
- *  3) 접수 1년이 지난 손님 문의 파기 (사진 파일까지) — 2026-09-06 추가
+ * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 요금·기간 정책 집행
+ * 정책의 단일 출처는 lib/trial.ts. 이 파일은 그 정책을 실행만 한다.
+ *
+ *  1) D-3 · D-1 무료 종료 안내 문자 (settings.phone 이 있는 trial 사이트)
+ *  2) trial_ends_at 지난 trial → expired = **정지**(RLS 가 공개를 끊는다). 자료는 그대로 둔다.
+ *  3) 접수 1년이 지난 손님 문의 파기 (사진 파일까지) — 2026-09-06
+ *  4) 삭제 예고 문자 — 삭제 D-3 · D-1 (2026-09-06)
+ *  5) 정지 후 유예 14일이 지난 미결제 사이트 **자동 삭제** — 파일까지 (2026-09-06)
+ *
  * 인증: Vercel 이 CRON_SECRET 을 Bearer 로 보낸다. env 가 없으면 운영자 호출만 허용하기 위해 거부.
  */
 export const dynamic = "force-dynamic";
@@ -37,7 +43,7 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0 };
+  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, sitesDeleted: 0, filesPurged: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -85,6 +91,52 @@ export async function GET(req: Request) {
     const { error } = await sb.from("inquiries").delete().eq("id", row.id);
     if (error) console.error(JSON.stringify({ evt: "inquiry_purge_failed", id: row.id, err: error.message }));
     else out.inquiriesPurged++;
+  }
+
+  // ── 정지된 사이트의 삭제 시각 = trial_ends_at + GRACE_DAYS (lib/trial.ts 확정 정책) ──
+  //    유예가 남은 것과 지난 것을 한 번에 뽑아 4)예고 와 5)삭제 에 나눠 쓴다.
+  //    ★ 결제 이력이 있는 사이트는 절대 건드리지 않는다 — 전자상거래법상 5년 보존 대상이다.
+  const { data: stopped } = await sb
+    .from("sites")
+    .select("id, slug, settings, trial_ends_at, paid_at, payment")
+    .eq("status", "expired")
+    .is("paid_at", null)
+    .is("payment", null)
+    .limit(500);
+
+  const withDeleteAt = (stopped ?? [])
+    .filter((s) => s.trial_ends_at)
+    .map((s) => ({ ...s, deleteMs: new Date(s.trial_ends_at as string).getTime() + GRACE_DAYS * day }));
+
+  // 4) 삭제 예고 문자 — 남은 일수가 예고일과 정확히 같은 날에만 (크론이 하루 한 번이라 중복되지 않는다)
+  for (const s of withDeleteAt) {
+    const left = Math.ceil((s.deleteMs - now) / day);
+    if (!DELETE_NOTICE_DAYS.includes(left as 3 | 1)) continue;
+    const phone = (s.settings as { phone?: string } | null)?.phone;
+    if (!phone) continue;
+    // 90바이트(EUC-KR) 안 — 넘으면 LMS 로 나가 요금이 3배가 된다 (2026-09-06 nudgeText 와 같은 제약)
+    if (await sendSmsRaw(phone, `온스토리 ${left}일 뒤 홈페이지 삭제. 지금 결제하면 복구 onstori.com/${s.slug}/edit`)) out.deleteNoticed++;
+  }
+
+  // 5) 유예가 지난 미결제 사이트 자동 삭제 — 파일 먼저, DB 나중
+  //    (순서를 뒤집으면 경로를 잃어 파일만 남는 고아가 생긴다)
+  for (const s of withDeleteAt) {
+    if (s.deleteMs > now) continue;
+    try {
+      out.filesPurged += await storage.removePrefix("media", `uploads/${s.slug}/`);
+      out.filesPurged += await storage.removePrefix("private", `inquiries/${s.id}/`);
+      out.filesPurged += await storage.removePrefix("private", `private/stories/${s.slug}/`);
+      // showcase 는 slug 로만 엮여 있어 FK 캐스케이드가 안 걸린다 — 직접 지운다
+      await sb.from("showcase").delete().eq("slug", s.slug);
+      // sites 를 지우면 story_entries·site_versions·site_progress·inquiries·events 는
+      // on delete cascade 로 함께 사라진다 (20260831120000_core.sql)
+      const { error } = await sb.from("sites").delete().eq("id", s.id);
+      if (error) throw new Error(error.message);
+      out.sitesDeleted++;
+      console.log(JSON.stringify({ evt: "site_auto_deleted", slug: s.slug, trialEndedAt: s.trial_ends_at }));
+    } catch (e) {
+      console.error(JSON.stringify({ evt: "site_delete_failed", slug: s.slug, err: String(e).slice(0, 300) }));
+    }
   }
 
   console.log(JSON.stringify({ evt: "cron_expire", ...out }));
