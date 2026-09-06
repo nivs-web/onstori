@@ -50,7 +50,7 @@
 
 | # | 물었던 것 | **확정** |
 |---|---|---|
-| E-1 | 결제 실패 리스트를 지금 만들 데이터가 없다 | **지금부터 기록 시작.** `payment_attempts` 표를 만들고 토스 승인 성공·실패를 둘 다 남긴다 |
+| E-1 | 결제 실패 리스트를 지금 만들 데이터가 없다 | **지금부터 기록 시작.** ~~`payment_attempts` 표~~ → **폐기, `payments` 로 통합(2026-09-06)** — 성공·실패를 `status` 로 함께 남긴다 |
 | E-2 | 섹션 관리 범위 | **온스토리 자체 사이트만.** 손님 사이트는 대상이 아니다. 이번엔 **보이기/가리기 토글만**, 내용 편집은 별건 |
 | E-3 | 블랙리스트가 하는 일 | **차단 기능 없음. 진상 고객 표시(빨간색)만.** |
 | E-4 | `db push` 순서 | **사람이 직접 실행.** `20260905090000` 이 아직 미적용이니 E 배포 전에 회장님이 한 번 돌린다 |
@@ -58,7 +58,7 @@
 ### 확정 ①의 구체 — 결제 실패 기록
 
 지금 `app/api/billing/confirm/route.ts:31~34` 는 실패를 `console.error` 로만 남긴다. DB 기록이 없다.
-→ 성공·실패를 둘 다 `payment_attempts` 에 남긴다(실패율을 보려면 분모가 필요하다).
+→ 성공·실패를 둘 다 **`payments`** 에 남긴다(실패율을 보려면 분모가 필요하다). ~~payment_attempts~~ **폐기 — payments 로 통합(2026-09-06)**
 
 ⚠ 지금 결제는 **토스 1회 승인**이다(빌링키·정기결제 코드 없음, `lib/trial.ts:6` `MEMBERSHIP_PRICE` 1회 49,000원).
    여기 쌓이는 것은 **1회 결제 시도 실패**(카드 한도초과·유효기간 오류 등)다.
@@ -132,6 +132,11 @@ alter table member_admin enable row level security;
 
 -- ── 결제 시도 기록 (성공·실패 모두) ──────────────────────────
 -- 지금은 토스 1회 결제뿐이다. 정기결제(빌링키)가 생겨도 같은 표에 쌓인다.
+-- ⛔ 폐기 — payments 로 통합 (2026-09-06)
+--   이 스펙을 쓸 당시엔 payments 표가 없었다. 2026-09-06 정기결제 작업에서
+--   payments(20260906120000)를 만들며 성공·실패를 status 로 함께 기록하게 됐다.
+--   표를 둘로 나누면 실패율의 분모가 흩어져 갈라지므로 payments 에 kind 한 칸
+--   (oneshot|recurring)만 더해 통합했다(20260906160000). 아래 정의는 만들지 않는다.
 create table payment_attempts (
   id uuid primary key default gen_random_uuid(),
   site_id uuid not null references sites(id) on delete cascade,
@@ -181,7 +186,7 @@ on conflict (page, key) do nothing;
 ```
 
 ⚠ `page_sections` 는 **읽기 공개**다 — 첫 페이지가 서버 렌더 때 읽어야 하고, 섹션 이름은 비밀이 아니다.
-⚠ `member_admin` · `payment_attempts` 는 **정책 0개**다. 실수로 `for select using (true)` 를 붙이면 안 된다.
+⚠ `member_admin` · `payments` 는 **정책 0개**다. 실수로 `for select using (true)` 를 붙이면 안 된다. (`payment_attempts` 는 폐기 — payments 로 통합, 2026-09-06)
 
 ---
 
@@ -247,7 +252,8 @@ app/admin/members/table.tsx  (신규 "use client") — 표 · 정렬 · 메모 �
 if (!res.ok) {
   console.error(JSON.stringify({ evt: "toss_confirm_fail", slug, status: res.status, code: pay.code, msg: pay.message }));
   // 어드민 결제 실패 목록의 유일한 출처 (E-2). 기록 실패가 사용자 응답을 막지 않게 await 하되 에러는 삼킨다.
-  await sb.from("payment_attempts").insert({
+  // ⛔ 폐기 — payments 로 통합(2026-09-06)
+  await sb.from("payments").insert({
     site_id: site.id, order_id: orderId, amount: MEMBERSHIP_PRICE,
     ok: false, code: String(pay.code ?? ""), message: String(pay.message ?? ""), kind: "once",
   }).then(undefined, () => {});
@@ -450,7 +456,7 @@ E 가 끝나고 `/admin` 첫 화면을 그 모양으로 만드는 별도 작업�
 | `app/admin/members/page.tsx` | 수정 | 데이터 조회만 남기고 표를 `table.tsx` 로 넘긴다 |
 | `app/admin/members/table.tsx` | 신규 | `"use client"` — 탭·정렬·필터·메모·블랙리스트·버튼 |
 | `app/api/admin/member/route.ts` | 신규 | `PATCH`(메모) · `POST`(activate·extend). **DELETE 없음** |
-| `app/api/billing/confirm/route.ts` | 수정 | 성공·실패를 `payment_attempts` 에 기록 (2곳) |
+| `app/api/billing/confirm/route.ts` | 수정 | 성공·실패를 **`payments`** 에 기록 (2곳) — payment_attempts 폐기(2026-09-06) |
 | `app/admin/pages/page.tsx` | 신규 | 섹션 보이기/가리기 |
 | `app/api/admin/page-sections/route.ts` | 신규 | `PATCH` — `visible` 토글 |
 | `lib/page-sections.ts` | 신규 | `sectionsOf(page)` |
@@ -497,12 +503,12 @@ E 가 끝나고 `/admin` 첫 화면을 그 모양으로 만드는 별도 작업�
 ```
 feat: 어드민 회원 관리 — 메모·블랙리스트·정렬·탭·수동 재공개
 
-- member_admin·payment_attempts 표 (RLS 정책 0개 = service_role 전용).
+- member_admin 표 (RLS 정책 0개 = service_role 전용). ~~payment_attempts~~ 는 폐기 — payments 로 통합(2026-09-06).
   메모는 sites.settings 에 넣지 않는다 — /api/site/get 이 사장님에게 통째로 내려준다
 - /admin/members 를 서버(조회)+클라이언트(표)로 분리, 탭 4개·정렬·필터·CSV
 - [무료 n일 연장] · [결제 확인 · 정회원으로] — 상태 변경은 메모에 자동 기록
 - ~~★ 삭제 버튼은 만들지 않는다. 14일이 지나도 고객 자료는 지우지 않는다~~ ⛔ **폐기됨** — 2026-09-06 최종 확정으로 **정지 후 60일에 자동 삭제**한다(예고 2회 필수). DECISIONS 참조
-- 토스 결제 성공·실패를 payment_attempts 에 기록
+- 토스 결제 성공·실패를 **payments** 에 기록 (payment_attempts 폐기, 2026-09-06)
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ```

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FastReview } from "./fast-review";
 
 export type BankRow = {
   id: string; industry: string; mood: string; role: string;
@@ -146,6 +147,7 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [approved, setApproved] = useState<Set<string>>(new Set());
+  const [fast, setFast] = useState(false);
 
   const pendingIds = useMemo(() => rows.filter((r) => r.quality_ok === null).map((r) => r.id), [rows]);
   const allSelected = sel.size > 0 && sel.size === rows.length;
@@ -180,6 +182,11 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
           className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40">
           검수 대기만 선택 ({pendingIds.length})
         </button>
+        <button onClick={() => setFast(true)} disabled={rows.length === 0}
+          className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          title="한 장씩 크게 보고 키 하나로 점수를 매깁니다 (1·2·3·0)">
+          ⚡ 빠른 검수 {pendingIds.length > 0 ? `(대기 ${pendingIds.length}장)` : `(${rows.length}장)`}
+        </button>
         <button onClick={bulkApprove} disabled={busy || sel.size === 0}
           className="rounded-full bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
           {busy ? "승인 중…" : `선택 ${sel.size}장 일괄 승인`}
@@ -187,6 +194,13 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
         {msg && <span className="text-xs text-teal-700">{msg}</span>}
         <span className="ml-auto text-[11px] text-neutral-400">거부·삭제는 오판 위험이 커서 한 장씩</span>
       </div>
+
+      {fast && (
+        <FastReview
+          rows={pendingIds.length > 0 ? rows.filter((r) => r.quality_ok === null) : rows}
+          onClose={() => { setFast(false); location.reload(); }}
+        />
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {rows.map((r) => (

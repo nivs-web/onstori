@@ -6,6 +6,7 @@ import { ChannelStrip, RecMockup, SpeechToStory, CompareCallout, FaqList } from 
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 import { FAQ_FEATURED } from "@/config/faq";
 import { sectionVisibility } from "@/lib/page-sections";
+import { SectionGate } from "@/components/site/section-gate";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
 
@@ -69,7 +70,7 @@ export default async function Home() {
       </section>
 
       {/* ── 3. 채널 띠 ── */}
-      <ChannelStrip />
+      <SectionGate show={show} id="channels"><ChannelStrip /></SectionGate>
 
       {/* ── 4. 약속 4개 (레멘토 유명인 인용 자리) ── */}
       <section className="wrap py-16">
@@ -134,13 +135,15 @@ export default async function Home() {
       </section>
 
       {/* ── 7. (기존) 포트폴리오 밴드 — 쇼케이스가 등록돼 있을 때만 ── */}
-      {items.length > 0 && (
-        <div className="border-y bg-white" style={{ borderColor: "var(--line)" }}>
-          <div className="wrap py-20">
-            <Portfolio items={items} />
+      <SectionGate show={show} id="portfolio">
+        {items.length > 0 && (
+          <div className="border-y bg-white" style={{ borderColor: "var(--line)" }}>
+            <div className="wrap py-20">
+              <Portfolio items={items} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </SectionGate>
 
       {/* ── 8. 창업자 편지 ── */}
       <section className="wrap py-20">
@@ -160,7 +163,8 @@ export default async function Home() {
       </section>
 
       {/* ── 9. 스토리 페이지 들여다보기 (Inside our books) ── */}
-      {show.inside && (
+      <SectionGate show={show} id="inside">
+        {(
       <section id="inside" style={{ background: "var(--cream-2)" }}>
         <div className="wrap py-20">
           <p className="text-[12px] font-bold tracking-[0.18em]" style={{ color: "var(--teal)" }}>스토리 페이지 들여다보기</p>
@@ -186,9 +190,11 @@ export default async function Home() {
           <p className="mt-5 text-[13px]" style={{ color: "var(--muted)" }}>직접 찍은 사진으로 넣으시면 이야기에 신뢰가 쌓입니다. 사진이 없을 땐 업종별 이미지뱅크가 빈자리를 채웁니다.</p>
         </div>
       </section>
-      )}
+        )}
+      </SectionGate>
 
       {/* ── 10. 정회원 카드 (Best-seller) + 11. 사장님 것 ── */}
+      <SectionGate show={show} id="pricing">
       <section id="pricing" className="wrap py-20">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
           <div className="rounded-3xl p-8 sm:p-10" style={{ background: "var(--forest)", color: "var(--cream)" }}>
@@ -222,6 +228,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      </SectionGate>
 
       {/* ── 12. (기존) 3단계 — 문구만 60초로 ── */}
       <section className="wrap pb-20">
@@ -347,6 +354,7 @@ export default async function Home() {
       </section>
 
       {/* ── 20. FAQ 5 + 질문 20개 CTA ── */}
+      <SectionGate show={show} id="faq">
       <section className="wrap py-20">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
           <div>
@@ -362,6 +370,7 @@ export default async function Home() {
           <FaqList items={FAQ_FEATURED} />
         </div>
       </section>
+      </SectionGate>
 
       <SiteFooter />
     </main>
