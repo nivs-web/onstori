@@ -29,14 +29,14 @@ export function BillingResult() {
     <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center" style={{ background: "var(--cream)", color: "var(--ink)" }}>
       {state === "busy" && <p style={{ color: "var(--muted)" }}>카드를 등록하고 첫 달 결제를 확인하고 있어요…</p>}
       {state === "ok" && (<>
-        <p className="text-[44px]">🎉</p>
-        <h1 className="font-display mt-3 text-[28px]">정회원이 되셨어요</h1>
-        <p className="mt-2 text-[14.5px]" style={{ color: "var(--muted)" }}>홈페이지는 계속 유지되고, 매주 질문이 문자로 갑니다.<br />다음 달부터 매달 자동으로 결제되며, 언제든 해지하실 수 있어요.</p>
+        <p className="t-h1">🎉</p>
+        <h1 className="font-display mt-3 t-h1">정회원이 되셨어요</h1>
+        <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>홈페이지는 계속 유지되고, 매주 질문이 문자로 갑니다.<br />다음 달부터 매달 자동으로 결제되며, 언제든 해지하실 수 있어요.</p>
         <a href={`/${slug}/edit`} className="btn-lime mt-8">내 홈페이지 관리로 →</a>
       </>)}
       {state === "fail" && (<>
-        <h1 className="font-display text-[26px]">정기결제를 등록하지 못했어요</h1>
-        <p className="mt-2 text-[14px] text-red-600">{msg}</p>
+        <h1 className="font-display t-h1">정기결제를 등록하지 못했어요</h1>
+        <p className="mt-2 t-small text-danger">{msg}</p>
         <a href={`/${slug}/edit`} className="btn-ghost mt-8">에디터로 돌아가기</a>
       </>)}
     </main>

@@ -16,7 +16,7 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
       <div className="mt-6 flex flex-wrap gap-1.5">
         {tabs.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className="rounded-full px-4 py-1.5 text-[13px] font-semibold transition"
+            className="rounded-full px-4 py-1.5 t-small font-semibold transition"
             style={tab === t
               ? { background: "var(--ink)", color: "#fff" }
               : { border: "1px solid var(--line)", color: "var(--muted)", background: "#fff" }}>
@@ -31,13 +31,13 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
             <PhoneFrame slug={it.slug} title={it.name} />
             <figcaption className="mt-3.5 flex items-center justify-between gap-2 px-1">
               <div className="min-w-0">
-                <p className="truncate text-[14.5px] font-bold">
-                  {it.featured && <span className="mr-1 text-amber-500">★</span>}{it.name}
+                <p className="truncate t-small font-bold">
+                  {it.featured && <span className="mr-1 text-accent">★</span>}{it.name}
                 </p>
-                <p className="text-[12px]" style={{ color: "var(--muted)" }}>{it.tag}</p>
+                <p className="t-caption" style={{ color: "var(--muted)" }}>{it.tag}</p>
               </div>
               <a href={`/${it.slug}`} target="_blank" rel="noreferrer"
-                className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors"
+                className="whitespace-nowrap rounded-full px-3.5 py-1.5 t-caption font-semibold transition-colors"
                 style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
                 라이브 보기 ↗
               </a>

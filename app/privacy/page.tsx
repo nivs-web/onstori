@@ -40,10 +40,10 @@ const UPDATED = "2026-09-06";
 function Sec({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="text-[18px] font-extrabold" style={{ color: "var(--forest)" }}>
+      <h2 className="t-h3 font-extrabold" style={{ color: "var(--forest)" }}>
         {n}. {title}
       </h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-[1.85]" style={{ color: "var(--ink)" }}>{children}</div>
+      <div className="mt-3 space-y-3 t-body leading-[1.85]" style={{ color: "var(--ink)" }}>{children}</div>
     </section>
   );
 }
@@ -51,7 +51,7 @@ function Sec({ n, title, children }: { n: string; title: string; children: React
 function Table({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
     <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--line)" }}>
-      <table className="w-full min-w-[560px] text-[14px]">
+      <table className="w-full min-w-[560px] t-small">
         <thead style={{ background: "var(--cream-2)" }}>
           <tr>{head.map((h) => <th key={h} className="px-3 py-2.5 text-left font-bold">{h}</th>)}</tr>
         </thead>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
               ["호스팅서비스 제공자", BIZ.hosting],
             ]}
           />
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             개인정보 보호책임자와 열람청구 접수·처리 부서는 <b>§15</b>에 적었습니다.
           </p>
         </Sec>
@@ -115,10 +115,10 @@ export default function PrivacyPage() {
               ["접속 IP", "서비스 이용 시", "무단 대량 요청 차단"],
             ]}
           />
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             카드번호·유효기간·CVC·생년월일은 <b>토스페이먼츠 결제창이 직접 받으며, 온스토리는 저장하지 않습니다.</b>
           </p>
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             온스토리는 사업자를 위한 서비스로, <b>만 14세 미만 아동의 개인정보를 수집하지 않습니다.</b>
             사상·신념, 건강, 정치적 견해 같은 민감정보와 주민등록번호도 수집하지 않습니다.
           </p>
@@ -197,7 +197,7 @@ export default function PrivacyPage() {
               ["네이버클라우드(주)", "가게 정보 불러오기(지역검색)", "국내"],
             ]}
           />
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             위탁 계약을 할 때 목적 외 처리 금지, 안전성 확보조치, 재위탁 제한, 감독, 손해배상 책임을 정하고 있으며,
             위탁하는 일이나 받는 곳이 바뀌면 이 방침을 고쳐 알려드립니다.
           </p>
@@ -255,7 +255,7 @@ export default function PrivacyPage() {
             받은 날부터 <b>10일 이내</b>에 처리하고 결과를 알려드립니다.
             홈페이지 내용은 기다리실 필요 없이 <b>수정 화면에서 직접</b> 고치실 수 있습니다.
           </p>
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             법정대리인이나 위임받은 분이 대신 요구하실 수도 있습니다. 이때는 위임장과 신분을 확인할 수 있는 서류를 보내주세요.
             다른 법에서 그 개인정보를 보관하도록 하고 있는 경우에는 삭제를 거절할 수 있으며, 그 사유를 알려드립니다.
           </p>
@@ -269,12 +269,12 @@ export default function PrivacyPage() {
           <p>
             <b>거부하실 수 있습니다.</b> 브라우저 설정에서 쿠키를 거부하거나 지우시면 됩니다.
           </p>
-          <ul className="ml-5 list-disc space-y-1.5 text-[14px]" style={{ color: "var(--muted)" }}>
+          <ul className="ml-5 list-disc space-y-1.5 t-small" style={{ color: "var(--muted)" }}>
             <li>Chrome: 설정 → 개인정보 보호 및 보안 → 서드 파티 쿠키</li>
             <li>Safari: 설정 → Safari → 고급 → 모든 쿠키 차단</li>
             <li>Edge: 설정 → 쿠키 및 사이트 권한 → 쿠키 및 사이트 데이터 관리</li>
           </ul>
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             로그인 유지에 쓰는 쿠키까지 막으시면 로그인이 풀려 수정 화면을 쓰실 수 없습니다.
           </p>
         </Sec>
@@ -300,15 +300,15 @@ export default function PrivacyPage() {
         </Sec>
 
         <section id="delete" className="mt-10 rounded-2xl border p-6" style={{ borderColor: "var(--line)", background: "var(--cream-2)" }}>
-          <h2 className="text-[18px] font-extrabold" style={{ color: "var(--forest)" }}>13. 자료 삭제를 원하실 때</h2>
-          <div className="mt-3 space-y-3 text-[15px] leading-[1.85]">
+          <h2 className="t-h3 font-extrabold" style={{ color: "var(--forest)" }}>13. 자료 삭제를 원하실 때</h2>
+          <div className="mt-3 space-y-3 t-body leading-[1.85]">
             <p>계정과 홈페이지, 올리신 사진·영상까지 전부 지우고 싶으시면 아래로 알려주세요.</p>
             <ol className="ml-5 list-decimal space-y-1.5">
               <li><b>info@onstori.com</b> 로 <b>삭제를 원하는 홈페이지 주소(onstori.com/○○○)</b>와 함께 요청해 주세요.</li>
               <li>본인 확인을 위해 <b>가입하신 이메일 또는 카카오 계정</b>으로 보내주시면 빠릅니다.</li>
               <li>확인 후 <b>지체 없이(5일 이내) 파기</b>하고, 처리 결과를 회신드립니다.</li>
             </ol>
-            <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+            <p className="t-small" style={{ color: "var(--muted)" }}>
               사장님 계정에 딸린 손님 문의 정보도 함께 지워집니다.
               법이 보관을 요구하는 결제·거래 기록(§4)은 그 기간 동안 분리 보관 후 파기합니다.
             </p>
@@ -329,7 +329,7 @@ export default function PrivacyPage() {
               ["경찰청 사이버수사국", "국번없이 182", "ecrm.police.go.kr"],
             ]}
           />
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             온스토리가 열람·정정·삭제·처리정지 요구를 거절하거나 처리하지 않아 권리를 침해당하셨다면,
             행정심판법에 따라 행정심판을 청구하실 수도 있습니다.
           </p>
@@ -345,7 +345,7 @@ export default function PrivacyPage() {
               ["부서 연락처", `${BIZ.email} · ${BIZ.phone}`],
             ]}
           />
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             개인정보 처리에 관한 문의·불만·피해 구제는 위 연락처로 주시면 지체 없이 답변드립니다.
           </p>
         </Sec>
@@ -355,10 +355,10 @@ export default function PrivacyPage() {
             내용이 바뀌면 <b>시행 7일 전</b>에 이 페이지에 알려드립니다.
             사장님에게 불리하거나 중요한 변경은 <b>시행 30일 전</b>에 알리고, 문자나 이메일로도 따로 알려드립니다.
           </p>
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             이전 개인정보처리방침을 보고 싶으시면 info@onstori.com 으로 요청해 주세요. 보내드립니다.
           </p>
-          <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          <p className="t-small" style={{ color: "var(--muted)" }}>
             <b>시행일: {UPDATED}</b>
           </p>
         </Sec>

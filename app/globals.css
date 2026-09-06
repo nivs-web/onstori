@@ -130,6 +130,44 @@
   --accent-strong: var(--green-700);
 }
 
+/* 위 토큰을 Tailwind 색 이름으로 등록한다 — `bg-n-50` `text-green-700` `border-danger` 처럼
+   유틸리티로 쓸 수 있게 된다. `inline` 이라 Tailwind 는 값을 복사하지 않고 var() 를 그대로 내보낸다:
+   값의 단일 출처는 위 :root 하나로 유지된다.
+   에디터·어드민이 쓰던 Tailwind 기본색(neutral·teal·amber·red…)을 이 이름들로 갈아끼웠다. */
+@theme inline {
+  --color-n-0: var(--n-0);
+  --color-n-50: var(--n-50);
+  --color-n-100: var(--n-100);
+  --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300);
+  --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500);
+  --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700);
+  --color-n-800: var(--n-800);
+  --color-n-900: var(--n-900);
+  --color-green-50: var(--green-50);
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-900: var(--green-900);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+}
+
 /* ───────────────────────── 바탕 ───────────────────────── */
 
 body {

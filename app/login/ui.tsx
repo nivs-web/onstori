@@ -85,7 +85,7 @@ export function LoginUi() {
     await finish();
   }
 
-  if (step === "check") return <main className="px-6 py-24 text-center text-neutral-400">확인 중…</main>;
+  if (step === "check") return <main className="px-6 py-24 text-center text-n-400">확인 중…</main>;
 
   return (
     <main className="mx-auto w-full max-w-sm px-6 py-20">
@@ -98,7 +98,7 @@ export function LoginUi() {
       <button
         onClick={kakao}
         disabled={busy}
-        className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-[15px] font-semibold disabled:opacity-50"
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 t-body font-semibold disabled:opacity-50"
         style={{ background: "#FEE500", color: "#191919" }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -121,13 +121,13 @@ export function LoginUi() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일 주소"
-            className="w-full rounded-xl border bg-white px-4 py-3 text-[15px] outline-none focus:border-teal-600"
+            className="w-full rounded-xl border bg-white px-4 py-3 t-body outline-none focus:border-green-700"
             style={{ borderColor: "var(--line)" }}
           />
           <button
             type="submit"
             disabled={busy || !email.trim()}
-            className="w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl px-4 py-3.5 t-body font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--accent)" }}
           >
             {busy ? "보내는 중…" : "인증번호 받기"}
@@ -147,13 +147,13 @@ export function LoginUi() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_MAX))}
             placeholder="인증번호"
-            className="w-full rounded-xl border bg-white px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:border-teal-600"
+            className="w-full rounded-xl border bg-white px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:border-green-700"
             style={{ borderColor: "var(--line)" }}
           />
           <button
             type="submit"
             disabled={busy || code.length < OTP_MIN}
-            className="w-full rounded-xl px-4 py-3.5 text-[15px] font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl px-4 py-3.5 t-body font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--accent)" }}
           >
             {busy ? "확인 중…" : "로그인"}
@@ -169,7 +169,7 @@ export function LoginUi() {
         </form>
       )}
 
-      {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
+      {err && <p className="mt-4 text-sm text-danger">{err}</p>}
     </main>
   );
 }

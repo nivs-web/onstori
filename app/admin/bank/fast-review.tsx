@@ -67,11 +67,11 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
 
   if (!cur) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-neutral-900/95 p-6 text-center text-white">
-        <p className="text-[40px]">✓</p>
-        <h2 className="mt-3 text-[22px] font-bold">이 목록을 다 봤습니다</h2>
-        <p className="mt-2 text-[14px] text-white/70">{Object.keys(done).length}장 처리{failed.length ? ` · 저장 실패 ${failed.length}장` : ""}</p>
-        <button type="button" onClick={onClose} className="mt-8 rounded-full bg-white px-6 py-3 text-[15px] font-bold text-neutral-900">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-n-900/95 p-6 text-center text-white">
+        <p className="t-h1">✓</p>
+        <h2 className="mt-3 t-h2 font-bold">이 목록을 다 봤습니다</h2>
+        <p className="mt-2 t-small text-white/70">{Object.keys(done).length}장 처리{failed.length ? ` · 저장 실패 ${failed.length}장` : ""}</p>
+        <button type="button" onClick={onClose} className="mt-8 rounded-full bg-white px-6 py-3 t-body font-bold text-n-900">
           닫고 목록 새로고침
         </button>
       </div>
@@ -79,8 +79,8 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-900/95 text-white">
-      <div className="flex items-center justify-between gap-4 px-5 py-3 text-[13px]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-n-900/95 text-white">
+      <div className="flex items-center justify-between gap-4 px-5 py-3 t-small">
         <span>{i + 1} / {rows.length} · 남은 {remaining}장{failed.length ? ` · ⚠ 저장 실패 ${failed.length}` : ""}</span>
         <span className="hidden text-white/60 sm:inline">
           <b>1</b> 90점 · <b>2</b> 70점 · <b>3</b> 50점 · <b>0</b> 거부 · <b>←→</b> 이동 · <b>Esc</b> 닫기
@@ -93,7 +93,7 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
         <img src={cur.url} alt="" className="max-h-full max-w-full object-contain" />
       </div>
 
-      <p ref={liveRef} aria-live="polite" className="px-5 pt-2 text-center text-[12.5px] text-white/60">
+      <p ref={liveRef} aria-live="polite" className="px-5 pt-2 text-center t-caption text-white/60">
         {cur.industry} · {cur.mood} · <b>{cur.role}</b> · {cur.width}×{cur.height}
         {done[cur.id] ? ` — ${done[cur.id]} 매김` : ""}
         {failed.includes(cur.id) ? " — ⚠ 저장 실패, 다시 눌러 주세요" : ""}
@@ -103,8 +103,8 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
       <div className="flex justify-center gap-2 px-5 pb-5 pt-3">
         {Object.entries(SCORES).map(([k, s]) => (
           <button key={k} type="button" onClick={() => mark(k)}
-            className={`rounded-full px-5 py-3 text-[15px] font-bold ${s.ok ? "bg-white text-neutral-900" : "bg-red-500 text-white"}`}>
-            {s.label}<span className="ml-1.5 text-[11px] opacity-50">{k}</span>
+            className={`rounded-full px-5 py-3 t-body font-bold ${s.ok ? "bg-white text-n-900" : "bg-danger text-white"}`}>
+            {s.label}<span className="ml-1.5 t-caption opacity-50">{k}</span>
           </button>
         ))}
       </div>

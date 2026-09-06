@@ -39,7 +39,7 @@ export function PreviewClient({ slug, initialDoc, stories }: Props) {
 
   if (!doc) {
     return (
-      <main className="flex min-h-svh items-center justify-center px-5 text-center text-[15px] text-neutral-400">
+      <main className="flex min-h-svh items-center justify-center px-5 text-center text-[15px] text-n-400">
         미리보기를 준비하고 있어요
       </main>
     );

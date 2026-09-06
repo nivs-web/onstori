@@ -94,15 +94,15 @@ export default async function MembersPage() {
     <main className="mx-auto max-w-7xl px-6 py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-[0.25em] text-teal-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+          <p className="text-xs font-semibold tracking-[0.25em] text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
           <h1 className="mt-2 text-2xl font-bold">회원 목록</h1>
         </div>
-        <p className="text-sm text-neutral-500">전체 {c.total} · 정회원 {c.active} · 무료 {c.trial} · 정지 {c.expired}</p>
+        <p className="text-sm text-n-500">전체 {c.total} · 정회원 {c.active} · 무료 {c.trial} · 정지 {c.expired}</p>
       </div>
 
       <MembersTable rows={list} />
 
-      <p className="mt-4 text-[12px] text-neutral-400">
+      <p className="mt-4 t-caption text-n-400">
         무료 30일 → 정지(비공개, 자료 보관) → 정지 후 60일 자동 삭제. 판정 기준은 lib/trial.ts 하나입니다.
         정지·삭제·구독 청구는 매일 03:00 크론(/api/cron/expire)이 처리합니다.
         메모·블랙리스트는 운영자만 보며 사장님 화면으로 나가지 않습니다.

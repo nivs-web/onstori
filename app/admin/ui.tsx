@@ -20,9 +20,9 @@ export function AdminLogin() {
       <h1 className="text-xl font-bold">운영자 인증</h1>
       <input type="password" value={key} onChange={(e) => setKey(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()}
-        className="mt-4 w-full rounded-xl border border-neutral-300 px-4 py-3" placeholder="ADMIN KEY" />
-      {err && <p className="mt-2 text-sm text-red-500">키가 올바르지 않아요</p>}
-      <button onClick={submit} className="mt-4 rounded-full bg-teal-700 py-3 font-semibold text-white">입장</button>
+        className="mt-4 w-full rounded-xl border border-n-300 px-4 py-3" placeholder="ADMIN KEY" />
+      {err && <p className="mt-2 text-sm text-danger">키가 올바르지 않아요</p>}
+      <button onClick={submit} className="mt-4 rounded-full bg-green-700 py-3 font-semibold text-white">입장</button>
     </main>
   );
 }

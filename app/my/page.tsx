@@ -41,7 +41,7 @@ export default async function MyPage() {
     <main className="min-h-svh" style={{ background: "var(--paper)", color: "var(--ink)" }}>
       <header className="border-b" style={{ borderColor: "var(--line)" }}>
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
-          <Link href="/" className="text-[17px] font-extrabold tracking-tight">온스토리</Link>
+          <Link href="/" className="t-h3 font-extrabold tracking-tight">온스토리</Link>
           <LogoutButton />
         </div>
       </header>
@@ -54,13 +54,13 @@ export default async function MyPage() {
 
         {sites.length === 0 ? (
           <div className="mt-10 rounded-2xl border px-6 py-12 text-center" style={{ borderColor: "var(--line)" }}>
-            <p className="text-[15px] font-semibold">아직 만든 홈페이지가 없어요</p>
+            <p className="t-body font-semibold">아직 만든 홈페이지가 없어요</p>
             <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
               가게 이름과 사진만 있으면 5분 만에 완성됩니다.
             </p>
             <Link
               href="/new"
-              className="mt-6 inline-block rounded-full px-6 py-3 text-[15px] font-semibold text-white"
+              className="mt-6 inline-block rounded-full px-6 py-3 t-body font-semibold text-white"
               style={{ background: "var(--accent)" }}
             >
               홈페이지 만들기 — 무료
@@ -75,13 +75,13 @@ export default async function MyPage() {
                 style={{ borderColor: "var(--line)" }}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-[15.5px] font-bold">{s.business_name}</p>
-                  <p className="mt-0.5 text-[12.5px]" style={{ color: "var(--muted)" }}>
+                  <p className="truncate t-body font-bold">{s.business_name}</p>
+                  <p className="mt-0.5 t-caption" style={{ color: "var(--muted)" }}>
                     onstori.com/{s.slug}
                     {s.published_at ? "" : " · 아직 발행 전"}
                   </p>
                   {(() => { const t = trialInfo(s); return (
-                    <p className="mt-1 text-[12px] font-bold" style={{ color: t.paid ? "var(--green)" : t.expired ? "var(--terra)" : t.daysLeft <= 3 ? "var(--terra)" : "var(--forest)" }}>
+                    <p className="mt-1 t-caption font-bold" style={{ color: t.paid ? "var(--green)" : t.expired ? "var(--terra)" : t.daysLeft <= 3 ? "var(--terra)" : "var(--forest)" }}>
                       {t.paid ? "정회원 · 매달 49,000원 자동 결제" : t.expired ? "정지됨 — 결제하시면 바로 다시 공개됩니다" : `무료 기간 D-${t.daysLeft} · 이후 매달 49,000원`}
                     </p>
                   ); })()}
@@ -89,14 +89,14 @@ export default async function MyPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <Link
                     href={`/${s.slug}`}
-                    className="rounded-full border px-4 py-2 text-[13px] font-semibold"
+                    className="rounded-full border px-4 py-2 t-small font-semibold"
                     style={{ borderColor: "var(--line)", color: "var(--muted)" }}
                   >
                     사이트 보기
                   </Link>
                   <Link
                     href={`/${s.slug}/edit`}
-                    className="rounded-full px-4 py-2 text-[13px] font-semibold text-white"
+                    className="rounded-full px-4 py-2 t-small font-semibold text-white"
                     style={{ background: "var(--accent)" }}
                   >
                     수정하기

@@ -20,7 +20,7 @@ export function LogoutButton({ next = "/" }: { next?: string } = {}) {
     <button
       onClick={logout}
       disabled={busy}
-      className="rounded-full border px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+      className="rounded-full border px-4 py-2 t-small font-semibold disabled:opacity-50"
       style={{ borderColor: "var(--line)", color: "var(--muted)" }}
     >
       {busy ? "로그아웃 중…" : "로그아웃"}
@@ -59,32 +59,32 @@ export function CancelSubscription({ slug, paidUntilLabel }: { slug: string; pai
   }
 
   if (step === "done") {
-    return <p className="text-[12.5px] font-semibold" style={{ color: "var(--forest)" }}>해지됐습니다. 결제하신 달까지는 그대로 쓰실 수 있어요.</p>;
+    return <p className="t-caption font-semibold" style={{ color: "var(--forest)" }}>해지됐습니다. 결제하신 달까지는 그대로 쓰실 수 있어요.</p>;
   }
 
   return (
     <div className="text-right">
       {step === "confirm" ? (
         <div className="rounded-xl border p-3 text-left" style={{ borderColor: "var(--line)" }}>
-          <p className="text-[12.5px]" style={{ color: "var(--ink)" }}>
+          <p className="t-caption" style={{ color: "var(--ink)" }}>
             다음 달부터 청구되지 않습니다.{paidUntilLabel ? ` 이미 결제하신 ${paidUntilLabel}까지는 그대로 쓰실 수 있어요.` : " 이미 결제하신 달은 그대로 쓰실 수 있어요."}
           </p>
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={() => setStep("idle")} className="rounded-full border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>
+            <button type="button" onClick={() => setStep("idle")} className="rounded-full border px-3 py-1.5 t-caption font-semibold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>
               그대로 두기
             </button>
-            <button type="button" onClick={cancel} className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-white" style={{ background: "var(--terra)" }}>
+            <button type="button" onClick={cancel} className="rounded-full px-3 py-1.5 t-caption font-semibold text-white" style={{ background: "var(--terra)" }}>
               해지하기
             </button>
           </div>
         </div>
       ) : (
         <button type="button" onClick={() => setStep("confirm")} disabled={step === "busy"}
-          className="text-[12px] font-semibold underline underline-offset-4 disabled:opacity-50" style={{ color: "var(--muted)" }}>
+          className="t-caption font-semibold underline underline-offset-4 disabled:opacity-50" style={{ color: "var(--muted)" }}>
           {step === "busy" ? "해지 중…" : "구독 해지"}
         </button>
       )}
-      {msg && <p className="mt-1 text-[12px] text-red-600">{msg}</p>}
+      {msg && <p className="mt-1 t-caption text-danger">{msg}</p>}
     </div>
   );
 }

@@ -61,7 +61,7 @@ export function PreviewPane({ slug, doc, focusIndex }: Props) {
   return (
     <div className="flex h-full flex-col">
       {/* iframe 바깥의 띠 — 손님 화면(iframe 안)에는 절대 섞이지 않는다 */}
-      <p className="shrink-0 bg-amber-50 px-3 py-1.5 text-center text-[11px] font-medium text-amber-800">
+      <p className="shrink-0 bg-accent-soft px-3 py-1.5 text-center text-[11px] font-medium text-accent-ink">
         미리보기 — 손님에게는 [사이트 반영]을 눌러야 보여요
       </p>
       <iframe ref={iframeRef} src={`/${slug}/preview`} title="미리보기" className="w-full flex-1 border-0" />

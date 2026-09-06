@@ -14,13 +14,13 @@ export default async function AdminPagesPage() {
   const { data } = await sbAdmin().from("page_sections").select("id, label, visible, sort").order("sort", { ascending: true });
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-xs font-semibold tracking-[0.25em] text-teal-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <p className="text-xs font-semibold tracking-[0.25em] text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">홈페이지 관리</h1>
-      <p className="mt-2 text-[13.5px] text-neutral-500">
+      <p className="mt-2 t-small text-n-500">
         온스토리 첫 페이지에서 어떤 섹션을 보여줄지 켜고 끕니다. 내용 수정은 여기서 하지 않습니다.
       </p>
       <SectionToggles rows={(data ?? []) as SectionRow[]} />
-      <p className="mt-4 text-[12px] text-neutral-400">
+      <p className="mt-4 t-caption text-n-400">
         DB 를 못 읽는 상황에서는 안전을 위해 모든 섹션이 <b>보이도록</b> 동작합니다 —
         첫 페이지가 통째로 비는 사고를 막기 위해서입니다(&lsquo;스토리 페이지 들여다보기&rsquo;만 예외로 기본 꺼짐).
       </p>

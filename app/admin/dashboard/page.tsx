@@ -20,12 +20,12 @@ const DAY = 86_400_000;
 const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }) : "—");
 
 function Card({ label, value, sub, tone }: { label: string; value: string; sub?: React.ReactNode; tone?: "warn" | "danger" }) {
-  const color = tone === "danger" ? "text-red-600" : tone === "warn" ? "text-amber-600" : "text-teal-700";
+  const color = tone === "danger" ? "text-danger" : tone === "warn" ? "text-accent" : "text-green-700";
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-      <p className="text-[12px] text-neutral-500">{label}</p>
-      <p className={`mt-1 text-[26px] font-bold ${color}`}>{value}</p>
-      {sub ? <p className="mt-1 text-[11.5px] text-neutral-400">{sub}</p> : null}
+    <div className="rounded-2xl border border-n-200 bg-white p-5">
+      <p className="t-caption text-n-500">{label}</p>
+      <p className={`mt-1 t-h1 font-bold ${color}`}>{value}</p>
+      {sub ? <p className="mt-1 t-caption text-n-400">{sub}</p> : null}
     </div>
   );
 }
@@ -76,11 +76,11 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <p className="text-xs font-semibold tracking-[0.25em] text-teal-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <p className="text-xs font-semibold tracking-[0.25em] text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 
-      <h2 className="mt-8 text-[15px] font-bold">오늘 밤 03:00 크론이 할 일</h2>
-      <p className="mt-1 text-[12.5px] text-neutral-500">
+      <h2 className="mt-8 t-body font-bold">오늘 밤 03:00 크론이 할 일</h2>
+      <p className="mt-1 t-caption text-n-500">
         무료 {TRIAL_DAYS}일 → 정지(자료 보관) → 정지 후 {DELETE_AFTER_SUSPEND_DAYS}일 삭제.
         되돌릴 수 없는 것은 삭제뿐이고, 예고 문자를 한 번도 못 보내면 삭제하지 않습니다.
       </p>
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           sub="예고를 못 보내면 삭제하지 않고 넘어갑니다" />
       </div>
 
-      <h2 className="mt-10 text-[15px] font-bold">사장님</h2>
+      <h2 className="mt-10 t-body font-bold">사장님</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="전체 홈페이지" value={`${made}곳`} sub={`오늘 ${rows.filter(since(DAY)).length} · 이번 주 ${rows.filter(since(7 * DAY)).length}`} />
         <Card label="공개 중" value={`${openCount}곳`} sub={`정지 ${made - openCount}곳`} />
@@ -100,7 +100,7 @@ export default async function DashboardPage() {
         <Card label="손님 문의" value={`${(inqs ?? []).length}건`} sub={`오늘 ${(inqs ?? []).filter(since(DAY)).length}건`} />
       </div>
 
-      <h2 className="mt-10 text-[15px] font-bold">돈</h2>
+      <h2 className="mt-10 t-body font-bold">돈</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="누적 결제" value={`${revenue.toLocaleString()}원`} sub={`${paidRows.length}건`} />
         <Card label="최근 30일" value={`${revenueMonth.toLocaleString()}원`} />
@@ -109,26 +109,26 @@ export default async function DashboardPage() {
         <Card label="AI 이미지 누적 비용" value={`$${aiUsd.toFixed(2)}`} sub={`${(bank ?? []).length}장 · 검수 대기 ${pendingReview}장`} />
       </div>
       {paidRows.length === 0 && (
-        <p className="mt-3 rounded-xl bg-neutral-50 p-3 text-[12.5px] text-neutral-500">
+        <p className="mt-3 rounded-xl bg-n-50 p-3 t-caption text-n-500">
           아직 결제가 한 건도 없습니다. 토스 정기결제 가맹 심사가 끝나고 첫 결제가 들어오면 여기부터 채워집니다.
         </p>
       )}
 
-      <h2 className="mt-10 text-[15px] font-bold">이야기</h2>
+      <h2 className="mt-10 t-body font-bold">이야기</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="누적 이야기" value={`${(stories ?? []).length}건`} sub={`이번 주 ${(stories ?? []).filter(since(7 * DAY)).length}건`} />
       </div>
 
-      <h2 className="mt-10 text-[15px] font-bold">가까운 만료</h2>
-      <ul className="mt-3 divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white text-[13px]">
+      <h2 className="mt-10 t-body font-bold">가까운 만료</h2>
+      <ul className="mt-3 divide-y divide-n-100 rounded-2xl border border-n-200 bg-white t-small">
         {rows.filter((r) => !trialInfo(r).paid)
           .sort((a, b) => String(a.trial_ends_at ?? "").localeCompare(String(b.trial_ends_at ?? "")))
           .slice(0, 8).map((r) => {
             const t = trialInfo(r);
             return (
               <li key={r.slug} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                <span><b>{r.business_name}</b> <span className="text-neutral-400">onstori.com/{r.slug}</span></span>
-                <span className={t.expired ? "text-neutral-500" : t.daysLeft <= 3 ? "font-bold text-red-600" : ""}>
+                <span><b>{r.business_name}</b> <span className="text-n-400">onstori.com/{r.slug}</span></span>
+                <span className={t.expired ? "text-n-500" : t.daysLeft <= 3 ? "font-bold text-danger" : ""}>
                   {t.expired
                     ? `정지 · 삭제까지 D-${Math.max(0, t.daysUntilDelete)} (${fmt(t.deleteAt)})`
                     : `무료 D-${t.daysLeft} (${fmt(r.trial_ends_at)})`}
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
               </li>
             );
           })}
-        {rows.length === 0 && <li className="px-4 py-8 text-center text-neutral-400">아직 홈페이지가 없어요</li>}
+        {rows.length === 0 && <li className="px-4 py-8 text-center text-n-400">아직 홈페이지가 없어요</li>}
       </ul>
     </main>
   );

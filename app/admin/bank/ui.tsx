@@ -32,7 +32,7 @@ function UsedBadge({ usedBy }: { usedBy: BankRow["usedBy"] }) {
   return (
     <span
       title={usedBy.map((u) => `${u.businessName} (${u.role})`).join("\n")}
-      className={`rounded px-1.5 py-0.5 text-[10.5px] font-medium ${asHero ? "bg-teal-100 text-teal-800" : "bg-neutral-100 text-neutral-600"}`}
+      className={`rounded px-1.5 py-0.5 t-caption font-medium ${asHero ? "bg-green-100 text-green-800" : "bg-n-100 text-n-600"}`}
     >
       {label}{asHero && " · 히어로"}
     </span>
@@ -61,7 +61,7 @@ function TagEditor({ id, initial }: { id: string; initial: string[] }) {
     <div className="flex flex-wrap items-center gap-1">
       {tags.map((t) => (
         <button key={t} disabled={busy} onClick={() => save(tags.filter((x) => x !== t))}
-          title="클릭하면 삭제" className="rounded bg-teal-50 px-1.5 py-0.5 text-[10.5px] text-teal-800 disabled:opacity-50">
+          title="클릭하면 삭제" className="rounded bg-green-50 px-1.5 py-0.5 t-caption text-green-800 disabled:opacity-50">
           {t} ×
         </button>
       ))}
@@ -71,7 +71,7 @@ function TagEditor({ id, initial }: { id: string; initial: string[] }) {
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
         onBlur={add}
         placeholder="태그 추가"
-        className="w-20 rounded border border-neutral-200 px-1.5 py-0.5 text-[10.5px] outline-none focus:border-teal-600"
+        className="w-20 rounded border border-n-200 px-1.5 py-0.5 t-caption outline-none focus:border-green-700"
       />
     </div>
   );
@@ -94,40 +94,40 @@ function Card({ r, checked, onToggle, bulkApproved }: {
   if (state.gone) return null;
 
   return (
-    <figure className={`overflow-hidden rounded-xl border ${checked ? "border-teal-600 ring-1 ring-teal-600" : "border-neutral-200"}`}>
+    <figure className={`overflow-hidden rounded-xl border ${checked ? "border-green-700 ring-1 ring-green-700" : "border-n-200"}`}>
       <div className="relative">
         <a href={r.url} target="_blank" rel="noreferrer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={r.url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
         </a>
         <label className="absolute left-2 top-2 flex cursor-pointer items-center gap-1 rounded bg-white/90 px-1.5 py-1 backdrop-blur">
-          <input type="checkbox" checked={checked} onChange={onToggle} className="h-3.5 w-3.5 accent-teal-700" />
-          <span className="text-[10px] text-neutral-600">선택</span>
+          <input type="checkbox" checked={checked} onChange={onToggle} className="h-3.5 w-3.5 accent-green-700" />
+          <span className="t-caption text-n-600">선택</span>
         </label>
       </div>
       <figcaption className="space-y-1.5 p-2.5">
-        <p className="flex flex-wrap items-center gap-1 text-[11px] text-neutral-500">
+        <p className="flex flex-wrap items-center gap-1 t-caption text-n-500">
           <span>{r.industry} · {r.mood} · <b>{r.role}</b> · {r.width}×{r.height}</span>
-          {ok === null && <span className="rounded bg-amber-100 px-1 text-amber-700">대기</span>}
+          {ok === null && <span className="rounded bg-accent-soft px-1 text-accent-ink">대기</span>}
           {ok === true && <span className="rounded bg-green-100 px-1 text-green-700">승인</span>}
-          {ok === false && <span className="rounded bg-red-100 px-1 text-red-600">거부</span>}
+          {ok === false && <span className="rounded bg-danger-soft px-1 text-danger">거부</span>}
           <UsedBadge usedBy={r.usedBy} />
         </p>
         {r.deleted && (
-          <p className="rounded bg-neutral-100 px-1.5 py-1 text-[10.5px] text-neutral-500">
+          <p className="rounded bg-n-100 px-1.5 py-1 t-caption text-n-500">
             휴지통 · {r.deletedAt ? new Date(r.deletedAt).toLocaleDateString("ko-KR") : "시각 없음"}
             {r.deletedReason ? ` · ${r.deletedReason}` : ""}
-            <span className="block text-neutral-400">파일은 지우지 않았습니다 — 복구하면 그대로 돌아옵니다</span>
+            <span className="block text-n-400">파일은 지우지 않았습니다 — 복구하면 그대로 돌아옵니다</span>
           </p>
         )}
 
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <button disabled={busy} onClick={() => act({ quality_ok: true })}
-            className={`rounded-full px-2.5 py-1 font-semibold ${ok === true ? "bg-green-600 text-white" : "border border-neutral-300"}`}>승인</button>
+            className={`rounded-full px-2.5 py-1 font-semibold ${ok === true ? "bg-green-700 text-white" : "border border-n-300"}`}>승인</button>
           <button disabled={busy} onClick={() => act({ quality_ok: false })}
-            className={`rounded-full px-2.5 py-1 font-semibold ${ok === false ? "bg-red-500 text-white" : "border border-neutral-300"}`}>거부</button>
+            className={`rounded-full px-2.5 py-1 font-semibold ${ok === false ? "bg-danger text-white" : "border border-n-300"}`}>거부</button>
           <select disabled={busy} value={state.score} onChange={(e) => act({ quality_score: Number(e.target.value) })}
-            className="rounded-full border border-neutral-300 px-2 py-1">
+            className="rounded-full border border-n-300 px-2 py-1">
             {[90, 70, 50, 30].map((v) => <option key={v} value={v}>{v}점</option>)}
           </select>
           {r.deleted ? (
@@ -138,7 +138,7 @@ function Card({ r, checked, onToggle, bulkApproved }: {
                 if (await patch(r.id, { deleted: false })) setState((s) => ({ ...s, gone: true }));
                 setBusy(false);
               }}
-              className="rounded-full bg-teal-700 px-2.5 py-1 font-semibold text-white">↩ 복구</button>
+              className="rounded-full bg-green-700 px-2.5 py-1 font-semibold text-white">↩ 복구</button>
           ) : (
             <button disabled={busy}
               onClick={async () => {
@@ -149,13 +149,13 @@ function Card({ r, checked, onToggle, bulkApproved }: {
                 if (await patch(r.id, { deleted: true, reason })) setState((s) => ({ ...s, gone: true }));
                 setBusy(false);
               }}
-              className="rounded-full border border-neutral-300 px-2.5 py-1 text-neutral-400">🗑 휴지통</button>
+              className="rounded-full border border-n-300 px-2.5 py-1 text-n-400">🗑 휴지통</button>
           )}
         </div>
 
         <TagEditor id={r.id} initial={r.tags ?? []} />
 
-        <details className="text-[10.5px] text-neutral-400">
+        <details className="t-caption text-n-400">
           <summary className="cursor-pointer">프롬프트</summary>
           <p className="mt-1 leading-4">{r.prompt}</p>
         </details>
@@ -197,24 +197,24 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
     <>
       <div className="sticky top-0 z-10 -mx-2 mt-6 flex flex-wrap items-center gap-2 bg-white/95 px-2 py-2 backdrop-blur">
         <button onClick={() => setSel(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
-          className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium">
+          className="rounded-full border border-n-300 px-3 py-1.5 text-xs font-medium">
           {allSelected ? "선택 해제" : "전체 선택"}
         </button>
         <button onClick={() => setSel(new Set(pendingIds))} disabled={pendingIds.length === 0}
-          className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40">
+          className="rounded-full border border-n-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40">
           검수 대기만 선택 ({pendingIds.length})
         </button>
         <button onClick={() => setFast(true)} disabled={rows.length === 0}
-          className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          className="rounded-full bg-n-900 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
           title="한 장씩 크게 보고 키 하나로 점수를 매깁니다 (1·2·3·0)">
           ⚡ 빠른 검수 {pendingIds.length > 0 ? `(대기 ${pendingIds.length}장)` : `(${rows.length}장)`}
         </button>
         <button onClick={bulkApprove} disabled={busy || sel.size === 0}
-          className="rounded-full bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+          className="rounded-full bg-green-700 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
           {busy ? "승인 중…" : `선택 ${sel.size}장 일괄 승인`}
         </button>
-        {msg && <span className="text-xs text-teal-700">{msg}</span>}
-        <span className="ml-auto text-[11px] text-neutral-400">거부·삭제는 오판 위험이 커서 한 장씩</span>
+        {msg && <span className="text-xs text-green-700">{msg}</span>}
+        <span className="ml-auto t-caption text-n-400">거부·삭제는 오판 위험이 커서 한 장씩</span>
       </div>
 
       {fast && (

@@ -45,7 +45,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
     if (v) params.set(k, v);
     return (
       <Link key={`${k}-${label}`} href={`/admin/bank?${params.toString()}`}
-        className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-teal-700 text-white" : "border border-neutral-300"}`}>
+        className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-green-700 text-white" : "border border-n-300"}`}>
         {label}
       </Link>
     );
@@ -53,22 +53,22 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <Link href="/admin" className="text-xs text-neutral-400">← 운영자 콘솔</Link>
-      <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-neutral-400">({rows.length}장 표시)</span></h1>
+      <Link href="/admin" className="text-xs text-n-400">← 운영자 콘솔</Link>
+      <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-n-400">({rows.length}장 표시)</span></h1>
 
       {low.length > 0 && (
-        <section className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
-          <p className="text-sm font-semibold text-amber-900">
+        <section className="mt-4 rounded-xl border border-accent bg-accent-soft p-3.5">
+          <p className="text-sm font-semibold text-accent-ink">
             히어로 재고 부족 — {low.length}개 조합이 미사용 {HERO_STOCK_MIN}장 미만
           </p>
-          <p className="mt-1 text-[11.5px] leading-5 text-amber-800">
+          <p className="mt-1 t-caption leading-5 text-accent-ink">
             히어로는 다른 사이트가 쓰고 있으면 후보에서 빠집니다. 아래 조합은 새 사이트를 만들 때 이미지가 겹치거나 플레이스홀더로 떨어질 수 있어요.
-            <code className="ml-1 rounded bg-amber-100 px-1">scripts/bank-generate.ts --roles hero</code> 로 보충하세요.
+            <code className="ml-1 rounded bg-accent-soft px-1">scripts/bank-generate.ts --roles hero</code> 로 보충하세요.
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {low.map((s) => (
               <span key={`${s.industry}-${s.mood}`}
-                className={`rounded-full px-2 py-0.5 text-[11px] ${s.free === 0 ? "bg-red-100 text-red-700" : "bg-white text-amber-900"}`}>
+                className={`rounded-full px-2 py-0.5 t-caption ${s.free === 0 ? "bg-danger-soft text-danger" : "bg-white text-accent-ink"}`}>
                 {s.industry}·{s.mood} <b>{s.free}</b>/{s.total}
               </span>
             ))}
@@ -81,7 +81,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
         {filter("q", "pending", "검수 대기", sp.q === "pending")}
         {filter("q", "ok", "승인됨", sp.q === "ok")}
         {filter("q", "trash", "🗑 휴지통", sp.q === "trash")}
-        <span className="mx-1 text-neutral-300">|</span>
+        <span className="mx-1 text-n-300">|</span>
         {filter("role", undefined, "역할 전체", !sp.role)}
         {/* story = 세로 9:16. 히어로로는 안 쓰고 SNS·이야기 페이지 재고로 둔다 (2026-09-06) */}
         {["hero", "gallery", "about", "process", "story"].map((r) => filter("role", r, r, sp.role === r))}
@@ -92,8 +92,8 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-neutral-400">
-          아직 이미지가 없어요. <code className="rounded bg-neutral-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
+        <p className="mt-16 text-center text-sm text-n-400">
+          아직 이미지가 없어요. <code className="rounded bg-n-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
         </p>
       ) : (
         <BankGrid rows={rows} />

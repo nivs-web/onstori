@@ -5,8 +5,8 @@ export default async function BillingFail({ searchParams }: { searchParams: Prom
   const { slug = "", message } = await searchParams;
   return (
     <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center" style={{ background: "var(--cream)", color: "var(--ink)" }}>
-      <h1 className="font-display text-[26px]">결제가 완료되지 않았어요</h1>
-      <p className="mt-2 text-[14px]" style={{ color: "var(--muted)" }}>{message ?? "취소되었거나 승인되지 않았습니다. 다시 시도하실 수 있어요."}</p>
+      <h1 className="font-display t-h1">결제가 완료되지 않았어요</h1>
+      <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>{message ?? "취소되었거나 승인되지 않았습니다. 다시 시도하실 수 있어요."}</p>
       <a href={slug ? `/${slug}/edit` : "/my"} className="btn-lime mt-8">돌아가기</a>
     </main>
   );

@@ -25,21 +25,21 @@ export function SectionToggles({ rows }: { rows: SectionRow[] }) {
 
   return (
     <>
-      {msg && <p className="mt-3 text-[13px] text-teal-700">{msg}</p>}
-      <ul className="mt-4 divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white">
+      {msg && <p className="mt-3 t-small text-green-700">{msg}</p>}
+      <ul className="mt-4 divide-y divide-n-100 rounded-2xl border border-n-200 bg-white">
         {list.map((s) => (
           <li key={s.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
             <div>
-              <p className="text-[14px] font-semibold">{s.label}</p>
-              <p className="text-[11.5px] text-neutral-400">{s.id}</p>
+              <p className="t-small font-semibold">{s.label}</p>
+              <p className="t-caption text-n-400">{s.id}</p>
             </div>
             <button type="button" disabled={busy === s.id} onClick={() => toggle(s.id, !s.visible)}
-              className={`rounded-full px-4 py-1.5 text-[12.5px] font-bold disabled:opacity-50 ${s.visible ? "bg-teal-700 text-white" : "border border-neutral-300 text-neutral-500"}`}>
+              className={`rounded-full px-4 py-1.5 t-caption font-bold disabled:opacity-50 ${s.visible ? "bg-green-700 text-white" : "border border-n-300 text-n-500"}`}>
               {busy === s.id ? "…" : s.visible ? "보임" : "숨김"}
             </button>
           </li>
         ))}
-        {list.length === 0 && <li className="px-4 py-8 text-center text-[13px] text-neutral-400">섹션 목록이 비어 있어요 — 마이그레이션이 아직 안 올라갔을 수 있습니다.</li>}
+        {list.length === 0 && <li className="px-4 py-8 text-center t-small text-n-400">섹션 목록이 비어 있어요 — 마이그레이션이 아직 안 올라갔을 수 있습니다.</li>}
       </ul>
     </>
   );

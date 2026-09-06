@@ -36,10 +36,10 @@ export type InboxRes = { items: Inquiry[]; newCount: number; channels: NotifyCha
 type Status = Inquiry["status"];
 
 const STATUS: Record<Status, { label: string; chip: string }> = {
-  new: { label: "새 문의", chip: "bg-teal-600 text-white" },
-  contacted: { label: "연락함", chip: "bg-amber-100 text-amber-900" },
-  done: { label: "완료", chip: "bg-neutral-200 text-neutral-600" },
-  spam: { label: "스팸", chip: "bg-neutral-100 text-neutral-400" },
+  new: { label: "새 문의", chip: "bg-green-700 text-white" },
+  contacted: { label: "연락함", chip: "bg-accent-soft text-accent-ink" },
+  done: { label: "완료", chip: "bg-n-200 text-n-600" },
+  spam: { label: "스팸", chip: "bg-n-100 text-n-400" },
 };
 
 const FILTERS: { id: "all" | Status; label: string }[] = [
@@ -152,10 +152,10 @@ export function InboxTab({ slug, anonId, initial, onNewCount }: {
 
   if (failed) {
     return (
-      <div className="mt-5 rounded-2xl border border-neutral-200 p-6 text-center">
-        <p className="text-sm text-neutral-500">{COPY.loadFail}</p>
+      <div className="mt-5 rounded-2xl border border-n-200 p-6 text-center">
+        <p className="text-sm text-n-500">{COPY.loadFail}</p>
         <button onClick={reload} disabled={reloading}
-          className="mt-3 rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
+          className="mt-3 rounded-full border border-n-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
           {reloading ? "불러오는 중…" : "다시 불러오기"}
         </button>
       </div>
@@ -168,19 +168,19 @@ export function InboxTab({ slug, anonId, initial, onNewCount }: {
         {FILTERS.map((f) => (
           <button key={f.id} onClick={() => setFilter(f.id)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-              filter === f.id ? "bg-neutral-900 text-white" : "border border-neutral-300 text-neutral-600"
+              filter === f.id ? "bg-n-900 text-white" : "border border-n-300 text-n-600"
             }`}>
             {f.label}{counts[f.id] ? <span className="ml-1 opacity-70">{counts[f.id]}</span> : null}
           </button>
         ))}
         <button onClick={reload} disabled={reloading}
-          className="ml-auto self-center text-xs text-neutral-500 underline underline-offset-4 disabled:opacity-40">
+          className="ml-auto self-center text-xs text-n-500 underline underline-offset-4 disabled:opacity-40">
           {reloading ? "새로고침 중…" : "새로고침"}
         </button>
       </div>
 
       {shown.length === 0 ? (
-        <p className="mt-8 rounded-2xl bg-neutral-50 p-6 text-center text-sm leading-relaxed text-neutral-500">
+        <p className="mt-8 rounded-2xl bg-n-50 p-6 text-center text-sm leading-relaxed text-n-500">
           {items.length === 0 ? COPY.empty : COPY.emptyFiltered}
         </p>
       ) : (
@@ -215,17 +215,17 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
   }
 
   return (
-    <li className={`overflow-hidden rounded-2xl border ${row.read_at ? "border-neutral-200" : "border-teal-300 bg-teal-50/40"}`}>
+    <li className={`overflow-hidden rounded-2xl border ${row.read_at ? "border-n-200" : "border-green-300 bg-green-50/40"}`}>
       <button onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.chip}`}>{s.label}</span>
-            <span className="text-xs text-neutral-400">{when(row.created_at)}</span>
+            <span className="text-xs text-n-400">{when(row.created_at)}</span>
           </div>
           <p className="mt-1.5 truncate text-sm font-bold">
-            {row.name} <span className="font-normal text-neutral-500">{row.phone}</span>
+            {row.name} <span className="font-normal text-n-500">{row.phone}</span>
           </p>
-          {row.message && <p className="mt-0.5 truncate text-xs text-neutral-500">{row.message}</p>}
+          {row.message && <p className="mt-0.5 truncate text-xs text-n-500">{row.message}</p>}
         </div>
         {row.photos.length > 0 && !open && (
           <div className="flex shrink-0 gap-1">
@@ -239,12 +239,12 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
       </button>
 
       {open && (
-        <div className="space-y-3 border-t border-neutral-200 px-4 pb-4 pt-3">
+        <div className="space-y-3 border-t border-n-200 px-4 pb-4 pt-3">
           {row.photos.length > 0 && (
             photoBroken ? (
-              <div className="rounded-xl bg-neutral-50 p-4 text-center text-xs text-neutral-500">
+              <div className="rounded-xl bg-n-50 p-4 text-center text-xs text-n-500">
                 {COPY.photoFail}
-                <button onClick={onReload} className="ml-2 font-semibold text-teal-700 underline underline-offset-2">
+                <button onClick={onReload} className="ml-2 font-semibold text-green-700 underline underline-offset-2">
                   다시 불러오기
                 </button>
               </div>
@@ -262,7 +262,7 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
           {row.message && <p className="whitespace-pre-wrap text-sm leading-relaxed">{row.message}</p>}
 
           <a href={`tel:${row.phone.replace(/[^0-9+]/g, "")}`}
-            className="block rounded-xl bg-teal-700 py-3 text-center text-sm font-bold text-white">
+            className="block rounded-xl bg-green-700 py-3 text-center text-sm font-bold text-white">
             📞 {named ? `${row.name}님께 전화하기` : "전화하기"}
           </a>
 
@@ -271,7 +271,7 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
               .filter((v) => v !== row.status)
               .map((v) => (
                 <button key={v} onClick={() => setStatus(v)} disabled={busy}
-                  className="flex-1 rounded-xl border border-neutral-300 py-2 text-xs font-semibold disabled:opacity-40">
+                  className="flex-1 rounded-xl border border-n-300 py-2 text-xs font-semibold disabled:opacity-40">
                   {v === "contacted" ? "연락함으로" : v === "done" ? "완료" : "스팸"}
                 </button>
               ))}
@@ -280,7 +280,7 @@ function Card({ row, open, busy, onToggle, onPatch, onReload }: {
           <input value={memo} maxLength={300} placeholder="메모 (나만 봐요)"
             onChange={(e) => setMemo(e.target.value)}
             onBlur={() => { if (memo !== (row.memo ?? "")) onPatch({ memo }); }}
-            className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-teal-600" />
+            className="w-full rounded-xl border border-n-200 px-3 py-2 text-sm outline-none focus:border-green-700" />
         </div>
       )}
     </li>

@@ -26,8 +26,8 @@ export default async function RecPage({ params, searchParams }: { params: Promis
   if (!valid || !name) {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center px-6 text-center" style={{ background: "var(--forest)", color: "var(--cream)" }}>
-        <h1 className="font-display text-[26px]">이 링크는 만료됐어요</h1>
-        <p className="mt-3 max-w-sm text-[14.5px] opacity-80">녹화 링크는 그 주에만 유효합니다. 홈페이지 관리 화면에서 [녹화 링크 문자로 받기]를 눌러 새 링크를 받아 주세요.</p>
+        <h1 className="font-display t-h1">이 링크는 만료됐어요</h1>
+        <p className="mt-3 max-w-sm t-small opacity-80">녹화 링크는 그 주에만 유효합니다. 홈페이지 관리 화면에서 [녹화 링크 문자로 받기]를 눌러 새 링크를 받아 주세요.</p>
         <Link href="/my" className="btn-lime mt-8">마이페이지로</Link>
       </main>
     );
