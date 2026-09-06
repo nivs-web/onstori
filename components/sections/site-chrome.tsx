@@ -66,6 +66,7 @@ function TopBar({
   const fg = solid ? "var(--s-ink)" : "var(--n-0)";
 
   return (
+    <>
     <header
       className="fixed inset-x-0 top-0 z-30"
       style={{
@@ -99,6 +100,13 @@ function TopBar({
         </button>
       </div>
 
+    </header>
+
+
+      {/* ⚠ 시트는 <header> **밖**에 둔다. 헤더에 backdrop-filter 가 걸려 있으면
+          그 헤더가 position:fixed 자식의 기준 상자가 돼 버려서, inset-0 이 화면이 아니라
+          헤더의 56px 상자에 맞춰진다 — 시트 높이가 55px 로 잘렸다(2026-09-07 실측).
+          형제로 빼면 기준이 다시 화면이 된다. */}
       {open && (
         <div
           id="shop-menu-sheet"
@@ -147,7 +155,7 @@ function TopBar({
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
 

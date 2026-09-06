@@ -523,7 +523,12 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   .reveal {
     animation: enter-up var(--enter-d) var(--ease) both;
     animation-timeline: view();
-    animation-range: entry 0% entry 45%;
+    /* ⚠ 범위를 %가 아니라 **px** 로 준다.
+       `entry 45%` 는 요소 높이에 비례한다 — 화면보다 큰 섹션(갤러리 1257px)은
+       entry 구간 자체가 너무 길어서, 화면을 다 채우고도 아직 투명한 상태로 남는다.
+       2026-09-07 에 손님 사이트를 스크롤하면 화면이 통째로 비어 보이는 사고가 났다.
+       px 로 주면 요소가 얼마나 크든 240px 들어온 시점에 반드시 끝난다. */
+    animation-range: entry 0% entry 240px;
   }
 }
 @keyframes enter-up {
@@ -536,7 +541,7 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   .reveal-stagger > * {
     animation: enter-up var(--enter-d) var(--ease) both;
     animation-timeline: view();
-    animation-range: entry 0% entry 45%;
+    animation-range: entry 0% entry 240px;
   }
   .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
   .reveal-stagger > *:nth-child(2) { animation-delay: calc(var(--enter-stagger) * 1); }

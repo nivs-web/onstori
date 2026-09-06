@@ -52,6 +52,7 @@ export function SiteHeaderClient({
   const myLabel = signedIn ? "마이페이지" : "로그인";
 
   return (
+    <>
     <header
       className="sticky top-0 z-40"
       style={{
@@ -106,7 +107,12 @@ export function SiteHeaderClient({
           </button>
         </div>
       </div>
+    </header>
 
+      {/* ⚠ 시트는 <header> **밖**에 둔다. 헤더에 backdrop-filter 가 걸리면
+          그 헤더가 position:fixed 자식의 기준 상자가 돼서 inset-0 이 화면이 아니라
+          헤더의 56px 상자에 맞춰진다 — 손님 사이트에서 실제로 시트가 55px 로
+          잘렸다(2026-09-07). 형제로 빼면 기준이 다시 화면이 된다. */}
       {open && (
         <MenuSheet
           id="site-menu-sheet"
@@ -116,7 +122,7 @@ export function SiteHeaderClient({
           onClose={() => setOpen(false)}
         />
       )}
-    </header>
+    </>
   );
 }
 
