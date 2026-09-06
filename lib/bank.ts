@@ -32,27 +32,53 @@ export async function pickImage(
 ): Promise<string> {
   try {
     const sb = sbAdmin();
-    let query = sb
+    /**
+     * ★ 정렬 기준은 **둘뿐**이다 (2026-09-07 회장님 확정):
+     *   ① 점수(quality_score) 높은 순  ② 덜 쓴(used_count) 순
+     * 해상도·방향으로 거르거나 앞세우지 않는다.
+     *
+     * 무엇이 바뀌었나: 전에는 히어로에서 `orientation` 을 점수보다 **먼저** 봤다.
+     * 세로 우선 시절의 규칙인데, 히어로가 가로 1장으로 확정된 뒤에도 남아 있었다.
+     * 그 탓에 옛 1K 가로 125장이 뒤로 밀려 사실상 안 쓰였다.
+     * 히어로는 어두운 스크림 위에 흰 글자가 얹히는 배경이라 손님이 보는 건
+     * 화질이 아니라 구도와 분위기다. 1K 는 파일이 작아 오히려 빨리 뜬다.
+     *
+     * ⚠ 점수 50 은 "안 쓰는 사진"이 아니다 — 우선순위가 뒤일 뿐 정상 사용 대상이다.
+     *   제외되는 건 deleted=true 와 검수 반려(quality_ok=false) 둘뿐이다.
+     */
+    const base = () => sb
       .from("image_bank")
       .select("id, url, tags, used_count")
-      .eq("industry", industry)
-      .eq("mood", mood)
       .eq("role", role)
       .eq("quality_ok", true)
-      .eq("deleted", false);
-    // ★ 히어로만 **세로(portrait)를 점수보다 먼저** 본다 (2026-09-06).
-    //   히어로는 폰 화면을 꽉 채우고 object-cover 로 깔려 가로 사진은 좌우가 잘린다.
-    //   점수를 아직 안 매긴 사진이 많아(전부 50점) 점수만으로 정렬하면 옛 가로 사진과
-    //   새 세로 사진이 같은 순위로 섞인다. 방향을 첫 기준으로 둬야 폰에서 세로가 나온다.
-    //   'landscape' < 'portrait' 이므로 내림차순이면 portrait 이 먼저다.
-    //   gallery·about·process 는 가로가 맞는 비율이라 이 규칙을 붙이지 않는다.
-    if (role === "hero") query = query.order("orientation", { ascending: false });
-    const { data } = await query
+      .eq("deleted", false)
       .order("quality_score", { ascending: false })
-      .order("used_count", { ascending: true })
-      .limit(40); // 태그·사용중 필터를 태우려면 후보 풀이 넉넉해야 한다
+      .order("used_count", { ascending: true });
 
+    const { data } = await base().eq("industry", industry).eq("mood", mood).limit(40);
     let rows = (data ?? []) as Row[];
+
+    /**
+     * 히어로 후보 넓히기 — (업종, 무드) 한 칸만 보면 풀이 30장 안팎이라
+     * 서른 번째 손님부터 앞 손님과 같은 사진이 나온다.
+     * ① 같은 업종의 다른 무드 → ② 그래도 모자라면 업종까지 푼다.
+     * 어두운 스크림이 깔리는 배경이라 무드 차이(조명·색조)는 거의 안 보이고,
+     * 사진이 겹치지 않는 편이 훨씬 중요하다. gallery·about·process 는 그대로 둔다
+     * (그쪽은 pickImages 가 widenMood 로 따로 처리한다).
+     */
+    if (role === "hero" && rows.length < 40) {
+      const seen = new Set(rows.map((r) => r.url));
+      const add = (more: Row[]) => {
+        for (const r of more) if (!seen.has(r.url)) { seen.add(r.url); rows.push(r); }
+      };
+      const { data: sameIndustry } = await base().eq("industry", industry).limit(80);
+      add((sameIndustry ?? []) as Row[]);
+      if (rows.length < 40) {
+        const { data: anyIndustry } = await base().limit(160);
+        add((anyIndustry ?? []) as Row[]);
+      }
+    }
+
     if (rows.length > 0) {
       if (role === "hero") {
         const inUse = heroUrls(await loadImageUsage());
