@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { SectionT } from "@/lib/schema";
+import { PHOTO_LIMITS, photoLimitLabel } from "@/config/limits";
 
 /**
  * 견적 문의 폼 — docs/specs/inquiry.md 5장.
@@ -16,7 +17,7 @@ import type { SectionT } from "@/lib/schema";
 
 type Props = { s: Extract<SectionT, { type: "quoteForm" }>; slug: string };
 
-const MAX_PHOTOS = 3;
+
 const COPY = {
   sub: "사진 몇 장과 연락처만 남겨주세요. 사장님이 직접 연락드려요.",
   phoneError: "연락받을 번호를 다시 확인해 주세요",
@@ -80,7 +81,7 @@ export default function QuoteForm({ s, slug }: Props) {
 
   async function addPhotos(files: FileList | null) {
     if (!files) return;
-    const room = MAX_PHOTOS - photos.length;
+    const room = PHOTO_LIMITS.inquiry - photos.length;
     const next: { file: Blob; url: string }[] = [];
     for (const f of Array.from(files).slice(0, room)) {
       const blob = await shrink(f).catch(() => f as Blob);
@@ -188,7 +189,7 @@ export default function QuoteForm({ s, slug }: Props) {
                     </button>
                   </div>
                 ))}
-                {photos.length < MAX_PHOTOS && (
+                {photos.length < PHOTO_LIMITS.inquiry && (
                   <label
                     className="t-small flex cursor-pointer items-center justify-center"
                     style={{ width: 80, height: 80, border: "1px solid var(--s-line)", borderRadius: "var(--r-sm)", color: "var(--s-muted)" }}
@@ -209,7 +210,7 @@ export default function QuoteForm({ s, slug }: Props) {
                 )}
               </div>
               <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--s-muted)" }}>
-                현장 사진 최대 {MAX_PHOTOS}장
+                현장 사진 {photoLimitLabel("inquiry")}
               </p>
             </div>
           )}

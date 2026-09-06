@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { loadOwnedSite } from "@/lib/site-owner";
 import * as storage from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/config/limits";
 
 export const maxDuration = 30;
 
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
   const anonId = form.get("anonId") ? String(form.get("anonId")) : undefined;
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "file required" }, { status: 400 });
-  if (file.size > 15 * 1024 * 1024) return NextResponse.json({ error: "15MB 이하만 가능해요" }, { status: 413 });
+  if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: `${MAX_UPLOAD_LABEL} 이하만 가능해요` }, { status: 413 });
 
   const r = await loadOwnedSite(slug, anonId);
   if ("error" in r) return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });

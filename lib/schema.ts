@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PHOTO_LIMITS } from "@/config/limits";
 
 /**
  * 섹션 JSON 스키마 v1 — 사이트의 "약속".
@@ -46,7 +47,7 @@ export const StoryFeed = z.object({
 export const Gallery = z.object({
   type: z.literal("gallery"),
   title: z.string().max(40).default("갤러리"),
-  photos: z.array(z.string()).min(1).max(30),
+  photos: z.array(z.string()).min(1).max(PHOTO_LIMITS.gallery),
 });
 
 export const Reviews = z.object({
@@ -165,7 +166,7 @@ export const StoryEntry = z.object({
   entryType: z.enum(["work", "news", "milestone", "guest"]),
   title: z.string().max(60),
   body: z.string().max(1000),
-  photos: z.array(z.string()).max(10).default([]),
+  photos: z.array(z.string()).max(PHOTO_LIMITS.story).default([]),
   entryDate: z.string(), // YYYY-MM-DD
 });
 

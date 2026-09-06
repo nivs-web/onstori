@@ -73,8 +73,9 @@ export async function Portfolio({ items }: { items?: ShowcaseItem[] }) {
       <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ textWrap: "balance" }}>온스토리로 만든 홈페이지</h2>
       <p className="mt-2 t-body" style={{ color: "var(--muted)" }}>
         실제로 작동하는 화면이에요 — 안을 <b style={{ color: "var(--ink)" }}>직접 스크롤</b>해보세요.
-        {/* ⚠ 지금 걸려 있는 것은 온스토리가 만든 샘플이다. 실고객 사이트가 올라오면 이 괄호를 뺀다. (규칙 7, 2026-09-06) */}
-        {" "}(현재는 온스토리가 만든 샘플입니다.)
+        {/* ⚠ 실고객 사이트가 아니라는 사실은 계속 밝힌다 — 빼면 남의 실적처럼 보인다.
+            "샘플"이라는 낱말만 쓰지 않는다 (2026-09-07 회장님). 규칙 7 취지는 그대로다. */}
+        {" "}(온스토리가 직접 만든 화면입니다.)
       </p>
       <PortfolioTabs items={list} />
     </section>
