@@ -22,9 +22,11 @@ export type ThemeCardProps = {
   tag?: string;
   pc: string;
   phone: string;
+  /** 주소창에 보여줄 진짜 주소 — 이게 있어야 "웹사이트"로 읽힌다 */
+  url: string;
 };
 
-export function ThemeCard({ href, name, tag, pc, phone }: ThemeCardProps) {
+export function ThemeCard({ href, name, tag, pc, phone, url }: ThemeCardProps) {
   const ref = useRef<HTMLAnchorElement>(null);
 
   // ① 사진 길이에 맞춰 미는 거리를 정한다 (카드 밖으로 넘어가는 만큼만)
@@ -80,6 +82,7 @@ export function ThemeCard({ href, name, tag, pc, phone }: ThemeCardProps) {
     >
       <span className="tcard-bar" aria-hidden>
         <i /><i /><i />
+        <span className="tcard-url">{url}</span>
       </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="tcard-shot" src={pc} alt={`${name} 홈페이지 화면`} loading="lazy" decoding="async" />

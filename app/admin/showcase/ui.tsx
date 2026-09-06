@@ -36,7 +36,14 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
     const r = await fetch("/api/admin/site-shot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
     const d = await r.json().catch(() => ({}));
     setShooting("");
-    setMsg(r.ok ? `/${slug} 사진을 다시 찍었어요` : `/${slug} 재촬영 실패 — ${d.error === "no-browser" ? "이 서버에는 크롬이 없어요(브라우저가 있는 곳에서 scripts/site-shots.ts 로 돌리세요)" : d.error}`);
+    /* ⚠ 서버(Vercel)에는 크롬이 없다 — 실패가 아니라 "촬영 대기"다.
+       @sparticuz/chromium 을 얹지 않기로 했다(2026-09-07 회장님): 배포가 무거워지고
+       관리 지점이 는다. 고객 100곳을 넘으면 그때 다시 본다. */
+    setMsg(r.ok
+      ? `/${slug} 사진을 다시 찍었어요`
+      : d.error === "no-browser"
+        ? `/${slug} 촬영 대기 — 서버에서는 못 찍어요. 사무실 PC 에서 scripts/site-shots.ts --slug ${slug} 로 돌리세요.`
+        : `/${slug} 재촬영 실패 — ${d.error}`);
   }
 
   async function remove(id: string, slug: string) {

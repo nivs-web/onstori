@@ -337,6 +337,66 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 /* 레거시 이름 — 호출부 17곳 유지용. 이제 명조가 아니라 Pretendard 700 이다. */
 .font-display { font-family: var(--sans); font-weight: var(--w-bold); letter-spacing: var(--ls-h1); }
 
+/* ⚠ 이 블록은 `@layer components` **밖**에 둔다.
+   레이어 안에 두면 레이어 **밖**의 `h2 { font-size: var(--t-h2) }` 가 이겨서
+   편지 제목이 28px(=--t-h2)로 나온다 — 구체성과 무관하다. CSS 레이어는
+   "레이어 밖 > 레이어 안" 순서라 클래스라도 못 이긴다(2026-09-07 실측).
+   .t-h1 같은 글자 클래스들도 같은 이유로 레이어 밖에 있다. */
+/* ───────────────────────── 창업자 편지 ───────────────────────── */
+/* 평소 본문보다 크고 넓게 — "읽는 글"이다. 명조를 쓰지 않고 Pretendard 를
+   크게·넓게 써서 같은 인상을 만든다(명조 405KB 를 걷어내 LCP 8.3→5.2초로 낮췄다). */
+
+.letter { max-width: 32em; }
+.letter p { font-size: 19px; line-height: 1.95; letter-spacing: -0.015em; color: var(--n-700); }
+.letter p + p { margin-top: 1.6em; }
+
+.letter .letter-title { font-size: var(--t-h1); font-weight: var(--w-bold); letter-spacing: var(--ls-h1); line-height: var(--lh-h1); color: var(--text-strong); margin-bottom: var(--s-6); }
+
+/* 인용 한 줄 — 왼쪽 초록 선.
+   ⚠ 선택자 앞에 .letter 를 붙인다. `.letter p`(0,1,1)가 `.letter-quote`(0,1,0)보다
+   구체적이라 그냥 두면 본문 19px 이 이겨 버린다(2026-09-07 실측에서 실제로 그랬다). */
+.letter .letter-quote {
+  font-size: 24px; font-weight: var(--w-semi); line-height: 1.6; letter-spacing: -0.02em;
+  color: var(--n-800);
+  border-left: 2px solid var(--green-700);
+  padding-left: 20px;
+  margin-block: var(--s-6);
+}
+
+/* 강조 두 줄 */
+.letter .letter-emph { font-size: 21px; font-weight: var(--w-semi); line-height: 1.7; letter-spacing: -0.018em; color: var(--n-800); }
+
+/* 마무리 — 문단이 아니라 선언 */
+.letter .letter-close {
+  font-size: 26px; font-weight: var(--w-bold); line-height: 1.5; letter-spacing: -0.025em;
+  color: var(--text-strong);
+  margin-top: var(--s-7);
+  white-space: pre-line;          /* 안쪽 빈 줄을 그대로 살린다 */
+}
+
+/* 서명란 */
+.letter-sign { margin-top: var(--s-7); }
+.letter-sign::before {
+  content: ""; display: block; width: 200px; height: 1px;
+  background: var(--n-200); margin-bottom: var(--s-7);
+}
+
+/* 2단 배치 — 왼쪽 사진(따라옴) · 오른쪽 글 */
+.letter-grid { display: grid; gap: var(--s-6); }
+@media (min-width: 1024px) {
+  .letter-grid { grid-template-columns: 42% 58%; gap: var(--s-8); align-items: start; }
+  .letter-photo { position: sticky; top: 120px; }
+}
+
+.letter-photo > img {
+  display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover;
+  border-radius: var(--r-lg);
+  /* 테두리·그림자 없음 */
+}
+@media (max-width: 1023px) {
+  .letter-photo { max-width: 336px; margin-inline: auto; }   /* 4:5 기준 높이 420px */
+}
+
 /* ───────────────────────── 레이아웃 ───────────────────────── */
 
 .wrap {
@@ -578,19 +638,30 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     /* 쉴 때 그림자 없음 */
   }
 
-  /* 브라우저 틀 — 얇은 상단 바 + 점 3개 */
+  /* 브라우저 틀 — 얇은 상단 바 + 점 3개 + **주소창**.
+     ★ 주소가 보이는 순간 손님은 이걸 "사진"이 아니라 "웹사이트"로 읽는다.
+       크롭을 아무리 조절해도 안 되던 것이 이 한 줄로 해결된다(2026-09-07 회장님). */
   .tcard-bar {
     position: absolute; inset-inline: 0; top: 0; z-index: 2;
-    height: 26px; display: flex; align-items: center; gap: 5px;
+    height: 34px; display: flex; align-items: center; gap: 5px;
     padding-inline: 10px;
-    background: var(--n-100);
+    background: var(--n-0);
     border-bottom: 1px solid var(--n-200);
   }
-  .tcard-bar i { width: 7px; height: 7px; border-radius: var(--r-full); background: var(--n-300); }
+  .tcard-bar i { flex: 0 0 auto; width: 7px; height: 7px; border-radius: var(--r-full); background: var(--n-300); }
+  .tcard-url {
+    flex: 1 1 auto; min-width: 0; margin-left: 6px;
+    height: 20px; display: flex; align-items: center; justify-content: center;
+    padding-inline: 10px;
+    border-radius: var(--r-full);
+    background: var(--n-100);
+    font-size: 13px; line-height: 1; color: var(--n-500);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 
   /* PC 화면 — 카드보다 길게 깔고 위를 맞춘 뒤 위로 민다 */
   .tcard-shot {
-    position: absolute; inset-inline: 0; top: 26px;
+    position: absolute; inset-inline: 0; top: 34px;
     width: 100%; display: block;
     transform: translateY(0);
     transition: transform var(--tc-back) ease-out;
@@ -710,8 +781,11 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
       overflow: visible; padding-inline: 0; margin-inline: 0; gap: var(--s-5);
     }
   }
+  /* PC 는 한 줄에 4개 — 최대 2줄(8개)까지만 보여준다(호출부에서 자른다) */
   @media (min-width: 1100px) {
-    .tcard-rail { grid-template-columns: repeat(3, 1fr); }
+    .tcard-rail { grid-template-columns: repeat(4, 1fr); gap: var(--s-4); }
+    /* 카드가 좁아지므로 폰 목업도 같이 줄인다 */
+    .tcard-rail .tcard { --tc-h: 340px; --tc-phone-w: 92px; }
   }
 
   /* 터치 목표 48×48 — 손가락으로 누르는 화면에서만.

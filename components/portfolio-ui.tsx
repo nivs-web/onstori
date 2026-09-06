@@ -9,7 +9,8 @@ import type { ShowcaseItem } from "./portfolio";
 export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
   const [tab, setTab] = useState<(typeof PORTFOLIO_TABS)[number]>("전체");
   const tabs = PORTFOLIO_TABS.filter((t) => t === "전체" || items.some((i) => i.tag === t));
-  const shown = items.filter((i) => tab === "전체" || i.tag === tab);
+  /* 한 줄 4개 × 2줄 = 8개까지만. 그 이상은 첫 화면을 늘어지게 한다(2026-09-07 회장님). */
+  const shown = items.filter((i) => tab === "전체" || i.tag === tab).slice(0, 8);
 
   return (
     <div>
@@ -35,11 +36,11 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
         {shown.map((it) => (
           <figure key={it.slug} style={{ margin: 0 }}>
             {it.pc && it.phone ? (
-              <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} />
+              <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} url={`onstori.com/${it.slug}`} />
             ) : (
               /* 아직 안 찍힌 사이트 — 카드 자리는 지키되 비워 둔다 */
               <a href={`/${it.slug}`} target="_blank" rel="noreferrer" className="tcard" aria-label={`${it.name} 홈페이지 보기`}>
-                <span className="tcard-bar" aria-hidden><i /><i /><i /></span>
+                <span className="tcard-bar" aria-hidden><i /><i /><i /><span className="tcard-url">onstori.com/{it.slug}</span></span>
               </a>
             )}
             <figcaption className="flex items-center justify-between" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
@@ -47,7 +48,6 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
                 <p className="t-body truncate font-bold" style={{ color: "var(--text-strong)" }}>
                   {it.featured && <span className="mr-1" style={{ color: "var(--accent)" }}>★</span>}{it.name}
                 </p>
-                <p className="t-caption">{it.tag}</p>
               </div>
               <span className="t-small whitespace-nowrap font-semibold" style={{ color: "var(--green-700)" }}>보기 ↗</span>
             </figcaption>

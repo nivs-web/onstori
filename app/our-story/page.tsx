@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
+import { BIZ } from "@/config/company";
 
 export const metadata: Metadata = { title: "온스토리", description: "홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 온스토리를 만든 이유." };
 
@@ -20,6 +22,16 @@ const COMPARE_ROWS = [
   ["소유권", "업체 서버·업체 계정인 경우 많음", "홈페이지·영상·기록 전부 사장님 것"],
   ["해지", "위약금·자료 반출 어려움", "언제든, 자료 전부 반출"],
 ];
+
+/** 편지 마무리 — 빈 줄이 곧 호흡이라 문자열로 두고 white-space: pre-line 으로 살린다 */
+const CLOSING = `홈페이지는 빈 집입니다.
+이야기에는 사람이 있습니다.
+
+진짜 사람들이 모여서
+진짜 이야기를 나누는
+그런 집을 만들고 싶습니다.
+
+사장님의 이야기를 들려주세요.`;
 
 export default function OurStory() {
   const milestones = [
@@ -43,18 +55,82 @@ export default function OurStory() {
       <SiteHeader current="/our-story" />
       <PageHero kicker="온스토리" title={<>손님은 상품이 아니라<br />사람을 믿습니다.</>} sub="온스토리를 만든 이유를 편지로 적었습니다." />
 
-      {/* ── 창업자 편지 ── */}
-      <section className="surface-0 reveal" style={{ paddingBottom: "var(--s-8)" }}>
-        <div className="wrap">
-          <article className="card mx-auto" style={{ maxWidth: "48rem", padding: "var(--s-6)" }}>
-            <p className="t-h3">사장님께,</p>
-            <div className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--n-700)" }}>
-              <p>홈페이지를 만들어 드리는 일을 하면서 한 가지가 계속 걸렸습니다. 홈페이지는 있는데 손님이 없는 가게가 너무 많다는 것입니다. 사진은 예쁘고 문구도 그럴듯한데, 그 안에 사람이 없었습니다. 손님은 상품이 아니라 사람을 믿는데 말입니다.</p>
-              <p style={{ marginTop: "var(--s-4)" }}>사장님들은 글을 쓰기 싫어하십니다. 시간이 없고, 뭘 써야 할지 모르겠고, 써 봤자 아무도 안 읽을 것 같으니까요. 그런데 말은 잘하십니다. 손님 앞에서, 전화로, 현장에서 매일 이야기를 하십니다. 그 말을 그대로 기록으로 바꿔 드리면 어떨까 — 온스토리는 거기서 시작했습니다.</p>
-              <p style={{ marginTop: "var(--s-4)" }}>온스토리는 사장님께 글을 쓰라고 하지 않습니다. 질문을 드리고, 60초만 말씀해 달라고 합니다. 그 60초를 자막 영상과 글과 사진으로 만들어 유튜브·인스타·네이버·그리고 사장님 홈페이지에 쌓습니다. 3년 뒤에도 검색되는 사장님의 기록이 됩니다.</p>
-              <p className="t-h3" style={{ marginTop: "var(--s-5)" }}>홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다. 사장님의 이야기부터 들려주세요.</p>
+      {/* ── 창업자 편지 ──
+          레이아웃은 레멘토의 창업자 편지 구조를 참고했다(규칙 11). 사진은 가로가 아니라 세로다.
+          PC 는 2단(왼쪽 사진이 sticky 로 따라옴), 태블릿·폰은 사진이 위·글이 아래.
+          ⚠ 명조를 쓰지 않는다 — Pretendard 를 크게·넓게 써서 같은 인상을 낸다(app/globals.css .letter). */}
+      <section className="surface-50 section reveal">
+        <div className="wrap letter-grid">
+          <figure className="letter-photo" style={{ margin: 0 }}>
+            <Image
+              src="/brand/founder.webp"
+              alt="온스토리 대표 권병철"
+              width={1000}
+              height={1250}
+              sizes="(min-width: 1024px) 42vw, 336px"
+              quality={78}
+            />
+          </figure>
+
+          <article className="letter">
+            <h2 className="letter-title">친형 같던 형님이 가게를 접던 날</h2>
+
+            <p>그 형님이 그러셨습니다.</p>
+
+            <p className="letter-quote">&ldquo;물건이 밀린 게 아니라, 내가 못 알린 거지.&rdquo;</p>
+
+            <p>
+              제 주변에는 장사하는 사람이 많았습니다.<br />
+              친척도, 동네 형님도. 다들 물건 하나는 자신 있었습니다.<br />
+              그런데 하나씩 밀려났습니다.
+            </p>
+
+            <p>
+              홍보도 돈이 있어야 하는 것이었습니다.<br />
+              대기업은 돈으로 광고를 샀고,<br />
+              사장님들은 그 앞에서 조용했습니다.
+            </p>
+
+            <p>
+              저는 26년째 홈페이지를 만들어 왔습니다.<br />
+              사진은 예쁘고 문구도 그럴듯한데, 그 안에 사람이 없었습니다.<br />
+              손님은 상품이 아니라 사람을 믿는데 말입니다.
+            </p>
+
+            <p>
+              사장님들은 글을 쓰지 않으십니다. 시간이 없고,<br />
+              뭘 써야 할지 모르시니까요.<br />
+              그런데 말씀은 정말 잘하십니다.<br />
+              손님 앞에서, 전화로, 현장에서 매일 하십니다.<br />
+              그 말이 사라지지 않게만 하면 되는 일이었습니다.
+            </p>
+
+            <p>
+              온스토리는 글을 쓰라고 하지 않습니다.<br />
+              질문을 드리고, 60초만 말씀해 달라고 합니다.<br />
+              그 60초가 영상이 되고 글이 되어,<br />
+              홈페이지에 쌓이고 인스타와 유튜브로 퍼집니다.
+            </p>
+
+            <p className="letter-emph" style={{ marginTop: "1.6em" }}>
+              대기업은 돈으로 광고를 삽니다.<br />
+              사장님께는 돈으로 살 수 없는 이야기가 있습니다.
+            </p>
+
+            {/* 마무리 — 문단이 아니라 선언. 안쪽 빈 줄을 white-space: pre-line 으로 그대로 살린다 */}
+            <p className="letter-close">{CLOSING}</p>
+
+            <div className="letter-sign">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/signature.png" alt="권병철 서명" width={68} height={56} style={{ height: 56, width: "auto" }} />
+              <p style={{ marginTop: "var(--s-4)", fontSize: 17, fontWeight: "var(--w-semi)", color: "var(--n-800)", lineHeight: 1.5 }}>
+                {BIZ.ceo}
+              </p>
+              <p style={{ fontSize: 15, color: "var(--n-500)", lineHeight: 1.5 }}>
+                {/* 상호는 config/company.ts 가 단일 출처다 — 법무 페이지·푸터와 같은 값을 쓴다 */}
+                {BIZ.name}(온스토리) 대표
+              </p>
             </div>
-            <p className="t-small font-semibold" style={{ marginTop: "var(--s-6)" }}>— 온스토리 대표 권병철</p>
           </article>
         </div>
       </section>
