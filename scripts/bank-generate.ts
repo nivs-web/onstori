@@ -5,6 +5,11 @@
  *   --limit 5             [필수] 이 실행에서 허용할 최대 API 호출(=과금) 수. 처음은 5로 돌려
  *                         결과 확인 후 늘릴 것. 중복 스킵도 호출은 과금되므로 등록 장수가 아니라 호출 수를 제한.
  *   --model gemini-3-pro-image | gemini-3.1-flash-image  (기본 3.1-flash-image, Vertex 게시자 모델 ID)
+ *   --imagesize 1K | 2K | 4K   출력 해상도 (기본 1K). 9:16 실측: 1K=768x1376 · 2K=1536x2752.
+ *                         2K 도 응답 토큰이 1,120 으로 1K 와 같다 → 장당 단가 동일($0.134, pro).
+ *                         2026-09-06 실호출 3장으로 확인(batch 202609060033). 매 호출 로그의
+ *                         `토큰 …` 값으로 언제든 재확인할 것. 4K 는 토큰이 뛰므로 --cost 를 다시 준다.
+ *                         히어로 저장 상한이 1920w 라 2K(1536w)는 줄지 않고 그대로 들어간다.
  *   --count 20            생성 목표 장수 (뱅크 등록 기준 — limit보다 먼저 차면 거기서 종료)
  *   --cost 0.039          장당 예상 단가 USD (기본: 모델별 추정표 — 실제 단가 확인 후 조정)
  *   --industries interior,cafe   (기본: 전체 14)
@@ -33,6 +38,7 @@ const arg = (name: string, def: string) => {
 const has = (name: string) => process.argv.includes(`--${name}`);
 
 const MODEL = arg("model", "gemini-3.1-flash-image");
+const IMAGE_SIZE = arg("imagesize", "1K").toUpperCase();
 const COUNT = parseInt(arg("count", "20"), 10);
 const ROLES = arg("roles", "hero,gallery,about,process").split(",");
 const MOODS = arg("moods", "clean,warm,premium,lively").split(",");
@@ -84,14 +90,15 @@ function hamming(a: string, b: string): number {
   return n;
 }
 
-async function generateOne(prompt: string, role: string): Promise<{ buf: Buffer } | { err: string; quota?: boolean }> {
+async function generateOne(prompt: string, role: string): Promise<{ buf: Buffer; tokens?: number } | { err: string; quota?: boolean }> {
   const r = await vertexGenerate(MODEL, {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       responseModalities: ["IMAGE"],
       // 화면을 꽉 채워야 하는 건 히어로뿐이다 — 세로 폰에 object-cover 로 깔린다.
       // about 은 3:2 카드, gallery 는 격자, process 는 작은 이미지라 4:3 이 맞다. (2026-09-06)
-      imageConfig: { aspectRatio: role === "hero" ? "9:16" : "4:3" },
+      // imageSize 는 과금 단위인 응답 토큰을 바꾼다 — 1K·2K 동일(1,120), 4K 는 더 크다. 로그로 확인.
+      imageConfig: { aspectRatio: role === "hero" ? "9:16" : "4:3", imageSize: IMAGE_SIZE },
     },
   });
   if (!r.ok) {
@@ -103,7 +110,9 @@ async function generateOne(prompt: string, role: string): Promise<{ buf: Buffer 
     const reason = (r.data as { candidates?: { finishReason?: string }[] })?.candidates?.[0]?.finishReason;
     return { err: `no-image (${reason ?? "unknown"})` };
   }
-  return { buf };
+  // 과금 단위 실측 — imageSize 를 올려도 이 값이 그대로면 단가도 그대로다
+  const tokens = (r.data as { usageMetadata?: { candidatesTokenCount?: number } })?.usageMetadata?.candidatesTokenCount;
+  return { buf, tokens };
 }
 
 async function main() {
@@ -124,7 +133,7 @@ async function main() {
   // 기존 해시 로드 (중복 방지)
   const { data: existing } = await sb.from("image_bank").select("phash").not("phash", "is", null).eq("deleted", false);
   const hashes: string[] = (existing ?? []).map((r) => r.phash as string);
-  console.log(`기존 뱅크 해시 ${hashes.length}개 로드 · 목표 ${COUNT}장 · 호출 상한 ${DRY ? "-(dry)" : LIMIT} · 모델 ${MODEL} · 장당 추정 $${COST}`);
+  console.log(`기존 뱅크 해시 ${hashes.length}개 로드 · 목표 ${COUNT}장 · 호출 상한 ${DRY ? "-(dry)" : LIMIT} · 모델 ${MODEL} · 해상도 ${IMAGE_SIZE} · 장당 추정 $${COST}`);
 
   let created = 0, dups = 0, fails = 0, quotaStrikes = 0, apiCalls = 0, consecFails = 0;
   let abort = ""; // 채워지면 즉시 중단
@@ -179,7 +188,11 @@ async function main() {
             width: meta.width, height: meta.height, batch_id: BATCH,
           });
           if (dbErr) { noteFail(`DB — ${dbErr.message}`); }
-          else { hashes.push(hash); created++; consecFails = 0; console.log(`✓ ${created}/${COUNT} ${j.ind}/${j.mood}/${j.role} (${meta.width}x${meta.height}) · ${tally()}`); }
+          else {
+            hashes.push(hash); created++; consecFails = 0;
+            const stored = await sharp(webp).metadata();
+            console.log(`✓ ${created}/${COUNT} ${j.ind}/${j.mood}/${j.role} · 원본 ${meta.width}x${meta.height} → 저장 ${stored.width}x${stored.height} (${(webp.length / 1024).toFixed(0)}KB) · 토큰 ${r.tokens ?? "?"} · ${storage.publicUrl(up.key)} · ${tally()}`);
+          }
         }
       }
     }
