@@ -23,7 +23,7 @@ export default async function AdminHome() {
   ];
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
+    <main className="mx-auto max-w-3xl min-w-0 px-6 py-14">
       <p className="text-xs font-semibold kicker-wide text-green-700">ONSTORI ADMIN</p>
       <h1 className="mt-2 text-2xl font-bold">운영자 콘솔</h1>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">

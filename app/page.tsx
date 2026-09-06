@@ -5,6 +5,7 @@ import { ChannelStrip, RecMockup, SpeechToStory, CompareCallout, FaqList } from 
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 import { FAQ_FEATURED } from "@/config/faq";
 import { sectionVisibility } from "@/lib/page-sections";
+import { BIZ } from "@/config/company";
 import { SectionGate } from "@/components/site/section-gate";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
@@ -85,7 +86,9 @@ export default async function Home() {
                 </figcaption>
               </figure>
             )}
-            <div className="scale-[.78] origin-bottom-left" style={{ marginLeft: "calc(var(--s-8) * -1)", marginBottom: "var(--s-5)" }}>
+            {/* ⚠ 1280 아래에서는 감춘다. 오른쪽 칸이 1fr(≈420px)인데 폰 두 대가 450px 을 먹어
+                1024~1279 에서 화면 밖으로 튀어나갔다 — 폰이 커서가 아니라 **자리가 좁아서**였다. */}
+            <div className="hidden origin-bottom-left scale-[.78] xl:block" style={{ marginLeft: "calc(var(--s-8) * -1)", marginBottom: "var(--s-5)" }}>
               <RecMockup />
             </div>
           </div>
@@ -171,25 +174,6 @@ export default async function Home() {
           </section>
         )}
       </SectionGate>
-
-      {/* ── 창업자 편지 ── */}
-      <section className="surface-50 section reveal">
-        <div className="wrap">
-          <div className="card mx-auto" style={{ maxWidth: "48rem", padding: "var(--s-6)" }}>
-            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>왜 온스토리를 만들었나</p>
-            <p className="t-h3" style={{ marginTop: "var(--s-4)", lineHeight: 1.7 }}>
-              홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 사진은 예쁘고 문구도 그럴듯한데, 그 안에 사람이 없었습니다. 손님은 상품이 아니라 사람을 믿는데 말입니다.
-            </p>
-            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
-              사장님들은 글을 쓰기 싫어하십니다. 그런데 말은 잘하십니다. 손님 앞에서, 전화로, 현장에서 매일 이야기를 하십니다. 그 말을 그대로 기록으로 바꿔 드리면 어떨까 — 온스토리는 거기서 시작했습니다.
-            </p>
-            <div className="flex flex-wrap items-center justify-between" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
-              <span className="t-small font-semibold">— 온스토리 대표 권병철</span>
-              <Link href="/our-story" className="btn btn-text">온스토리 이야기 →</Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── 스토리 페이지 들여다보기 ── */}
       <SectionGate show={show} id="inside">
@@ -298,7 +282,9 @@ export default async function Home() {
 
       {/* ── 60초 녹화 데모 ── */}
       <section className="surface-900 section reveal">
-        <div className="wrap grid items-center md:grid-cols-[1fr_auto_auto]" style={{ gap: "var(--s-7)" }}>
+        {/* ⚠ md(768) 가 아니라 lg(1024) 부터 3단이다. 폰 목업이 280px 이라 768 에서
+            1fr + 280 + 280 이 화면을 821px 로 밀어냈다(2026-09-07 verify.js 가 잡았다). */}
+        <div className="wrap grid items-center lg:grid-cols-[1fr_auto_auto]" style={{ gap: "var(--s-7)" }}>
           <div>
             <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>녹화 화면 미리보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>녹화를 시도해보세요.<br />60초 정도 걸립니다.</h2>
@@ -395,6 +381,30 @@ export default async function Home() {
                 <p className="t-caption" style={{ marginTop: "var(--s-3)" }}>예시 문장 · 실제 사장님 이야기가 아닙니다</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 대표 인사말 ──
+          ★ 자리가 중요하다. «이런 이야기가 됩니다(예시)» 바로 다음이다(2026-09-07 회장님).
+            예시를 보고 "이게 뭔데?" 싶은 순간에 만든 사람이 나와 이유를 말하는 순서다.
+            앞(포트폴리오 뒤)에 있을 때는 아직 궁금하지 않아 그냥 지나쳤다.
+          문구는 /our-story 편지의 첫 문단을 줄인 것이다 — 두 곳이 같은 이야기를 해야 한다. */}
+      <section className="surface-0 section reveal">
+        <div className="wrap">
+          <div className="card mx-auto" style={{ maxWidth: "48rem", padding: "var(--s-6)" }}>
+            <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>왜 온스토리를 만들었나</p>
+            <p className="t-h3" style={{ marginTop: "var(--s-4)", lineHeight: 1.7 }}>
+              &ldquo;물건이 밀린 게 아니라, 내가 못 알린 거지.&rdquo;
+            </p>
+            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
+              친형 같던 형님이 가게를 접던 날 하신 말씀입니다. 다들 물건 하나는 자신 있었는데, 하나씩 밀려났습니다. 26년째 홈페이지를 만들어 왔지만 그 안에 사람이 없었습니다.
+            </p>
+            <div className="flex flex-wrap items-center justify-between" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
+              {/* 상호는 config/company.ts 가 단일 출처다 — 푸터·법무 페이지와 같은 값 */}
+              <span className="t-small font-semibold">— {BIZ.name}(온스토리) 대표 {BIZ.ceo}</span>
+              <Link href="/our-story" className="btn btn-text">온스토리 이야기 →</Link>
+            </div>
           </div>
         </div>
       </section>

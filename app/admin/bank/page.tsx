@@ -52,9 +52,20 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl min-w-0 px-6 py-10">
       <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows.length}장 표시)</span></h1>
+
+      {/* 폰 전용 안내 — 이 화면은 폰에서 세로 24,000px 이 넘고 체크박스가 전부 40px 미만이다.
+          사진 검수는 큰 화면에서 여러 장을 나란히 봐야 하는 일이라 폰용으로 다시 만들지 않고
+          솔직하게 안내한다(2026-09-07 회장님). 화면을 막지는 않는다 — 급하면 볼 수는 있어야 한다. */}
+      <p
+        className="mt-4 rounded-xl px-4 py-3 text-sm leading-6 md:hidden"
+        style={{ background: "var(--n-100)", color: "var(--text)" }}
+      >
+        <b>PC 에서 이용해 주세요.</b><br />
+        사진 검수는 여러 장을 나란히 놓고 보는 일이라 폰 화면에는 맞지 않습니다. 아래로 계속 보실 수는 있습니다.
+      </p>
 
       {low.length > 0 && (
         <section className="mt-4 rounded-xl border border-accent bg-accent-soft p-3.5">

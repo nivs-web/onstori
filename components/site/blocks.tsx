@@ -65,15 +65,10 @@ function ChannelMark({ id }: { id: string }) {
 /** 60초 녹화 화면 목업 — 히어로 옆·데모 섹션·작동방식에서 재사용 (정적) */
 export function RecMockup({ question = "이 일을 처음 시작하던 날, 무엇이 가장 두려웠나요?", state = "rec" }: { question?: string; state?: "rec" | "done" | "ask" }) {
   return (
-    <div
-      className="mx-auto"
-      style={{
-        width: 250, background: "var(--n-900)", borderRadius: "var(--r-lg)",
-        border: "6px solid var(--n-900)", padding: "var(--s-2)", boxShadow: "var(--shadow-2)",
-      }}
-      aria-label="60초 녹화 화면 예시"
-    >
-      <div className="relative overflow-hidden" style={{ height: 500, borderRadius: "var(--r-md)", background: "var(--n-800)" }}>
+    /* 폰 껍데기는 공용 부품(.phone-frame)을 쓴다 — 규격을 여기서 따로 정하지 않는다.
+       전에는 여기만 border-radius: var(--r-lg) 라 히어로 폰보다 각져 장난감처럼 보였다. */
+    <div className="phone-frame mx-auto" style={{ width: 280 }} aria-label="60초 녹화 화면 예시">
+      <div className="phone-screen relative overflow-hidden" style={{ aspectRatio: "268 / 540", background: "var(--n-800)" }}>
         <div
           className="absolute inset-x-0 top-0 flex items-center justify-between t-caption"
           style={{ padding: "var(--s-3) var(--s-4) 0", color: "var(--text-soft)" }}

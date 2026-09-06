@@ -126,7 +126,9 @@ export default function OurStory() {
               <p style={{ marginTop: "var(--s-4)", fontSize: 17, fontWeight: "var(--w-semi)", color: "var(--n-800)", lineHeight: 1.5 }}>
                 {BIZ.ceo}
               </p>
-              <p style={{ fontSize: 15, color: "var(--n-500)", lineHeight: 1.5 }}>
+              {/* ⚠ --n-500 은 흰 배경에서 2.55:1 이라 본문 기준(4.5)에 미달이다(규칙 11).
+                  의미 토큰만 쓴다 — 어두운 배경 안에서는 알아서 뒤집힌다. */}
+              <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.5 }}>
                 {/* 상호는 config/company.ts 가 단일 출처다 — 법무 페이지·푸터와 같은 값을 쓴다 */}
                 {BIZ.name}(온스토리) 대표
               </p>

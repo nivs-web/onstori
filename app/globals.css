@@ -158,15 +158,18 @@
      살아 있는 사이트를 iframe 으로 띄우지 않는다. 미리 찍은 긴 스크린샷 한 장을
      overflow:hidden 안에서 transform 으로 민다 (docs/specs/theme-card-실측.md).
      ⚠ 폰 안쪽 모서리는 반드시 (바깥 − 두께) 여야 한다. 안 맞으면 즉시 싸 보인다. */
-  --tc-h: 420px;              /* 카드 높이 */
+  --tc-bar-h: 36px;           /* 브라우저 주소창 바 높이 */
   --tc-scroll: 5.5s;          /* PC 화면이 내려가는 시간 */
   --tc-scroll-phone: 7s;      /* 폰 화면은 조금 더 느리게 */
   --tc-back: 2.75s;           /* 마우스를 떼면 돌아오는 시간 — 내려갈 때의 절반 */
   --tc-delay: 150ms;          /* 스쳐 지나갈 때 안 움직이게 */
-  --tc-phone-w: 116px;
-  --tc-phone-border: 7px;
-  --tc-phone-r: 34px;                                        /* 바깥 모서리 */
-  --tc-phone-r-in: calc(var(--tc-phone-r) - var(--tc-phone-border));  /* = 27px */
+  /* 폰 목업 — 최신 폰처럼. 2026-09-07 회장님 규격.
+     ⚠ 안쪽 모서리는 반드시 **바깥 − 두께**여야 테두리 굵기가 모서리에서도 일정하다.
+       안 그러면 모서리만 두꺼워져 장난감처럼 보인다. */
+  --tc-phone-w: 22%;                                         /* 카드 폭 대비 */
+  --tc-phone-border: 6px;
+  --tc-phone-r: 38px;                                        /* 바깥 모서리 */
+  --tc-phone-r-in: calc(var(--tc-phone-r) - var(--tc-phone-border));  /* = 32px */
   --tc-phone-shadow: 0 24px 48px rgba(26, 39, 34, .28);
 
   /* ── 등장 ── 조작보다 훨씬 느리고 부드럽다 */
@@ -627,10 +630,12 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   /* ───────────────────────── 테마 카드 ───────────────────────── */
   /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
 
+  /* 카드 비율 16:10 — 세로를 줄여 한 화면에 여러 장이 들어오게 한다(2026-09-07 회장님).
+     전에는 높이를 고정(420px)해 카드가 길쭉했고 한 화면에 두 줄이 안 들어왔다. */
   .tcard {
     position: relative;
     display: block;
-    height: var(--tc-h);
+    aspect-ratio: 16 / 10;
     overflow: hidden;                 /* ★ 사진이 카드 밖으로 나가지 않게 */
     border-radius: var(--r-lg);
     border: 1px solid var(--n-200);
@@ -640,12 +645,12 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 
   /* 브라우저 틀 — 얇은 상단 바 + 점 3개 + **주소창**.
      ★ 주소가 보이는 순간 손님은 이걸 "사진"이 아니라 "웹사이트"로 읽는다.
-       크롭을 아무리 조절해도 안 되던 것이 이 한 줄로 해결된다(2026-09-07 회장님). */
+       크롭을 아무리 조절해도 안 되던 것이 이 하나로 해결된다(2026-09-07 회장님). */
   .tcard-bar {
     position: absolute; inset-inline: 0; top: 0; z-index: 2;
-    height: 34px; display: flex; align-items: center; gap: 5px;
+    height: var(--tc-bar-h); display: flex; align-items: center; gap: 5px;
     padding-inline: 10px;
-    background: var(--n-0);
+    background: var(--n-50);
     border-bottom: 1px solid var(--n-200);
   }
   .tcard-bar i { flex: 0 0 auto; width: 7px; height: 7px; border-radius: var(--r-full); background: var(--n-300); }
@@ -661,17 +666,21 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 
   /* PC 화면 — 카드보다 길게 깔고 위를 맞춘 뒤 위로 민다 */
   .tcard-shot {
-    position: absolute; inset-inline: 0; top: 34px;
+    position: absolute; inset-inline: 0; top: var(--tc-bar-h);
     width: 100%; display: block;
     transform: translateY(0);
     transition: transform var(--tc-back) ease-out;
   }
 
-  /* 폰 목업 — 카드 오른쪽 아래, 안쪽으로 16px */
+  /* 폰 목업 — 카드 오른쪽 아래, 안쪽으로 16px. 폭은 카드 폭의 22%(--tc-phone-w).
+     ⚠ max-height 로 주소창 바에 닿지 않게 묶는다. 카드가 16:10 이라 좁은 화면에서는
+       폰이 바 위로 올라타 버린다. 안의 사진은 원래 상자보다 길어 잘리게 돼 있으므로
+       (마우스를 올리면 밀려 올라간다) 높이를 줄여도 잘못 보이지 않는다. */
   .tcard-phone {
     position: absolute; right: 16px; bottom: 16px; z-index: 3;
     width: var(--tc-phone-w);
     aspect-ratio: 116 / 238;
+    max-height: calc(100% - var(--tc-bar-h) - 20px);
     padding: var(--tc-phone-border);
     border-radius: var(--tc-phone-r);
     background: var(--n-900);
@@ -684,7 +693,7 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   .tcard-phone::after {
     content: ""; position: absolute; inset: var(--tc-phone-border);
     border-radius: var(--tc-phone-r-in);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
     pointer-events: none;
   }
   .tcard-phone > img {
@@ -738,26 +747,39 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     .tcard-phone { opacity: 1 !important; transform: none !important; }
   }
 
-  /* 히어로 옆 폰 목업 — 미리 찍은 사진 한 장. iframe 아니다.
-     테두리·모서리 규격은 테마 카드와 같은 토큰을 쓴다(따로 정하지 않는다). */
-  .phone-shot {
+  /* ───────────────────── 폰 목업 (공용) ─────────────────────
+     ★ 화면에 나오는 폰은 **전부 이 부품 하나**를 쓴다 — 히어로 사진 폰, 녹화 데모 폰,
+       포트폴리오 카드 안의 작은 폰. 규격이 갈라지면 어떤 건 최신 폰 같고 어떤 건
+       장난감처럼 보인다(2026-09-07 회장님 지적. 실제로 그랬다).
+
+     규격: 두께 6px · 바깥 모서리 38px · 안쪽 32px(= 바깥 − 두께) ·
+           테두리 --n-900 단색 + 안쪽 1px 흰 링 .14 · 노치·홈버튼 없음 ·
+           그림자 0 24px 48px rgba(26,39,34,.28)
+     ⚠ 안쪽 모서리를 따로 정하지 마라. 바깥 − 두께가 아니면 모서리만 두꺼워 보인다. */
+  .phone-frame {
     position: relative;
-    width: 250px;
     padding: var(--tc-phone-border);
     border-radius: var(--tc-phone-r);
     background: var(--n-900);
     box-shadow: var(--tc-phone-shadow);
     overflow: hidden;
+    max-width: 100%;                  /* 좁은 화면에서 밖으로 튀어나가지 않게 */
   }
-  .phone-shot::after {
+  .phone-frame::after {
     content: ""; position: absolute; inset: var(--tc-phone-border);
     border-radius: var(--tc-phone-r-in);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
     pointer-events: none;
   }
-  .phone-shot > img {
+  .phone-frame > img,
+  .phone-frame > .phone-screen {
     display: block; width: 100%;
     border-radius: var(--tc-phone-r-in);
+  }
+
+  /* 히어로 옆 폰 — 미리 찍은 사진 한 장. iframe 아니다. */
+  .phone-shot { width: 280px; }
+  .phone-shot > img {
     /* 위에서부터 보여준다 — 아래는 잘라낸다 */
     aspect-ratio: 236 / 480; object-fit: cover; object-position: center top;
   }
@@ -784,8 +806,6 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   /* PC 는 한 줄에 4개 — 최대 2줄(8개)까지만 보여준다(호출부에서 자른다) */
   @media (min-width: 1100px) {
     .tcard-rail { grid-template-columns: repeat(4, 1fr); gap: var(--s-4); }
-    /* 카드가 좁아지므로 폰 목업도 같이 줄인다 */
-    .tcard-rail .tcard { --tc-h: 340px; --tc-phone-w: 92px; }
   }
 
   /* 터치 목표 48×48 — 손가락으로 누르는 화면에서만.

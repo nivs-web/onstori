@@ -33,7 +33,8 @@ async function main() {
     const { error } = await sb.from("sites").update({ settings }).eq("id", site.id);
     if (error) { fail++; console.log(`  ❌ ${slug} — ${error.message}`); continue; }
     ok++;
-    console.log(`  ✅ ${slug} (${Math.round((Date.now() - t0) / 1000)}초)`);
+    const kb = r.kb ? ` · PC ${r.kb.pc}KB · 폰 ${r.kb.phone}KB` : "";
+    console.log(`  ✅ ${slug} (${Math.round((Date.now() - t0) / 1000)}초)${kb}`);
   }
   console.log(`\n완료 ${ok}곳 · 실패 ${fail}곳`);
 }
