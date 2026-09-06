@@ -52,6 +52,17 @@ function isInApp(): boolean {
   return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua);
 }
 
+/**
+ * 녹화 형식 고르기 — **mp4 가 최우선**이다.
+ *
+ * 왜: 아이폰 사파리는 webm 을 재생하지 못한다. 안드로이드에서 webm 으로 찍힌 영상은
+ * 아이폰 손님에게 검은 화면으로 보인다. 처음부터 mp4(H.264)로 찍으면 변환이 아예 필요 없다.
+ *
+ * ⚠ `isTypeSupported` 가 true 라고 진짜 mp4 가 나오는 건 아니다 — 실제로 녹화해
+ *   파일 머리(`ftyp`)까지 봐야 안다. 검사판을 `public/mime-check.html` 에 두었다.
+ *   2026-09-07 실측(Chromium 148): 고른 형식 `video/mp4;codecs=avc1` → 머리 `ftypisom` = 진짜 MP4.
+ *   ⚠ `video/mp4;codecs=h264` 는 **false** 로 나온다. avc1 로 적어야 한다.
+ */
 function pickMime(): string {
   const c = ["video/mp4;codecs=avc1", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
   for (const m of c) if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m)) return m;
@@ -161,7 +172,9 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
           x.send(blob);
         });
       } else {
-        const fd = new FormData(); fd.set("slug", slug); fd.set("k", k); fd.set("key", d.key); fd.set("file", blob, "story.webm");
+        // 파일명 확장자를 실제 형식에 맞춘다 — mp4 를 story.webm 으로 올리면 서버 로그·재현이 헷갈린다
+        const fd = new FormData(); fd.set("slug", slug); fd.set("k", k); fd.set("key", d.key);
+        fd.set("file", blob, `story.${d.key.split(".").pop() || "webm"}`);
         const u = await fetch("/api/story/upload", { method: "POST", body: fd });
         if (!u.ok) throw new Error(((await u.json().catch(() => ({}))) as { error?: string }).error ?? "업로드 실패");
         setProgress(100);
