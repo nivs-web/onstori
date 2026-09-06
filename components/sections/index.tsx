@@ -140,9 +140,6 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
            위에 띠가 있으면 100svh 는 화면을 넘어가 리드·CTA 가 아래로 밀려 안 보인다 —
            실제로 sample-interior 가 그랬다. 그때는 72svh 로 줄인다. */
         minHeight: first ? "100svh" : "72svh",
-        /* main 이 고정 바만큼 위를 비워 뒀다. 히어로가 첫 섹션일 때만 그 자리를 되가져와
-           사진이 바 뒤까지 꽉 찬다. 띠가 먼저 오는 사이트에서는 되가져오면 띠를 덮는다. */
-        marginTop: first ? "calc(var(--bar-h) * -1)" : undefined,
         paddingInline: "var(--gutter)",
         paddingTop: "calc(var(--bar-h) + var(--s-7))",
         paddingBottom: "calc(var(--dock-h) + var(--s-6) + env(safe-area-inset-bottom))",

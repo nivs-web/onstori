@@ -151,6 +151,9 @@
   --tap: 48px;                   /* 최소 터치 목표 */
   --bar-h: 56px;                 /* 상단 바 */
   --dock-h: 64px;                /* 손님 사이트 하단 고정 바 */
+  /* 하단 고정 바가 푸터를 가리지 않게 <main> 이 비워 두는 자리.
+     하단 바는 폰 전용이라 PC 에서는 0 이다 (아래 미디어 쿼리). */
+  --dock-pad: calc(var(--dock-h) + env(safe-area-inset-bottom));
 
   /* ═══ 레거시 별칭 ═══
      호출부 수백 곳이 이 이름들을 쓴다. 값은 전부 위 토큰을 가리키게 바꿨다 —
@@ -217,6 +220,11 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-full: var(--r-full);
+}
+
+/* 하단 고정 바는 폰 전용 — PC 에서는 자리를 비울 필요가 없다 */
+@media (min-width: 768px) {
+  :root { --dock-pad: 0px; }
 }
 
 /* 폴백 얼굴 — 시스템 한글 글꼴에 Pretendard 와 같은 세로 메트릭을 씌운다.

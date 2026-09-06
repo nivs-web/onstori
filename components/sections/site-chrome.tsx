@@ -27,7 +27,7 @@ export function SiteChrome({ doc, businessName, logo }: { doc: SiteDocT; busines
   const canFloat = Boolean(first && first.type === "hero" && "image" in first && first.image);
   return (
     <>
-      <TopBar links={links} businessName={businessName} logo={logo} tel={tel} kakaoUrl={kakaoUrl} canFloat={canFloat} />
+      <TopBar links={links} businessName={businessName} logo={logo} tel={tel} kakaoUrl={kakaoUrl} canFloat={canFloat} quoteHref={hasQuote ? "#quote" : null} />
       <Dock tel={tel} kakaoUrl={kakaoUrl} hasQuote={hasQuote} />
     </>
   );
@@ -36,8 +36,8 @@ export function SiteChrome({ doc, businessName, logo }: { doc: SiteDocT; busines
 type Link = { href: string; label: string };
 
 function TopBar({
-  links, businessName, logo, tel, kakaoUrl, canFloat,
-}: { links: Link[]; businessName: string; logo?: string | null; tel: string; kakaoUrl: string; canFloat: boolean }) {
+  links, businessName, logo, tel, kakaoUrl, canFloat, quoteHref,
+}: { links: Link[]; businessName: string; logo?: string | null; tel: string; kakaoUrl: string; canFloat: boolean; quoteHref: string | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -85,9 +85,38 @@ function TopBar({
           )}
           <span className="t-small truncate font-bold" style={{ maxWidth: "14ch" }}>{businessName}</span>
         </a>
+
+        {/* PC — 차례를 가로로 펼친다. 햄버거는 숨는다.
+            손님이 마우스를 쓰는 화면에서 메뉴를 한 번 더 눌러 열게 만들 이유가 없다. */}
+        <nav className="hidden items-center md:flex" style={{ gap: "var(--s-5)" }} aria-label="이 사이트의 차례">
+          {links.map((l) => (
+            <a key={l.href} href={l.href} className="t-small font-medium" style={{ color: fg }}>{l.label}</a>
+          ))}
+        </nav>
+        <div className="hidden md:flex" style={{ minWidth: 0 }}>
+          {/* PC 우측 버튼은 하나뿐이다 — 견적이 있으면 견적, 없으면 전화 */}
+          {quoteHref ? (
+            <a
+              href={quoteHref}
+              className="t-small inline-flex items-center justify-center font-semibold"
+              style={{ minHeight: "var(--tap)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
+            >
+              견적 문의
+            </a>
+          ) : tel ? (
+            <a
+              href={`tel:${tel}`}
+              className="t-small inline-flex items-center justify-center font-semibold"
+              style={{ gap: "var(--s-2)", minHeight: "var(--tap)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
+            >
+              {ICON.call} 전화
+            </a>
+          ) : null}
+        </div>
+
         <button
           type="button"
-          className="grid place-items-center"
+          className="grid place-items-center md:hidden"
           style={{ width: "var(--tap)", height: "var(--tap)", color: fg }}
           aria-label="메뉴 열기"
           aria-expanded={open}
@@ -113,7 +142,7 @@ function TopBar({
           role="dialog"
           aria-modal="true"
           aria-label="메뉴"
-          className="sheet-open fixed inset-0 z-40 flex flex-col"
+          className="sheet-open fixed inset-0 z-40 flex flex-col md:hidden"
           style={{ background: "var(--s-bg)", color: "var(--s-ink)" }}
         >
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between" style={{ height: "var(--bar-h)", paddingInline: "var(--gutter)" }}>
@@ -168,11 +197,12 @@ function Dock({ tel, kakaoUrl, hasQuote }: { tel: string; kakaoUrl: string; hasQ
   if (!any) return null;
   return (
     <>
-      {/* 고정 바가 푸터·#quote 아래를 가리지 않도록 문서 끝에 자리를 비운다 */}
-      <div aria-hidden style={{ height: "calc(var(--dock-h) + env(safe-area-inset-bottom))" }} />
+      {/* ⚠ 여기에 스페이서 <div> 를 두면 안 된다. SiteChrome 은 문서 **맨 앞**에 그려지므로
+          그 빈 칸이 히어로를 64px 아래로 밀어 화면을 못 채운다(2026-09-07 실측: 히어로 top 64).
+          고정 바가 푸터를 가리지 않게 하는 자리는 <main> 의 padding-bottom 으로 뺐다. */}
       <nav
         aria-label="연결 버튼"
-        className="fixed inset-x-0 bottom-0 z-20 flex items-center"
+        className="fixed inset-x-0 bottom-0 z-20 flex items-center md:hidden"
         style={{
           gap: "var(--s-2)",
           height: "calc(var(--dock-h) + env(safe-area-inset-bottom))",

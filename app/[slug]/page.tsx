@@ -46,6 +46,7 @@ export default async function SitePage({ params }: Props) {
 
   const p = PALETTES[site.doc.theme.palette];
   const accent = site.doc.theme.accent ?? p.accent;
+  const firstIsHero = site.doc.sections[0]?.type === "hero";
   const vars = {
     "--s-bg": p.bg, "--s-ink": p.ink, "--s-muted": p.muted, "--s-line": p.line,
     "--s-accent": accent, "--s-soft": p.soft, "--s-on-accent": p.onAccent,
@@ -57,8 +58,13 @@ export default async function SitePage({ params }: Props) {
         className="relative min-h-svh"
         style={{
           background: "var(--s-bg)",
-          // 고정 상단 바가 첫 내용을 가리지 않게 자리를 비운다. 히어로가 첫 섹션이면 되가져간다.
-          paddingTop: "var(--bar-h)",
+          /* 고정 상단 바는 히어로 **위에 겹친다** — 히어로는 화면 맨 위(0)부터 시작해야
+             폰에서 100svh 를 온전히 채운다. 그래서 첫 섹션이 히어로면 위를 비우지 않는다.
+             띠 같은 다른 섹션이 먼저 오면 그때만 바 높이만큼 비운다.
+             아래 여백은 하단 고정 바 자리다(폰 전용) — 스페이서 <div> 로 넣으면
+             그게 문서 앞쪽에 끼어 히어로를 밀어낸다. */
+          paddingTop: firstIsHero ? 0 : "var(--bar-h)",
+          paddingBottom: "var(--dock-pad)",
           // 폰트는 app/fonts.css 가 자체 호스팅한다. 전에는 여기서 jsDelivr CDN 을
           // <link> 로 불렀는데, 손님 사이트마다 렌더를 막는 사슬이 하나 더 붙는 셈이었다.
           fontFamily: "var(--font-body)",
