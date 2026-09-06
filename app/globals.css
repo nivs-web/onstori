@@ -224,8 +224,18 @@
 @font-face {
   font-family: "Pretendard Fallback";
   src: local("Malgun Gothic"), local("Apple SD Gothic Neo"), local("Noto Sans KR"), local("Arial");
-  ascent-override: 92%;
-  descent-override: 8%;
+  /* ⚠ size-adjust 가 이 파일에서 제일 중요한 한 줄이다.
+     맑은 고딕은 같은 한글을 Pretendard 보다 **17.5% 넓게** 그린다(실측 2176 : 1854).
+     그대로 두면 폴백으로 그린 제목이 더 많은 줄을 차지했다가, Pretendard 가 도착하는
+     순간 줄이 줄면서 아래 내용이 통째로 위로 뛴다 — 2026-09-07 CLS 0.178 의 원인이 이것이었다.
+     85% 로 줄여 폭을 맞춘다.
+     ascent/descent 는 85% 만큼 다시 키워 준다(108 × .85 ≈ 92, 9.4 × .85 ≈ 8) —
+     안 그러면 폭은 맞는데 줄 높이가 어긋난다.
+     ⚠ 값은 윈도우 맑은 고딕 기준이다. 맥(Apple SD Gothic Neo)은 폭이 조금 달라
+     완벽히 0 은 아니다. 측정 방법은 docs/PERFORMANCE.md 에 적어 뒀다. */
+  size-adjust: 85%;
+  ascent-override: 108%;
+  descent-override: 9.4%;
   line-gap-override: 0%;
   font-display: swap;
 }
