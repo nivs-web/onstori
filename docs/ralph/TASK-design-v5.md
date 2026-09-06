@@ -24,28 +24,28 @@
 ## 체크리스트
 
 ### 1. 반응형 전수 점검 (A-1 과 같은 실수 찾기)
-- [ ] 1-1 `backdrop-filter` 가 `position:fixed` 자식의 기준 상자가 되는 곳 전수 grep — 바텀시트·모달·드롭다운·플로팅
-- [ ] 1-2 모바일 전용 요소가 PC 에 나오는 곳 전수 (햄버거·하단바·플로팅·바텀시트·모바일 카드 배치)
-- [ ] 1-3 PC 전용 요소가 폰에 나오는 곳
+- [x] 1-1 `backdrop-filter` 가 `position:fixed` 자식의 기준 상자가 되는 곳 전수 grep — 바텀시트·모달·드롭다운·플로팅
+- [x] 1-2 모바일 전용 요소가 PC 에 나오는 곳 전수 (햄버거·하단바·플로팅·바텀시트·모바일 카드 배치)
+- [x] 1-3 PC 전용 요소가 폰에 나오는 곳
 
 ### 2. 남은 화면 토큰 이식 + 반응형
-- [ ] 2-1 메뉴 6페이지 (how-it-works · our-story · faq · reviews · blog · compare)
-- [ ] 2-2 위저드 `/new`
-- [ ] 2-3 녹화 `/rec/[slug]`
-- [ ] 2-4 에디터 `/[slug]/edit` (저장됨 토스트 2초 · 빈 문의함 다음 행동 한 줄)
-- [ ] 2-5 어드민 전체 (bank · members · dashboard · pages · showcase · sites · subdomains)
+- [x] 2-1 메뉴 6페이지 (how-it-works · our-story · faq · reviews · blog · compare)
+- [x] 2-2 위저드 `/new`
+- [x] 2-3 녹화 `/rec/[slug]`
+- [x] 2-4 에디터 `/[slug]/edit` (저장됨 토스트 2초 · 빈 문의함 다음 행동 한 줄)
+- [x] 2-5 어드민 전체 (bank · members · dashboard · pages · showcase · sites · subdomains)
 - [ ] 2-6 지도·챗봇 섹션
-- [ ] 2-7 로그인 · 마이페이지 · 결제 · 법무(terms·privacy)
+- [x] 2-7 로그인 · 마이페이지 · 결제 · 법무(terms·privacy)
 
 ### 3. 속도
-- [ ] 3-1 First Load JS 231KB 항목별 분해 — 무엇이 큰지 적는다
-- [ ] 3-2 지도·챗봇·PayModal·토스 SDK `next/dynamic`
-- [ ] 3-3 히어로 preload·AVIF·sizes 재확인
-- [ ] 3-4 목표(LCP·170KB) 달성 여부 + 못 넘으면 이유와 남은 수단
+- [x] 3-1 First Load JS 231KB 항목별 분해 — 무엇이 큰지 적는다
+- [x] 3-2 지도·챗봇·PayModal·토스 SDK `next/dynamic`
+- [x] 3-3 히어로 preload·AVIF·sizes 재확인
+- [x] 3-4 목표(LCP·170KB) 달성 여부 + 못 넘으면 이유와 남은 수단
 
 ### 4. 마무리
-- [ ] 4-1 화면마다 390·768·1440 캡처
-- [ ] 4-2 Lighthouse 최종 + First Load JS
-- [ ] 4-3 PROGRESS.md 인수인계 · 커밋 · push
+- [x] 4-1 화면마다 390·768·1440 캡처
+- [x] 4-2 Lighthouse 최종 + First Load JS
+- [x] 4-3 PROGRESS.md 인수인계 · 커밋 · push
 
 **글꼴 451KB 는 한글 커버리지 실제 값 — 더 줄이지 않는다 (회장님 확정).**
