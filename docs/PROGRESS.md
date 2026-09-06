@@ -107,6 +107,41 @@ sitemap 에 두 법무 페이지와 `sample-interior` 등재(`interior2` 는 tri
 
 ---
 
+## 2026-09-06 오후 — 후속 3건
+
+`origin/main` = **`055cf1a`**.
+
+| # | 한 일 | 커밋 |
+|---|---|---|
+| 1 | **히어로 프롬프트 "Korean apartment" 명시 + 재시험 3장** | `9067fc9` |
+| 2 | **`docs/team-conventions` 병합** | `055cf1a`(머지) |
+| 3 | **interior2 전화번호 텍스트 정리** (DB, 코드 변경 없음) | — |
+
+**항목 1 상세 — 절반만 해결됐다.** `config/bank-prompts.ts` 의 `INDUSTRY_SCENES.interior` 5개 씬 중
+"Korean apartment" 가 박힌 건 첫 번째(living room)뿐이었다 — 나머지 4개(kitchen·bedroom·bathroom·
+hallway)는 국적 지시가 아예 없었다. 어제 hallway 씬이 유럽 주택처럼 나온 원인이 이거였다. 5곳 전부에
+추가하고 hallway 엔 "no Western-style crown molding or wainscoting" 을 덧붙였다.
+
+재시험 3장(batch `202609060133kr`, 2K, $0.134×3 = $0.40):
+- **living room(lively 무드)·bathroom(clean 무드) → 뚜렷하게 한국 아파트로 개선.** 고층 발코니 창·
+  빌트인 수납·미니멀 스타일링이 그대로 나온다
+- **hallway(premium 무드) → 여전히 유럽 호텔 복도에 가깝다.** `MOOD_TONE.premium` 의
+  "moody low-key lighting, luxurious" 지시가 국적과 무관하게 호텔풍을 강하게 끌어당기는 것으로
+  보인다 — 씬 텍스트만 고쳐서는 이 조합을 완전히 못 지운다. premium 무드 자체를 다시 쓰거나,
+  이 씬은 premium 조합에서 빼는 두 가지 중 회장님 판단이 필요하다.
+
+**200장 대량 생성 승인 여부는 아직 결정 대기다** — 이 절반 성공 결과를 보고 정하실 수 있다.
+
+**항목 3 상세.** `sites.settings.phone` 이 "전화번호를 입력해 주세요" 라는 안내 문구 그대로 박혀 있었다
+(온보딩 초기, `lib/phone.ts` 통일 이전 데이터로 추정). 크론(`app/api/cron/expire`)의 D-3·D-1 안내
+문자가 이 값을 그대로 수신번호로 써서, 만료 3일 전(2026-09-30)에 이 글자로 발송을 시도했을 것이다
+(실패하고 끝났겠지만 지저분하다). 코드는 이미 옳다(`lib/phone.ts` 가 신규 사이트는 막는다) — 이 사이트만
+과거 데이터였다. **DB 값만 고쳤다**(`010-2529-7025`, 사이트 안 견적 폼·`settings.notify.phone` 과 같은
+실제 번호로 통일). 코드·마이그레이션 변경 없음, 커밋 없음. `settings.address` 도 같은 종류의 안내 문구가
+남아 있지만 이번 지시 범위(전화번호)가 아니라 손대지 않았다.
+
+---
+
 ## 야간 작업 체크리스트 (2026-09-06 밤 → 09-07 아침 확인용)
 
 > 회장님 지시로 무인 진행. **main push·merge·`supabase db push` 전부 안 했다** — 코드는 브랜치에만 있다.
