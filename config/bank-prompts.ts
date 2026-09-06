@@ -14,7 +14,10 @@ export const NEGATIVE =
   // 2026-09-06 — 폰에서 가운데 26% 만 남는다. 구도가 어긋나면 그 26% 가 못 쓰게 된다.
   "No tilted or converging verticals, no dutch angle, no two-point perspective, no corner-of-the-room view, " +
   "no 85mm telephoto compression, no empty blank wall in the center of the frame, " +
-  "no off-center vanishing point, no subject cut in half at the frame center.";
+  "no off-center vanishing point, no subject cut in half at the frame center. " +
+  // 2026-09-06 — ①거실 실측에서 창밖 뉴욕 스카이라인이 주인공이 됐고, ②주방은 서브웨이 타일이 나왔다
+  "No subway tile, no New York skyline, no recognizable foreign cityscape, no landscape or sky as the subject, " +
+  "no white countertop or white wall occupying the bottom third of the frame.";
 
 /** 역할별 촬영 지시 — 화면비·구도·해상도 의도 */
 export const ROLE_DIRECTION: Record<string, string> = {
@@ -29,16 +32,24 @@ export const ROLE_DIRECTION: Record<string, string> = {
     "vanishing point at the dead center of the frame, perfectly straight vertical lines, no tilt, no dutch angle, " +
     "no two-point perspective corner view. " +
     // ② 가운데 세로 앵커 — 중앙 26% 를 혼자 지탱하는 수직 요소
-    "CENTER VERTICAL ANCHOR: the exact middle of the frame is filled by one strong vertical subject — " +
-    "an open doorway, a tall narrow window, floor-to-ceiling cabinetry, or a pendant light over an island. " +
-    "The center must be FULL and self-sufficient, never an empty wall and never a wall corner. " +
+    // ★ 앵커는 반드시 **시공한 결과물**이어야 한다 (2026-09-06 회장님 규칙).
+    //   손님은 "이 업체가 뭘 만들었나"를 보러 온다. 창밖 풍경·도시 스카이라인은 시공한 게 아니다.
+    "CENTER VERTICAL ANCHOR — must be something the contractor BUILT: " +
+    "a feature accent wall, a TV wall, built-in wardrobe, a door frame, a shoe cabinet, a kitchen island, " +
+    "a pendant light, ceiling cove lighting, a floor tile line, a vanity, or a mirror. " +
+    "The exact middle of the frame is filled by that built element, FULL and self-sufficient — " +
+    "never an empty wall, never a wall corner, and NEVER a window view, skyline, sky or trees as the subject. " +
+    "Windows may only provide light from the side; blow the view outside to bright white or leave it soft and hazy. " +
     // ③ 세로 3층 — 위·중간·아래가 각각 제 몫을 한다
     "THREE HORIZONTAL BANDS: top band shows the ceiling with indirect cove or linear lighting; " +
-    "middle band holds the main subject at eye level; bottom band shows the flooring material with a " +
-    "foreground anchor (rug edge, threshold strip, or furniture base). " +
+    "middle band holds the main built subject at eye level; " +
+    // ★ 아래 1/3 은 흰 글자가 얹히는 자리다. 흰 상판·흰 벽만 오면 글자가 안 보인다.
+    "the BOTTOM THIRD must be DARK-TONED — dark wood flooring, deep-toned finishes, a sofa back, " +
+    "a bar stool back, or a threshold strip. Never a white countertop or white wall in the bottom third. " +
     // ④ 좌우는 잘려도 되는 배경
     "The left and right thirds are croppable background only — nothing essential there. " +
-    "Sharp focus throughout, natural window light, high dynamic range, magazine quality.",
+    "Korean apartment context in every frame: balcony sash frames, apartment railing, flat Korean ceiling, " +
+    "narrow entryway. Sharp focus throughout, high dynamic range, magazine quality.",
   gallery: "4:3 or square detail shot, editorial photography, one clear subject, tight composition, natural imperfections kept for realism.",
   about: "3:2 medium shot conveying craft and care, warm human presence implied without visible faces (tools, hands at work, materials).",
   process: "Clean documentary style shot of work in progress, honest and unglamorous but tidy, 4:3.",
