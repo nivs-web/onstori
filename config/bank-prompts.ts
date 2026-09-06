@@ -6,7 +6,11 @@
 
 /** 공통 금지 — 모든 프롬프트에 붙는다. 글자·워터마크·간판 텍스트 사고 방지 + 초상권 회피 */
 export const NEGATIVE =
-  "No text, no letters, no signage with words, no watermark, no logo, no people's faces (hands or distant figures allowed), no distorted geometry, no fisheye.";
+  "No text, no letters, no signage with words, no watermark, no logo, no people's faces (hands or distant figures allowed), no distorted geometry, no fisheye. " +
+  // 2026-09-06 — 무드 지시문만으로 서양 고급 주택·호텔이 끌려 나오는 것을 막는다.
+  // "premium" 무드 실측에서 씬에 "Korean apartment"를 박아도 유럽 호텔 복도가 나왔다.
+  "No chandelier, no Western crown molding, no wainscoting or panelled walls, no marble columns, " +
+  "no hotel lobby, no arched doorways, no fireplace, no bay window.";
 
 /** 역할별 촬영 지시 — 화면비·구도·해상도 의도 */
 export const ROLE_DIRECTION: Record<string, string> = {
@@ -16,12 +20,21 @@ export const ROLE_DIRECTION: Record<string, string> = {
   process: "Clean documentary style shot of work in progress, honest and unglamorous but tidy, 4:3.",
 };
 
-/** 무드 → 조명·색 지시 */
+/**
+ * 무드 → 조명·색 지시.
+ * ⚠ 무드 문장이 국적을 끌고 온다. 씬에 "Korean apartment"를 박아도 무드가 "luxurious, moody,
+ *   brass"면 모델이 유럽 호텔을 그린다(2026-09-06 premium 실측). 고급스러움을 **한국 아파트의
+ *   실제 고급 요소**로 표현한다 — 간접조명(코브·라인), 매립 다운라이트, 무광 마감, 톤온톤 우드/도장,
+ *   히든 도어, 낮은 채도. 서양 고급 기호(샹들리에·몰딩·대리석 기둥)는 NEGATIVE 에서 막는다.
+ */
 export const MOOD_TONE: Record<string, string> = {
-  clean: "Bright neutral daylight, white and light-gray palette, airy, minimal styling.",
-  warm: "Golden-hour warm light, beige and wood tones, cozy and inviting.",
-  premium: "Moody low-key lighting, deep charcoal and brass accents, luxurious and calm.",
-  lively: "Vivid but natural colors, energetic daylight, a single coral/red accent element.",
+  clean: "Bright neutral daylight, white and light-gray palette, airy, minimal styling, flush recessed downlights.",
+  warm: "Soft warm light from concealed cove lighting, beige and tone-on-tone wood, cozy and inviting.",
+  premium:
+    "Understated Korean high-end apartment finish: indirect cove and linear lighting, flush recessed downlights, " +
+    "matte low-sheen surfaces, tone-on-tone wood and painted panels, hidden flush doors, low color saturation, " +
+    "calm and restrained. Quiet luxury through material and light, not ornament.",
+  lively: "Vivid but natural colors, energetic daylight, a single coral/red accent element, clean flat ceiling.",
 };
 
 /** 업종별 씬 목록 — 씬이 곧 변주의 1차 축. 어드민 검수 결과에 따라 계속 추가·수정 */
@@ -31,7 +44,7 @@ export const INDUSTRY_SCENES: Record<string, string[]> = {
     "modern Korean apartment kitchen renovation with matte cabinets and tiled backsplash",
     "Korean apartment bedroom makeover with new wallpaper and warm lighting",
     "Korean apartment bathroom remodel with large-format tiles and glass shower",
-    "Korean apartment hallway with herringbone wood floor and clean white moldings, typical Korean apartment layout (no Western-style crown molding or wainscoting)",
+    "Korean apartment entrance hallway with wood flooring, full-height hidden flush doors and a built-in shoe cabinet, flat ceiling with linear cove lighting",
   ],
   construction: [
     "small commercial building under neat renovation with scaffolding",
