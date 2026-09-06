@@ -22,6 +22,28 @@ export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
 
 type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string };
 
+/**
+ * 강조색 위에 올릴 글자색을 **강조색에서 계산한다.**
+ *
+ * ⚠ 전에는 팔레트의 onAccent 를 그대로 썼다. 그런데 사장님이 강조색을 직접 고를 수 있어서
+ *   (theme.accent), 어두운 팔레트에 어두운 강조색을 고르면 버튼 글자가 배경에 묻는다 —
+ *   2026-09-07 barun 사이트에서 실제로 그랬다(강조 #3A3F47 위에 글자 #12151B).
+ *   밝기를 재서 흰 글자와 검은 글자 중 대비가 큰 쪽을 고른다. 어떤 색을 골라도 읽힌다.
+ */
+export function onColor(bgHex: string): string {
+  const h = bgHex.replace("#", "");
+  const v = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(v, 16);
+  if (!Number.isFinite(n) || v.length !== 6) return "#FFFFFF";
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => {
+    const c = x / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  const L = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  // 흰 글자 대비 vs 검은 글자 대비 — 큰 쪽
+  return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.05) ? "#FFFFFF" : "#111111";
+}
+
 /* ── 앵커 ── 햄버거 시트가 이 목록으로 차례를 만든다 (site-chrome.tsx) */
 
 /** 섹션 종류 → 앵커 id. 같은 종류가 두 번 있어도 첫 번째만 차례에 올린다. */

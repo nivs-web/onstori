@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SiteDocT, StoryEntryT } from "@/lib/schema";
-import { PALETTES, RenderSection } from "@/components/sections";
+import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome } from "@/components/sections/site-chrome";
 import { PREVIEW_MSG, type PreviewMessage } from "@/lib/editor/preview-protocol";
 
@@ -50,7 +50,9 @@ export function PreviewClient({ slug, initialDoc, stories }: Props) {
   const firstIsHero = doc.sections[0]?.type === "hero";
   const vars = {
     "--s-bg": p.bg, "--s-ink": p.ink, "--s-muted": p.muted, "--s-line": p.line,
-    "--s-accent": accent, "--s-soft": p.soft, "--s-on-accent": p.onAccent,
+    "--s-accent": accent, "--s-soft": p.soft,
+    // 팔레트 값이 아니라 **고른 강조색에서** 계산한다 (components/sections/index.tsx onColor)
+    "--s-on-accent": onColor(accent),
   } as React.CSSProperties;
 
   return (
