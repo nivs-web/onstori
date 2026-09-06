@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PORTFOLIO_TABS } from "@/config/industries";
-import { PhoneFrame } from "./phone-frame";
+import { ThemeCard } from "./theme-card";
 import type { ShowcaseItem } from "./portfolio";
 
 /** 포트폴리오 탭 + 폰 프레임 라이브 카드 — 활성 탭만 마운트, iframe lazy */
@@ -29,26 +29,27 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
         ))}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 살아 있는 사이트를 iframe 으로 띄우지 않는다 — 미리 찍은 스크린샷이다.
+          폰에서는 가로로 밀어 넘기고 다음 카드가 살짝 보인다(.tcard-rail). */}
+      <div className="tcard-rail" style={{ marginTop: "var(--s-6)" }}>
         {shown.map((it) => (
-          <figure key={it.slug} className="mx-auto w-full" style={{ maxWidth: 270 }}>
-            <PhoneFrame slug={it.slug} title={it.name} />
+          <figure key={it.slug} style={{ margin: 0 }}>
+            {it.pc && it.phone ? (
+              <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} />
+            ) : (
+              /* 아직 안 찍힌 사이트 — 카드 자리는 지키되 비워 둔다 */
+              <a href={`/${it.slug}`} target="_blank" rel="noreferrer" className="tcard" aria-label={`${it.name} 홈페이지 보기`}>
+                <span className="tcard-bar" aria-hidden><i /><i /><i /></span>
+              </a>
+            )}
             <figcaption className="flex items-center justify-between" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
               <div className="min-w-0">
-                <p className="truncate t-small font-bold">
-                  {it.featured && <span className="mr-1 text-accent">★</span>}{it.name}
+                <p className="t-body truncate font-bold" style={{ color: "var(--text-strong)" }}>
+                  {it.featured && <span className="mr-1" style={{ color: "var(--accent)" }}>★</span>}{it.name}
                 </p>
-                <p className="t-caption" style={{ color: "var(--muted)" }}>{it.tag}</p>
+                <p className="t-caption">{it.tag}</p>
               </div>
-              <a href={`/${it.slug}`} target="_blank" rel="noreferrer"
-                className="t-small inline-flex items-center whitespace-nowrap font-semibold"
-                style={{
-                  minHeight: "var(--tap)", paddingInline: "var(--s-4)", borderRadius: "var(--r-full)",
-                  border: "1px solid var(--n-200)", color: "var(--n-900)",
-                  transition: "border-color var(--dur-2) var(--ease)",
-                }}>
-                라이브 보기 ↗
-              </a>
+              <span className="t-small whitespace-nowrap font-semibold" style={{ color: "var(--green-700)" }}>보기 ↗</span>
             </figcaption>
           </figure>
         ))}

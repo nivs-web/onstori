@@ -28,6 +28,17 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
     if (r.ok) setRows((rs) => rs.map((x) => (x.id === id ? { ...x, ...p } : x)));
   }
 
+  /** 수동 재촬영 — 첫 페이지 테마 카드 사진을 다시 찍는다.
+      크롬이 없는 서버에서는 이유를 그대로 보여준다(조용히 실패하지 않는다). */
+  const [shooting, setShooting] = useState("");
+  async function reshoot(slug: string) {
+    setShooting(slug); setMsg("");
+    const r = await fetch("/api/admin/site-shot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+    const d = await r.json().catch(() => ({}));
+    setShooting("");
+    setMsg(r.ok ? `/${slug} 사진을 다시 찍었어요` : `/${slug} 재촬영 실패 — ${d.error === "no-browser" ? "이 서버에는 크롬이 없어요(브라우저가 있는 곳에서 scripts/site-shots.ts 로 돌리세요)" : d.error}`);
+  }
+
   async function remove(id: string, slug: string) {
     if (!confirm(`/${slug} 을(를) 포트폴리오에서 뺄까요? (사이트 자체는 그대로)`)) return;
     const r = await fetch("/api/admin/showcase", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
@@ -66,7 +77,11 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${r.featured ? "bg-accent text-accent-ink" : "border border-n-300 text-[var(--text-soft)]"}`}>
               ★ 추천
             </button>
-            <button onClick={() => remove(r.id, r.slug)} className="ml-auto rounded-full border border-n-300 px-2.5 py-1 text-xs text-[var(--text-soft)]">빼기</button>
+            <button onClick={() => reshoot(r.slug)} disabled={shooting === r.slug}
+              className="ml-auto rounded-full border border-n-300 px-2.5 py-1 text-xs font-semibold disabled:opacity-50">
+              {shooting === r.slug ? "찍는 중…" : "사진 다시 찍기"}
+            </button>
+            <button onClick={() => remove(r.id, r.slug)} className="rounded-full border border-n-300 px-2.5 py-1 text-xs text-[var(--text-soft)]">빼기</button>
           </li>
         ))}
       </ul>

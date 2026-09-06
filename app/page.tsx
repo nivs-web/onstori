@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Portfolio, loadShowcase } from "@/components/portfolio";
-import { PhoneFrame } from "@/components/phone-frame";
 import { PromoBar, SiteHeader, SiteFooter } from "@/components/site/chrome";
 import { ChannelStrip, RecMockup, SpeechToStory, CompareCallout, FaqList } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
@@ -65,9 +64,14 @@ export default async function Home() {
             </dl>
           </div>
           <div className="relative mx-auto hidden items-end lg:flex" style={{ gap: "var(--s-4)" }}>
-            {heroSite && (
-              <figure className="relative">
-                <PhoneFrame slug={heroSite.slug} scale={0.6} title={heroSite.name} />
+            {/* ⚠ 예전에는 여기에 살아 있는 사이트를 iframe 으로 띄웠다. 스크롤바·오른쪽 흰 여백·
+                느려짐이 전부 거기서 나왔다. 지금은 미리 찍은 사진 한 장(13KB)이다. */}
+            {heroSite?.phone && (
+              <figure className="relative" style={{ margin: 0 }}>
+                <span className="phone-shot">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={heroSite.phone} alt={`${heroSite.name} 홈페이지 화면`} width={236} height={480} />
+                </span>
                 <figcaption
                   className="absolute t-caption font-bold"
                   style={{
@@ -77,7 +81,7 @@ export default async function Home() {
                     boxShadow: "var(--shadow-1)",
                   }}
                 >
-                  실제 작동 중 · 스크롤해보세요 👆
+                  온스토리로 만든 홈페이지
                 </figcaption>
               </figure>
             )}

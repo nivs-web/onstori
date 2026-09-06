@@ -10,7 +10,7 @@ import { PortfolioTabs } from "./portfolio-ui";
  *   showcase 표에 행이 있는 것만으로는 부족하다 — 미완성 테스트 사이트가 저절로
  *   손님 첫 화면에 뜨는 사고를 막는다(실제로 bls 가 전화 010-0000-0000 인 채로 떠 있었다).
  */
-export type ShowcaseItem = { slug: string; tag: string; featured: boolean; name: string };
+export type ShowcaseItem = { slug: string; tag: string; featured: boolean; name: string; pc?: string; phone?: string };
 
 /**
  * 자동 편입 조건: 공개 중(trial·active) + 전화번호가 자리표시가 아님.
@@ -56,7 +56,10 @@ export async function loadShowcase(): Promise<ShowcaseItem[]> {
           if (!realPhone(m.settings?.phone)) return null;
         }
         const site = await getSiteBySlug(r.slug);
-        return site ? { slug: r.slug, tag: r.tag, featured: r.featured, name: site.doc.businessName } : null;
+        if (!site) return null as ShowcaseItem | null;
+        // 미리 찍은 스크린샷 — 없으면 카드가 사진 없이 뜬다(그래도 화면은 안 깨진다)
+        const sh = (bySlug.get(r.slug) as { settings?: { shots?: { pc?: string; phone?: string } } } | undefined)?.settings?.shots;
+        return { slug: r.slug, tag: r.tag, featured: r.featured, name: site.doc.businessName, pc: sh?.pc, phone: sh?.phone };
       }),
     );
     return items.filter((x): x is ShowcaseItem => !!x);
@@ -72,7 +75,9 @@ export async function Portfolio({ items }: { items?: ShowcaseItem[] }) {
     <section id="portfolio">
       <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ textWrap: "balance" }}>온스토리로 만든 홈페이지</h2>
       <p className="mt-2 t-body" style={{ color: "var(--muted)" }}>
-        실제로 작동하는 화면이에요 — 안을 <b style={{ color: "var(--ink)" }}>직접 스크롤</b>해보세요.
+        {/* ⚠ 전에는 "안을 직접 스크롤해보세요" 였다. iframe 을 걷어낸 뒤로는 안에서 스크롤할 수
+            없으니 그대로 두면 거짓말이 된다. 실제 동작(마우스 올리면 내려감)으로 고쳐 적는다. */}
+        마우스를 올리면 화면이 아래로 내려가요. 누르면 진짜 사이트가 열립니다.
         {/* ⚠ 실고객 사이트가 아니라는 사실은 계속 밝힌다 — 빼면 남의 실적처럼 보인다.
             "샘플"이라는 낱말만 쓰지 않는다 (2026-09-07 회장님). 규칙 7 취지는 그대로다. */}
         {" "}(온스토리가 직접 만든 화면입니다.)

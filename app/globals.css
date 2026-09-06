@@ -154,6 +154,21 @@
   --hv-d-img: 400ms;
   --hv-shadow: 0 16px 32px rgba(26, 39, 34, .12);
 
+  /* ── 테마 카드(첫 페이지 사이트 미리보기) ──
+     살아 있는 사이트를 iframe 으로 띄우지 않는다. 미리 찍은 긴 스크린샷 한 장을
+     overflow:hidden 안에서 transform 으로 민다 (docs/specs/theme-card-실측.md).
+     ⚠ 폰 안쪽 모서리는 반드시 (바깥 − 두께) 여야 한다. 안 맞으면 즉시 싸 보인다. */
+  --tc-h: 420px;              /* 카드 높이 */
+  --tc-scroll: 5.5s;          /* PC 화면이 내려가는 시간 */
+  --tc-scroll-phone: 7s;      /* 폰 화면은 조금 더 느리게 */
+  --tc-back: 2.75s;           /* 마우스를 떼면 돌아오는 시간 — 내려갈 때의 절반 */
+  --tc-delay: 150ms;          /* 스쳐 지나갈 때 안 움직이게 */
+  --tc-phone-w: 116px;
+  --tc-phone-border: 7px;
+  --tc-phone-r: 34px;                                        /* 바깥 모서리 */
+  --tc-phone-r-in: calc(var(--tc-phone-r) - var(--tc-phone-border));  /* = 27px */
+  --tc-phone-shadow: 0 24px 48px rgba(26, 39, 34, .28);
+
   /* ── 등장 ── 조작보다 훨씬 느리고 부드럽다 */
   --enter-y: 28px;
   --enter-d: 700ms;
@@ -549,6 +564,156 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   }
   .table-scroll thead th:first-child { z-index: 2; }
 
+  /* ───────────────────────── 테마 카드 ───────────────────────── */
+  /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
+
+  .tcard {
+    position: relative;
+    display: block;
+    height: var(--tc-h);
+    overflow: hidden;                 /* ★ 사진이 카드 밖으로 나가지 않게 */
+    border-radius: var(--r-lg);
+    border: 1px solid var(--n-200);
+    background: var(--n-100);
+    /* 쉴 때 그림자 없음 */
+  }
+
+  /* 브라우저 틀 — 얇은 상단 바 + 점 3개 */
+  .tcard-bar {
+    position: absolute; inset-inline: 0; top: 0; z-index: 2;
+    height: 26px; display: flex; align-items: center; gap: 5px;
+    padding-inline: 10px;
+    background: var(--n-100);
+    border-bottom: 1px solid var(--n-200);
+  }
+  .tcard-bar i { width: 7px; height: 7px; border-radius: var(--r-full); background: var(--n-300); }
+
+  /* PC 화면 — 카드보다 길게 깔고 위를 맞춘 뒤 위로 민다 */
+  .tcard-shot {
+    position: absolute; inset-inline: 0; top: 26px;
+    width: 100%; display: block;
+    transform: translateY(0);
+    transition: transform var(--tc-back) ease-out;
+  }
+
+  /* 폰 목업 — 카드 오른쪽 아래, 안쪽으로 16px */
+  .tcard-phone {
+    position: absolute; right: 16px; bottom: 16px; z-index: 3;
+    width: var(--tc-phone-w);
+    aspect-ratio: 116 / 238;
+    padding: var(--tc-phone-border);
+    border-radius: var(--tc-phone-r);
+    background: var(--n-900);
+    box-shadow: var(--tc-phone-shadow);
+    overflow: hidden;
+    opacity: 0; transform: translateY(24px) scale(.96);
+    transition: opacity 420ms cubic-bezier(.25,.8,.25,1), transform 420ms cubic-bezier(.25,.8,.25,1);
+  }
+  /* 유리 가장자리 느낌 — 안쪽 1px 흰 링 */
+  .tcard-phone::after {
+    content: ""; position: absolute; inset: var(--tc-phone-border);
+    border-radius: var(--tc-phone-r-in);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    pointer-events: none;
+  }
+  .tcard-phone > img {
+    display: block; width: 100%;
+    border-radius: var(--tc-phone-r-in);   /* ★ 바깥 − 두께 */
+    transform: translateY(0);
+    transition: transform var(--tc-back) ease-out;
+  }
+
+  /* 쉴 때 아래쪽 옅은 그라데이션 — "아래에 더 있다"는 신호 */
+  .tcard::after {
+    content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 72px; z-index: 1;
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--n-900) 12%, transparent));
+    transition: opacity var(--dur-3) var(--ease);
+    pointer-events: none;
+  }
+
+  /* ⚠ hover 를 @media 로 감싼다. 안 감싸면 터치 기기에서 탭한 뒤 hover 가 걸린 채 남는다. */
+  @media (hover: hover) and (pointer: fine) {
+    .tcard:hover .tcard-shot {
+      transform: translateY(calc(-1 * var(--tc-shift, 50%)));
+      transition: transform var(--tc-scroll) var(--tc-delay) ease-in-out;
+    }
+    .tcard:hover .tcard-phone {
+      opacity: 1; transform: translateY(0) scale(1);
+      transition-delay: calc(var(--tc-delay) + 80ms);   /* PC 스크롤보다 80ms 늦게 */
+    }
+    .tcard:hover .tcard-phone > img {
+      transform: translateY(calc(-1 * var(--tc-shift-phone, 50%)));
+      transition: transform var(--tc-scroll-phone) var(--tc-delay) ease-in-out;
+    }
+    .tcard:hover::after { opacity: 0; }
+  }
+
+  /* 폰·터치 — 화면에 들어오면 한 번 자동 재생. 폰 목업은 처음부터 보인다. */
+  @media (hover: none) {
+    .tcard-phone { opacity: 1; transform: none; }
+    .tcard.tcard-play .tcard-shot {
+      transform: translateY(calc(-1 * var(--tc-shift, 50%)));
+      transition: transform var(--tc-scroll) ease-in-out;
+    }
+    .tcard.tcard-play .tcard-phone > img {
+      transform: translateY(calc(-1 * var(--tc-shift-phone, 50%)));
+      transition: transform var(--tc-scroll-phone) ease-in-out;
+    }
+  }
+
+  /* 움직임을 줄여 달라고 한 사용자 — 맨 위만 보여준다 */
+  @media (prefers-reduced-motion: reduce) {
+    .tcard-shot, .tcard-phone > img { transform: none !important; }
+    .tcard-phone { opacity: 1 !important; transform: none !important; }
+  }
+
+  /* 히어로 옆 폰 목업 — 미리 찍은 사진 한 장. iframe 아니다.
+     테두리·모서리 규격은 테마 카드와 같은 토큰을 쓴다(따로 정하지 않는다). */
+  .phone-shot {
+    position: relative;
+    width: 250px;
+    padding: var(--tc-phone-border);
+    border-radius: var(--tc-phone-r);
+    background: var(--n-900);
+    box-shadow: var(--tc-phone-shadow);
+    overflow: hidden;
+  }
+  .phone-shot::after {
+    content: ""; position: absolute; inset: var(--tc-phone-border);
+    border-radius: var(--tc-phone-r-in);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    pointer-events: none;
+  }
+  .phone-shot > img {
+    display: block; width: 100%;
+    border-radius: var(--tc-phone-r-in);
+    /* 위에서부터 보여준다 — 아래는 잘라낸다 */
+    aspect-ratio: 236 / 480; object-fit: cover; object-position: center top;
+  }
+
+  /* 폰 배치 — 가로로 밀어 넘기고 다음 카드가 살짝 보인다(약 1.4개) */
+  .tcard-rail {
+    display: grid; grid-auto-flow: column;
+    grid-auto-columns: 72%;
+    gap: var(--s-4);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-inline: var(--gutter);
+    margin-inline: calc(var(--gutter) * -1);
+    scrollbar-width: none;
+  }
+  .tcard-rail::-webkit-scrollbar { display: none; }
+  .tcard-rail > * { scroll-snap-align: start; }
+  @media (min-width: 768px) {
+    .tcard-rail {
+      grid-auto-flow: row; grid-template-columns: repeat(2, 1fr);
+      overflow: visible; padding-inline: 0; margin-inline: 0; gap: var(--s-5);
+    }
+  }
+  @media (min-width: 1100px) {
+    .tcard-rail { grid-template-columns: repeat(3, 1fr); }
+  }
+
   /* 터치 목표 48×48 — 손가락으로 누르는 화면에서만.
      마우스에는 필요 없고, 걸면 PC 푸터만 길어진다. */
   @media (max-width: 767px) {
@@ -677,6 +842,18 @@ details.faq > summary::-webkit-details-marker { display: none; }
 }
 .plusminus::after { transform: rotate(90deg); }
 details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacity: 0; }
+
+/* 스크롤바 — 얇게, 하지만 **숨기지는 않는다.**
+   어디쯤 왔는지 모르면 답답하다. 손잡이만 옅게 두고 hover 에서 진해진다. */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--n-400) 40%, transparent) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--n-400) 40%, transparent);
+  border-radius: var(--r-full);
+}
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--n-500) 70%, transparent); }
+::-webkit-scrollbar-corner { background: transparent; }
 
 /* 키보드 사용자에게만 보이는 초점 링 */
 :where(a, button, summary, [tabindex]):focus-visible {
