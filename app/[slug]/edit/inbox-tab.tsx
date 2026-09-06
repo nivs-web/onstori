@@ -51,7 +51,8 @@ const FILTERS: { id: "all" | Status; label: string }[] = [
 ];
 
 const COPY = {
-  empty: "아직 문의가 없어요. 홈페이지 주소를 카톡 프로필·명함·플레이스에 걸어두면 여기 쌓여요.",
+  empty: "아직 문의가 없어요.",
+  emptyNext: "지금 할 일 — 홈페이지 주소를 카톡 프로필 상태메시지에 붙여넣으세요. 30초면 됩니다.",
   emptyFiltered: "이 칸에는 아직 문의가 없어요.",
   loadFail: "문의를 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
   photoFail: "사진 주소가 만료됐어요",
@@ -180,9 +181,15 @@ export function InboxTab({ slug, anonId, initial, onNewCount }: {
       </div>
 
       {shown.length === 0 ? (
-        <p className="mt-8 rounded-2xl bg-n-50 p-6 text-center text-sm leading-relaxed text-[var(--text-soft)]">
-          {items.length === 0 ? COPY.empty : COPY.emptyFiltered}
-        </p>
+        /* 빈 화면에 "없어요"만 두지 않는다 — 지금 할 수 있는 다음 행동을 한 줄 준다 */
+        <div className="text-center" style={{ marginTop: "var(--s-6)", background: "var(--n-50)", borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}>
+          <p className="t-body" style={{ color: "var(--text)" }}>
+            {items.length === 0 ? COPY.empty : COPY.emptyFiltered}
+          </p>
+          {items.length === 0 && (
+            <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--text-soft)" }}>{COPY.emptyNext}</p>
+          )}
+        </div>
       ) : (
         <ul className="mt-4 space-y-3">
           {shown.map((row) => (

@@ -73,7 +73,7 @@ export function SiteFooter() {
                 key={c.id}
                 className="t-caption"
                 style={{
-                  border: "1px solid var(--n-700)", color: "var(--n-400)",
+                  border: "1px solid var(--n-700)", color: "var(--text-soft)",
                   borderRadius: "var(--r-full)", padding: "var(--s-1) var(--s-3)",
                 }}
               >
@@ -88,7 +88,7 @@ export function SiteFooter() {
       <div style={{ borderTop: "1px solid var(--n-800)" }}>
         <div
           className="wrap flex flex-wrap items-center justify-between t-caption"
-          style={{ gap: "var(--s-3)", paddingBlock: "var(--s-5)", color: "var(--n-400)" }}
+          style={{ gap: "var(--s-3)", paddingBlock: "var(--s-5)", color: "var(--text-soft)" }}
         >
           <span>© {new Date().getFullYear()} 온스토리 onstori.com · 문의: 카카오톡 채널 (준비 중)</span>
           {/* 전자상거래법 제10조 표시 의무 — 값의 단일 출처는 config/company.ts */}
@@ -102,7 +102,7 @@ export function SiteFooter() {
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "var(--tracking-kicker)" }}>{title}</p>
+      <p className="t-caption font-bold" style={{ color: "var(--text-soft)", letterSpacing: "var(--tracking-kicker)" }}>{title}</p>
       <ul style={{ marginTop: "var(--s-3)" }}>
         {links.map(([href, label]) => (
           <li key={href + label}>

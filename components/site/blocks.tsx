@@ -76,13 +76,13 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
       <div className="relative overflow-hidden" style={{ height: 500, borderRadius: "var(--r-md)", background: "var(--n-800)" }}>
         <div
           className="absolute inset-x-0 top-0 flex items-center justify-between t-caption"
-          style={{ padding: "var(--s-3) var(--s-4) 0", color: "var(--n-400)" }}
+          style={{ padding: "var(--s-3) var(--s-4) 0", color: "var(--text-soft)" }}
         >
           <span>onstori.com/rec</span><span>크롬</span>
         </div>
         {state === "ask" ? (
           <div className="absolute" style={{ insetInline: "var(--s-4)", top: "var(--s-7)" }}>
-            <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "var(--tracking-kicker)" }}>오늘의 질문</p>
+            <p className="t-caption font-bold" style={{ color: "var(--text-soft)", letterSpacing: "var(--tracking-kicker)" }}>오늘의 질문</p>
             {[question, "가장 힘들었던 작업은 무엇이었나요?", "이번 주 손님 한 분 이야기", "우리만 고집하는 게 있다면?"].map((t, i) => (
               <div
                 key={i}
@@ -122,13 +122,13 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
                   >
                     <span className="inline-block" style={{ width: 10, height: 10, borderRadius: "var(--r-full)", background: "var(--danger)" }} /> REC 0:23 / 1:00
                   </span>
-                  <p className="t-caption" style={{ marginTop: "var(--s-8)", color: "var(--n-400)" }}>얼굴이 안 나와도 됩니다<br />목소리면 충분합니다</p>
+                  <p className="t-caption" style={{ marginTop: "var(--s-8)", color: "var(--text-soft)" }}>얼굴이 안 나와도 됩니다<br />목소리면 충분합니다</p>
                 </>
               ) : (
                 <>
                   <p className="t-display" style={{ color: "var(--n-0)" }}>✓</p>
                   <p className="t-small font-bold" style={{ marginTop: "var(--s-1)", color: "var(--n-0)" }}>보냈어요</p>
-                  <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--n-400)" }}>자막 영상은 30분쯤 뒤<br />문자로 보내드릴게요</p>
+                  <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--text-soft)" }}>자막 영상은 30분쯤 뒤<br />문자로 보내드릴게요</p>
                 </>
               )}
             </div>
@@ -201,7 +201,7 @@ export function CompareCallout() {
                 className="t-small grid grid-cols-3 items-center"
                 style={{ gap: "var(--s-2)", marginBottom: "var(--s-2)", background: "var(--n-800)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-4)" }}
               >
-                <span style={{ color: "var(--n-400)" }}>{k}</span>
+                <span style={{ color: "var(--text-soft)" }}>{k}</span>
                 <span style={{ color: "var(--text-soft)", textDecoration: "line-through" }}>{a}</span>
                 <span className="font-bold" style={{ color: "var(--green-200)" }}>{b}</span>
               </li>

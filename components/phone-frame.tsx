@@ -20,7 +20,12 @@ export function PhoneFrame({ slug, scale = 0.62, title }: { slug: string; scale?
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (typeof IntersectionObserver === "undefined") { setShow(true); return; }
+    if (typeof IntersectionObserver === "undefined") {
+      // ⚠ 효과 안에서 setState 를 곧바로 부르면 렌더가 연쇄로 돈다(react-hooks 규칙).
+      //    다음 틱으로 미뤄 한 번만 다시 그리게 한다.
+      const t = setTimeout(() => setShow(true), 0);
+      return () => clearTimeout(t);
+    }
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) { setShow(true); io.disconnect(); }

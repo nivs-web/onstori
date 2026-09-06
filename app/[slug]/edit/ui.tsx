@@ -156,7 +156,9 @@ export function EditUi({ slug }: { slug: string }) {
     return () => { document.body.style.overflow = prev; };
   }, [sheetOpen]);
 
-  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2500); };
+  /* 공용 .toast 애니메이션이 2320ms(120 fade-in + 2초 유지 + 200 fade-out)다 —
+     지우는 시각을 거기 맞춘다. 어긋나면 사라지다 말고 툭 끊긴다. (docs/MOTION.md) */
+  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2320); };
 
   function patchSection(idx: number, patch: Partial<SectionT>) {
     setDoc((d) => d && ({ ...d, sections: d.sections.map((s, i) => (i === idx ? ({ ...s, ...patch } as SectionT) : s)) }));
@@ -290,8 +292,8 @@ export function EditUi({ slug }: { slug: string }) {
         </>
       ) : (
         <>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">이 홈페이지 주인이라면 로그인 후 수정할 수 있어요.</p>
-          <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white">로그인하기</a>
+          <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text-soft)" }}>이 홈페이지 주인이라면 로그인 후 수정할 수 있어요.</p>
+          <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>로그인하기</a>
         </>
       )}
       <p className="mt-4 text-xs text-[var(--text-soft)]">운영자라면 <a className="text-green-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
@@ -332,7 +334,7 @@ export function EditUi({ slug }: { slug: string }) {
             <p className="mt-8 text-center text-sm text-[var(--text-soft)]">문의를 불러오는 중…</p>
           )}
           {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
-          {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-n-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
+          {toast && <div className="toast" role="status">{toast}</div>}
         </main>
       );
     }
@@ -458,7 +460,7 @@ export function EditUi({ slug }: { slug: string }) {
 
     {/* PC 미리보기 — 폰 프레임. 투어 앵커는 여기 한 곳에만 붙인다(아래 폰 버튼은 같은 자리를 가리키는 중복이라 안 붙인다) */}
     <aside data-tour="panel-preview" className="hidden lg:sticky lg:top-4 lg:block lg:w-[390px] lg:flex-shrink-0">
-      <div className="overflow-hidden rounded-[2rem] border border-n-300 bg-white shadow-sm" style={{ height: "calc(100vh - 8rem)" }}>
+      <div className="overflow-hidden border border-n-300 bg-white" style={{ height: "calc(100vh - 8rem)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-1)" }}>
         {isDesktop && <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />}
       </div>
     </aside>
@@ -483,7 +485,7 @@ export function EditUi({ slug }: { slug: string }) {
       </div>
     )}
 
-    {toast && <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-n-900 px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
+    {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }

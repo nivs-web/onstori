@@ -250,7 +250,7 @@ export default async function Home() {
               </ul>
               <div className="flex flex-wrap items-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
                 <Link href="/new" className="btn btn-primary">30일 무료로 시작</Link>
-                <span className="t-small" style={{ color: "var(--n-400)" }}>매달 자동 결제 · 언제든 해지</span>
+                <span className="t-small" style={{ color: "var(--text-soft)" }}>매달 자동 결제 · 언제든 해지</span>
               </div>
             </div>
             <div>
@@ -410,7 +410,7 @@ export default async function Home() {
           <p className="t-display" style={{ marginTop: "var(--s-6)" }}>
             정회원 월 <span style={{ color: "var(--accent)" }}>49,000</span>원
           </p>
-          <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--n-400)" }}>
+          <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--text-soft)" }}>
             매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · 6채널 발행 포함
           </p>
           <div style={{ marginTop: "var(--s-7)" }}>
