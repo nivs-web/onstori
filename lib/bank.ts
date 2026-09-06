@@ -32,14 +32,22 @@ export async function pickImage(
 ): Promise<string> {
   try {
     const sb = sbAdmin();
-    const { data } = await sb
+    let query = sb
       .from("image_bank")
       .select("id, url, tags, used_count")
       .eq("industry", industry)
       .eq("mood", mood)
       .eq("role", role)
       .eq("quality_ok", true)
-      .eq("deleted", false)
+      .eq("deleted", false);
+    // ★ 히어로만 **세로(portrait)를 점수보다 먼저** 본다 (2026-09-06).
+    //   히어로는 폰 화면을 꽉 채우고 object-cover 로 깔려 가로 사진은 좌우가 잘린다.
+    //   점수를 아직 안 매긴 사진이 많아(전부 50점) 점수만으로 정렬하면 옛 가로 사진과
+    //   새 세로 사진이 같은 순위로 섞인다. 방향을 첫 기준으로 둬야 폰에서 세로가 나온다.
+    //   'landscape' < 'portrait' 이므로 내림차순이면 portrait 이 먼저다.
+    //   gallery·about·process 는 가로가 맞는 비율이라 이 규칙을 붙이지 않는다.
+    if (role === "hero") query = query.order("orientation", { ascending: false });
+    const { data } = await query
       .order("quality_score", { ascending: false })
       .order("used_count", { ascending: true })
       .limit(40); // 태그·사용중 필터를 태우려면 후보 풀이 넉넉해야 한다
@@ -104,14 +112,16 @@ export async function pickImages(
 ): Promise<string[]> {
   try {
     const sb = sbAdmin();
-    const { data } = await sb
+    let query = sb
       .from("image_bank")
       .select("id, url, tags, used_count")
       .eq("industry", industry)
       .eq("mood", mood)
       .eq("role", role)
       .eq("quality_ok", true)
-      .eq("deleted", false)
+      .eq("deleted", false);
+    // gallery·about·process 는 가로가 맞는 비율이라 방향 우선 규칙을 붙이지 않는다 (히어로만 적용).
+    const { data } = await query
       .order("quality_score", { ascending: false })
       .order("used_count", { ascending: true })
       .limit(40);
