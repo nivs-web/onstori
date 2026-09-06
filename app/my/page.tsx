@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getSessionUser } from "@/lib/supabase/server";
 import { sbAdmin } from "@/lib/db-admin";
-import { LogoutButton } from "./ui";
+import { LogoutButton, CancelSubscription } from "./ui";
 import { trialInfo } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
@@ -102,6 +102,10 @@ export default async function MyPage() {
                     수정하기
                   </Link>
                 </div>
+                {/* 구독 중이면 해지 진입점을 1뎁스로 — 가입만큼 쉬워야 한다 (전자상거래법 제21조의2) */}
+                {trialInfo(s).paid && (
+                  <div className="mt-2 w-full sm:w-auto"><CancelSubscription slug={s.slug} /></div>
+                )}
               </li>
             ))}
           </ul>

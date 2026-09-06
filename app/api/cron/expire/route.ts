@@ -44,7 +44,7 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, sitesDeleted: 0, filesPurged: 0, charged: 0, chargeFailed: 0 };
+  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, deleteBlocked: 0, sitesDeleted: 0, filesPurged: 0, chargeNoticed: 0, charged: 0, chargeFailed: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -110,6 +110,7 @@ export async function GET(req: Request) {
     .map((s) => ({ ...s, deleteMs: new Date(s.trial_ends_at as string).getTime() + GRACE_DAYS * day }));
 
   // 4) 삭제 예고 문자 — 남은 일수가 예고일과 정확히 같은 날에만 (크론이 하루 한 번이라 중복되지 않는다)
+  //    ★ 보낸 사실을 settings.delete_notices 에 기록한다. 5)의 삭제 게이트가 이 기록을 본다.
   for (const s of withDeleteAt) {
     const left = Math.ceil((s.deleteMs - now) / day);
     if (!DELETE_NOTICE_DAYS.includes(left as 3 | 1)) continue;
@@ -117,13 +118,30 @@ export async function GET(req: Request) {
     if (!phone) continue;
     // 90바이트(EUC-KR) 안 — 넘으면 LMS 로 나가 요금이 3배가 된다 (2026-09-06 nudgeText 와 같은 제약)
     // 슬러그 최댓값(30자)에서 83바이트. "홈페이지"·"지금"을 뺀 이유가 이것이다 — 넣으면 97바이트로 LMS 가 된다.
-    if (await sendSmsRaw(phone, `온스토리 ${left}일 뒤 삭제. 결제하면 복구 onstori.com/${s.slug}/edit`)) out.deleteNoticed++;
+    const sent = await sendSmsRaw(phone, `온스토리 ${left}일 뒤 삭제. 결제하면 복구 onstori.com/${s.slug}/edit`);
+    if (!sent) continue;
+    out.deleteNoticed++;
+    const prev = (s.settings as { delete_notices?: string[] } | null)?.delete_notices ?? [];
+    await sb.from("sites")
+      .update({ settings: { ...(s.settings as Record<string, unknown>), delete_notices: [...prev, `d${left}:${new Date(now).toISOString()}`] } })
+      .eq("id", s.id);
   }
 
   // 5) 유예가 지난 미결제 사이트 자동 삭제 — 파일 먼저, DB 나중
   //    (순서를 뒤집으면 경로를 잃어 파일만 남는 고아가 생긴다)
+  //
+  // ★ 삭제 게이트 — 예고를 한 번이라도 **실제로 보내지 못했으면 지우지 않는다.**
+  //   이용약관이 "삭제 전에 미리 알려드립니다" 를 삭제권의 발생 요건으로 약속했다.
+  //   연락처가 없거나 문자가 계속 실패한 사장님의 홈페이지가 예고 한 번 없이 영구 삭제되는 것을 막는다.
+  //   크론이 며칠 걸러져 D-3·D-1 을 모두 놓친 경우에도 여기서 걸린다 — 그때는 지우지 않고 로그만 남긴다.
   for (const s of withDeleteAt) {
     if (s.deleteMs > now) continue;
+    const notices = (s.settings as { delete_notices?: string[] } | null)?.delete_notices ?? [];
+    if (notices.length === 0) {
+      console.error(JSON.stringify({ evt: "site_delete_blocked_no_notice", slug: s.slug, reason: "예고 문자를 한 번도 보내지 못했다 — 사람이 확인할 것" }));
+      out.deleteBlocked++;
+      continue;
+    }
     try {
       out.filesPurged += await storage.removePrefix("media", `uploads/${s.slug}/`);
       out.filesPurged += await storage.removePrefix("private", `inquiries/${s.id}/`);
@@ -138,6 +156,26 @@ export async function GET(req: Request) {
       console.log(JSON.stringify({ evt: "site_auto_deleted", slug: s.slug, trialEndedAt: s.trial_ends_at }));
     } catch (e) {
       console.error(JSON.stringify({ evt: "site_delete_failed", slug: s.slug, err: String(e).slice(0, 300) }));
+    }
+  }
+
+  // 6-0) 결제 3일 전 사전 고지 — 정기결제는 청구 전에 금액·날짜·수단·해지 방법을 알려야 한다.
+  //      ★ 예고 없이 카드를 긁지 않는다. 이 블록을 지우면 이용약관 제5조의 약속이 깨진다.
+  if (process.env.TOSS_SECRET_KEY?.trim()) {
+    const from = new Date(now + 2.5 * day).toISOString();
+    const to = new Date(now + 3.5 * day).toISOString();
+    const { data: upcoming } = await sb
+      .from("billing")
+      .select("site_id, card_last4, next_charge_at")
+      .eq("status", "active").gte("next_charge_at", from).lte("next_charge_at", to).limit(300);
+    for (const b of upcoming ?? []) {
+      const { data: site } = await sb.from("sites").select("slug, settings").eq("id", b.site_id).maybeSingle();
+      const phone = (site?.settings as { phone?: string } | null)?.phone;
+      if (!site || !phone) continue;
+      const d = new Date(b.next_charge_at);
+      const when = `${d.getMonth() + 1}/${d.getDate()}`;
+      // EUC-KR 90바이트 안 (슬러그 30자 기준 실측)
+      if (await sendSmsRaw(phone, `온스토리 ${when} 49,000원 결제 예정. 해지는 onstori.com/my`)) out.chargeNoticed++;
     }
   }
 
