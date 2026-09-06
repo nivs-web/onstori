@@ -271,9 +271,11 @@ function GallerySec({ s }: { s: Extract<SectionT, { type: "gallery" }> }) {
     <SectionShell id="gallery" title={s.title}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-3)" }}>
         {s.photos.map((p) => (
-          <Photo key={p} src={p} alt="" className="photo"
-                 sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                 style={{ background: "var(--s-soft)" }} />
+          <span key={p} className="card-photo block" style={{ borderRadius: "var(--r-lg)" }}>
+            <Photo src={p} alt="" className="photo"
+                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                   style={{ background: "var(--s-soft)" }} />
+          </span>
         ))}
       </div>
     </SectionShell>
@@ -342,7 +344,7 @@ function PortfolioSec({ s }: { s: Extract<SectionT, { type: "portfolioGallery" }
     <SectionShell id="portfolio" title={s.title}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-4)" }}>
         {s.items.map((it) => (
-          <figure key={it.title} className="overflow-hidden" style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)" }}>
+          <figure key={it.title} className="card-photo" style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-lg)" }}>
             <Photo src={it.image} alt={it.title} className="photo"
                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                    style={{ borderRadius: 0, background: "var(--s-soft)" }} />

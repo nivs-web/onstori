@@ -52,7 +52,7 @@ export default function BlogPage() {
         <div className="wrap">
           <ul className="grid md:grid-cols-3" style={{ gap: "var(--s-4)" }}>
             {POSTS.map(([c, t, d]) => (
-              <li key={t} className="card" style={{ padding: "var(--s-4)" }}>
+              <li key={t} className="card card-photo" style={{ padding: "var(--s-4)" }}>
                 {/* 대표 이미지 자리 — 비율을 고정해 글이 들어와도 아래가 밀리지 않는다 */}
                 <div style={{ aspectRatio: "16 / 9", borderRadius: "var(--r-md)", background: "var(--n-800)" }} aria-hidden />
                 <p className="t-caption font-bold" style={{ marginTop: "var(--s-4)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{c}</p>

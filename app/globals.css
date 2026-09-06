@@ -2,127 +2,167 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   온스토리 디자인 시스템 v1 — 색·글자·간격·모서리·그림자·모션의 **유일한 출처**.
+   온스토리 디자인 시스템 v5 — 색·글자·간격·모서리·그림자·모션의 **유일한 출처**.
    정의와 규칙은 docs/DESIGN.md · docs/MOTION.md · docs/PERFORMANCE.md.
 
    여기 없는 값을 컴포넌트에 직접 적지 않는다 (CLAUDE.md 규칙 11).
    하드코딩 금지: 색상값(#/rgb/hsl) · letter-spacing · box-shadow · border-radius ·
                  transition · animation.
 
-   고객 사이트(app/[slug])는 사장님이 고른 자체 팔레트를 `--s-*` 로 인라인 주입한다 —
+   ★ v5 에서 **명조(Noto Serif KR)를 완전히 폐기했다.** 글꼴은 Pretendard 하나다.
+     제목은 서체가 아니라 **굵기와 자간**으로 낸다. 이유: 화면당 서른 글자 남짓
+     쓰자고 한글 세리프 405KB 를 받고 있었다 (2026-09-06 Lighthouse 실측).
+
+   고객 사이트(app/[slug])는 사장님이 고른 자체 팔레트를 `--s-bg` 등으로 인라인 주입한다 —
    그 스코프는 이 토큰과 별개다. 여기 있는 건 본사 화면(랜딩·메뉴·위저드·에디터·어드민).
+   ⚠ 팔레트 변수(--s-bg…)와 간격 변수(--s-1…)는 이름이 겹치지 않는다 — 앞은 낱말, 뒤는 숫자.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
   /* ── 초록 (브랜드) ── --green-700 이 로고 ON 그린이자 주 버튼 색이다 */
-  --green-50: #EEF6F1;
-  --green-100: #D6EADD;
-  --green-200: #ADD5BC;
-  --green-300: #7DBB97;
-  --green-400: #4A9C70;
-  --green-500: #237D4F;
-  --green-600: #0F6A3B;
+  --green-50: #EDF8F3;
+  --green-100: #D3EEE2;
+  --green-200: #A8DCC6;
+  --green-300: #6FC4A2;
+  --green-400: #2FA574;
+  --green-500: #0B8557;
+  --green-600: #046B45;
   --green-700: #005B2A;
-  --green-800: #00451F;
-  --green-900: #002E14;
+  --green-800: #00472B;
+  --green-900: #00301D;
 
   /* ── 중성 (화면의 70%) ── */
   --n-0: #FFFFFF;
-  --n-50: #F6F8F7;
-  --n-100: #EDF1EF;
-  --n-200: #DCE3E0;
-  --n-300: #C2CCC8;
-  --n-400: #98A6A2;
-  --n-500: #6E7E7A;
-  --n-600: #4E605C;
-  --n-700: #364B49;
-  --n-800: #273D3D;
-  --n-900: #16262A;
+  --n-50: #F2F6F4;
+  --n-100: #E9EFEC;
+  --n-200: #E5EBE9;
+  --n-300: #C9D4D0;
+  --n-400: #A9B8B2;
+  --n-500: #8D9F98;
+  --n-600: #6E837B;
+  --n-700: #50665E;
+  --n-800: #2E4038;
+  --n-900: #1A2722;
 
   /* ── 포인트 (화면의 2%) ── "남은 자리"·가격 강조에만. 그 외 사용 금지 */
   --accent: #E09A3C;
   --accent-soft: #FBF1E2;
   --accent-ink: #8A5A12;
-  --danger: #B93A2C;
-  --danger-soft: #FAE9E6;
+  --danger: #E42939;
+  --danger-soft: #FDECEE;
 
-  /* ── 글자 크기 ── clamp 로 폰↔PC 사이를 잇는다. px 를 따로 적지 않는다 */
-  --t-display: clamp(2.25rem, 1.6rem + 2.6vw, 3.5rem);
-  --t-h1: clamp(1.875rem, 1.4rem + 1.9vw, 2.625rem);
-  --t-h2: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
-  --t-h3: clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem);
-  --t-lead: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
-  --t-body: 1rem;
-  --t-small: 0.875rem;
-  --t-caption: 0.75rem;
+  /* ── 글꼴 ── Pretendard 하나. 명조는 폐기했다.
+     맨 앞 폴백 "Pretendard Fallback" 은 시스템 한글 글꼴에 같은 세로 메트릭을 씌운
+     가짜 얼굴이다 — 이게 없으면 Pretendard 가 도착할 때 줄 높이가 바뀌며 문단이 밀린다(CLS). */
+  --sans: "Pretendard Variable", Pretendard, "Pretendard Fallback", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 
-  /* 자간 — 제목 자간은 위 h1/h2 규칙에, 여기는 작은 대문자형 라벨(키커)용이다 */
-  --tracking-kicker: 0.18em;
-  --tracking-wide: 0.25em;
+  /* ── 글자 크기 ── clamp 로 폰↔PC 를 잇는다. px 를 따로 적지 않는다 */
+  --t-display: clamp(2.25rem, 1.55rem + 2.8vw, 3.5rem);
+  --t-h1: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
+  --t-h2: clamp(1.375rem, 1.15rem + 0.9vw, 1.75rem);
+  --t-h3: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
+  --t-lead: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --t-body: 1.0625rem;   /* 17px */
+  --t-small: 0.9375rem;  /* 15px */
+  --t-caption: 0.8125rem;/* 13px */
 
-  /* ── 간격 ── 4의 배수. 사이값을 만들지 않는다 */
+  /* ── 굵기 ── Display·H1=700 / H2·H3=600 / 라벨=500 / 본문=400. 그 외 금지 */
+  --w-bold: 700;
+  --w-semi: 600;
+  --w-med: 500;
+  --w-reg: 400;
+
+  /* ── 자간 ── 컴포넌트에 letter-spacing 을 직접 적지 않는다 */
+  --ls-display: -0.035em;
+  --ls-h1: -0.032em;
+  --ls-h2: -0.028em;
+  --ls-h3: -0.024em;
+  --ls-lead: -0.018em;
+  --ls-body: -0.015em;
+  --ls-small: -0.012em;
+  --ls-eyebrow: 0.02em;
+
+  /* ── 행간 ── ⚠ 한글은 라틴보다 행간이 필요하다. 제목을 1.2 아래로 내리지 않는다 */
+  --lh-display: 1.32;
+  --lh-h1: 1.36;
+  --lh-h2: 1.4;
+  --lh-body: 1.68;
+  --lh-lead: 1.6;
+
+  /* ── 간격 ── 사이값을 만들지 않는다 */
   --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
+  --s-2: 6px;
+  --s-3: 8px;
   --s-4: 16px;
   --s-5: 24px;
   --s-6: 32px;
   --s-7: 48px;
   --s-8: 64px;
   --s-9: 96px;
-  --s-10: 128px;
+  --s-10: 120px;
 
   /* ── 모서리 ── */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 20px;
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
   --r-full: 999px;
 
-  /* ── 그림자 ── 카드에 기본으로 넣지 않는다. hover 에만 --shadow-1 */
-  --shadow-1: 0 1px 2px rgba(22, 38, 42, .06), 0 8px 24px rgba(22, 38, 42, .06);
-  --shadow-2: 0 24px 48px rgba(22, 38, 42, .14);
+  /* ── 그림자 ── 카드에 기본으로 넣지 않는다. hover 에만 */
+  --shadow-1: 0 1px 2px rgba(26, 39, 34, .05), 0 6px 20px rgba(26, 39, 34, .06);
+  --shadow-2: 0 20px 44px rgba(26, 39, 34, .14);
 
-  /* ── 모션 ── 허용 8가지는 docs/MOTION.md. 그 외 애니메이션 금지 */
+  /* ── 모션 ── 허용 목록은 docs/MOTION.md. 그 외 애니메이션 금지 */
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 320ms;
   --dur-4: 480ms;
-  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease: cubic-bezier(.25, .46, .45, .94);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --ease-spring: cubic-bezier(.34, 1.32, .64, 1);
+  --ease-hover: cubic-bezier(.25, .8, .25, 1);
+  /* 조작(버튼·입력)은 등장과 반대로 짧고 즉시 반응해야 한다 */
+  --ease-ui: cubic-bezier(.2, .8, .2, 1);
+
+  /* ── 호버 ── 사진이 있는 카드에만. 값은 여기서만 정한다 */
+  --hv-scale: 1.08;
+  --hv-lift: 8px;
+  --hv-d-card: 300ms;
+  --hv-d-img: 400ms;
+  --hv-shadow: 0 16px 32px rgba(26, 39, 34, .12);
+
+  /* ── 등장 ── 조작보다 훨씬 느리고 부드럽다 */
+  --enter-y: 28px;
+  --enter-d: 700ms;
+  --enter-stagger: 90ms;
 
   /* ── 레이아웃 ── */
   --container: 1200px;
-  --gutter: var(--s-5);          /* 모바일 20~24 */
+  --gutter: 20px;                /* 모바일 좌우 여백 */
   --gutter-lg: var(--s-6);       /* PC 32 */
   --section-y: var(--s-8);       /* 모바일 64 */
-  --section-y-lg: var(--s-10);   /* PC 128 */
+  --section-y-lg: var(--s-10);   /* PC 120 */
   --measure: 38em;               /* 본문 한 줄 최대 폭 */
-  --control-h: 52px;             /* 버튼 높이 (모바일 48) */
+  --head-measure: 36em;          /* 중앙 정렬 헤드 최대 폭 */
+  --control-h: 52px;             /* 버튼·입력창 높이 (모바일 48) */
   --control-h-sm: 48px;
-  --field-h: 48px;               /* 입력창 높이 */
+  --btn-px: 20px;                /* 버튼 좌우 패딩 */
   --tap: 48px;                   /* 최소 터치 목표 */
   --bar-h: 56px;                 /* 상단 바 */
   --dock-h: 64px;                /* 손님 사이트 하단 고정 바 */
-
-  /* ── 글꼴 ── */
-  /* ⚠ 폴백은 맨 앞이 "Pretendard Fallback" 이다 — 아래에서 시스템 글꼴에 Pretendard 와
-     같은 세로 메트릭을 씌운 가짜 얼굴이다. 이게 없으면 Pretendard 가 도착하는 순간
-     줄 높이가 바뀌면서 아래 문단이 통째로 밀린다(CLS). */
-  --font-body: "Pretendard Variable", Pretendard, "Pretendard Fallback", -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
-  --font-display: var(--font-serif-kr), "Noto Serif KR", "Nanum Myeongjo", serif;
 
   /* ═══ 레거시 별칭 ═══
      호출부 수백 곳이 이 이름들을 쓴다. 값은 전부 위 토큰을 가리키게 바꿨다 —
      이름만 남은 통로이고, 새 코드에서는 쓰지 않는다.
      ⚠ --accent 는 예전엔 초록이었다. 지금은 포인트 주황이다.
-        초록이 필요하면 --green-700 을 쓴다. */
+        초록이 필요하면 --green-700 을 쓴다.
+     ⚠ --font-display 는 이제 명조가 아니라 Pretendard 다. */
   --green: var(--green-700);
-  --green-2: var(--green-600);
+  --green-2: var(--green-500);
   --forest: var(--n-800);
   --forest-2: var(--n-700);
-  --lime: var(--green-200);      /* (레거시 이름) 밝은 민트 — 어두운 면 위 강조 / 밝은 칩 배경 */
+  --lime: var(--green-200);
   --lime-2: var(--green-300);
   --cream: var(--n-0);
   --cream-2: var(--n-50);
@@ -132,15 +172,18 @@
   --ink: var(--n-900);
   --muted: var(--n-600);
   --line: var(--n-200);
-  --band: var(--n-800);
-  --display: var(--font-display);
+  --band: var(--n-900);
+  --font-body: var(--sans);
+  --font-display: var(--sans);
+  --display: var(--sans);
   --accent-strong: var(--green-700);
+  --tracking-kicker: var(--ls-eyebrow);
+  --tracking-wide: 0.16em;
 }
 
 /* 위 토큰을 Tailwind 색 이름으로 등록한다 — `bg-n-50` `text-green-700` `border-danger` 처럼
    유틸리티로 쓸 수 있게 된다. `inline` 이라 Tailwind 는 값을 복사하지 않고 var() 를 그대로 내보낸다:
-   값의 단일 출처는 위 :root 하나로 유지된다.
-   에디터·어드민이 쓰던 Tailwind 기본색(neutral·teal·amber·red…)을 이 이름들로 갈아끼웠다. */
+   값의 단일 출처는 위 :root 하나로 유지된다. */
 @theme inline {
   --color-n-0: var(--n-0);
   --color-n-50: var(--n-50);
@@ -169,6 +212,7 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
 
+  --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
@@ -176,7 +220,7 @@
 }
 
 /* 폴백 얼굴 — 시스템 한글 글꼴에 Pretendard 와 같은 세로 메트릭을 씌운다.
-   글꼴이 바뀌어도 줄 높이가 그대로라 문단이 밀리지 않는다 (docs/PERFORMANCE.md §5). */
+   글꼴이 바뀌어도 줄 높이가 그대로라 문단이 밀리지 않는다 (docs/PERFORMANCE.md). */
 @font-face {
   font-family: "Pretendard Fallback";
   src: local("Malgun Gothic"), local("Apple SD Gothic Neo"), local("Noto Sans KR"), local("Arial");
@@ -191,56 +235,47 @@
 body {
   background: var(--n-50);
   color: var(--n-700);
-  font-family: var(--font-body);
+  font-family: var(--sans);
   font-size: var(--t-body);
-  line-height: 1.75;
-  letter-spacing: -0.02em;
+  font-weight: var(--w-reg);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
   word-break: keep-all;
   overflow-wrap: break-word;
+  /* 숫자는 자리가 흔들리지 않게 (가격·건수·D-day) */
+  font-variant-numeric: tabular-nums;
   /* 폰에서 가로로 밀리는 사고를 원천 차단 — 넘치는 표·격자는 자기 안에서 스크롤한다 */
   overflow-x: hidden;
 }
 
-/* 숫자는 자리가 흔들리지 않게 (가격·건수·D-day) */
-body { font-variant-numeric: tabular-nums; }
-
 /* ───────────────────────── 글자 ───────────────────────── */
+/* 제목은 서체가 아니라 굵기와 자간으로 낸다 — 글꼴은 Pretendard 하나다. */
 
-/* Display·H1·H2 = 세리프 600. H3 이하와 본문·UI = Pretendard */
-h1, h2 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--n-900);
-}
-h1 { font-size: var(--t-h1); letter-spacing: -0.03em; line-height: 1.25; }
-h2 { font-size: var(--t-h2); letter-spacing: -0.025em; line-height: 1.3; }
-h3, h4, h5, h6 {
-  font-family: var(--font-body);
-  font-weight: 700;
-  color: var(--n-900);
-  letter-spacing: -0.02em;
-}
-h3 { font-size: var(--t-h3); line-height: 1.4; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--sans); color: var(--n-900); }
+h1 { font-size: var(--t-h1); font-weight: var(--w-bold); letter-spacing: var(--ls-h1); line-height: var(--lh-h1); }
+h2 { font-size: var(--t-h2); font-weight: var(--w-semi); letter-spacing: var(--ls-h2); line-height: var(--lh-h2); }
+h3 { font-size: var(--t-h3); font-weight: var(--w-semi); letter-spacing: var(--ls-h3); line-height: var(--lh-h2); }
+h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 
-.t-display { font-family: var(--font-display); font-weight: 600; font-size: var(--t-display); letter-spacing: -0.03em; line-height: 1.15; }
-.t-h1 { font-family: var(--font-display); font-weight: 600; font-size: var(--t-h1); letter-spacing: -0.03em; line-height: 1.25; }
-.t-h2 { font-family: var(--font-display); font-weight: 600; font-size: var(--t-h2); letter-spacing: -0.025em; line-height: 1.3; }
-.t-h3 { font-family: var(--font-body); font-weight: 700; font-size: var(--t-h3); letter-spacing: -0.02em; line-height: 1.4; }
-.t-lead { font-size: var(--t-lead); line-height: 1.65; color: var(--n-600); }
-.t-body { font-size: var(--t-body); }
-.t-small { font-size: var(--t-small); line-height: 1.6; }
-.t-caption { font-size: var(--t-caption); line-height: 1.5; color: var(--n-500); }
+.t-display { font-size: var(--t-display); font-weight: var(--w-bold); letter-spacing: var(--ls-display); line-height: var(--lh-display); color: var(--n-900); }
+.t-h1 { font-size: var(--t-h1); font-weight: var(--w-bold); letter-spacing: var(--ls-h1); line-height: var(--lh-h1); color: var(--n-900); }
+.t-h2 { font-size: var(--t-h2); font-weight: var(--w-semi); letter-spacing: var(--ls-h2); line-height: var(--lh-h2); color: var(--n-900); }
+.t-h3 { font-size: var(--t-h3); font-weight: var(--w-semi); letter-spacing: var(--ls-h3); line-height: var(--lh-h2); color: var(--n-900); }
+.t-lead { font-size: var(--t-lead); font-weight: var(--w-reg); letter-spacing: var(--ls-lead); line-height: var(--lh-lead); color: var(--n-600); }
+.t-body { font-size: var(--t-body); letter-spacing: var(--ls-body); line-height: var(--lh-body); }
+.t-small { font-size: var(--t-small); letter-spacing: var(--ls-small); line-height: 1.6; }
+.t-caption { font-size: var(--t-caption); letter-spacing: var(--ls-small); line-height: 1.5; color: var(--n-500); }
 
-/* 키커 — 섹션 위에 붙는 작은 대문자형 라벨. 자간을 컴포넌트에 적지 않는다. */
-.kicker { font-size: var(--t-caption); font-weight: 700; letter-spacing: var(--tracking-kicker); color: var(--green-700); }
+/* 키커 — 섹션 위에 붙는 작은 라벨. 자간을 컴포넌트에 적지 않는다. */
+.kicker { font-size: var(--t-caption); font-weight: var(--w-med); letter-spacing: var(--ls-eyebrow); color: var(--green-700); }
 .kicker-wide { letter-spacing: var(--tracking-wide); }
 .surface-900 .kicker { color: var(--green-200); }
 
 /* 본문 한 줄 최대 38em — 길면 눈이 줄을 놓친다 */
 .measure { max-width: var(--measure); }
 
-/* 레거시 이름 — 호출부 유지용 */
-.font-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.03em; }
+/* 레거시 이름 — 호출부 17곳 유지용. 이제 명조가 아니라 Pretendard 700 이다. */
+.font-display { font-family: var(--sans); font-weight: var(--w-bold); letter-spacing: var(--ls-h1); }
 
 /* ───────────────────────── 레이아웃 ───────────────────────── */
 
@@ -253,7 +288,7 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
   .wrap { padding-inline: var(--gutter-lg); }
 }
 
-/* 섹션 세로 여백 — 모바일 64 / PC 128 */
+/* 섹션 세로 여백 — 모바일 64 / PC 120 */
 .section { padding-block: var(--section-y); }
 @media (min-width: 768px) {
   .section { padding-block: var(--section-y-lg); }
@@ -262,9 +297,30 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
 /* 섹션 배경 3종 — 같은 배경을 연속으로 두지 않는다 */
 .surface-0 { background: var(--n-0); color: var(--n-700); }
 .surface-50 { background: var(--n-50); color: var(--n-700); }
-.surface-900 { background: var(--n-900); color: var(--n-200); }
-.surface-900 h1, .surface-900 h2, .surface-900 h3 { color: var(--n-0); }
+.surface-900 { background: var(--n-900); color: var(--n-300); }
+.surface-900 h1, .surface-900 h2, .surface-900 h3,
+.surface-900 .t-display, .surface-900 .t-h1, .surface-900 .t-h2, .surface-900 .t-h3 { color: var(--n-0); }
 .surface-900 .t-lead { color: var(--n-300); }
+.surface-900 .t-caption { color: var(--n-400); }
+
+/* ② 중앙 정렬 헤드 — 최대 36em */
+.head-center { margin-inline: auto; max-width: var(--head-measure); text-align: center; }
+
+/* ③ 좌우 교대 — 둘째 줄부터 반전 */
+.alt-row { display: grid; gap: var(--s-6); align-items: center; }
+@media (min-width: 768px) {
+  .alt-row { grid-template-columns: 1fr 1fr; gap: var(--s-7); }
+  .alt-row:nth-of-type(even) > :first-child { order: 2; }
+}
+
+/* ⑦ 전폭 사진 — 21:9 + 아래 그라데이션 캡션 */
+.wide-photo { position: relative; width: 100%; aspect-ratio: 21 / 9; overflow: hidden; border-radius: var(--r-lg); background: var(--n-100); }
+.wide-photo > img { width: 100%; height: 100%; object-fit: cover; }
+.wide-photo > figcaption {
+  position: absolute; inset-inline: 0; bottom: 0; padding: var(--s-6) var(--s-5) var(--s-5);
+  color: var(--n-0);
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--n-900) 72%, transparent) 100%);
+}
 
 /* 컴포넌트 클래스는 @layer components 에 둔다 —
    그래야 Tailwind 유틸리티(hidden·md:inline-flex 등)가 나중 레이어로서 이긴다.
@@ -272,26 +328,27 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
    모바일에서 숨겨야 할 버튼이 그대로 보인다 (2026-09-06 실제로 그랬다). */
 @layer components {
   /* ───────────────────────── 버튼 ───────────────────────── */
-  /* 주 버튼(초록 배경)은 뷰포트당 1개. 나머지는 보조(테두리)나 글자 버튼. */
+  /* 주 버튼(초록 면)은 뷰포트당 1개. 보조는 테두리가 아니라 연회색 **면**이다. */
 
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--s-2);
+    gap: var(--s-3);
     white-space: nowrap;
     min-height: var(--control-h-sm);
     min-width: var(--tap);
-    padding-inline: var(--s-5);
+    padding-inline: var(--btn-px);
     border-radius: var(--r-md);
     font-size: var(--t-body);
-    font-weight: 600;
+    font-weight: var(--w-semi);
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: var(--ls-body);
     border: 1px solid transparent;
     cursor: pointer;
-    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
-      color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+    /* 조작은 짧고 즉시 — 등장(700ms)과 시간을 반대로 쓰지 않는다 */
+    transition: background var(--dur-2) var(--ease-ui), border-color var(--dur-2) var(--ease-ui),
+      color var(--dur-2) var(--ease-ui), box-shadow var(--dur-2) var(--ease-ui), transform var(--dur-1) var(--ease-ui);
   }
   @media (min-width: 768px) {
     .btn { min-height: var(--control-h); }
@@ -301,55 +358,86 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
   .btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 
   .btn-primary { background: var(--green-700); color: var(--n-0); }
-  .btn-primary:hover { background: var(--green-600); }
+  .btn-primary:hover { background: var(--green-500); }
 
-  .btn-secondary { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
-  .btn-secondary:hover { border-color: var(--green-400); background: var(--green-50); }
+  /* 보조 = 테두리가 아니라 면. 테두리 버튼이 여럿이면 화면이 격자처럼 보인다. */
+  .btn-secondary { background: var(--n-100); color: var(--n-900); }
+  .btn-secondary:hover { background: var(--n-200); }
 
-  .btn-text { background: transparent; color: var(--green-700); padding-inline: var(--s-2); }
-  .btn-text:hover { color: var(--green-600); text-decoration: underline; text-underline-offset: 4px; }
+  .btn-text { background: transparent; color: var(--green-700); padding-inline: var(--s-3); }
+  .btn-text:hover { color: var(--green-500); text-decoration: underline; text-underline-offset: 4px; }
 
-  /* 어두운 면 위 */
-  .surface-900 .btn-secondary { background: transparent; color: var(--n-0); border-color: rgba(255, 255, 255, .35); }
-  .surface-900 .btn-secondary:hover { background: rgba(255, 255, 255, .08); border-color: var(--n-0); }
+  .btn-danger { background: var(--danger); color: var(--n-0); }
+  .btn-danger:hover { background: color-mix(in srgb, var(--danger) 86%, black); }
+
+  /* 어두운 면 위 보조 — 흰 면 14% + 흰 글자 */
+  .surface-900 .btn-secondary { background: rgba(255, 255, 255, .14); color: var(--n-0); }
+  .surface-900 .btn-secondary:hover { background: rgba(255, 255, 255, .22); }
+  .surface-900 .btn-text { color: var(--green-200); }
 
   /* 레거시 클래스 — 호출부 다수 유지용. 새 코드에서는 .btn .btn-* 를 쓴다 */
   .btn-lime, .btn-ghost, .btn-forest {
-    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
-    white-space: nowrap; min-height: var(--control-h-sm); padding-inline: var(--s-5);
-    border-radius: var(--r-md); font-size: var(--t-body); font-weight: 600; line-height: 1;
-    letter-spacing: -0.02em; border: 1px solid transparent;
-    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
-      color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-3);
+    white-space: nowrap; min-height: var(--control-h-sm); padding-inline: var(--btn-px);
+    border-radius: var(--r-md); font-size: var(--t-body); font-weight: var(--w-semi); line-height: 1;
+    letter-spacing: var(--ls-body); border: 1px solid transparent;
+    transition: background var(--dur-2) var(--ease-ui), color var(--dur-2) var(--ease-ui),
+      transform var(--dur-1) var(--ease-ui);
   }
   @media (min-width: 768px) { .btn-lime, .btn-ghost, .btn-forest { min-height: var(--control-h); } }
   .btn-lime:active, .btn-ghost:active, .btn-forest:active { transform: translateY(1px); }
   .btn-lime { background: var(--green-700); color: var(--n-0); }
-  .btn-lime:hover { background: var(--green-600); }
-  .btn-ghost { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
-  .btn-ghost:hover { border-color: var(--green-400); background: var(--green-50); }
+  .btn-lime:hover { background: var(--green-500); }
+  .btn-ghost { background: var(--n-100); color: var(--n-900); }
+  .btn-ghost:hover { background: var(--n-200); }
   .btn-forest { background: var(--n-800); color: var(--n-0); }
   .btn-forest:hover { background: var(--n-700); }
 
   /* ───────────────────────── 카드 ───────────────────────── */
-  /* 배경 흰색 · 테두리 1px · 그림자 없음. hover 에만 그림자. */
+  /* 배경 흰색 · 테두리 1px · 기본 그림자 없음.
+     호버하면 8px 떠오르고 그림자가 생기며 테두리는 사라진다 (docs/MOTION.md). */
 
   .card {
     background: var(--n-0);
     border: 1px solid var(--n-200);
     border-radius: var(--r-lg);
-    transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+    transition: transform var(--hv-d-card) var(--ease-hover),
+      box-shadow var(--hv-d-card) var(--ease-hover),
+      border-color var(--hv-d-card) var(--ease-hover);
   }
-  a.card:hover, .card-hover:hover { border-color: var(--n-300); box-shadow: var(--shadow-1); }
+
+  /* 사진이 든 카드 — 사진만 커진다. 카드를 키우면 옆 카드를 밀어 레이아웃이 흔들린다.
+     그래서 카드는 위로 뜨기만 하고, 확대는 사진에만 건다. */
+  .card-photo { cursor: pointer; overflow: hidden; }
+  .card-photo img, .card-photo .photo {
+    transition: transform var(--hv-d-img) var(--ease-hover);
+  }
+
+  /* 손가락 화면에서는 호버를 흉내 내지 않는다 — 눌렀을 때만 살짝 들어간다 */
+  @media (hover: hover) and (pointer: fine) {
+    .card-photo:hover, a.card:hover, .card-hover:hover {
+      transform: translateY(calc(-1 * var(--hv-lift)));
+      box-shadow: var(--hv-shadow);
+      border-color: transparent;
+    }
+    .card-photo:hover img, .card-photo:hover .photo { transform: scale(var(--hv-scale)); }
+    /* 전폭 사진은 약하게 — 크게 움직이면 화면이 출렁인다 */
+    .wide-photo.card-photo:hover img { transform: scale(1.04); }
+  }
+  @media (hover: none) {
+    .card-photo:active { transform: scale(.98); transition: transform var(--dur-1) var(--ease-ui); }
+  }
 
   /* 사진은 테두리·여백 없이. 사진 카드는 4:3 고정(CLS 0) */
   .photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--n-100); }
+  /* 카드 안 사진은 카드가 이미 둥글다 — 모서리를 두 번 깎지 않는다 */
+  .card-photo .photo { border-radius: 0; }
 
   /* ───────────────────────── 입력창 ───────────────────────── */
 
   .field {
     width: 100%;
-    min-height: var(--field-h);
+    min-height: var(--control-h);
     padding: var(--s-3) var(--s-4);
     background: var(--n-0);
     color: var(--n-900);
@@ -357,7 +445,8 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
     border-radius: var(--r-md);
     font-size: var(--t-body);
     font-family: inherit;
-    transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+    letter-spacing: var(--ls-body);
+    transition: border-color var(--dur-2) var(--ease-ui), box-shadow var(--dur-2) var(--ease-ui);
   }
   .field::placeholder { color: var(--n-400); }
   .field:focus {
@@ -366,22 +455,33 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
     border-width: 2px;
     box-shadow: 0 0 0 4px var(--green-100);
   }
-  textarea.field { min-height: calc(var(--field-h) * 2.5); line-height: 1.7; }
+  textarea.field { min-height: calc(var(--control-h) * 2.5); line-height: var(--lh-body); }
 
-  /* ───────────────────────── 칩·배지 ───────────────────────── */
+  /* ───────────────────────── 배지·칩 ───────────────────────── */
 
   .chip {
     display: inline-flex; align-items: center; gap: var(--s-1);
-    padding: var(--s-1) var(--s-3);
+    padding: var(--s-2) var(--s-4);
     border-radius: var(--r-full);
     font-size: var(--t-caption);
-    font-weight: 600;
+    font-weight: var(--w-semi);
+    letter-spacing: var(--ls-small);
     background: var(--n-100);
     color: var(--n-600);
   }
   .chip-accent { background: var(--accent-soft); color: var(--accent-ink); }
   .chip-green { background: var(--green-50); color: var(--green-700); }
   .chip-danger { background: var(--danger-soft); color: var(--danger); }
+
+  /* ───────────────────────── 단계 흐름 ⑤ ───────────────────────── */
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: var(--r-full);
+    background: var(--green-700); color: var(--n-0);
+    font-size: var(--t-small); font-weight: var(--w-bold);
+  }
+  .surface-900 .step-num { background: var(--green-200); color: var(--n-900); }
 
   /* ───────────────────────── 표 ───────────────────────── */
   /* 폰에서 표는 가로로 밀리지 않는다 — 자기 안에서 스크롤하고 첫 열이 고정된다 */
@@ -393,34 +493,60 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
   }
   .table-scroll thead th:first-child { z-index: 2; }
 
+  /* 터치 목표 48×48 — 손가락으로 누르는 화면에서만.
+     마우스에는 필요 없고, 걸면 PC 푸터만 길어진다. */
+  @media (max-width: 767px) {
+    .tap-row { display: flex; align-items: center; min-height: var(--tap); }
+  }
 }
 
 /* ───────────────────────── 모션 ───────────────────────── */
-/* 허용 8가지만. 목록과 금지 항목은 docs/MOTION.md. */
+/* ⚠ 등장과 조작의 시간을 반대로 쓰지 마라.
+     등장 = 700ms 크게 부드럽게 / 조작 = 120~200ms 짧고 즉시.
+     목록과 금지 항목은 docs/MOTION.md. */
 
-/* ① 섹션 등장 fade-up — CSS 만으로. JS 폴리필을 넣지 않는다.
+/* 등장 — CSS 만으로. JS 폴리필을 넣지 않는다.
    ⚠ @supports 로 감싸지 않으면 미지원 브라우저에서 전 섹션이 로드 즉시 깜빡인다.
    ⚠ 히어로에는 .reveal 을 붙이지 않는다 (LCP 악화). */
 .reveal { opacity: 1; }
 @supports (animation-timeline: view()) {
   .reveal {
-    animation: fade-up var(--dur-2) var(--ease) both;
+    animation: enter-up var(--enter-d) var(--ease) both;
     animation-timeline: view();
-    animation-range: entry 0% entry 40%;
+    animation-range: entry 0% entry 45%;
   }
+}
+@keyframes enter-up {
+  from { opacity: 0; transform: translateY(var(--enter-y)); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 카드 순차 등장 — 90ms 씩, 최대 6개까지만. 그 뒤는 같은 지연(기다림이 길어지지 않게) */
+@supports (animation-timeline: view()) {
+  .reveal-stagger > * {
+    animation: enter-up var(--enter-d) var(--ease) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 45%;
+  }
+  .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .reveal-stagger > *:nth-child(2) { animation-delay: calc(var(--enter-stagger) * 1); }
+  .reveal-stagger > *:nth-child(3) { animation-delay: calc(var(--enter-stagger) * 2); }
+  .reveal-stagger > *:nth-child(4) { animation-delay: calc(var(--enter-stagger) * 3); }
+  .reveal-stagger > *:nth-child(5) { animation-delay: calc(var(--enter-stagger) * 4); }
+  .reveal-stagger > *:nth-child(n+6) { animation-delay: calc(var(--enter-stagger) * 5); }
+}
+
+/* 시트 열림 · 시트 안 목록 순차 */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
-
-/* ④ 시트 열림 · ⑤ 시트 안 목록 순차 */
-@keyframes sheet-in {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: none; }
-}
 .sheet-open { animation: sheet-in var(--dur-3) var(--ease-spring) both; }
-.sheet-item { animation: fade-up var(--dur-2) var(--ease) both; }
+.sheet-item { animation: fade-up var(--dur-2) var(--ease-ui) both; }
 .sheet-item:nth-child(1) { animation-delay: 0ms; }
 .sheet-item:nth-child(2) { animation-delay: 24ms; }
 .sheet-item:nth-child(3) { animation-delay: 48ms; }
@@ -428,14 +554,14 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
 .sheet-item:nth-child(5) { animation-delay: 96ms; }
 .sheet-item:nth-child(n+6) { animation-delay: 120ms; }
 
-/* ⑦ 사진 blur-up */
+/* 사진 blur-up */
 @keyframes blur-up {
   from { opacity: 0; filter: blur(12px); }
   to { opacity: 1; filter: none; }
 }
 .blur-up { animation: blur-up var(--dur-3) var(--ease) both; }
 
-/* ⑧ 상태 토스트 — fade-in 120ms → 2초 유지 → fade-out 200ms */
+/* 상태 토스트 — fade-in 120ms → 2초 유지 → fade-out 200ms */
 @keyframes toast {
   0% { opacity: 0; transform: translateY(8px); }
   5% { opacity: 1; transform: none; }
@@ -453,9 +579,9 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
   background: var(--n-900);
   color: var(--n-0);
   font-size: var(--t-small);
-  font-weight: 600;
+  font-weight: var(--w-semi);
   box-shadow: var(--shadow-2);
-  animation: toast 2320ms var(--ease) both;
+  animation: toast 2320ms var(--ease-ui) both;
 }
 
 /* 움직이는 건 transform 과 opacity 만. width/height/top/left 애니메이션 금지. */
@@ -475,18 +601,21 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
 /* 시트가 열린 동안 뒤 배경이 따라 움직이지 않게 */
 body.sheet-locked { overflow: hidden; }
 
-/* FAQ 아코디언 */
+/* ⑧ FAQ 아코디언 — 닫히면 +, 열리면 −.
+   +를 45도 돌리면 ×가 되지 자 −가 되지 않는다. 세로 막대를 지워서 −를 만든다. */
 details.faq > summary { list-style: none; cursor: pointer; }
 details.faq > summary::-webkit-details-marker { display: none; }
-details.faq > summary .chev { transition: transform var(--dur-2) var(--ease); }
-details.faq[open] > summary .chev { transform: rotate(45deg); }
-
-/* 터치 목표 48×48 — 손가락으로 누르는 화면에서만 적용한다.
-   마우스 포인터에는 필요 없고, 푸터 링크 6개가 48px 씩이면 PC 푸터가 쓸데없이 길어진다.
-   .tap-row 를 붙인 링크는 폰에서 48px 짜리 줄이 된다. */
-@media (max-width: 767px) {
-  .tap-row { display: flex; align-items: center; min-height: var(--tap); }
+.plusminus {
+  position: relative; flex: 0 0 auto; width: 18px; height: 18px;
 }
+.plusminus::before, .plusminus::after {
+  content: ""; position: absolute; inset: 50% 0 auto 0;
+  height: 2px; margin-top: -1px; border-radius: var(--r-xs);
+  background: currentColor;
+  transition: transform var(--dur-2) var(--ease-ui), opacity var(--dur-2) var(--ease-ui);
+}
+.plusminus::after { transform: rotate(90deg); }
+details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacity: 0; }
 
 /* 키보드 사용자에게만 보이는 초점 링 */
 :where(a, button, summary, [tabindex]):focus-visible {

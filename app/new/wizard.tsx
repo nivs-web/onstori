@@ -41,7 +41,9 @@ function wordmarks(name: string, accent: string): { id: string; label: string; s
   const esc = name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const initial = esc.trim().charAt(0) || "온";
   const fs = name.length > 8 ? 44 : name.length > 5 ? 56 : 68;
-  const serif = `"Noto Serif KR","Nanum Myeongjo",serif`;
+  // 사장님 로고 그림(SVG 파일)에 박히는 글꼴 이름이다 — 우리 사이트 웹폰트와 무관하고,
+  // 보는 사람 컴퓨터에 있는 글꼴로 그려진다. 그래서 시스템에 있을 만한 것만 적는다.
+  const serif = `"Nanum Myeongjo","Batang",serif`;
   const sans = `"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
   return [
     { id: "serif", label: "세리프", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><text x="256" y="276" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="${fs}" fill="${accent}">${esc}</text><rect x="196" y="316" width="120" height="6" fill="${accent}"/></svg>` },

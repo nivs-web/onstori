@@ -15,7 +15,7 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
             style={{ gap: "var(--s-4)", minHeight: "var(--tap)", color: "var(--n-900)" }}
           >
             {it.q}
-            <span className="chev shrink-0 t-h3 font-light" style={{ color: "var(--green-700)" }} aria-hidden>＋</span>
+            <span className="plusminus" style={{ color: "var(--green-700)" }} aria-hidden />
           </summary>
           <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>{it.a}</p>
         </details>
