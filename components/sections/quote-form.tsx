@@ -20,7 +20,10 @@ const MAX_PHOTOS = 3;
 const COPY = {
   sub: "사진 몇 장과 연락처만 남겨주세요. 사장님이 직접 연락드려요.",
   phoneError: "연락받을 번호를 다시 확인해 주세요",
+  // 개인정보보호법 제15조 제2항 — 수집 항목·목적·보유기간에 더해
+  // "동의를 거부할 권리가 있다는 사실과 거부 시 불이익"까지 알려야 동의가 유효하다.
   consent: "견적 안내를 위해 이름·연락처·사진을 수집하며 1년 뒤 삭제합니다. 동의합니다.",
+  consentNote: "동의를 거부하실 수 있습니다. 다만 연락처가 없으면 견적 안내를 드릴 수 없습니다.",
   submit: "견적 요청 보내기",
   sending: "보내는 중…",
   done: "접수됐어요 — 사장님이 곧 연락드려요",
@@ -219,6 +222,7 @@ export default function QuoteForm({ s, slug }: Props) {
             />
             <span>{COPY.consent}</span>
           </label>
+          <p className="-mt-1 pl-6 text-[12.5px]" style={{ color: "var(--s-muted)" }}>{COPY.consentNote}</p>
 
           {/* 허니팟 — 사람 눈에 보이지 않는다. 채워져 오면 서버가 400 */}
           <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0" />

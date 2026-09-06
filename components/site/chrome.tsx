@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/supabase/server";
+import { BIZ_LINE } from "@/config/company";
 import { Logo } from "./logo";
 
 /**
@@ -94,7 +95,8 @@ export function SiteFooter() {
       <div className="border-t border-white/10">
         <div className="wrap flex flex-wrap items-center justify-between gap-3 py-5 text-[12px] opacity-70">
           <span>© {new Date().getFullYear()} 온스토리 onstori.com · 문의: 카카오톡 채널 (준비 중)</span>
-          <span>이안월드 · 대표 권병철 · 사업자등록번호 139-24-01865 · 경기도 남양주시 다산순환로 397-80, 401</span>
+          {/* 전자상거래법 제10조 표시 의무 — 값의 단일 출처는 config/company.ts */}
+          <span>{BIZ_LINE}</span>
         </div>
       </div>
     </footer>

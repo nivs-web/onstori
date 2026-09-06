@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
+import * as storage from "@/lib/storage";
 
 /**
  * 매일 03:00 KST (vercel.json crons: 18:00 UTC) — 14일 무료 관리 (기획1 /mainplan #membership)
  *  1) D-3 · D-1 문자 안내 (settings.phone 이 있는 trial 사이트)
  *  2) trial_ends_at 지난 trial → expired (RLS 가 공개를 끊는다). 삭제는 30일 뒤 사람이 어드민에서.
+ *  3) 접수 1년이 지난 손님 문의 파기 (사진 파일까지) — 2026-09-06 추가
  * 인증: Vercel 이 CRON_SECRET 을 Bearer 로 보낸다. env 가 없으면 운영자 호출만 허용하기 위해 거부.
  */
 export const dynamic = "force-dynamic";
+
+/**
+ * 손님 문의 보관 기간 — 문의 폼의 동의 문구("1년 뒤 삭제")와 이용약관 제8조가 약속한 값이다.
+ * ⚠ 이 숫자를 바꾸면 components/sections/quote-form.tsx 의 동의 문구,
+ *   이용약관 제8조, 개인정보처리방침 §4 표를 함께 고쳐야 한다. 약속과 실제가 갈라지면 그 자체가 위법이다.
+ */
+const INQUIRY_RETENTION_DAYS = 365;
 
 /**
  * D-3·D-1 안내 문자 (2026-09-06 단축).
@@ -28,7 +37,7 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, expired: 0 };
+  const out = { nudged: 0, expired: 0, inquiriesPurged: 0, photosPurged: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -53,6 +62,30 @@ export async function GET(req: Request) {
     .lt("trial_ends_at", new Date(now).toISOString())
     .select("slug");
   out.expired = exp?.length ?? 0;
+
+  // 3) 접수 1년이 지난 손님 문의 파기 — 개인정보보호법 제21조(보유기간 경과 시 지체 없이 파기).
+  //    사진 파일을 먼저 지우고 행을 지운다. 순서를 뒤집으면 키를 잃어 파일만 남는 고아가 생긴다.
+  const cutoff = new Date(now - INQUIRY_RETENTION_DAYS * day).toISOString();
+  const { data: old } = await sb
+    .from("inquiries")
+    .select("id, photos")
+    .lt("created_at", cutoff)
+    .limit(500); // 한 번에 다 지우려다 함수 시간을 넘기지 않게. 남으면 다음 날 이어서 지운다.
+  for (const row of old ?? []) {
+    const keys = Array.isArray(row.photos) ? (row.photos as string[]) : [];
+    for (const key of keys) {
+      try {
+        await storage.remove("private", key);
+        out.photosPurged++;
+      } catch (e) {
+        // 파일 하나가 이미 없어도 행 삭제는 계속한다 — 남기는 것보다 지우는 쪽이 안전하다
+        console.error(JSON.stringify({ evt: "inquiry_photo_purge_failed", key, err: String(e).slice(0, 200) }));
+      }
+    }
+    const { error } = await sb.from("inquiries").delete().eq("id", row.id);
+    if (error) console.error(JSON.stringify({ evt: "inquiry_purge_failed", id: row.id, err: error.message }));
+    else out.inquiriesPurged++;
+  }
 
   console.log(JSON.stringify({ evt: "cron_expire", ...out }));
   return NextResponse.json(out);
