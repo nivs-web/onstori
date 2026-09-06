@@ -205,127 +205,134 @@ h3 { font-size: var(--t-h3); line-height: 1.4; }
 .surface-900 h1, .surface-900 h2, .surface-900 h3 { color: var(--n-0); }
 .surface-900 .t-lead { color: var(--n-300); }
 
-/* ───────────────────────── 버튼 ───────────────────────── */
-/* 주 버튼(초록 배경)은 뷰포트당 1개. 나머지는 보조(테두리)나 글자 버튼. */
+/* 컴포넌트 클래스는 @layer components 에 둔다 —
+   그래야 Tailwind 유틸리티(hidden·md:inline-flex 등)가 나중 레이어로서 이긴다.
+   레이어 밖에 두면 .btn{display:inline-flex} 가 .hidden{display:none} 을 이겨
+   모바일에서 숨겨야 할 버튼이 그대로 보인다 (2026-09-06 실제로 그랬다). */
+@layer components {
+  /* ───────────────────────── 버튼 ───────────────────────── */
+  /* 주 버튼(초록 배경)은 뷰포트당 1개. 나머지는 보조(테두리)나 글자 버튼. */
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
-  white-space: nowrap;
-  min-height: var(--control-h-sm);
-  min-width: var(--tap);
-  padding-inline: var(--s-5);
-  border-radius: var(--r-md);
-  font-size: var(--t-body);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
-    color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    white-space: nowrap;
+    min-height: var(--control-h-sm);
+    min-width: var(--tap);
+    padding-inline: var(--s-5);
+    border-radius: var(--r-md);
+    font-size: var(--t-body);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+      color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+  }
+  @media (min-width: 768px) {
+    .btn { min-height: var(--control-h); }
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--n-0), 0 0 0 5px var(--green-300); }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+
+  .btn-primary { background: var(--green-700); color: var(--n-0); }
+  .btn-primary:hover { background: var(--green-600); }
+
+  .btn-secondary { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
+  .btn-secondary:hover { border-color: var(--green-400); background: var(--green-50); }
+
+  .btn-text { background: transparent; color: var(--green-700); padding-inline: var(--s-2); }
+  .btn-text:hover { color: var(--green-600); text-decoration: underline; text-underline-offset: 4px; }
+
+  /* 어두운 면 위 */
+  .surface-900 .btn-secondary { background: transparent; color: var(--n-0); border-color: rgba(255, 255, 255, .35); }
+  .surface-900 .btn-secondary:hover { background: rgba(255, 255, 255, .08); border-color: var(--n-0); }
+
+  /* 레거시 클래스 — 호출부 다수 유지용. 새 코드에서는 .btn .btn-* 를 쓴다 */
+  .btn-lime, .btn-ghost, .btn-forest {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+    white-space: nowrap; min-height: var(--control-h-sm); padding-inline: var(--s-5);
+    border-radius: var(--r-md); font-size: var(--t-body); font-weight: 600; line-height: 1;
+    letter-spacing: -0.02em; border: 1px solid transparent;
+    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+      color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
+  }
+  @media (min-width: 768px) { .btn-lime, .btn-ghost, .btn-forest { min-height: var(--control-h); } }
+  .btn-lime:active, .btn-ghost:active, .btn-forest:active { transform: translateY(1px); }
+  .btn-lime { background: var(--green-700); color: var(--n-0); }
+  .btn-lime:hover { background: var(--green-600); }
+  .btn-ghost { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
+  .btn-ghost:hover { border-color: var(--green-400); background: var(--green-50); }
+  .btn-forest { background: var(--n-800); color: var(--n-0); }
+  .btn-forest:hover { background: var(--n-700); }
+
+  /* ───────────────────────── 카드 ───────────────────────── */
+  /* 배경 흰색 · 테두리 1px · 그림자 없음. hover 에만 그림자. */
+
+  .card {
+    background: var(--n-0);
+    border: 1px solid var(--n-200);
+    border-radius: var(--r-lg);
+    transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+  }
+  a.card:hover, .card-hover:hover { border-color: var(--n-300); box-shadow: var(--shadow-1); }
+
+  /* 사진은 테두리·여백 없이. 사진 카드는 4:3 고정(CLS 0) */
+  .photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--n-100); }
+
+  /* ───────────────────────── 입력창 ───────────────────────── */
+
+  .field {
+    width: 100%;
+    min-height: var(--field-h);
+    padding: var(--s-3) var(--s-4);
+    background: var(--n-0);
+    color: var(--n-900);
+    border: 1px solid var(--n-300);
+    border-radius: var(--r-md);
+    font-size: var(--t-body);
+    font-family: inherit;
+    transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+  }
+  .field::placeholder { color: var(--n-400); }
+  .field:focus {
+    outline: none;
+    border-color: var(--green-500);
+    border-width: 2px;
+    box-shadow: 0 0 0 4px var(--green-100);
+  }
+  textarea.field { min-height: calc(var(--field-h) * 2.5); line-height: 1.7; }
+
+  /* ───────────────────────── 칩·배지 ───────────────────────── */
+
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--s-1);
+    padding: var(--s-1) var(--s-3);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption);
+    font-weight: 600;
+    background: var(--n-100);
+    color: var(--n-600);
+  }
+  .chip-accent { background: var(--accent-soft); color: var(--accent-ink); }
+  .chip-green { background: var(--green-50); color: var(--green-700); }
+  .chip-danger { background: var(--danger-soft); color: var(--danger); }
+
+  /* ───────────────────────── 표 ───────────────────────── */
+  /* 폰에서 표는 가로로 밀리지 않는다 — 자기 안에서 스크롤하고 첫 열이 고정된다 */
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-scroll > table { min-width: max-content; }
+  .table-scroll th:first-child, .table-scroll td:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--n-0);
+  }
+  .table-scroll thead th:first-child { z-index: 2; }
+
 }
-@media (min-width: 768px) {
-  .btn { min-height: var(--control-h); }
-}
-.btn:active { transform: translateY(1px); }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--n-0), 0 0 0 5px var(--green-300); }
-.btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
-
-.btn-primary { background: var(--green-700); color: var(--n-0); }
-.btn-primary:hover { background: var(--green-600); }
-
-.btn-secondary { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
-.btn-secondary:hover { border-color: var(--green-400); background: var(--green-50); }
-
-.btn-text { background: transparent; color: var(--green-700); padding-inline: var(--s-2); }
-.btn-text:hover { color: var(--green-600); text-decoration: underline; text-underline-offset: 4px; }
-
-/* 어두운 면 위 */
-.surface-900 .btn-secondary { background: transparent; color: var(--n-0); border-color: rgba(255, 255, 255, .35); }
-.surface-900 .btn-secondary:hover { background: rgba(255, 255, 255, .08); border-color: var(--n-0); }
-
-/* 레거시 클래스 — 호출부 다수 유지용. 새 코드에서는 .btn .btn-* 를 쓴다 */
-.btn-lime, .btn-ghost, .btn-forest {
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
-  white-space: nowrap; min-height: var(--control-h-sm); padding-inline: var(--s-5);
-  border-radius: var(--r-md); font-size: var(--t-body); font-weight: 600; line-height: 1;
-  letter-spacing: -0.02em; border: 1px solid transparent;
-  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
-    color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease);
-}
-@media (min-width: 768px) { .btn-lime, .btn-ghost, .btn-forest { min-height: var(--control-h); } }
-.btn-lime:active, .btn-ghost:active, .btn-forest:active { transform: translateY(1px); }
-.btn-lime { background: var(--green-700); color: var(--n-0); }
-.btn-lime:hover { background: var(--green-600); }
-.btn-ghost { background: var(--n-0); color: var(--green-700); border-color: var(--n-200); }
-.btn-ghost:hover { border-color: var(--green-400); background: var(--green-50); }
-.btn-forest { background: var(--n-800); color: var(--n-0); }
-.btn-forest:hover { background: var(--n-700); }
-
-/* ───────────────────────── 카드 ───────────────────────── */
-/* 배경 흰색 · 테두리 1px · 그림자 없음. hover 에만 그림자. */
-
-.card {
-  background: var(--n-0);
-  border: 1px solid var(--n-200);
-  border-radius: var(--r-lg);
-  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
-}
-a.card:hover, .card-hover:hover { border-color: var(--n-300); box-shadow: var(--shadow-1); }
-
-/* 사진은 테두리·여백 없이. 사진 카드는 4:3 고정(CLS 0) */
-.photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-md); background: var(--n-100); }
-
-/* ───────────────────────── 입력창 ───────────────────────── */
-
-.field {
-  width: 100%;
-  min-height: var(--field-h);
-  padding: var(--s-3) var(--s-4);
-  background: var(--n-0);
-  color: var(--n-900);
-  border: 1px solid var(--n-300);
-  border-radius: var(--r-md);
-  font-size: var(--t-body);
-  font-family: inherit;
-  transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
-}
-.field::placeholder { color: var(--n-400); }
-.field:focus {
-  outline: none;
-  border-color: var(--green-500);
-  border-width: 2px;
-  box-shadow: 0 0 0 4px var(--green-100);
-}
-textarea.field { min-height: calc(var(--field-h) * 2.5); line-height: 1.7; }
-
-/* ───────────────────────── 칩·배지 ───────────────────────── */
-
-.chip {
-  display: inline-flex; align-items: center; gap: var(--s-1);
-  padding: var(--s-1) var(--s-3);
-  border-radius: var(--r-full);
-  font-size: var(--t-caption);
-  font-weight: 600;
-  background: var(--n-100);
-  color: var(--n-600);
-}
-.chip-accent { background: var(--accent-soft); color: var(--accent-ink); }
-.chip-green { background: var(--green-50); color: var(--green-700); }
-.chip-danger { background: var(--danger-soft); color: var(--danger); }
-
-/* ───────────────────────── 표 ───────────────────────── */
-/* 폰에서 표는 가로로 밀리지 않는다 — 자기 안에서 스크롤하고 첫 열이 고정된다 */
-
-.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.table-scroll > table { min-width: max-content; }
-.table-scroll th:first-child, .table-scroll td:first-child {
-  position: sticky; left: 0; z-index: 1; background: var(--n-0);
-}
-.table-scroll thead th:first-child { z-index: 2; }
 
 /* ───────────────────────── 모션 ───────────────────────── */
 /* 허용 8가지만. 목록과 금지 항목은 docs/MOTION.md. */

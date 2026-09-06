@@ -3,11 +3,13 @@ import { getSessionUser } from "@/lib/supabase/server";
 import { BIZ_LINE } from "@/config/company";
 import { COPY } from "@/lib/trial";
 import { Logo } from "./logo";
+import { SiteHeaderClient } from "./header-client";
 
 /**
- * 본사 페이지 공용 크롬 — 헤더·프로모 띠·푸터 (기획1 /mainplan #menu · 2026-09-05).
- * 레멘토 구조: 상단 띠 → 로고 · 메뉴 5 · 로그인 · [무료로 시작](라임) / 푸터 3열 + 채널.
+ * 본사 페이지 공용 크롬 — 헤더·프로모 띠·푸터.
  * 첫 페이지·작동방식·온스토리·FAQ·리뷰·블로그·비교 페이지가 전부 이 파일을 쓴다.
+ *
+ * 색·간격·글자는 app/globals.css 의 토큰만 쓴다 (CLAUDE.md 규칙 11 · docs/DESIGN.md).
  */
 
 export const NAV = [
@@ -29,72 +31,65 @@ export const CHANNELS = [
 
 export { Logo };
 
+/** 상단 프로모 띠 — 높이를 고정한다. 조건부로 나타나면 아래가 통째로 밀린다(CLS). */
 export function PromoBar() {
   return (
-    <Link href="/new" className="block text-center text-[13px] font-semibold" style={{ background: "var(--forest)", color: "#fff" }}>
-      <span className="inline-block px-4 py-2">오픈 기념 — {COPY.trialShort} · 이후 {COPY.priceLine} · 사장님 이야기부터 들려주세요 →</span>
+    <Link
+      href="/new"
+      className="flex items-center justify-center text-center t-caption font-semibold"
+      style={{ height: "var(--s-6)", background: "var(--n-800)", color: "var(--n-0)", paddingInline: "var(--s-4)" }}
+    >
+      {/* 높이 한 줄에 맞춰 폰에서는 뒷문장을 접는다 — 잘린 문장을 보여주는 것보다 낫다 */}
+      <span className="truncate">
+        오픈 기념 — {COPY.trialShort} · 이후 {COPY.priceLine}
+        <span className="hidden sm:inline"> · 사장님 이야기부터 들려주세요</span> →
+      </span>
     </Link>
   );
 }
 
-/** 헤더 — 서버 컴포넌트. 로그인 상태에 따라 로그인/마이페이지가 바뀐다. */
+/** 헤더 — 서버 컴포넌트에서 세션만 읽고, 실제 화면은 클라이언트 쪽이 그린다(스크롤·시트). */
 export async function SiteHeader({ current }: { current?: string }) {
   const user = await getSessionUser().catch(() => null);
-  return (
-    <header className="sticky top-0 z-40 border-b backdrop-blur" style={{ borderColor: "var(--line)", background: "rgba(255,255,255,0.92)" }}>
-      <div className="wrap flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center" aria-label="온스토리 홈">
-          <Logo height={19} />
-        </Link>
-        <nav className="hidden items-center gap-6 text-[14px] font-medium md:flex" aria-label="주 메뉴">
-          {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="hover:underline underline-offset-4"
-              style={{ color: current === n.href ? "var(--forest)" : "var(--muted)", fontWeight: current === n.href ? 700 : 500 }}>
-              {n.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-3">
-          {user ? (
-            <Link href="/my" className="text-[13.5px] font-semibold" style={{ color: "var(--forest)" }}>마이페이지</Link>
-          ) : (
-            <Link href="/login?next=%2Fmy" className="hidden text-[13.5px] font-medium sm:inline" style={{ color: "var(--muted)" }}>로그인</Link>
-          )}
-          <Link href="/new" className="btn-lime !px-4 !py-2.5 !text-[13.5px] sm:!px-5 sm:!text-[14px]">무료로 시작</Link>
-          {/* 모바일 메뉴 — JS 없이 details 로 */}
-          <details className="relative md:hidden">
-            <summary className="list-none cursor-pointer rounded-full border px-3 py-2 text-[13px]" style={{ borderColor: "var(--line)" }} aria-label="메뉴 열기">☰</summary>
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl border bg-white p-2 shadow-xl" style={{ borderColor: "var(--line)" }}>
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="block rounded-xl px-4 py-2.5 text-[14px] font-medium hover:bg-neutral-50">{n.label}</Link>
-              ))}
-              <Link href={user ? "/my" : "/login?next=%2Fmy"} className="block rounded-xl px-4 py-2.5 text-[14px] font-semibold hover:bg-neutral-50" style={{ color: "var(--forest)" }}>{user ? "마이페이지" : "로그인"}</Link>
-            </div>
-          </details>
-        </div>
-      </div>
-    </header>
-  );
+  return <SiteHeaderClient nav={NAV} current={current} signedIn={Boolean(user)} />;
 }
 
 export function SiteFooter() {
   return (
-    <footer style={{ background: "var(--forest)", color: "var(--cream)" }}>
-      <div className="wrap grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="surface-900">
+      <div
+        className="wrap grid md:grid-cols-[1.4fr_1fr_1fr]"
+        style={{ gap: "var(--s-7)", paddingBlock: "var(--s-8)" }}
+      >
         <div>
           <Logo variant="cream" height={22} />
-          <p className="mt-3 max-w-xs text-[13.5px] leading-relaxed opacity-80">
-            홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다.<br />사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.
+          <p className="t-small measure" style={{ marginTop: "var(--s-3)", color: "var(--n-300)" }}>
+            홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다.<br />
+            사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.
           </p>
-          <p className="mt-4 flex flex-wrap gap-2 text-[11.5px] opacity-70">
-            {CHANNELS.map((c) => <span key={c.id} className="rounded-full border border-white/25 px-2.5 py-1">{c.name}</span>)}
+          <p className="flex flex-wrap" style={{ marginTop: "var(--s-4)", gap: "var(--s-2)" }}>
+            {CHANNELS.map((c) => (
+              <span
+                key={c.id}
+                className="t-caption"
+                style={{
+                  border: "1px solid var(--n-700)", color: "var(--n-400)",
+                  borderRadius: "var(--r-full)", padding: "var(--s-1) var(--s-3)",
+                }}
+              >
+                {c.name}
+              </span>
+            ))}
           </p>
         </div>
         <FooterCol title="둘러보기" links={[["/how-it-works", "작동방식"], ["/#portfolio", "완성 예시"], ["/#pricing", "가격"], ["/faq", "자주묻는질문"], ["/reviews", "리뷰"], ["/blog", "블로그"]]} />
         <FooterCol title="회사" links={[["/our-story", "온스토리"], ["/privacy", "개인정보처리방침"], ["/terms", "이용약관"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
       </div>
-      <div className="border-t border-white/10">
-        <div className="wrap flex flex-wrap items-center justify-between gap-3 py-5 text-[12px] opacity-70">
+      <div style={{ borderTop: "1px solid var(--n-800)" }}>
+        <div
+          className="wrap flex flex-wrap items-center justify-between t-caption"
+          style={{ gap: "var(--s-3)", paddingBlock: "var(--s-5)", color: "var(--n-400)" }}
+        >
           <span>© {new Date().getFullYear()} 온스토리 onstori.com · 문의: 카카오톡 채널 (준비 중)</span>
           {/* 전자상거래법 제10조 표시 의무 — 값의 단일 출처는 config/company.ts */}
           <span>{BIZ_LINE}</span>
@@ -107,36 +102,43 @@ export function SiteFooter() {
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="text-[12px] font-bold tracking-[0.18em] opacity-60">{title}</p>
-      <ul className="mt-3 space-y-2 text-[14px]">
+      <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "0.18em" }}>{title}</p>
+      <ul style={{ marginTop: "var(--s-3)" }}>
         {links.map(([href, label]) => (
-          <li key={href + label}><Link href={href} className="opacity-90 hover:underline underline-offset-4">{label}</Link></li>
+          <li key={href + label} style={{ marginBottom: "var(--s-2)" }}>
+            <Link href={href} className="t-small" style={{ color: "var(--n-300)" }}>{label}</Link>
+          </li>
         ))}
       </ul>
     </div>
   );
 }
 
-/** 페이지 상단 공통 히어로 (메뉴 페이지용) */
+/** 페이지 상단 공통 히어로 (메뉴 페이지용) — .reveal 을 붙이지 않는다(LCP) */
 export function PageHero({ kicker, title, sub, children }: { kicker: string; title: React.ReactNode; sub?: string; children?: React.ReactNode }) {
   return (
-    <section className="wrap pb-10 pt-14 sm:pt-20">
-      <p className="text-[12px] font-bold tracking-[0.2em]" style={{ color: "var(--teal)" }}>{kicker}</p>
-      <h1 className="font-display mt-3 max-w-3xl text-[32px] leading-[1.22] sm:text-[44px]" style={{ textWrap: "balance" }}>{title}</h1>
-      {sub && <p className="mt-4 max-w-2xl text-[16.5px] leading-relaxed" style={{ color: "var(--muted)" }}>{sub}</p>}
+    <section className="wrap" style={{ paddingTop: "var(--s-7)", paddingBottom: "var(--s-6)" }}>
+      <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.2em" }}>{kicker}</p>
+      <h1 className="t-h1" style={{ marginTop: "var(--s-3)", maxWidth: "18ch", textWrap: "balance" }}>{title}</h1>
+      {sub && <p className="t-lead measure" style={{ marginTop: "var(--s-4)" }}>{sub}</p>}
       {children}
     </section>
   );
 }
 
 /** 페이지 하단 공통 CTA 밴드 */
-export function CtaBand({ title = "사장님 이야기부터 들려주세요", sub = `${COPY.trialShort} · 이후 ${COPY.priceLine} 자동 결제 · 언제든 해지` }: { title?: string; sub?: string }) {
+export function CtaBand({
+  title = "사장님 이야기부터 들려주세요",
+  sub = `${COPY.trialShort} · 이후 ${COPY.priceLine} 자동 결제 · 언제든 해지`,
+}: { title?: string; sub?: string }) {
   return (
-    <section style={{ background: "var(--cream-2)" }}>
-      <div className="wrap py-16 text-center">
-        <h2 className="font-display text-[28px] sm:text-[36px]" style={{ textWrap: "balance" }}>{title}</h2>
-        <p className="mt-3 text-[14.5px]" style={{ color: "var(--muted)" }}>{sub}</p>
-        <div className="mt-7"><Link href="/new" className="btn-lime">녹화를 시도해보세요 · 60초</Link></div>
+    <section className="surface-50 section reveal">
+      <div className="wrap text-center">
+        <h2 className="t-h2" style={{ textWrap: "balance" }}>{title}</h2>
+        <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--n-600)" }}>{sub}</p>
+        <div style={{ marginTop: "var(--s-6)" }}>
+          <Link href="/new" className="btn btn-primary">녹화를 시도해보세요 · 60초</Link>
+        </div>
       </div>
     </section>
   );
