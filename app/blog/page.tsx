@@ -26,32 +26,52 @@ const POSTS = [
 
 export default function BlogPage() {
   return (
-    <main className="min-h-svh" style={{ background: "var(--cream)", color: "var(--ink)" }}>
+    <main className="min-h-svh surface-0">
       <PromoBar />
       <SiteHeader current="/blog" />
       <PageHero kicker="블로그" title="이야기가 쌓이면 검색이 따라옵니다" sub="블로그는 두 층입니다. 여기(온스토리 본사)와, 사장님의 온스토리 사이트. 사장님 60초는 사장님 사이트에 쌓입니다.">
-        <div className="mt-6 flex flex-wrap gap-2" aria-label="분류">
-          {CATS.map((t, i) => <span key={t} className="rounded-full border px-3.5 py-1.5 text-[13px] font-semibold" style={{ borderColor: "var(--line)", background: i === 0 ? "var(--forest)" : "#fff", color: i === 0 ? "var(--cream)" : "var(--forest)" }}>{t}</span>)}
+        <div className="flex flex-wrap" style={{ marginTop: "var(--s-5)", gap: "var(--s-2)" }} aria-label="분류">
+          {CATS.map((t, i) => (
+            <span
+              key={t}
+              className="t-small flex items-center font-semibold"
+              style={{
+                border: "1px solid var(--n-200)", borderRadius: "var(--r-full)",
+                padding: "0 var(--s-4)", minHeight: "var(--tap)",
+                background: i === 0 ? "var(--n-800)" : "var(--n-0)",
+                color: i === 0 ? "var(--n-0)" : "var(--n-700)",
+              }}
+            >
+              {t}
+            </span>
+          ))}
         </div>
       </PageHero>
-      <section className="wrap pb-20">
-        <ul className="grid gap-4 md:grid-cols-3">
-          {POSTS.map(([c, t, d]) => (
-            <li key={t} className="rounded-2xl border bg-white p-5" style={{ borderColor: "var(--line)" }}>
-              <div className="aspect-[16/9] rounded-xl" style={{ background: "linear-gradient(160deg,#33514F,#273D3D)" }} aria-hidden />
-              <p className="mt-4 text-[11.5px] font-bold tracking-[0.14em]" style={{ color: "var(--teal)" }}>{c}</p>
-              <h2 className="font-display mt-1.5 text-[19px] leading-snug" style={{ color: "var(--forest)" }}>{t}</h2>
-              <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--muted)" }}>{d}</p>
-              <p className="mt-3 text-[12px] font-semibold" style={{ color: "var(--muted)" }}>준비 중 · 곧 올립니다</p>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-10 rounded-3xl p-8 md:flex md:items-center md:justify-between" style={{ background: "var(--lime)", color: "var(--forest)" }}>
-          <div>
-            <p className="font-display text-[24px]">사장님이 답하기 좋은 질문 20개</p>
-            <p className="mt-1 text-[14px] opacity-80">홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.</p>
+
+      <section className="surface-0 reveal" style={{ paddingBottom: "var(--s-8)" }}>
+        <div className="wrap">
+          <ul className="grid md:grid-cols-3" style={{ gap: "var(--s-4)" }}>
+            {POSTS.map(([c, t, d]) => (
+              <li key={t} className="card" style={{ padding: "var(--s-4)" }}>
+                {/* 대표 이미지 자리 — 비율을 고정해 글이 들어와도 아래가 밀리지 않는다 */}
+                <div style={{ aspectRatio: "16 / 9", borderRadius: "var(--r-md)", background: "var(--n-800)" }} aria-hidden />
+                <p className="t-caption font-bold" style={{ marginTop: "var(--s-4)", color: "var(--green-700)", letterSpacing: "0.14em" }}>{c}</p>
+                <h2 className="t-h3" style={{ marginTop: "var(--s-1)" }}>{t}</h2>
+                <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-600)" }}>{d}</p>
+                <p className="t-caption font-semibold" style={{ marginTop: "var(--s-3)" }}>준비 중 · 곧 올립니다</p>
+              </li>
+            ))}
+          </ul>
+          <div
+            className="md:flex md:items-center md:justify-between"
+            style={{ marginTop: "var(--s-7)", background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}
+          >
+            <div>
+              <p className="t-h3">사장님이 답하기 좋은 질문 20개</p>
+              <p className="t-body" style={{ marginTop: "var(--s-1)", color: "var(--n-600)" }}>홈페이지를 만들면 첫 질문과 함께 문자로 보내드립니다.</p>
+            </div>
+            <Link href="/new" className="btn btn-primary" style={{ marginTop: "var(--s-4)" }}>질문 20개 받기</Link>
           </div>
-          <Link href="/new" className="btn-forest mt-4 md:mt-0">질문 20개 받기</Link>
         </div>
       </section>
       <CtaBand />

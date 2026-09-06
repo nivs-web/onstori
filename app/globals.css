@@ -420,6 +420,13 @@ details.faq > summary::-webkit-details-marker { display: none; }
 details.faq > summary .chev { transition: transform var(--dur-2) var(--ease); }
 details.faq[open] > summary .chev { transform: rotate(45deg); }
 
+/* 터치 목표 48×48 — 손가락으로 누르는 화면에서만 적용한다.
+   마우스 포인터에는 필요 없고, 푸터 링크 6개가 48px 씩이면 PC 푸터가 쓸데없이 길어진다.
+   .tap-row 를 붙인 링크는 폰에서 48px 짜리 줄이 된다. */
+@media (max-width: 767px) {
+  .tap-row { display: flex; align-items: center; min-height: var(--tap); }
+}
+
 /* 키보드 사용자에게만 보이는 초점 링 */
 :where(a, button, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--green-500);

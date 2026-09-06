@@ -124,6 +124,11 @@
 
 - `globals.css` 밖에 하드코딩된 **색상값 · letter-spacing · box-shadow · border-radius ·
   transition · animation** 이 0건.
+  - **유일한 예외: 남의 브랜드 로고 색** (`components/site/blocks.tsx` 의 `ChannelMark` —
+    유튜브 빨강 · 인스타 · 쓰레드/X 검정 · 네이버 초록). 토큰은 온스토리 화면의 색을
+    정하는 것이지 남의 로고 색을 정하는 게 아니다. 검사에서 이 6건은 제외한다.
+- **본문 16px 미만 0건** — 여기서 "본문"은 문장으로 읽히는 글이다.
+  라벨·키커·법적 각주는 `--t-small`(14) · `--t-caption`(12) 을 쓴다.
 - MOTION.md 금지 목록 0건.
 - 390 · 768 · 1440 에서: 가로 넘침 0 · 터치 48 미만 0 · 본문 16 미만 0 ·
   주 버튼 뷰포트당 2개 이상 0 · 카드/사진 그림자 0(hover 제외).

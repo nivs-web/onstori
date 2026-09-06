@@ -37,7 +37,7 @@ export function PromoBar() {
     <Link
       href="/new"
       className="flex items-center justify-center text-center t-caption font-semibold"
-      style={{ height: "var(--s-6)", background: "var(--n-800)", color: "var(--n-0)", paddingInline: "var(--s-4)" }}
+      style={{ height: "var(--s-7)", background: "var(--n-800)", color: "var(--n-0)", paddingInline: "var(--s-4)" }}
     >
       {/* 높이 한 줄에 맞춰 폰에서는 뒷문장을 접는다 — 잘린 문장을 보여주는 것보다 낫다 */}
       <span className="truncate">
@@ -105,8 +105,8 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
       <p className="t-caption font-bold" style={{ color: "var(--n-400)", letterSpacing: "0.18em" }}>{title}</p>
       <ul style={{ marginTop: "var(--s-3)" }}>
         {links.map(([href, label]) => (
-          <li key={href + label} style={{ marginBottom: "var(--s-2)" }}>
-            <Link href={href} className="t-small" style={{ color: "var(--n-300)" }}>{label}</Link>
+          <li key={href + label}>
+            <Link href={href} className="t-small tap-row" style={{ color: "var(--n-300)" }}>{label}</Link>
           </li>
         ))}
       </ul>

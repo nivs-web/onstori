@@ -63,7 +63,7 @@ export function SiteHeaderClient({
       }}
     >
       <div className="wrap flex h-full items-center justify-between gap-4">
-        <Link href="/" aria-label="온스토리 홈" className="flex items-center">
+        <Link href="/" aria-label="온스토리 홈" className="flex items-center" style={{ minHeight: "var(--tap)" }}>
           <Logo height={20} />
         </Link>
 
@@ -85,7 +85,7 @@ export function SiteHeaderClient({
         </nav>
 
         <div className="flex items-center" style={{ gap: "var(--s-3)" }}>
-          <Link href={myHref} className="hidden t-small md:inline" style={{ color: "var(--n-600)" }}>
+          <Link href={myHref} className="hidden t-small md:flex md:items-center" style={{ color: "var(--n-600)", minHeight: "var(--tap)" }}>
             {myLabel}
           </Link>
           {/* ⚠ 주 버튼은 뷰포트당 1개 — 첫 화면에서 히어로 CTA 와 나란히 보이므로

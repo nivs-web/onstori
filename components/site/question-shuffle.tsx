@@ -23,36 +23,46 @@ export function QuestionShuffle({
     setTimeout(() => setSpin(false), 250);
   }
 
-  const fg = dark ? "var(--cream)" : "var(--forest)";
+  // 어두운 면(.surface-900) 위인지에 따라 제목·설명 색만 바뀐다
+  const fg = dark ? "var(--n-0)" : "var(--n-900)";
+  const sub = dark ? "var(--n-300)" : "var(--n-600)";
   return (
     <div className="text-center">
-      <h2 className="font-display text-[26px] sm:text-[34px]" style={{ color: fg, textWrap: "balance" }}>
+      <h2 className="t-h2" style={{ color: fg, textWrap: "balance" }}>
         사장님, 어떤 이야기를 들려주시겠습니까?
       </h2>
-      <p className="mt-2 text-[14px]" style={{ color: fg, opacity: 0.75 }}>
+      <p className="t-body" style={{ marginTop: "var(--s-2)", color: sub }}>
         온스토리 질문 은행 100개 중 4개. 마음에 드는 질문 하나를 고르고 60초만 말씀하세요.
       </p>
-      <ul className={`mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${spin ? "opacity-60" : ""}`} style={{ transition: "opacity .2s" }} aria-live="polite">
+      <ul
+        className="grid sm:grid-cols-2 lg:grid-cols-4"
+        style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", opacity: spin ? 0.6 : 1, transition: "opacity var(--dur-2) var(--ease)" }}
+        aria-live="polite"
+      >
         {qs.map((q) => {
           const inner = (
             <>
-              <span className="block text-[11px] font-bold tracking-[0.14em]" style={{ color: "var(--teal)" }}>{QUESTION_CATEGORIES[q.cat].name}</span>
-              <span className="mt-2 block text-[15px] font-semibold leading-snug" style={{ color: "var(--forest)" }}>{q.text}</span>
+              <span className="t-caption block font-bold" style={{ color: "var(--green-700)", letterSpacing: "0.14em" }}>
+                {QUESTION_CATEGORIES[q.cat].name}
+              </span>
+              <span className="t-body block font-semibold" style={{ marginTop: "var(--s-2)", color: "var(--n-900)" }}>{q.text}</span>
             </>
           );
-          const cls = "block h-full rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
+          // 카드 기본 그림자 없음 · hover 에만 (docs/DESIGN.md). 들어올리는 움직임은 MOTION 금지.
+          const cls = "card card-hover block h-full text-left";
+          const st = { padding: "var(--s-5)" } as const;
           return (
             <li key={q.id}>
               {onPick ? (
-                <button type="button" onClick={() => onPick(q)} className={cls + " w-full"} style={{ borderColor: "var(--line)" }}>{inner}</button>
+                <button type="button" onClick={() => onPick(q)} className={cls + " w-full"} style={st}>{inner}</button>
               ) : (
-                <Link href={`/new?q=${encodeURIComponent(q.id)}`} className={cls} style={{ borderColor: "var(--line)" }}>{inner}</Link>
+                <Link href={`/new?q=${encodeURIComponent(q.id)}`} className={cls} style={st}>{inner}</Link>
               )}
             </li>
           );
         })}
       </ul>
-      <button type="button" onClick={shuffle} className="btn-lime mt-7" aria-label="랜덤 질문 바꾸기">
+      <button type="button" onClick={shuffle} className="btn btn-primary" style={{ marginTop: "var(--s-6)" }} aria-label="랜덤 질문 바꾸기">
         <span aria-hidden>⇄</span> 랜덤 질문 바꾸기
       </button>
     </div>
