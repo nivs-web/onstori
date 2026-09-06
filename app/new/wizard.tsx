@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { INDUSTRY_GROUPS, findSubIndustry, type SubIndustry } from "@/config/industry-picker";
 import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
-import { TRIAL_DAYS, TRIAL_NOTICE } from "@/lib/trial";
+import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
@@ -224,7 +224,7 @@ export function Wizard() {
             <h1 className="font-display mt-3 text-[28px] sm:text-[34px]">홈페이지가 완성됐어요</h1>
             <p className="mt-2 text-[15px]" style={{ color: "var(--muted)" }}>{result.url.replace("https://", "")}</p>
             <div className="mt-8 rounded-2xl border bg-white p-5 text-left" style={{ borderColor: "var(--line)" }}>
-              <p className="text-[14.5px] font-semibold" style={{ color: "var(--forest)" }}>{TRIAL_NOTICE}</p>
+              <p className="text-[14.5px] font-semibold" style={{ color: "var(--forest)" }}>{COPY.policy}</p>
               <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "var(--muted)" }}>
                 {signedIn ? "지금 바로 전 기능을 쓰실 수 있어요. 첫 질문은 문자로 보내드릴게요." : "정회원 이용은 회원가입(카카오 또는 이메일)이 필요해요. 가입하면 이 홈페이지가 사장님 계정에 연결되고, 첫 질문이 문자로 갑니다."}
               </p>
@@ -233,7 +233,7 @@ export function Wizard() {
               정회원 이용하기 — {TRIAL_DAYS}일 무료
             </a>
             <a href={result.url} target="_blank" rel="noopener" className="btn-ghost mt-3 w-full">내 홈페이지 먼저 보기 ↗</a>
-            <p className="mt-6 text-[12px]" style={{ color: "var(--muted)" }}>{TRIAL_DAYS}일 이내 정회원(49,000원) 전환 시 계속 유지 · 이후 자동 삭제 · 언제든 해지</p>
+            <p className="mt-6 text-[12px]" style={{ color: "var(--muted)" }}>정회원 {COPY.priceLine} · 매달 자동 결제 · 언제든 해지</p>
           </section>
         ) : state === "error" ? (
           <section className="mt-10 text-center">
