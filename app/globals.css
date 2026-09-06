@@ -660,7 +660,9 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     padding-inline: 10px;
     border-radius: var(--r-full);
     background: var(--n-100);
-    font-size: 13px; line-height: 1; color: var(--n-500);
+    /* ⚠ --n-500 은 2.39:1 이라 못 쓴다(규칙 11). 진짜 크롬 주소창도 이보다 진하다
+       (#5f6368 on #f1f3f4 ≈ 5.9:1) — --text-soft 가 오히려 실물에 가깝다. */
+    font-size: 13px; line-height: 1; color: var(--text-soft);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
@@ -758,6 +760,10 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
      ⚠ 안쪽 모서리를 따로 정하지 마라. 바깥 − 두께가 아니면 모서리만 두꺼워 보인다. */
   .phone-frame {
     position: relative;
+    /* ⚠ display:block 을 빼지 마라. 첫 페이지 히어로에서는 이 부품이 <span> 이라
+       인라인이 되고, 그러면 width 가 아예 안 먹어 사진이 틀 밖으로 삐져나온다
+       (2026-09-07 실제로 각진 사진 한 장으로 나왔다). */
+    display: block;
     padding: var(--tc-phone-border);
     border-radius: var(--tc-phone-r);
     background: var(--n-900);
@@ -775,6 +781,15 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   .phone-frame > .phone-screen {
     display: block; width: 100%;
     border-radius: var(--tc-phone-r-in);
+  }
+  /* ⚠ 폰 화면 안은 어두운 배경이다. 의미 토큰을 여기서 뒤집지 않으면
+     --text-soft 가 --n-700 인 채로 어두운 바탕에 얹혀 1.78:1 이 된다
+     (2026-09-07 녹화 데모 폰의 "얼굴이 안 나와도 됩니다" 가 안 읽혔다).
+     .surface-900 과 같은 값을 쓴다 — 새 색을 만들지 않는다. */
+  .phone-screen {
+    --text-strong: var(--n-0);
+    --text: var(--n-200);
+    --text-soft: var(--n-400);
   }
 
   /* 히어로 옆 폰 — 미리 찍은 사진 한 장. iframe 아니다. */

@@ -69,7 +69,9 @@ export default async function Home() {
                 느려짐이 전부 거기서 나왔다. 지금은 미리 찍은 사진 한 장(13KB)이다. */}
             {heroSite?.phone && (
               <figure className="relative" style={{ margin: 0 }}>
-                <span className="phone-shot">
+                {/* ⚠ phone-frame 이 껍데기(테두리·모서리·그림자), phone-shot 은 폭·비율만.
+                    둘 다 있어야 한다 — phone-frame 을 빼면 각진 사진 한 장으로 나온다. */}
+                <span className="phone-frame phone-shot">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={heroSite.phone} alt={`${heroSite.name} 홈페이지 화면`} width={236} height={480} />
                 </span>
@@ -88,7 +90,10 @@ export default async function Home() {
             )}
             {/* ⚠ 1280 아래에서는 감춘다. 오른쪽 칸이 1fr(≈420px)인데 폰 두 대가 450px 을 먹어
                 1024~1279 에서 화면 밖으로 튀어나갔다 — 폰이 커서가 아니라 **자리가 좁아서**였다. */}
-            <div className="hidden origin-bottom-left scale-[.78] xl:block" style={{ marginLeft: "calc(var(--s-8) * -1)", marginBottom: "var(--s-5)" }}>
+            {/* ⚠ 1280 아래에서는 감춘다. 오른쪽 칸이 1fr(≈420px)인데 폰 두 대가 450px 을 먹어
+                1024~1279 에서 화면 밖으로 튀어나갔다 — 폰이 커서가 아니라 **자리가 좁아서**였다.
+                ⚠ 겹치는 정도도 주의. -s-8(-64px) 로 당겼더니 REC 폰이 왼쪽 폰을 통째로 덮었다. */}
+            <div className="hidden origin-bottom-left scale-[.72] xl:block" style={{ marginLeft: "calc(var(--s-5) * -1)", marginBottom: "var(--s-5)" }}>
               <RecMockup />
             </div>
           </div>
