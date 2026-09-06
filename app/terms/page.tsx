@@ -3,10 +3,7 @@ import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
 import { MEMBERSHIP_PRICE, TRIAL_DAYS } from "@/lib/trial";
 
-// ⚠ 빈칸(사업자등록번호·통신판매업신고번호·주소)이 남아 있는 동안은 검색에 노출하지 않는다.
-//    푸터·sitemap 링크도 함께 빼 뒀다. 빈칸을 채우면 이 robots 줄을 지우고 링크를 되살린다. 2026-09-07
 export const metadata: Metadata = {
-  robots: { index: false, follow: false },
   title: "이용약관 — 온스토리",
   description: "온스토리 서비스 이용 조건입니다.",
 };
@@ -14,8 +11,9 @@ export const metadata: Metadata = {
 /**
  * 이용약관 (2026-09-06 초안 · docs/specs/legal-pages.md)
  *
- * ⚠ 2026-09-06 회장님이 채워 주신 값: 상호 이안월드 · 대표 권병철 · 연락 info@onstori.com · 환불 기준 7일.
- * ⚠ 남은 빈칸 ⟪ ⟫ 2개(사업자등록번호 · 통신판매업신고번호)는 아직 등록 전이라 값이 없다. 그동안 배포하지 않는다.
+ * ⚠ 2026-09-06 회장님이 채워 주신 값: 상호 이안월드 · 대표 권병철 · 연락 info@onstori.com ·
+ *    환불 기준 7일 · 사업자등록번호 139-24-01865.
+ * ⚠ 제7조에 "사장님이 직접 입력하신 후기·시공 건수의 책임은 사장님께" 를 명시했다 (CLAUDE.md 규칙 7 개정, 2026-09-06).
  * ⚠ 금액·기간은 lib/trial.ts 에서 읽는다 — 약관과 화면의 숫자가 갈라지지 않게 (규칙 4 와 같은 원칙).
  * ⚠ 기술참모 초안이다. 배포 전 변호사 검토를 받는다.
  */
@@ -49,7 +47,7 @@ export default function TermsPage() {
         <Sec n="1" title="이 약관은 무엇인가요">
           <p>
             온스토리(onstori.com, 이하 &ldquo;서비스&rdquo;)를 쓰실 때의 조건입니다.
-            서비스는 이안월드(대표 권병철, 사업자등록번호 ⟪000-00-00000⟫)가 운영합니다.
+            서비스는 이안월드(대표 권병철, 사업자등록번호 139-24-01865)가 운영합니다.
           </p>
           <p>회원가입을 하시거나 홈페이지를 만드시면 이 약관에 동의하신 것으로 봅니다.</p>
         </Sec>
@@ -111,10 +109,15 @@ export default function TermsPage() {
           <p>다른 곳에 넘기거나, 동의 없이 광고 문자를 보내는 것은 법으로 금지돼 있습니다.</p>
         </Sec>
 
-        <Sec n="7" title="AI 가 만든 문구와 사진">
+        <Sec n="7" title="홈페이지에 올리는 내용">
           <p>
             온스토리는 AI 로 홈페이지 문구와 사진을 만들어 드립니다.
             <b>내용이 사실과 맞는지 확인하실 책임은 사장님께 있습니다.</b> 수정 화면에서 언제든 고치실 수 있습니다.
+          </p>
+          <p>
+            후기 · 시공 건수처럼 <b>사장님이 직접 입력하신 내용의 책임은 사장님께 있습니다.</b>
+            온스토리는 사장님이 넣으신 값을 그대로 보여줄 뿐, 실적을 자동으로 만들거나 부풀리지 않습니다.
+            사실과 다른 내용을 올리시면 표시광고법에 걸릴 수 있습니다.
           </p>
         </Sec>
 

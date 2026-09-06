@@ -89,15 +89,12 @@ export function SiteFooter() {
           </p>
         </div>
         <FooterCol title="둘러보기" links={[["/how-it-works", "작동방식"], ["/#portfolio", "완성 예시"], ["/#pricing", "가격"], ["/faq", "자주묻는질문"], ["/reviews", "리뷰"], ["/blog", "블로그"]]} />
-        {/* ⚠ /privacy·/terms 는 빈칸 3개(사업자등록번호·통신판매업신고번호·주소) 때문에 아직 링크하지 않는다.
-            빈칸을 채우면 아래 "개인정보 · 보안"(/faq#privacy) 을 지우고
-            ["/privacy","개인정보처리방침"], ["/terms","이용약관"] 두 줄로 바꾼다. 2026-09-07 */}
-        <FooterCol title="회사" links={[["/our-story", "온스토리"], ["/faq#privacy", "개인정보 · 보안"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
+        <FooterCol title="회사" links={[["/our-story", "온스토리"], ["/privacy", "개인정보처리방침"], ["/terms", "이용약관"], ["/login", "로그인"], ["/my", "마이페이지"], ["/admin", "운영자"]]} />
       </div>
       <div className="border-t border-white/10">
         <div className="wrap flex flex-wrap items-center justify-between gap-3 py-5 text-[12px] opacity-70">
           <span>© {new Date().getFullYear()} 온스토리 onstori.com · 문의: 카카오톡 채널 (준비 중)</span>
-          <span>사업자 정보는 등록 후 표기됩니다</span>
+          <span>이안월드 · 대표 권병철 · 사업자등록번호 139-24-01865 · 경기도 남양주시 다산순환로 397-80, 401</span>
         </div>
       </div>
     </footer>
