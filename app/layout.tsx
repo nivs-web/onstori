@@ -9,9 +9,13 @@ import "./globals.css";
 const serifKr = Noto_Serif_KR({
   weight: ["600", "700"],
   subsets: ["latin"],
-  display: "swap",
+  // ⚠ swap 이 아니라 optional 이다. swap 이면 폴백 명조로 그린 제목이 세리프가 도착한 뒤
+  //   다시 그려지면서 아래 문단을 밀어낸다 — 2026-09-06 Lighthouse 에서 CLS 0.055 의
+  //   전부가 이 한 번의 교체였다. optional 이면 첫 페인트에 못 대면 그 방문에서는
+  //   폴백 명조로 끝까지 간다: 교체가 없으니 밀림도 없다. 다음 방문엔 캐시에서 바로 뜬다.
+  display: "optional",
   variable: "--font-serif-kr",
-  preload: false, // 한글 글리프가 커서 미리 받지 않는다 — 제목은 폴백 명조로 먼저 그려진다
+  preload: false, // 한글 글리프가 커서 미리 받지 않는다 — 히어로 사진과 대역폭을 다투지 않게
 });
 
 export const metadata: Metadata = {

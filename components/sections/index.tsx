@@ -99,6 +99,31 @@ function ctaHref(action: string, ctx: Ctx): string {
  *  옛 사이트의 낯선 호스트에 next/image 를 물리면 그 페이지가 통째로 500 이 된다. */
 const OPTIMIZABLE = /^https:\/\/(img\.onstori\.com|wpsrfjqfbhmeriscdacu\.supabase\.co)\//;
 
+/**
+ * 손님 사이트 사진 — 허용 호스트면 next/image(AVIF·WebP·표시 크기에 맞춰 축소),
+ * 아니면 평범한 <img> 로 떨어진다.
+ *
+ * ⚠ sizes 를 반드시 준다. 없으면 1920px 원본이 390px 폰으로 그대로 내려간다 —
+ *   2026-09-06 실측에서 갤러리 사진 한 장이 113~158KB 였다.
+ * ⚠ 비율은 바깥에서 style 로 고정한다. 사진이 늦게 와도 아래가 밀리지 않게(CLS).
+ */
+function Photo({
+  src, alt, sizes, className, style, priority,
+}: {
+  src: string; alt: string; sizes: string;
+  className?: string; style?: React.CSSProperties; priority?: boolean;
+}) {
+  if (!OPTIMIZABLE.test(src)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} loading={priority ? "eager" : "lazy"} decoding="async" className={className} style={style} />;
+  }
+  return (
+    <span className={className} style={{ ...style, position: "relative", display: "block", overflow: "hidden" }}>
+      <Image src={src} alt={alt} fill sizes={sizes} quality={65} loading={priority ? "eager" : "lazy"} style={{ objectFit: "cover" }} />
+    </span>
+  );
+}
+
 /* ── 섹션들 ── */
 
 function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ctx: Ctx; first?: boolean }) {
@@ -133,6 +158,7 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
               priority
               fetchPriority="high"
               sizes="100vw"
+              quality={65}
               style={{ objectFit: "cover" }}
             />
           ) : (
@@ -184,10 +210,9 @@ function AboutSec({ s }: { s: Extract<SectionT, { type: "about" }> }) {
       {/* 사진이 있으면 본문 옆에 붙인다(모바일은 위). 뱅크 about 이미지는 3:2 중간 샷이라 비율을 유지한다 */}
       <div className={s.image ? "flex flex-col sm:flex-row sm:items-start" : undefined} style={s.image ? { gap: "var(--s-5)" } : undefined}>
         {s.image && (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={s.image} alt="" loading="lazy" decoding="async"
-               className="w-full sm:w-56 sm:flex-shrink-0"
-               style={{ aspectRatio: "3 / 2", objectFit: "cover", borderRadius: "var(--r-lg)", background: "var(--s-soft)" }} />
+          <Photo src={s.image} alt="" className="w-full sm:w-56 sm:flex-shrink-0"
+                 sizes="(min-width: 640px) 224px, 100vw"
+                 style={{ aspectRatio: "3 / 2", borderRadius: "var(--r-lg)", background: "var(--s-soft)" }} />
         )}
         <p className="t-body whitespace-pre-line" style={{ color: "var(--s-ink)" }}>{s.body}</p>
       </div>
@@ -225,9 +250,8 @@ function StoryFeedSec({ s, ctx }: { s: Extract<SectionT, { type: "storyFeed" }>;
             {e.photos.length > 0 && (
               <div className="flex overflow-x-auto" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
                 {e.photos.map((p) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={p} src={p} alt={e.title} loading="lazy" decoding="async" width={128} height={96}
-                       className="flex-shrink-0" style={{ width: 128, height: 96, objectFit: "cover", borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
+                  <Photo key={p} src={p} alt={e.title} sizes="128px" className="flex-shrink-0"
+                         style={{ width: 128, height: 96, borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
                 ))}
               </div>
             )}
@@ -247,8 +271,9 @@ function GallerySec({ s }: { s: Extract<SectionT, { type: "gallery" }> }) {
     <SectionShell id="gallery" title={s.title}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-3)" }}>
         {s.photos.map((p) => (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img key={p} src={p} alt="" loading="lazy" decoding="async" className="photo" style={{ background: "var(--s-soft)" }} />
+          <Photo key={p} src={p} alt="" className="photo"
+                 sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                 style={{ background: "var(--s-soft)" }} />
         ))}
       </div>
     </SectionShell>
@@ -318,8 +343,9 @@ function PortfolioSec({ s }: { s: Extract<SectionT, { type: "portfolioGallery" }
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--s-4)" }}>
         {s.items.map((it) => (
           <figure key={it.title} className="overflow-hidden" style={{ border: "1px solid var(--s-line)", borderRadius: "var(--r-md)" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={it.image} alt={it.title} loading="lazy" decoding="async" className="photo" style={{ borderRadius: 0, background: "var(--s-soft)" }} />
+            <Photo src={it.image} alt={it.title} className="photo"
+                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                   style={{ borderRadius: 0, background: "var(--s-soft)" }} />
             <figcaption className="flex items-baseline justify-between" style={{ gap: "var(--s-2)", padding: "var(--s-4)" }}>
               <div>
                 <p className="t-body font-semibold" style={{ color: "var(--s-ink)" }}>{it.title}</p>
@@ -352,9 +378,8 @@ function ProcessSec({ s }: { s: Extract<SectionT, { type: "processSteps" }> }) {
             </div>
             {/* 단계 사진 — 번호·글 다음 오른쪽 끝에 작게. 2단 그리드라 폭을 많이 못 준다 */}
             {st.image && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={st.image} alt="" loading="lazy" decoding="async" width={56} height={56}
-                   className="flex-shrink-0" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
+              <Photo src={st.image} alt="" sizes="56px" className="flex-shrink-0"
+                     style={{ width: 56, height: 56, borderRadius: "var(--r-sm)", background: "var(--s-soft)" }} />
             )}
           </li>
         ))}

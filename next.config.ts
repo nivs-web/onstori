@@ -12,12 +12,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /**
    * 이미지 저장소는 Cloudflare R2(`img.onstori.com`) — docs/specs/storage-r2.md, DECISIONS 2026-09-03.
-   * 2026-09-06 부터 **히어로만** next/image 를 쓴다(LCP · docs/PERFORMANCE.md). 나머지는 <img> 이고,
-   * 히어로 URL 이 아래 호스트가 아니면 렌더러가 <img> 로 떨어진다 — 옛 사이트가 500 이 되면 안 된다.
+   * 2026-09-06 부터 손님 사이트 사진은 next/image 를 거친다(docs/PERFORMANCE.md).
+   * 히어로는 priority, 나머지는 lazy. URL 이 아래 호스트가 아니면 렌더러가 평범한 <img> 로
+   * 떨어진다 — 옛 사이트의 낯선 호스트를 물리면 그 페이지가 통째로 500 이 된다.
    * supabase 는 R2 이전(2026-09-03) 사이트들의 이미지가 아직 거기 있어서 남긴다.
    */
   images: {
     formats: ["image/avif", "image/webp"],
+    // 손님 사이트 사진은 65 로 내보낸다. AVIF 에서 75 와 눈으로 구분이 안 되는데
+    // 장당 30% 가까이 가볍다 (2026-09-06 실측: 갤러리 사진 100KB대 → 70KB대).
+    qualities: [65, 75],
     remotePatterns: [
       { protocol: "https", hostname: "img.onstori.com" },
       { protocol: "https", hostname: "wpsrfjqfbhmeriscdacu.supabase.co" },

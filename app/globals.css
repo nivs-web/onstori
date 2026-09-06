@@ -106,7 +106,10 @@
   --dock-h: 64px;                /* 손님 사이트 하단 고정 바 */
 
   /* ── 글꼴 ── */
-  --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+  /* ⚠ 폴백은 맨 앞이 "Pretendard Fallback" 이다 — 아래에서 시스템 글꼴에 Pretendard 와
+     같은 세로 메트릭을 씌운 가짜 얼굴이다. 이게 없으면 Pretendard 가 도착하는 순간
+     줄 높이가 바뀌면서 아래 문단이 통째로 밀린다(CLS). */
+  --font-body: "Pretendard Variable", Pretendard, "Pretendard Fallback", -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --font-display: var(--font-serif-kr), "Noto Serif KR", "Nanum Myeongjo", serif;
 
@@ -170,6 +173,17 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-full: var(--r-full);
+}
+
+/* 폴백 얼굴 — 시스템 한글 글꼴에 Pretendard 와 같은 세로 메트릭을 씌운다.
+   글꼴이 바뀌어도 줄 높이가 그대로라 문단이 밀리지 않는다 (docs/PERFORMANCE.md §5). */
+@font-face {
+  font-family: "Pretendard Fallback";
+  src: local("Malgun Gothic"), local("Apple SD Gothic Neo"), local("Noto Sans KR"), local("Arial");
+  ascent-override: 92%;
+  descent-override: 8%;
+  line-gap-override: 0%;
+  font-display: swap;
 }
 
 /* ───────────────────────── 바탕 ───────────────────────── */
