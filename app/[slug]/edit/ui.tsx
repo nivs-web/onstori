@@ -272,23 +272,23 @@ export function EditUi({ slug }: { slug: string }) {
   // 이 계정에 안 붙은 사이트라는 사실을 알려주고 연결 경로(처음 만든 기기 / 내 홈페이지)로 보낸다.
   if (denied) return (
     <main className="mx-auto max-w-md px-6 py-24 text-center">
-      <h1 className="text-xl font-bold">{denied.notFound ? "홈페이지를 찾지 못했어요" : "수정 권한이 없어요"}</h1>
+      <h1 className="t-h3 font-bold">{denied.notFound ? "홈페이지를 찾지 못했어요" : "수정 권한이 없어요"}</h1>
       {denied.notFound ? (
         <>
           {/* 주소가 없거나 서버가 응답하지 못한 경우 — 권한 문제가 아니므로 로그인 안내를 하지 않는다 */}
-          <p className="mt-2 text-sm text-[var(--text-soft)]">주소를 다시 확인해주세요. 잠시 후에도 같으면 다시 시도해주세요.</p>
-          <Link href="/my" className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white">내 홈페이지 보기</Link>
+          <p className="mt-2 t-small text-[var(--text-soft)]">주소를 다시 확인해주세요. 잠시 후에도 같으면 다시 시도해주세요.</p>
+          <Link href="/my" className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 t-small font-semibold text-white">내 홈페이지 보기</Link>
         </>
       ) : denied.signedIn ? (
         <>
           {/* 미claim 사이트일 수도, 다른 계정이 이미 가진 사이트일 수도 있다.
               후자에선 [내 계정에 연결하기] 버튼이 아예 렌더되지 않으므로 계정 전환 경로도 함께 알려준다. */}
-          <p className="mt-2 text-sm text-[var(--text-soft)]">
+          <p className="mt-2 t-small text-[var(--text-soft)]">
             이 홈페이지는 지금 로그인한 계정에 연결돼 있지 않아요.<br />
             처음 만든 기기에서 이 화면을 열어 <b>[내 계정에 연결하기]</b>를 누르거나,<br />
             다른 계정으로 로그인했다면 <b>[내 홈페이지 보기]</b>에서 로그아웃한 뒤 처음 쓰던 방법으로 다시 로그인해주세요.
           </p>
-          <Link href="/my" className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white">내 홈페이지 보기</Link>
+          <Link href="/my" className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 t-small font-semibold text-white">내 홈페이지 보기</Link>
         </>
       ) : (
         <>
@@ -296,7 +296,7 @@ export function EditUi({ slug }: { slug: string }) {
           <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>로그인하기</a>
         </>
       )}
-      <p className="mt-4 text-xs text-[var(--text-soft)]">운영자라면 <a className="text-green-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
+      <p className="mt-4 t-caption text-[var(--text-soft)]">운영자라면 <a className="text-green-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
     </main>
   );
   if (!data || !doc) return <main className="px-6 py-24 text-center text-[var(--text-soft)]">불러오는 중…</main>;
@@ -312,18 +312,18 @@ export function EditUi({ slug }: { slug: string }) {
       return (
         <main className="mx-auto max-w-xl px-5 pb-24 pt-8">
           <section className="rounded-2xl border border-accent bg-accent-soft p-4">
-            <p className="text-sm font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text)]">
+            <p className="t-small font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
+            <p className="mt-1 t-caption leading-relaxed text-[var(--text)]">
               받아두신 문의는 그대로 보실 수 있어요. 손님에게 연락도 지금 하실 수 있습니다.
               내용 수정·사이트 반영은 정기결제를 시작하시면 다시 열려요. 자료는 그대로 보관돼 있습니다.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setPayOpen(true)}
-                className="rounded-full bg-green-700 px-4 py-2 text-xs font-semibold text-white">
+                className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white">
                 정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원
               </button>
               <button type="button" onClick={() => setTab("content")}
-                className="rounded-full border border-n-300 px-4 py-2 text-xs font-semibold">
+                className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
                 돌아가기
               </button>
             </div>
@@ -331,7 +331,7 @@ export function EditUi({ slug }: { slug: string }) {
           {inboxDone ? (
             <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
           ) : (
-            <p className="mt-8 text-center text-sm text-[var(--text-soft)]">문의를 불러오는 중…</p>
+            <p className="mt-8 text-center t-small text-[var(--text-soft)]">문의를 불러오는 중…</p>
           )}
           {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
           {toast && <div className="toast" role="status">{toast}</div>}
@@ -367,15 +367,15 @@ export function EditUi({ slug }: { slug: string }) {
       <header className="sticky top-0 z-10 -mx-5 border-b border-n-200 bg-white/95 px-5 py-3 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div data-tour="score-bar" className="min-w-0">
-            <p className="truncate text-sm font-bold">{data.businessName}</p>
-            <p className="text-xs text-[var(--text-soft)]">완성도 <b className="text-green-700">{data.score}점</b> / 100</p>
+            <p className="truncate t-small font-bold">{data.businessName}</p>
+            <p className="t-caption text-[var(--text-soft)]">완성도 <b className="text-green-700">{data.score}점</b> / 100</p>
             <AutoSaveStatus status={autoStatus} onRetry={() => void autoSave()} />
           </div>
           <div className="flex gap-2">
-            <button onClick={save} disabled={!!busy} className="rounded-full border border-n-300 px-4 py-2 text-sm font-semibold disabled:opacity-40">
+            <button onClick={save} disabled={!!busy} className="rounded-full border border-n-300 px-4 py-2 t-small font-semibold disabled:opacity-40">
               {busy === "save" ? "저장 중…" : "저장"}
             </button>
-            <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-green-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+            <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-green-700 px-4 py-2 t-small font-semibold text-white disabled:opacity-40">
               {busy === "publish" ? "반영 중…" : "사이트 반영"}
             </button>
             {/* 로그아웃 — /my 의 컴포넌트를 그대로 쓴다. data-tour 앵커를 새로 만들지 않는다(규칙 3). */}
@@ -392,21 +392,21 @@ export function EditUi({ slug }: { slug: string }) {
       {(data.ownership === "anon" || data.ownership === "anon-signedin") && (
         <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-white p-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold">
+            <p className="t-caption font-bold">
               {data.ownership === "anon" ? "지금은 이 기기에서만 수정할 수 있어요" : "이 홈페이지가 아직 계정에 연결되지 않았어요"}
             </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-soft)]">
+            <p className="mt-0.5 t-caption leading-relaxed text-[var(--text-soft)]">
               {data.ownership === "anon"
                 ? "로그인하면 휴대폰·컴퓨터 어디서든 이어서 고칠 수 있어요."
                 : "내 계정에 연결하면 다른 기기에서도 이어서 고칠 수 있어요."}
             </p>
           </div>
           {data.ownership === "anon" ? (
-            <button onClick={goLogin} disabled={!!busy} className="shrink-0 rounded-full bg-green-700 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+            <button onClick={goLogin} disabled={!!busy} className="shrink-0 rounded-full bg-green-700 px-3.5 py-1.5 t-caption font-semibold text-white disabled:opacity-40">
               {busy === "save" ? "저장 중…" : "로그인하기"}
             </button>
           ) : (
-            <button onClick={claimSite} disabled={!!busy} className="shrink-0 rounded-full bg-green-700 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+            <button onClick={claimSite} disabled={!!busy} className="shrink-0 rounded-full bg-green-700 px-3.5 py-1.5 t-caption font-semibold text-white disabled:opacity-40">
               {busy === "claim" ? "연결 중…" : "내 계정에 연결하기"}
             </button>
           )}
@@ -421,7 +421,7 @@ export function EditUi({ slug }: { slug: string }) {
       <StoryLinkButton slug={slug} phone={String(data.settings?.phone ?? "")} />
 
       {/* 점수 올리기 힌트 */}
-      <section className="mt-4 rounded-xl bg-green-50 p-3 text-xs leading-relaxed text-green-900">
+      <section className="mt-4 rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
         {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo"].includes(r.id)).slice(0, 3).map((r) => (
           <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
             className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">
@@ -433,17 +433,17 @@ export function EditUi({ slug }: { slug: string }) {
 
       {/* 탭 */}
       <nav className="mt-5 flex flex-wrap items-center gap-2">
-        <button onClick={() => switchTab("content")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "content" ? "bg-n-900 text-white" : "border border-n-300"}`}>내용 수정</button>
-        <button data-tour="story-new" onClick={() => switchTab("story")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "story" ? "bg-n-900 text-white" : "border border-n-300"}`}>
+        <button onClick={() => switchTab("content")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "content" ? "bg-n-900 text-white" : "border border-n-300"}`}>내용 수정</button>
+        <button data-tour="story-new" onClick={() => switchTab("story")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "story" ? "bg-n-900 text-white" : "border border-n-300"}`}>
           이야기 쓰기 <span className="opacity-60">({data.storyCount})</span>
         </button>
-        <button data-tour="panel-inbox" onClick={() => switchTab("inbox")} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "inbox" ? "bg-n-900 text-white" : "border border-n-300"}`}>
+        <button data-tour="panel-inbox" onClick={() => switchTab("inbox")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "inbox" ? "bg-n-900 text-white" : "border border-n-300"}`}>
           문의함
           {newCount > 0 && (
             <span className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-green-700 px-1.5 py-0.5 text-[11px] font-bold text-white">{newCount}</span>
           )}
         </button>
-        <a href={`/${slug}`} target="_blank" className="ml-auto self-center text-sm text-green-700 underline underline-offset-4">내 사이트 보기 ↗</a>
+        <a href={`/${slug}`} target="_blank" className="ml-auto self-center t-small text-green-700 underline underline-offset-4">내 사이트 보기 ↗</a>
       </nav>
 
       {tab === "content" ? (
@@ -454,7 +454,7 @@ export function EditUi({ slug }: { slug: string }) {
       ) : inboxDone ? (
         <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
       ) : (
-        <p className="mt-8 text-center text-sm text-[var(--text-soft)]">문의를 불러오는 중…</p>
+        <p className="mt-8 text-center t-small text-[var(--text-soft)]">문의를 불러오는 중…</p>
       )}
     </main>
 
@@ -467,7 +467,7 @@ export function EditUi({ slug }: { slug: string }) {
 
     {/* 폰 하단 고정 바 — 미리보기는 무거우니 기본으로 열지 않는다 */}
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-n-200 bg-white p-3 lg:hidden">
-      <button onClick={() => setSheetOpen(true)} className="mx-auto block w-full max-w-xl rounded-full bg-n-900 py-3 text-sm font-semibold text-white">
+      <button onClick={() => setSheetOpen(true)} className="mx-auto block w-full max-w-xl rounded-full bg-n-900 py-3 t-small font-semibold text-white">
         미리보기
       </button>
     </div>
@@ -476,8 +476,8 @@ export function EditUi({ slug }: { slug: string }) {
     {sheetOpen && (
       <div className="fixed inset-0 z-50 flex flex-col bg-white lg:hidden">
         <div className="flex shrink-0 items-center justify-between border-b border-n-200 px-4 py-3">
-          <p className="text-sm font-bold">미리보기</p>
-          <button onClick={() => setSheetOpen(false)} className="rounded-full border border-n-300 px-3.5 py-1.5 text-xs font-semibold">닫기</button>
+          <p className="t-small font-bold">미리보기</p>
+          <button onClick={() => setSheetOpen(false)} className="rounded-full border border-n-300 px-3.5 py-1.5 t-caption font-semibold">닫기</button>
         </div>
         <div className="min-h-0 flex-1">
           <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />
@@ -514,7 +514,7 @@ function addressOf(doc: SiteDocT): string | null {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-1 block text-xs font-semibold text-[var(--text-soft)]">{label}</span>{children}</label>;
+  return <label className="block"><span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">{label}</span>{children}</label>;
 }
 const inp = "w-full rounded-xl border border-n-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-green-700";
 
@@ -540,7 +540,7 @@ function NotifyBox({ notify, setNotify, channels }: {
 
   return (
     <div className="space-y-3 rounded-xl bg-n-50 p-3.5">
-      <p className="text-xs font-bold">문의 알림 받기</p>
+      <p className="t-caption font-bold">문의 알림 받기</p>
       <Field label="문자 받을 번호">
         <input className={inp} value={notify.phone} maxLength={20} inputMode="tel"
           onChange={(e) => setNotify({ ...notify, phone: e.target.value })} />
@@ -611,11 +611,11 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
     <div data-tour="panel-sections" className="mt-5 space-y-6">
       {/* 분위기 */}
       <section className="rounded-2xl border border-n-200 p-4">
-        <h2 className="text-sm font-bold">분위기</h2>
+        <h2 className="t-small font-bold">분위기</h2>
         <div className="mt-2 flex gap-2">
           {MOODS.map((m) => (
             <button key={m.id} onClick={() => setDoc({ ...doc, theme: { ...doc.theme, palette: m.id } })}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${doc.theme.palette === m.id ? "bg-green-700 text-white" : "border border-n-300"}`}>
+              className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${doc.theme.palette === m.id ? "bg-green-700 text-white" : "border border-n-300"}`}>
               {m.name}
             </button>
           ))}
@@ -629,14 +629,14 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
         switch (s.type) {
           case "hero": return (
             <section data-tour="sec-hero" className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">첫 화면</h2>
+              <h2 className="t-small font-bold">첫 화면</h2>
               <Field label="작은 소개 (한 줄)"><input className={inp} value={s.eyebrow ?? ""} maxLength={40} onChange={(e) => patchSection(i, { eyebrow: e.target.value })} /></Field>
               <Field label="큰 제목"><textarea className={inp} rows={2} value={s.headline} maxLength={60} onChange={(e) => patchSection(i, { headline: e.target.value })} /></Field>
               <Field label="설명 문장"><textarea className={inp} rows={2} value={s.sub ?? ""} maxLength={160} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="panel-photos">
-                <span className="mb-1 block text-xs font-semibold text-[var(--text-soft)]">첫 화면 사진 {s.image ? "" : "(없음)"}</span>
+                <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">첫 화면 사진 {s.image ? "" : "(없음)"}</span>
                 {s.image && /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.image} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />}
-                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 text-xs font-semibold">
+                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
                   {uploading ? "올리는 중…" : "내 사진으로 교체 (+15점 항목)"}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
                 </label>
@@ -645,16 +645,16 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "about": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">소개</h2>
+              <h2 className="t-small font-bold">소개</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               <Field label="내용"><textarea className={inp} rows={5} value={s.body} maxLength={600} onChange={(e) => patchSection(i, { body: e.target.value })} /></Field>
               <div>
-                <span className="mb-1 block text-xs font-semibold text-[var(--text-soft)]">소개 사진 {s.image ? "" : "(없음)"}</span>
+                <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">소개 사진 {s.image ? "" : "(없음)"}</span>
                 {s.image && (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={s.image} alt="" className="mb-2 aspect-[3/2] w-40 rounded-lg object-cover" />
                 )}
-                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 text-xs font-semibold">
+                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
                   {uploading ? "올리는 중…" : s.image ? "사진 교체" : "사진 추가"}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
                 </label>
@@ -663,14 +663,14 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "processSteps": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">진행 과정</h2>
+              <h2 className="t-small font-bold">진행 과정</h2>
               {s.steps.map((st, j) => (
                 <div key={j} className="flex items-center gap-2">
                   <input className={`${inp} w-28 flex-shrink-0`} value={st.name} maxLength={20}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, name: e.target.value } : x) })} />
                   <input className={inp} value={st.desc ?? ""} maxLength={80}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} />
-                  <label className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-n-300 text-xs"
+                  <label className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-n-300 t-caption"
                          title={st.image ? "사진 교체" : "사진 추가"}>
                     {st.image ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -685,7 +685,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "quoteForm": return (
             <section data-tour="sec-form" className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">문의 받기</h2>
+              <h2 className="t-small font-bold">문의 받기</h2>
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
                 <Field label="전화번호 (문의 버튼 연결)">
@@ -701,20 +701,20 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "map": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">오시는 길</h2>
+              <h2 className="t-small font-bold">오시는 길</h2>
               <Field label="주소"><input className={inp} value={s.address} maxLength={120} onChange={(e) => patchSection(i, { address: e.target.value })} /></Field>
               <Field label="안내 (선택)"><input className={inp} value={s.note ?? ""} maxLength={120} onChange={(e) => patchSection(i, { note: e.target.value })} /></Field>
             </section>
           );
           case "hoursCard": return (
             <section data-tour="set-hours" className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">영업시간</h2>
+              <h2 className="t-small font-bold">영업시간</h2>
               <Field label="영업시간 (줄바꿈 가능)"><textarea className={inp} rows={3} value={s.hours} maxLength={200} onChange={(e) => patchSection(i, { hours: e.target.value })} /></Field>
             </section>
           );
           case "storyFeed": return (
             <section className="rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">이야기 코너</h2>
+              <h2 className="t-small font-bold">이야기 코너</h2>
               <Field label="코너 제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
             </section>
           );
@@ -725,14 +725,14 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
             };
             return (
               <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-                <h2 className="text-sm font-bold">사진 갤러리</h2>
+                <h2 className="t-small font-bold">사진 갤러리</h2>
                 <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
                 <div className="flex flex-wrap gap-2">
                   {s.photos.map((p, j) => (
                     <div key={`${p}-${j}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p} alt="" className="h-24 w-28 rounded-lg object-cover" />
-                      <div className="mt-1 flex justify-center gap-1 text-xs">
+                      <div className="mt-1 flex justify-center gap-1 t-caption">
                         <button disabled={j === 0} onClick={() => mv(j, -1)} className="rounded border border-n-200 px-1.5 disabled:opacity-30" aria-label="앞으로">←</button>
                         <button disabled={j === s.photos.length - 1} onClick={() => mv(j, 1)} className="rounded border border-n-200 px-1.5 disabled:opacity-30" aria-label="뒤로">→</button>
                         <button disabled={s.photos.length <= 1} onClick={() => patchSection(i, { photos: s.photos.filter((_, k) => k !== j) })}
@@ -741,20 +741,20 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                     </div>
                   ))}
                   {s.photos.length < 30 && (
-                    <label className="flex h-24 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-n-300 text-2xl text-n-300">
+                    <label className="flex h-24 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-n-300 t-h2 text-n-300">
                       {uploading ? "…" : "＋"}
                       <input type="file" accept="image/*" className="hidden"
                         onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { photos: [...s.photos, url] }); e.target.value = ""; }} />
                     </label>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-soft)]">사진은 최소 1장 필요해요. 최대 30장.</p>
+                <p className="t-caption text-[var(--text-soft)]">사진은 최소 1장 필요해요. 최대 30장.</p>
               </section>
             );
           }
           case "reviews": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">고객 이야기</h2>
+              <h2 className="t-small font-bold">고객 이야기</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
@@ -762,7 +762,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                     <input className={inp} value={it.title} maxLength={60} placeholder="한 줄 요약 (예: 꼼꼼한 시공 감사해요)"
                       onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, title: e.target.value } : x) })} />
                     <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
-                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 text-xs text-danger disabled:opacity-30" aria-label="후기 삭제">✕</button>
+                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 t-caption text-danger disabled:opacity-30" aria-label="후기 삭제">✕</button>
                   </div>
                   <textarea className={inp} rows={2} value={it.body} maxLength={300} placeholder="손님이 남긴 말"
                     onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, body: e.target.value } : x) })} />
@@ -772,13 +772,13 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               ))}
               {s.items.length < 20 && (
                 <button onClick={() => patchSection(i, { items: [...s.items, { title: "", body: "" }] })}
-                  className="rounded-full border border-n-300 px-4 py-1.5 text-xs font-semibold">＋ 후기 추가</button>
+                  className="rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">＋ 후기 추가</button>
               )}
             </section>
           );
           case "banner": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">띠 배너</h2>
+              <h2 className="t-small font-bold">띠 배너</h2>
               <Field label="문구"><input className={inp} value={s.text} maxLength={80} onChange={(e) => patchSection(i, { text: e.target.value })} /></Field>
               <Field label="연결 주소 (선택)"><input className={inp} value={s.link ?? ""} placeholder="https://…" inputMode="url"
                 onChange={(e) => patchSection(i, { link: e.target.value.trim() || undefined })} /></Field>
@@ -786,7 +786,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "portfolioGallery": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">시공 사례</h2>
+              <h2 className="t-small font-bold">시공 사례</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
@@ -804,9 +804,9 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                       </div>
                     </div>
                     <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
-                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 py-1 text-xs text-danger disabled:opacity-30" aria-label="사례 삭제">✕</button>
+                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 py-1 t-caption text-danger disabled:opacity-30" aria-label="사례 삭제">✕</button>
                   </div>
-                  <label className="inline-block cursor-pointer rounded-full border border-n-300 px-3.5 py-1 text-xs font-semibold">
+                  <label className="inline-block cursor-pointer rounded-full border border-n-300 px-3.5 py-1 t-caption font-semibold">
                     {uploading ? "올리는 중…" : "사진 교체"}
                     <input type="file" accept="image/*" className="hidden"
                       onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, image: url } : x) }); e.target.value = ""; }} />
@@ -814,7 +814,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                 </div>
               ))}
               {s.items.length < 30 && (
-                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 text-xs font-semibold">
+                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
                   {uploading ? "올리는 중…" : "＋ 사례 추가 (사진 선택)"}
                   <input type="file" accept="image/*" className="hidden"
                     onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) patchSection(i, { items: [...s.items, { title: "", image: url }] }); e.target.value = ""; }} />
@@ -824,7 +824,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           );
           case "menuPrice": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">메뉴판</h2>
+              <h2 className="t-small font-bold">메뉴판</h2>
               <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
@@ -834,7 +834,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                     <input className={`${inp} w-28 flex-shrink-0`} value={it.price} maxLength={20} placeholder="가격"
                       onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, price: e.target.value } : x) })} />
                     <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
-                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 text-xs text-danger disabled:opacity-30" aria-label="메뉴 삭제">✕</button>
+                      className="flex-shrink-0 rounded-full border border-n-200 px-2.5 t-caption text-danger disabled:opacity-30" aria-label="메뉴 삭제">✕</button>
                   </div>
                   <input className={inp} value={it.desc ?? ""} maxLength={80} placeholder="설명 (선택)"
                     onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} />
@@ -842,15 +842,15 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               ))}
               {s.items.length < 40 && (
                 <button onClick={() => patchSection(i, { items: [...s.items, { name: "", price: "" }] })}
-                  className="rounded-full border border-n-300 px-4 py-1.5 text-xs font-semibold">＋ 메뉴 추가</button>
+                  className="rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">＋ 메뉴 추가</button>
               )}
             </section>
           );
           default: return (
             // 모르는 타입도 숨기지 않는다 — 숨기면 저장 실패(zod 검증)의 원인을 화면에서 찾을 수 없음
             <section className="rounded-2xl border border-n-200 p-4">
-              <h2 className="text-sm font-bold">알 수 없는 섹션</h2>
-              <p className="mt-1 text-xs text-[var(--text-soft)]">
+              <h2 className="t-small font-bold">알 수 없는 섹션</h2>
+              <p className="mt-1 t-caption text-[var(--text-soft)]">
                 이 에디터가 지원하지 않는 섹션이에요 (타입: {(s as { type?: string }).type ?? "없음"}). 저장이 실패하면 이 섹션이 원인일 수 있어요.
               </p>
             </section>
@@ -862,12 +862,12 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
             {s.type !== "hero" && (
               <div className="absolute right-3 top-3 flex gap-1">
                 <button disabled={i === 0 || doc.sections[i - 1].type === "hero"} onClick={() => moveSection(i, -1)}
-                  className="h-6 w-6 rounded border border-n-200 bg-white text-xs text-[var(--text-soft)] disabled:opacity-30" aria-label="위로 이동">↑</button>
+                  className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="위로 이동">↑</button>
                 <button disabled={i === doc.sections.length - 1} onClick={() => moveSection(i, 1)}
-                  className="h-6 w-6 rounded border border-n-200 bg-white text-xs text-[var(--text-soft)] disabled:opacity-30" aria-label="아래로 이동">↓</button>
+                  className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="아래로 이동">↓</button>
                 {s.type !== "quoteForm" && (
                   <button onClick={() => deleteSection(i)}
-                    className="h-6 w-6 rounded border border-n-200 bg-white text-xs text-[var(--text-soft)] hover:border-danger hover:text-danger" aria-label="섹션 삭제">✕</button>
+                    className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] hover:border-danger hover:text-danger" aria-label="섹션 삭제">✕</button>
                 )}
               </div>
             )}
@@ -878,28 +878,28 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
 
       {/* 섹션 추가 — 없는 타입만. gallery·portfolioGallery는 zod min(1) 제약 때문에 첫 사진과 함께 삽입 */}
       <section className="rounded-2xl border-2 border-dashed border-n-300 p-4">
-        <h2 className="text-sm font-bold">섹션 추가</h2>
+        <h2 className="t-small font-bold">섹션 추가</h2>
         {missing.length === 0 ? (
-          <p className="mt-1 text-xs text-[var(--text-soft)]">추가할 수 있는 섹션이 모두 들어가 있어요.</p>
+          <p className="mt-1 t-caption text-[var(--text-soft)]">추가할 수 있는 섹션이 모두 들어가 있어요.</p>
         ) : (
           <>
-            <p className="mt-1 text-xs text-[var(--text-soft)]">맨 아래에 추가돼요 — ↑ 버튼으로 원하는 위치로 옮기세요. 사진 갤러리·시공 사례는 첫 사진을 고르면 추가돼요.</p>
+            <p className="mt-1 t-caption text-[var(--text-soft)]">맨 아래에 추가돼요 — ↑ 버튼으로 원하는 위치로 옮기세요. 사진 갤러리·시공 사례는 첫 사진을 고르면 추가돼요.</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {missing.map((m) => m.needsPhoto ? (
-                <label key={m.type} className="cursor-pointer rounded-full border border-n-300 px-3.5 py-1.5 text-xs font-semibold">
+                <label key={m.type} className="cursor-pointer rounded-full border border-n-300 px-3.5 py-1.5 t-caption font-semibold">
                   {uploading ? "올리는 중…" : `＋ ${m.name}`}
                   <input type="file" accept="image/*" className="hidden"
                     onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const url = await upload(f); if (url) addSection(m.type, url); e.target.value = ""; }} />
                 </label>
               ) : (
                 <button key={m.type} onClick={() => addSection(m.type)}
-                  className="rounded-full border border-n-300 px-3.5 py-1.5 text-xs font-semibold">＋ {m.name}</button>
+                  className="rounded-full border border-n-300 px-3.5 py-1.5 t-caption font-semibold">＋ {m.name}</button>
               ))}
             </div>
           </>
         )}
       </section>
-      <p className="text-center text-xs text-[var(--text-soft)]">섹션 삭제는 곧 열려요.</p>
+      <p className="text-center t-caption text-[var(--text-soft)]">섹션 삭제는 곧 열려요.</p>
     </div>
   );
 }
@@ -940,26 +940,26 @@ function StoryTab({ slug, onDone }: { slug: string; onDone: (score: number) => v
 
   return (
     <div className="mt-5 space-y-4">
-      <p className="rounded-xl bg-n-50 p-3 text-xs leading-relaxed text-[var(--text-soft)]">
+      <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">
         오늘 현장 사진 한 장과 두 줄이면 충분해요. 쓴 이야기는 <b>바로 홈페이지에 쌓입니다</b> — 기록이 많아질수록 견적 문의가 늘어요.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {STORY_TYPES.map((t) => (
           <button key={t.id} onClick={() => setType(t.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${type === t.id ? "bg-green-700 text-white" : "border border-n-300"}`}>{t.name}</button>
+            className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${type === t.id ? "bg-green-700 text-white" : "border border-n-300"}`}>{t.name}</button>
         ))}
       </div>
       <Field label="제목"><input className={inp} value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="예: 강동구 34평 입주청소" /></Field>
       <Field label="내용"><textarea className={inp} rows={4} value={body} maxLength={1000} onChange={(e) => setBody(e.target.value)} placeholder="두세 문장이면 충분해요" /></Field>
       <Field label="날짜"><input type="date" className={inp} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
       <div>
-        <span className="mb-1 block text-xs font-semibold text-[var(--text-soft)]">사진 ({photos.length}/4)</span>
+        <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">사진 ({photos.length}/4)</span>
         <div className="flex flex-wrap gap-2">
           {photos.map((p) => /* eslint-disable-next-line @next/next/no-img-element */ (
             <img key={p} src={p} alt="" className="h-20 w-24 rounded-lg object-cover" />
           ))}
           {photos.length < 4 && (
-            <label className="flex h-20 w-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-n-300 text-2xl text-n-300">
+            <label className="flex h-20 w-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-n-300 t-h2 text-n-300">
               ＋<input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])} />
             </label>
           )}

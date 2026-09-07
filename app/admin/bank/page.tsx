@@ -45,7 +45,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
     if (v) params.set(k, v);
     return (
       <Link key={`${k}-${label}`} href={`/admin/bank?${params.toString()}`}
-        className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-green-700 text-white" : "border border-n-300"}`}>
+        className={`rounded-full px-3 py-1 t-caption font-medium ${active ? "bg-green-700 text-white" : "border border-n-300"}`}>
         {label}
       </Link>
     );
@@ -53,13 +53,13 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      <h1 className="mt-1 text-xl font-bold">이미지뱅크 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows.length}장 표시)</span></h1>
+      <h1 className="mt-1 t-h3 font-bold">이미지뱅크 관리 <span className="t-small font-normal text-[var(--text-soft)]">({rows.length}장 표시)</span></h1>
 
       {/* 폰 전용 안내 — 이 화면은 폰에서 세로 24,000px 이 넘고 체크박스가 전부 40px 미만이다.
           사진 검수는 큰 화면에서 여러 장을 나란히 봐야 하는 일이라 폰용으로 다시 만들지 않고
           솔직하게 안내한다(2026-09-07 회장님). 화면을 막지는 않는다 — 급하면 볼 수는 있어야 한다. */}
       <p
-        className="mt-4 rounded-xl px-4 py-3 text-sm leading-6 md:hidden"
+        className="mt-4 rounded-xl px-4 py-3 t-small leading-6 md:hidden"
         style={{ background: "var(--n-100)", color: "var(--text)" }}
       >
         <b>PC 에서 이용해 주세요.</b><br />
@@ -68,7 +68,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
 
       {low.length > 0 && (
         <section className="mt-4 rounded-xl border border-accent bg-accent-soft p-3.5">
-          <p className="text-sm font-semibold text-accent-ink">
+          <p className="t-small font-semibold text-accent-ink">
             히어로 재고 부족 — {low.length}개 조합이 미사용 {HERO_STOCK_MIN}장 미만
           </p>
           <p className="mt-1 t-caption leading-5 text-accent-ink">
@@ -102,7 +102,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-[var(--text-soft)]">
+        <p className="mt-16 text-center t-small text-[var(--text-soft)]">
           아직 이미지가 없어요. <code className="rounded bg-n-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
         </p>
       ) : (

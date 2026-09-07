@@ -14,8 +14,8 @@ export default async function AdminPagesPage() {
   const { data } = await sbAdmin().from("page_sections").select("id, label, visible, sort").order("sort", { ascending: true });
   return (
     <main className="mx-auto w-full max-w-3xl min-w-0 px-6 py-10">
-      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
-      <h1 className="mt-2 text-2xl font-bold">홈페이지 관리</h1>
+      <p className="t-caption font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <h1 className="mt-2 t-h2 font-bold">홈페이지 관리</h1>
       <p className="mt-2 t-small text-[var(--text-soft)]">
         온스토리 첫 페이지에서 어떤 섹션을 보여줄지 켜고 끕니다. 내용 수정은 여기서 하지 않습니다.
       </p>

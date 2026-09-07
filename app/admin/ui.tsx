@@ -17,11 +17,11 @@ export function AdminLogin() {
   }
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center px-6">
-      <h1 className="text-xl font-bold">운영자 인증</h1>
+      <h1 className="t-h3 font-bold">운영자 인증</h1>
       <input type="password" value={key} onChange={(e) => setKey(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()}
         className="mt-4 w-full rounded-xl border border-n-300 px-4 py-3" placeholder="ADMIN KEY" />
-      {err && <p className="mt-2 text-sm text-danger">키가 올바르지 않아요</p>}
+      {err && <p className="mt-2 t-small text-danger">키가 올바르지 않아요</p>}
       <button onClick={submit} className="mt-4 rounded-full bg-green-700 py-3 font-semibold text-white">입장</button>
     </main>
   );

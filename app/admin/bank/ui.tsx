@@ -121,7 +121,7 @@ function Card({ r, checked, onToggle, bulkApproved }: {
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 t-caption">
           <button disabled={busy} onClick={() => act({ quality_ok: true })}
             className={`rounded-full px-2.5 py-1 font-semibold ${ok === true ? "bg-green-700 text-white" : "border border-n-300"}`}>승인</button>
           <button disabled={busy} onClick={() => act({ quality_ok: false })}
@@ -197,23 +197,23 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
     <>
       <div className="sticky top-0 z-10 -mx-2 mt-6 flex flex-wrap items-center gap-2 bg-n-0/95 px-2 py-2 backdrop-blur">
         <button onClick={() => setSel(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
-          className="rounded-full border border-n-300 px-3 py-1.5 text-xs font-medium">
+          className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-medium">
           {allSelected ? "선택 해제" : "전체 선택"}
         </button>
         <button onClick={() => setSel(new Set(pendingIds))} disabled={pendingIds.length === 0}
-          className="rounded-full border border-n-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40">
+          className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-medium disabled:opacity-40">
           검수 대기만 선택 ({pendingIds.length})
         </button>
         <button onClick={() => setFast(true)} disabled={rows.length === 0}
-          className="rounded-full bg-n-900 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          className="rounded-full bg-n-900 px-4 py-1.5 t-caption font-semibold text-white disabled:opacity-40"
           title="한 장씩 크게 보고 키 하나로 점수를 매깁니다 (1·2·3·0)">
           ⚡ 빠른 검수 {pendingIds.length > 0 ? `(대기 ${pendingIds.length}장)` : `(${rows.length}장)`}
         </button>
         <button onClick={bulkApprove} disabled={busy || sel.size === 0}
-          className="rounded-full bg-green-700 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+          className="rounded-full bg-green-700 px-4 py-1.5 t-caption font-semibold text-white disabled:opacity-40">
           {busy ? "승인 중…" : `선택 ${sel.size}장 일괄 승인`}
         </button>
-        {msg && <span className="text-xs text-green-700">{msg}</span>}
+        {msg && <span className="t-caption text-green-700">{msg}</span>}
         <span className="ml-auto t-caption text-[var(--text-soft)]">거부·삭제는 오판 위험이 커서 한 장씩</span>
       </div>
 

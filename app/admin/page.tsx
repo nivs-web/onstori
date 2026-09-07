@@ -90,8 +90,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
-      <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
+      <p className="t-caption font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <h1 className="mt-2 t-h2 font-bold">대시보드</h1>
 
       {/* 메모장 3종 — **대시보드 맨 위, 1/3씩** (2026-09-07 회장님).
           폰에서는 세로로 쌓인다(lg 이상에서만 3열). */}

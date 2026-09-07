@@ -39,7 +39,7 @@ function Toggle({ on, disabled, onChange, name }: { on: boolean; disabled: boole
     <button
       type="button" role="switch" aria-checked={on} aria-label={`${name} 버튼 ${on ? "끄기" : "켜기"}`}
       disabled={disabled} onClick={() => onChange(!on)}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold disabled:opacity-40 ${
+      className={`shrink-0 rounded-full px-3.5 py-1.5 t-caption font-semibold disabled:opacity-40 ${
         on ? "bg-green-700 text-white" : "border border-n-300"
       }`}
     >
@@ -91,7 +91,7 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
 
   return (
     <section data-tour="panel-widgets" className="rounded-2xl border border-n-200 p-4">
-      <h2 className="text-sm font-bold">연결 버튼</h2>
+      <h2 className="t-small font-bold">연결 버튼</h2>
       <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
         손님이 어디를 보고 있든 화면 아래에 떠 있는 버튼이에요. 스크롤을 되돌리지 않아도 바로 연락할 수 있어요.
       </p>

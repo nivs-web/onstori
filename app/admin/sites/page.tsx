@@ -15,10 +15,10 @@ export default async function SitesAdmin() {
 
   return (
     <main className="mx-auto w-full max-w-4xl min-w-0 px-6 py-10">
-      <h1 className="mt-1 text-xl font-bold">사이트 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows?.length ?? 0})</span></h1>
+      <h1 className="mt-1 t-h3 font-bold">사이트 관리 <span className="t-small font-normal text-[var(--text-soft)]">({rows?.length ?? 0})</span></h1>
       <div className="table-scroll card mt-6">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-n-50 text-xs text-[var(--text-soft)]">
+        <table className="w-full min-w-[640px] t-small">
+          <thead className="bg-n-50 t-caption text-[var(--text-soft)]">
             <tr>{["주소", "상호", "업종", "템플릿", "상태", "체험 만료", "생성일"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr>
           </thead>
           <tbody>
@@ -29,8 +29,8 @@ export default async function SitesAdmin() {
                 <td className="px-3 py-2">{s.industry}</td>
                 <td className="px-3 py-2">{s.template}</td>
                 <td className="px-3 py-2">{s.status}</td>
-                <td className="px-3 py-2 text-xs">{s.trial_ends_at?.slice(0, 10) ?? "—"}</td>
-                <td className="px-3 py-2 text-xs">{s.created_at?.slice(0, 10)}</td>
+                <td className="px-3 py-2 t-caption">{s.trial_ends_at?.slice(0, 10) ?? "—"}</td>
+                <td className="px-3 py-2 t-caption">{s.created_at?.slice(0, 10)}</td>
               </tr>
             ))}
           </tbody>

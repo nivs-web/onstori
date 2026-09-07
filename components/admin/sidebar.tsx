@@ -25,7 +25,7 @@ function Item({ m, active }: { m: AdminMenu; active: boolean }) {
     display: "block",
     padding: "8px 12px",
     borderRadius: "var(--r-md)",
-    fontSize: 15,
+    fontSize: "var(--t-small)",
     lineHeight: 1.4,
     borderLeft: "3px solid transparent",
     transition: "background var(--dur-2) var(--ease), color var(--dur-2) var(--ease)",
@@ -37,7 +37,7 @@ function Item({ m, active }: { m: AdminMenu; active: boolean }) {
         style={{ ...base, color: "var(--text-soft)", cursor: "not-allowed", opacity: 0.65 }}
         title="아직 만들지 않은 화면입니다"
       >
-        {m.label} <span style={{ fontSize: 12 }}>· 준비 중</span>
+        {m.label} <span style={{ fontSize: "var(--t-caption)" }}>· 준비 중</span>
       </span>
     );
   }
@@ -66,7 +66,7 @@ function Nav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => vo
         <div key={g.group}>
           <p
             style={{
-              fontSize: 13, fontWeight: "var(--w-semi)", color: "var(--text-soft)",
+              fontSize: "var(--t-caption)", fontWeight: "var(--w-semi)", color: "var(--text-soft)",
               letterSpacing: "var(--tracking-kicker)", padding: "0 12px", marginBottom: "var(--s-2)",
             }}
           >
@@ -84,7 +84,7 @@ function Nav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => vo
       <div style={{ borderTop: "1px solid var(--n-200)", paddingTop: "var(--s-4)" }}>
         <p
           style={{
-            fontSize: 13, fontWeight: "var(--w-semi)", color: "var(--text-soft)",
+            fontSize: "var(--t-caption)", fontWeight: "var(--w-semi)", color: "var(--text-soft)",
             letterSpacing: "var(--tracking-kicker)", padding: "0 12px", marginBottom: "var(--s-2)",
           }}
         >
@@ -137,7 +137,7 @@ export function AdminSidebar() {
           href="/admin"
           style={{ display: "block", padding: "0 12px", marginBottom: "var(--s-6)", fontWeight: "var(--w-bold)", color: "var(--text-strong)" }}
         >
-          <span style={{ fontSize: 12, letterSpacing: "var(--tracking-kicker)", color: "var(--green-700)", display: "block" }}>ONSTORI</span>
+          <span style={{ fontSize: "var(--t-caption)", letterSpacing: "var(--tracking-kicker)", color: "var(--green-700)", display: "block" }}>ONSTORI</span>
           운영자 콘솔
         </Link>
         <Nav pathname={pathname} />
@@ -163,7 +163,7 @@ export function AdminSidebar() {
             borderRadius: "var(--r-md)", color: "var(--text-strong)",
           }}
         >
-          <span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>☰</span>
+          <span aria-hidden style={{ fontSize: "var(--t-h3)", lineHeight: 1 }}>☰</span>
         </button>
         {/* 현재 위치 — 서랍을 안 열어도 여기가 어디인지 보여야 한다 */}
         <span style={{ fontWeight: "var(--w-semi)", color: "var(--text-strong)" }}>
@@ -191,7 +191,7 @@ export function AdminSidebar() {
             }}
           >
             <p style={{ padding: "0 12px", marginBottom: "var(--s-6)", fontWeight: "var(--w-bold)", color: "var(--text-strong)" }}>
-              <span style={{ fontSize: 12, letterSpacing: "var(--tracking-kicker)", color: "var(--green-700)", display: "block" }}>ONSTORI</span>
+              <span style={{ fontSize: "var(--t-caption)", letterSpacing: "var(--tracking-kicker)", color: "var(--green-700)", display: "block" }}>ONSTORI</span>
               운영자 콘솔
             </p>
             <Nav pathname={pathname} onNavigate={() => setOpen(false)} />
