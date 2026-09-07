@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./logo";
+import { sbBrowser } from "@/lib/supabase/browser";
 
 /**
  * 본사 상단 바 — 56px · 왼쪽 로고 · 오른쪽 햄버거(48×48).
  * 히어로 위에서는 투명, 스크롤하면 흰 배경 95% + 헤어라인 (MOTION ⑥, 200ms).
  * 햄버거를 누르면 오른쪽에서 전체 화면 시트 (MOTION ④⑤).
  *
- * 세션 조회는 서버에서만 가능하므로 chrome.tsx 의 서버 컴포넌트가 signedIn 을 내려준다.
+ * ★ 로그인 여부는 **브라우저에서** 확인한다. 서버에서 쿠키를 읽으면 페이지가 통째로
+ *   동적이 되어 TTFB 가 2초까지 올라간다(2026-09-07 실측).
+ *   첫 그림에서는 비로그인으로 그리고, 세션이 확인되면 글자만 바꾼다.
+ *   ⚠ 두 상태의 글자 폭이 달라 화면이 밀리지 않게 최소 폭을 잡아 둔다.
  */
 
 export type NavItem = { href: string; label: string };
@@ -17,11 +21,9 @@ export type NavItem = { href: string; label: string };
 export function SiteHeaderClient({
   nav,
   current,
-  signedIn,
 }: {
   nav: readonly NavItem[];
   current?: string;
-  signedIn: boolean;
 }) {
   const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
@@ -48,6 +50,15 @@ export function SiteHeaderClient({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  /* 세션은 브라우저에서 본다. 서버 렌더에서는 항상 비로그인으로 그린다 — 그래야 정적이다. */
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    sbBrowser().auth.getSession()
+      .then(({ data }) => { if (alive) setSignedIn(Boolean(data.session)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const myHref = signedIn ? "/my" : "/login?next=%2Fmy";
   const myLabel = signedIn ? "마이페이지" : "로그인";
 

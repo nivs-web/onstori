@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 
@@ -22,5 +23,8 @@ export async function PATCH(req: Request) {
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "그런 섹션이 없어요" }, { status: 404 });
+  /* ⚠ 첫 페이지는 이제 ISR(60초)이라 여기서 갱신해 줘야 즉시 반영된다.
+     이게 없으면 어드민에서 바꿔도 최대 1분간 옛 화면이 나간다. */
+  revalidatePath("/");
   return NextResponse.json({ ok: true, ...data });
 }

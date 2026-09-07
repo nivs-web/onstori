@@ -17,6 +17,31 @@ import { SiteChrome } from "@/components/sections/site-chrome";
  */
 export const revalidate = 60;
 
+/**
+ * ★ 발행된 손님 사이트를 **빌드 때 미리 만들어 둔다.**
+ *
+ * `revalidate = 60` 만으로는 부족했다 — 2026-09-07 실측에서 /barun 이 세 번 연속
+ * `x-vercel-cache: MISS`(age 0) 였고 TTFB 0.73~1.19초가 나왔다. 즉 요청마다 DB 를 읽고 있었다.
+ * 여기서 목록을 주면 그 사이트들은 처음부터 만들어진 상태로 나간다.
+ *
+ * ⚠ 목록에 없는 새 사이트도 그대로 열린다(dynamicParams 기본값 true) — 첫 손님만
+ *   조금 기다리고 그 뒤로는 캐시된다. 새로 만든 사장님이 못 여는 일은 없다.
+ * ⚠ 빌드가 DB 를 한 번 읽는다. 못 읽어도 빌드를 세우지 않는다 — 빈 배열로 넘어간다.
+ */
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) return [];
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(url, anon, { auth: { persistSession: false } });
+    const { data } = await sb.from("sites").select("slug").not("published_at", "is", null).limit(200);
+    return (data ?? []).map((r) => ({ slug: r.slug as string }));
+  } catch {
+    return [];
+  }
+}
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

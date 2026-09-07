@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getSessionUser } from "@/lib/supabase/server";
 import { BIZ_LINE } from "@/config/company";
 import { COPY } from "@/lib/trial";
 import { Logo } from "./logo";
@@ -48,10 +47,18 @@ export function PromoBar() {
   );
 }
 
-/** 헤더 — 서버 컴포넌트에서 세션만 읽고, 실제 화면은 클라이언트 쪽이 그린다(스크롤·시트). */
-export async function SiteHeader({ current }: { current?: string }) {
-  const user = await getSessionUser().catch(() => null);
-  return <SiteHeaderClient nav={NAV} current={current} signedIn={Boolean(user)} />;
+/**
+ * 헤더 — 화면은 클라이언트 쪽이 그린다(스크롤·시트).
+ *
+ * ★ 여기서 **세션을 읽지 않는다.** 전에는 `getSessionUser()` 를 불렀는데, 그게 쿠키를 읽는
+ *   바람에 **이 헤더를 쓰는 모든 페이지가 요청마다 다시 그려졌다.**
+ *   첫 페이지 TTFB 가 1.85~2.23초였던 진짜 원인이다(2026-09-07 실측.
+ *   헤더가 없는 /how-it-works 는 같은 조건에서 0.28초였다).
+ *   로그인 여부는 [로그인]/[마이페이지] 글자 하나를 바꾸는 데만 쓰인다 —
+ *   그것 때문에 손님 전원에게 2초를 물릴 이유가 없다. 브라우저에서 확인한다.
+ */
+export function SiteHeader({ current }: { current?: string }) {
+  return <SiteHeaderClient nav={NAV} current={current} />;
 }
 
 export function SiteFooter() {

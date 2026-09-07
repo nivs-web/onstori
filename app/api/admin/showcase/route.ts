@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSiteBySlug } from "@/lib/sites";
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.code === "23505" ? "이미 등록된 사이트예요" : error.message }, { status: 409 });
   }
+  /* ⚠ 첫 페이지는 이제 ISR(60초)이라 여기서 갱신해 줘야 즉시 반영된다.
+     이게 없으면 어드민에서 바꿔도 최대 1분간 옛 화면이 나간다. */
+  revalidatePath("/");
   return NextResponse.json({ ok: true, slug, tag: finalTag, businessName: site.doc.businessName });
 }
 
@@ -46,6 +50,7 @@ export async function PATCH(req: Request) {
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "no fields" }, { status: 400 });
   const { error } = await sbAdmin().from("showcase").update(patch).eq("id", body.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidatePath("/");   // 첫 페이지가 ISR 이라 여기서 갱신해야 즉시 반영된다
   return NextResponse.json({ ok: true });
 }
 
@@ -55,5 +60,6 @@ export async function DELETE(req: Request) {
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const { error } = await sbAdmin().from("showcase").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidatePath("/");   // 첫 페이지가 ISR 이라 여기서 갱신해야 즉시 반영된다
   return NextResponse.json({ ok: true });
 }

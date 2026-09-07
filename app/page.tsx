@@ -9,8 +9,21 @@ import { BIZ } from "@/config/company";
 import { CHANNELS_LINE, CHANNELS_PITCH, CHANNEL_COUNT } from "@/config/channels";
 import { COPY, BILLING_INTERVAL } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
+import { MarkStack, MarkSearch, MarkVoice } from "@/components/site/marks";
 
-export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
+/**
+ * ★ ISR — 요청마다 다시 그리지 않는다.
+ *
+ * 전에는 `dynamic = "force-dynamic"` 이었다. 그래서 손님이 올 때마다 서버가 화면을 새로
+ * 조립하고 DB 를 두 번 읽었다 — 2026-09-07 실측 **TTFB 1.85~2.23초**.
+ * 같은 조건에서 정적인 /how-it-works 는 **0.28초**였다. 8배 차이다.
+ * 첫 페이지는 손님이 제일 먼저 보는 화면이라 여기가 제일 아프다.
+ *
+ * ⚠ "쇼케이스 즉시 반영"이 force-dynamic 의 이유였는데, 그건 어드민에서 바꿀 때
+ *   revalidatePath("/") 로 하면 된다(app/api/admin/showcase). 손님 전원에게 2초를
+ *   물리면서까지 지킬 이유가 아니다.
+ */
+export const revalidate = 60;
 
 // 섹션 노출 스위치는 DB(page_sections)로 옮겼다 — /admin/pages 에서 켜고 끈다.
 // DB 를 못 읽으면 안전 기본값(대부분 보임)으로 떨어진다 — lib/page-sections.ts
@@ -25,8 +38,8 @@ export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
  * 히어로에는 .reveal 을 붙이지 않는다 (LCP).
  */
 export default async function Home() {
-  const show = await sectionVisibility();
-  const items = await loadShowcase();
+  // ⚠ 두 번을 이어서 기다리지 않는다. 순서대로 하면 왕복이 두 번 쌓인다.
+  const [show, items] = await Promise.all([sectionVisibility(), loadShowcase()]);
   const heroSite = items.find((i) => i.featured) ?? items[0];
 
   return (
@@ -317,17 +330,24 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── 차별점 + 이런 사장님께 ── */}
+      {/* ── 쌓인 기록이 영업한다 + 이런 사장님께 ──
+          2026-09-07 회장님 확정. 전에는 제목만 셋 나열돼 있고 문구가 58~63자라
+          "왜 있는 섹션인지 모르겠다"는 상태였다. 세 항목의 공통점을 타이틀 한 줄로 올리고
+          설명을 절반 이하(27~30자)로 줄였다. 심볼은 components/site/marks.tsx. */}
       <section className="surface-0 section reveal">
         <div className="wrap">
-          <div className="grid sm:grid-cols-3" style={{ gap: "var(--s-4)" }}>
+          <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>온스토리가 하는 일</p>
+          <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>쌓인 기록이 사장님 대신 영업합니다</h2>
+          {/* 폰 1열 · 태블릿 이상 3열 */}
+          <div className="grid sm:grid-cols-3" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
             {[
-              ["기록이 영업합니다", "작업 사진과 이야기가 타임라인으로 쌓여, 문의 전에 신뢰부터 만듭니다. “작업 기록 127건”은 말이 아니라 기록으로 증명됩니다."],
-              ["검색에 잡히는 구조", "이야기마다 새 페이지가 생기고, 네이버·구글 검색 등록까지 온스토리가 준비합니다. 별도 설정도, 추가 비용도 없습니다."],
-              ["사장님 목소리 그대로", "AI 아바타·AI 목소리는 쓰지 않습니다. 사장님이 찍고 말한 영상에 자막과 컷 편집만 합니다. 그래야 손님도, 유튜브도 믿습니다."],
-            ].map(([t, d]) => (
-              <div key={t} style={{ background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
-                <h3 className="t-h3">{t}</h3>
+              [<MarkStack key="s" />, "기록이 신뢰가 됩니다", "「작업 127건」은 말이 아니라 쌓인 기록으로 증명됩니다."],
+              [<MarkSearch key="p" />, "이야기마다 새 페이지", "이야기 하나가 새 페이지 하나. 검색에 잡히는 면이 넓어집니다."],
+              [<MarkVoice key="v" />, "사장님 목소리 그대로", "AI 목소리를 쓰지 않습니다. 자막과 컷 편집만 합니다."],
+            ].map(([icon, t, d]) => (
+              <div key={t as string} style={{ background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
+                <span style={{ display: "block", color: "var(--green-700)" }}>{icon}</span>
+                <h3 className="t-h3" style={{ marginTop: "var(--s-4)" }}>{t}</h3>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-700)" }}>{d}</p>
               </div>
             ))}
