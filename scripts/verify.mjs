@@ -1,5 +1,46 @@
-/* 반응형·완료조건 자동 점검 — puppeteer-core 로 390/768/1440 을 한 번에 잰다. */
+/* 반응형·완료조건 자동 점검 — puppeteer-core 로 390/768/1440 을 한 번에 잰다.
+   + 저장소에 lib/trial.ts 밖의 하드코딩 금액이 있는지도 같이 본다(아래 checkPrices). */
 import puppeteer from "puppeteer-core";
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * ★ 금액이 코드·문서에 직접 적혀 있는지 훑는다 (CLAUDE.md 규칙 9).
+ *
+ * 왜: 2026-09-06 에 요금 진술 182곳 중 **175곳**이 확정안과 어긋나 있었다. 이유는 하나 —
+ * 숫자와 문장을 파일마다 복사해 적었기 때문이다. 한쪽만 고쳐지면 화면이 손님에게 거짓말을 한다.
+ * 2026-09-07 에 49,000 → 49,900 으로 바꾸면서 30개 파일 114곳을 다시 손봐야 했다.
+ *
+ * 값의 유일한 출처는 `lib/trial.ts` 다. 다른 곳에서는 `COPY` 를 import 해서 쓴다.
+ * ⚠ 날짜가 박힌 역사 기록은 뺀다 — 그때 값을 그대로 두는 것이 맞다.
+ */
+function checkPrices() {
+  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public"]);
+  const EXT = new Set([".ts", ".tsx", ".md", ".js", ".mjs", ".sql", ".json", ".html"]);
+  /* "49,900원" 처럼 **원**이 붙은 것만 본다.
+     ⚠ `20_000`(메모 글자 수 상한) 같은 것까지 잡으면 오탐이라 밑줄 형태는 빼 두었다. */
+  const RE = /\b\d{2},\d{3}\s*원/g;
+  const found = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) { if (!SKIP_DIR.has(e.name)) walk(path.join(dir, e.name)); continue; }
+      if (!EXT.has(path.extname(e.name))) continue;
+      const p = path.join(dir, e.name).replace(/\\/g, "/").replace(/^\.\//, "");
+      if (p === "lib/trial.ts") continue;                        // 유일한 출처
+      if (/20\d\d-\d\d-\d\d/.test(e.name)) continue;             // 날짜 박힌 역사 기록
+      if (p === "docs/DECISIONS.md" || p.startsWith("docs/design/")) continue;
+      let s; try { s = fs.readFileSync(p, "utf8"); } catch { continue; }
+      if (s.includes("작성 당시 값")) continue;                   // 역사 표시가 붙은 문서
+      /* 예외 표시 — 우리 요금이 아니거나(손님 사이트 예시 가격),
+         운영자만 보는 기획실 화면처럼 숫자를 그대로 보여줘야 하는 문서. */
+      if (s.includes("금액 출처: lib/trial.ts")) continue;
+      const m = s.match(RE);
+      if (m) found.push({ p, n: m.length, 예: [...new Set(m)].slice(0, 3).join(", ") });
+    }
+  };
+  walk(".");
+  return found;
+}
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
 const WIDTHS = [
@@ -151,6 +192,20 @@ const CHECK = () => {
     }
   }
   await browser.close();
+
+  // ── 하드코딩 금액 검사 (화면 검사와 별개로 항상 돈다) ──
+  const 금액 = checkPrices();
+  if (금액.length) {
+    console.log("\n" + "⚠".repeat(30));
+    console.log(`⚠ 하드코딩 금액 — ${금액.length}개 파일에 요금 숫자가 직접 적혀 있다.`);
+    console.log("   값의 유일한 출처는 lib/trial.ts 다. 다른 곳에서는 COPY 를 import 해서 써라(CLAUDE.md 규칙 9).");
+    console.log("   역사 기록이라면 문서 맨 위에 「작성 당시 값」 한 줄을 붙이면 이 검사에서 빠진다.");
+    for (const f of 금액) console.log(`   💰 ${f.p} — ${f.n}곳 (${f.예})`);
+    console.log("⚠".repeat(30));
+    process.exitCode = 2;
+  } else {
+    console.log("\n💰 하드코딩 금액 0건 — 요금 숫자는 lib/trial.ts 에만 있다 ✅");
+  }
 
   const 총칸 = urls.length * WIDTHS.length;
   if (건너뜀.length) {

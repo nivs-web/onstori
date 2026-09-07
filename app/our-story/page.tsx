@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { BIZ } from "@/config/company";
+import { COPY } from "@/lib/trial";
+import { CHANNELS_LINE, CHANNEL_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
 
 export const metadata: Metadata = { title: "온스토리", description: "홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 온스토리를 만든 이유." };
 
@@ -11,12 +13,12 @@ export const metadata: Metadata = { title: "온스토리", description: "홈페�
 /** 11행 비교표 — 2026-09-06 /compare 페이지에서 옮겨 왔다. 타사 화면·문구 복제 없음, 기능 개념만 비교. */
 const COMPARE_ROWS = [
   ["만드는 데 걸리는 시간", "2~6주, 미팅 3~5회", "3분 (상호명·업종·색만)"],
-  ["비용", "제작 50~300만원 + 유지비", "30일 무료 → 매달 49,000원"],
+  ["비용", "제작 50~300만원 + 유지비", `30일 무료 → ${COPY.priceLine}`],
   ["만든 뒤", "끝. 수정은 건당 비용", "매주 질문 → 새 이야기가 쌓임"],
   ["사장님이 할 일", "원고·사진 준비, 검수, 수정 요청", "문자 링크 누르고 60초 말하기"],
   ["글쓰기", "사장님 또는 외주 작가", "없음 — 말하면 글이 됨"],
   ["영상", "별도 견적 (편당 30만원~)", "매주 자막 영상 포함"],
-  ["SNS 발행", "없음", "쇼츠·릴스·쓰레드·X(트위터)·네이버(복붙)·홈페이지 6곳"],
+  ["SNS 발행", "없음", `${CHANNELS_LINE} — ${CHANNEL_COUNT}곳`],
   ["검색 노출", "등록은 해 주지만 새 페이지가 안 생김", "이야기마다 새 페이지 — 검색 면적이 늘어남"],
   ["사진", "스톡 사진", "사장님 사진 우선 + 업종별 이미지뱅크"],
   ["소유권", "업체 서버·업체 계정인 경우 많음", "홈페이지·영상·기록 전부 사장님 것"],
@@ -36,7 +38,7 @@ const CLOSING = `홈페이지는 빈 집입니다.
 export default function OurStory() {
   const milestones = [
     ["2000.04", "닙스닷컴(nivs.com)으로 사업 시작 — 웹 에이전시 스타트업 · 인터넷 사업 컨설팅 전문"],
-    ["2003.02", "일본 진출 — 다수의 웹 컨설팅 사업 진행"],
+    ["2003.02", "사업 확장 및 일본 도쿄 진출 — 도쿄에서 다수의 웹 컨설팅 및 웹사이트 개발 진행"],
     ["2004.07", "한중일 문화 교류 '새누리' 온라인 컨설팅 및 팀장 근무 (1986년 시작한 문화 교류 매거진 · saenulee.com)"],
     ["2009.05", "한국 웹 컨설팅 100건 이상 · 일본 기업 웹사이트 개발 100건 이상 진행"],
     ["2021.09", "onstori 초기 모델 구상 — jmake 사업 구상 및 자동화 템플릿 홈페이지 제작 시작"],
@@ -46,8 +48,8 @@ export default function OurStory() {
     ["사장님은 글을 쓰지 않는다.", "질문은 온스토리가, 대답은 말로."],
     ["없는 사실을 만들지 않는다.", "연차·건수·후기·별점을 지어내지 않는다."],
     ["사장님이 찍은 것이 우선이다.", "AI 사진은 빈자리를 채울 뿐이다."],
-    ["전부 사장님 것이다.", "홈페이지·영상·기록은 해지해도 가져간다."],
-    ["가격은 처음부터 공개한다.", "30일 무료, 이후 매달 49,000원. 언제든 해지."],
+    ["전부 사장님 것이다.", KEEP_AFTER_CANCEL],
+    ["가격은 처음부터 공개한다.", `30일 무료, 이후 ${COPY.priceLine}. 언제든 해지.`],
   ];
   return (
     <main className="min-h-svh surface-0">
@@ -120,17 +122,16 @@ export default function OurStory() {
             {/* 마무리 — 문단이 아니라 선언. 안쪽 빈 줄을 white-space: pre-line 으로 그대로 살린다 */}
             <p className="letter-close">{CLOSING}</p>
 
+            {/* 서명 — 2026-09-07 회장님 지시.
+                · 서명 이미지를 크게(높이 86px). 손으로 쓴 이름이 곧 이름이다.
+                · 이름을 따로 적지 않는다 — 서명에 이미 들어 있다.
+                · 가운데 정렬이 아니라 **왼쪽 글 흐름에 맞춘다**(편지니까). */}
             <div className="letter-sign">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/signature.png" alt="권병철 서명" width={68} height={56} style={{ height: 56, width: "auto" }} />
-              <p style={{ marginTop: "var(--s-4)", fontSize: 17, fontWeight: "var(--w-semi)", color: "var(--n-800)", lineHeight: 1.5 }}>
-                {BIZ.ceo}
-              </p>
-              {/* ⚠ --n-500 은 흰 배경에서 2.55:1 이라 본문 기준(4.5)에 미달이다(규칙 11).
-                  의미 토큰만 쓴다 — 어두운 배경 안에서는 알아서 뒤집힌다. */}
-              <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.5 }}>
+              <img src="/brand/signature.png" alt={`${BIZ.ceo} 서명`} width={104} height={86} style={{ height: 86, width: "auto" }} />
+              <p style={{ marginTop: "var(--s-4)", fontSize: 17, color: "var(--text)", lineHeight: 1.5 }}>
                 {/* 상호는 config/company.ts 가 단일 출처다 — 법무 페이지·푸터와 같은 값을 쓴다 */}
-                {BIZ.name}(온스토리) 대표
+                {BIZ.name}(온스토리 운영사) 대표이사
               </p>
             </div>
           </article>

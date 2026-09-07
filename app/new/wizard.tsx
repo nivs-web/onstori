@@ -309,7 +309,7 @@ export function Wizard() {
             <ul className="t-body mx-auto text-left" style={{ marginTop: "var(--s-6)", maxWidth: "24rem", color: "var(--text)" }}>
               <li>✎ 글쓰기 금지 — 사장님은 이제 말만 하시면 됩니다.</li>
               <li>🔗 문자 링크만 누르세요 — 매주 질문이 문자로 갑니다.</li>
-              <li>⤓ 다운로드 없음 — 앱 설치 없이 크롬에서 60초.</li>
+              <li>⤓ 다운로드 없음 — 앱 설치 없이 브라우저에서 60초.</li>
             </ul>
           </section>
         )}

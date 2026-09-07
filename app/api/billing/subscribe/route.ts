@@ -7,7 +7,7 @@ import { issueBillingKey, charge, last4 } from "@/lib/toss";
 
 /**
  * 정기결제 시작 — 카드 등록창(requestBillingAuth) 성공 후 successUrl 이 부른다.
- * 2026-09-06 회장님 확정: 월 49,000원 구독.
+ * 회장님 확정: 월 구독. 금액은 lib/trial.ts 참조.
  *
  * 하는 일 (순서가 중요하다)
  *   1) 소유권 확인 — 남의 사이트를 구독시킬 수 없다

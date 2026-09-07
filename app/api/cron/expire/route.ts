@@ -3,7 +3,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
 import {
-  TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS,
+  TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS, COPY,
   DELETE_NOTICE_DAYS, MEMBERSHIP_PRICE, MEMBERSHIP_NAME,
 } from "@/lib/trial";
 import { charge } from "@/lib/toss";
@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
  * 사장님은 링크의 슬러그로 자기 가게를 알아본다. 슬러그가 최댓값(30자)이어도 87바이트로 SMS 안이다.
  */
 function nudgeText(days: number, slug: string) {
-  return `온스토리 무료 ${days}일 남음. 이후 매달 49,000원 onstori.com/${slug}/edit`;
+  return `온스토리 무료 ${days}일 남음. 이후 ${COPY.priceLine} onstori.com/${slug}/edit`;
 }
 
 export async function GET(req: Request) {
@@ -190,7 +190,7 @@ export async function GET(req: Request) {
       const d = new Date(b.next_charge_at);
       const when = `${d.getMonth() + 1}/${d.getDate()}`;
       // EUC-KR 90바이트 안 (슬러그 30자 기준 실측)
-      if (await sendSmsRaw(phone, `온스토리 ${when} 49,000원 결제 예정. 해지는 onstori.com/my`)) out.chargeNoticed++;
+      if (await sendSmsRaw(phone, `온스토리 ${when} ${COPY.priceOnly} 결제 예정. 해지는 onstori.com/my`)) out.chargeNoticed++;
     }
   }
 

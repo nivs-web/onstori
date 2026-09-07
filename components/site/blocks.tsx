@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { FaqItem } from "@/config/faq";
 import { CHANNELS } from "./chrome";
+import { CHANNEL_COUNT } from "@/config/channels";
 
 /* 본사 페이지 공용 블록 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md). */
 
@@ -69,11 +70,11 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
        전에는 여기만 border-radius: var(--r-lg) 라 히어로 폰보다 각져 장난감처럼 보였다. */
     <div className="phone-frame mx-auto" style={{ width: 280 }} aria-label="60초 녹화 화면 예시">
       <div className="phone-screen relative overflow-hidden" style={{ aspectRatio: "268 / 540", background: "var(--n-800)" }}>
-        <div
-          className="absolute inset-x-0 top-0 flex items-center justify-between t-caption"
-          style={{ padding: "var(--s-3) var(--s-4) 0", color: "var(--text-soft)" }}
-        >
-          <span>onstori.com/rec</span><span>크롬</span>
+        {/* 주소창 — 포트폴리오 카드에서 뺀 그 디자인을 여기서 쓴다(2026-09-07 회장님).
+            여기서는 "브라우저에서 열린다"는 것이 바로 하려는 말이라 잘 어울린다.
+            ⚠ 「크롬」 글자는 뺐다 — 아이폰 사용자는 크롬을 안 쓴다. */}
+        <div className="absolute inset-x-0 top-0" style={{ padding: "var(--s-3) var(--s-3) 0" }}>
+          <span className="tcard-url" style={{ height: 22 }}>onstori.com/rec</span>
         </div>
         {state === "ask" ? (
           <div className="absolute" style={{ insetInline: "var(--s-4)", top: "var(--s-7)" }}>
@@ -175,26 +176,28 @@ export function CompareCallout() {
   return (
     <section className="surface-0 section reveal">
       <div className="wrap">
+        {/* ⚠ 가로세로가 답답했다(2026-09-07 회장님). 세로로 길게 편다 —
+            안쪽 여백 32→48/64, 두 칸 사이 32→48, 항목 사이 6→16. 내용은 그대로다. */}
         <div
           className="surface-900 grid items-center md:grid-cols-[1.2fr_1fr]"
-          style={{ gap: "var(--s-6)", borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}
+          style={{ gap: "var(--s-7)", borderRadius: "var(--r-lg)", padding: "var(--s-7) var(--s-6)" }}
         >
           <div>
             <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>아직 고민 중이신가요?</p>
-            <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</h2>
-            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--n-300)" }}>
+            <h2 className="t-h2" style={{ marginTop: "var(--s-4)" }}>제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</h2>
+            <p className="t-body" style={{ marginTop: "var(--s-5)", color: "var(--n-300)" }}>
               비용·시간·글쓰기·영상·SNS·검색·소유권·해지 — 11가지 항목을 정직하게 비교했습니다.
             </p>
-            <Link href="/our-story#compare" className="btn btn-secondary" style={{ marginTop: "var(--s-5)" }}>
+            <Link href="/our-story#compare" className="btn btn-secondary" style={{ marginTop: "var(--s-6)" }}>
               홈페이지 제작업체 vs 온스토리 →
             </Link>
           </div>
           <ul>
-            {[["만드는 시간", "2~6주", "3분"], ["글쓰기", "사장님 몫", "없음"], ["영상", "편당 30만원~", "매주 포함"], ["SNS 발행", "없음", "6곳"], ["만든 뒤", "끝", "매주 쌓임"]].map(([k, a, b]) => (
+            {[["만드는 시간", "2~6주", "3분"], ["글쓰기", "사장님 몫", "없음"], ["영상", "편당 30만원~", "매주 포함"], ["SNS 발행", "없음", `${CHANNEL_COUNT}곳`], ["만든 뒤", "끝", "매주 쌓임"]].map(([k, a, b]) => (
               <li
                 key={k}
                 className="t-small grid grid-cols-3 items-center"
-                style={{ gap: "var(--s-2)", marginBottom: "var(--s-2)", background: "var(--n-800)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-4)" }}
+                style={{ gap: "var(--s-3)", marginBottom: "var(--s-3)", background: "var(--n-800)", borderRadius: "var(--r-md)", padding: "var(--s-4)" }}
               >
                 <span style={{ color: "var(--text-soft)" }}>{k}</span>
                 <span style={{ color: "var(--text-soft)", textDecoration: "line-through" }}>{a}</span>

@@ -4,12 +4,12 @@ import { MEMBERSHIP_PRICE } from "@/lib/trial";
 
 /**
  * ⚠ 사용하지 않는다 (2026-09-06). 토스페이먼츠 **일반결제(1회성)** 승인 라우트다.
- *   회장님 확정 요금제는 **월 49,000원 구독**이고, 일반결제는 계약조차 하지 않았다.
+ *   회장님 확정 요금제는 **월 구독**이고(금액은 lib/trial.ts), 일반결제는 계약조차 하지 않았다.
  *   구독 경로는 app/api/billing/subscribe/route.ts (빌링키 발급 + 첫 달 청구) 이다.
  *   이 파일은 가맹 심사 중 참고용으로만 남긴다. 심사가 끝나고 구독이 실검증되면 지운다.
  *
  * 토스 결제 승인 — successUrl 에서 호출. 서버가 시크릿 키로 confirm 하고, 성공 시 정회원(active)으로.
- * 검증: orderId 가 그 사이트의 pending_order 와 같고, 금액이 서버 기준(49,000)과 같을 때만 승인한다 (규칙 4).
+ * 검증: orderId 가 그 사이트의 pending_order 와 같고, 금액이 서버 기준(49,900)과 같을 때만 승인한다 (규칙 4).
  * paid_at/payment 컬럼은 20260905 마이그레이션 — 아직 적용 전이면 status/plan 만 갱신하고 결제 원장은 settings 에 남긴다.
  */
 export async function POST(req: Request) {

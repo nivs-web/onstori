@@ -5,7 +5,7 @@
 
 ## 2026-09-05 전환 (읽기 순서 1)
 
-**단일 출처는 기획1 `onstori.com/mainplan`** (content/mainplan/data.js · 운영자 전용). 완성/남은 작업·STEP 0~8·파일 목록이 거기 있다. 이 파일의 Phase 표는 그 이전 로드맵이며, P5(결제)는 "30일 무료→정회원 월 49,000원 구독"으로 대체됐다(2026-09-06 최종 확정).
+**단일 출처는 기획1 `onstori.com/mainplan`** (content/mainplan/data.js · 운영자 전용). 완성/남은 작업·STEP 0~8·파일 목록이 거기 있다. 이 파일의 Phase 표는 그 이전 로드맵이며, P5(결제)는 "30일 무료→정회원 월 49,900원 구독"으로 대체됐다(2026-09-06 최종 확정).
 
 ## 제품 한 줄
 
@@ -74,3 +74,5 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 - Next 16.2+ 미들웨어를 Vercel이 번들링할 때 `@swc/helpers/esm/*` 누락으로
   MIDDLEWARE_INVOCATION_FAILED 발생(vercel/next.js#93850) → `@swc/helpers`를
   직접 의존성으로 고정해 해결(커밋 31dadd2). Next 업그레이드 시 재발 여부 확인할 것.
+
+<!-- 금액 출처: lib/trial.ts — 이 문서의 숫자는 그 값을 옮겨 적은 것이다 -->

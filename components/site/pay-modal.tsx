@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { COPY, type TrialInfo } from "@/lib/trial";
+import { CHANNELS_LINE } from "@/config/channels";
 
 /**
  * 정회원 결제 모달 — 토스페이먼츠 SDK v2 (기획1 /mainplan #membership).
@@ -68,7 +69,7 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
               : "홈페이지를 계속 유지하려면 정회원 전환이 필요해요."}
         </p>
         <ul className="mt-4 grid gap-1.5 t-small">
-          {["홈페이지 유지 · 검색 등록", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림"].map((t) => (
+          {["홈페이지 유지 · 검색 등록", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", CHANNELS_LINE, "견적·문의 알림"].map((t) => (
             <li key={t} className="flex gap-2"><span style={{ color: "var(--green)" }}>✓</span>{t}</li>
           ))}
         </ul>

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getSessionUser } from "@/lib/supabase/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { LogoutButton, MyCardActions } from "./ui";
-import { trialInfo } from "@/lib/trial";
+import { trialInfo, COPY } from "@/lib/trial";
 import { SITES_PER_ACCOUNT } from "@/config/limits";
 
 export const dynamic = "force-dynamic";
@@ -145,10 +145,10 @@ export default async function MyPage() {
                     </p>
                     <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
                       {t.paid
-                        ? "정회원 · 매달 49,000원 자동 결제"
+                        ? `정회원 · 매달 ${COPY.priceOnly} 자동 결제`
                         : t.expired
                           ? "결제하시면 바로 다시 공개됩니다."
-                          : `무료 기간이 ${t.daysLeft}일 남았어요. 이후 매달 49,000원입니다.`}
+                          : `무료 기간이 ${t.daysLeft}일 남았어요. 이후 ${COPY.priceLine}입니다.`}
                     </p>
 
                     <MyCardActions slug={s.slug} trial={t} />

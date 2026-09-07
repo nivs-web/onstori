@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CHANNELS_LINE } from "@/config/channels";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { RecMockup, SpeechToStory } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
@@ -11,9 +12,9 @@ export default function HowItWorks() {
   const steps = [
     ["홈페이지가 먼저 생깁니다", "오늘 · 3분", "상호명과 업종만 고르면 온스토리가 문구·사진·구조를 채워 onstori.com/name 을 만듭니다. 30일 동안 전 기능 무료."],
     ["매주 질문이 문자로 옵니다", "주 1회 (원하면 매일)", "\"이 일을 시작한 이유는요?\" 같은 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
-    ["링크를 누르고 60초 말합니다", "60초", "크롬이 열리고 3·2·1 뒤 녹화. 얼굴이 싫으면 '음성만'. 다시 찍기는 무제한."],
+    ["링크를 누르고 60초 말합니다", "60초", "브라우저가 열리고 3·2·1 뒤 녹화. 얼굴이 싫으면 '음성만'. 다시 찍기는 무제한."],
     ["온스토리가 영상·글·사진 카드를 만듭니다", "30분", "무음 컷 · 한글 자막 · 쇼츠·릴스 규격 · 원문/1인칭/3인칭 글 · 캡션 6종 · 사진 카드."],
-    ["여섯 곳에 퍼집니다", "하루 최대 3건", "유튜브 쇼츠 · 인스타 릴스 · 쓰레드 · X(유료) · 네이버 블로그(복사 30초) · 온스토리 사이트."],
+    [`여섯 곳에 퍼집니다`, "하루 최대 3건", `${CHANNELS_LINE}.`],
     ["홈페이지에 쌓입니다", "계속", "이야기가 늘수록 검색에 잡히는 페이지가 늘고, \"작업 기록 47건\"이 말이 아니라 기록으로 증명됩니다."],
   ];
   return (
@@ -76,7 +77,7 @@ export default function HowItWorks() {
             <p className="t-caption font-bold" style={{ color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>녹화 화면 미리보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>녹화를 시도해보세요.<br />60초 정도 걸립니다.</h2>
             <p className="t-body measure" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
-              로그인은 따로 없습니다. 문자·카카오톡으로 받은 링크를 크롬에서 여는 것이 곧 로그인입니다. 카카오톡 안에서 열렸다면 &ldquo;크롬으로 열기&rdquo;를 눌러 주세요 — 카톡 안에서는 카메라가 켜지지 않습니다.
+              로그인은 따로 없습니다. 문자·카카오톡으로 받은 링크를 브라우저에서 여는 것이 곧 로그인입니다. 카카오톡 안에서 열렸다면 &ldquo;기본 브라우저로 열기&rdquo;를 눌러 주세요 — 카톡 안에서는 카메라가 켜지지 않습니다.
             </p>
             <div style={{ marginTop: "var(--s-6)" }}>
               {/* 페이지 끝 CtaBand 가 이 페이지의 주 버튼이다 — 한 화면에 초록이 둘 잡혀서 보조로 내린다 */}

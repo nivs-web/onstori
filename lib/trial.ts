@@ -59,8 +59,11 @@ export const INQUIRY_MAX_AGE_DAYS = 365;
  */
 export const DELETE_NOTICE_DAYS = [30, 7] as const;
 
-/** 월 구독료(원). 금액의 단일 출처 — 서버가 재계산한다 (CLAUDE.md 규칙 4) */
-export const MEMBERSHIP_PRICE = 49_000;
+/**
+ * 월 구독료(원). 금액의 단일 출처 — 서버가 재계산한다 (CLAUDE.md 규칙 4)
+ * 2026-09-07 회장님 확정: 49,000 → **49,900**.
+ */
+export const MEMBERSHIP_PRICE = 49_900;
 export const MEMBERSHIP_NAME = "온스토리 정회원 월 구독";
 /** 청구 주기 — 정기결제(빌링키)로 매달 청구 */
 export const BILLING_INTERVAL = "월" as const;
@@ -138,8 +141,23 @@ export function trialInfo(
  * ⚠ 여기에는 **60일 삭제 유예를 적지 않는다**(회장님 지시). 그건 아래 LEGAL 쪽이다.
  */
 export const COPY = {
-  /** 가격 표기 — "49,000원"만 쓰면 1회 결제로 읽힌다. 반드시 주기를 붙인다. */
-  priceLine: `${BILLING_INTERVAL} ${MEMBERSHIP_PRICE.toLocaleString("ko-KR")}원`,
+  /**
+   * 가격 표기 — **금액이 먼저, 괄호가 뒤**(2026-09-07 회장님 확정).
+   *   «49,900원 (월 구독 요금제)»
+   * ⚠ 금액만 쓰면 1회 결제로 읽힌다. 괄호를 빼지 마라.
+   * ⚠ 이 문자열을 다른 파일에 복사하지 마라 — import 해서 써라.
+   *   2026-09-06 에 182곳 중 175곳이 어긋나 있던 것이 복사 때문이었다.
+   */
+  priceLine: `${MEMBERSHIP_PRICE.toLocaleString("ko-KR")}원 (${BILLING_INTERVAL} 구독 요금제)`,
+
+  /** 금액만 필요할 때 (제목에서 숫자를 크게 쓰는 자리 등) */
+  priceOnly: `${MEMBERSHIP_PRICE.toLocaleString("ko-KR")}원`,
+
+  /**
+   * **말하는 말** 전용 — 통화 대사·안내 멘트.
+   * 전화로 "괄호 월 구독 요금제"를 읽을 수는 없다(2026-09-07 회장님).
+   */
+  priceSpoken: `매달 ${MEMBERSHIP_PRICE.toLocaleString("ko-KR")}원`,
 
   /** 무료 체험 한 줄 */
   trialShort: `${TRIAL_DAYS}일 전 기능 무료`,

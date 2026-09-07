@@ -6,6 +6,8 @@ import { QuestionShuffle } from "@/components/site/question-shuffle";
 import { FAQ_FEATURED } from "@/config/faq";
 import { sectionVisibility } from "@/lib/page-sections";
 import { BIZ } from "@/config/company";
+import { CHANNELS_LINE, CHANNELS_PITCH, CHANNEL_COUNT } from "@/config/channels";
+import { COPY, BILLING_INTERVAL } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
 
 export const dynamic = "force-dynamic"; // 쇼케이스 즉시 반영
@@ -89,8 +91,6 @@ export default async function Home() {
               </figure>
             )}
             {/* ⚠ 1280 아래에서는 감춘다. 오른쪽 칸이 1fr(≈420px)인데 폰 두 대가 450px 을 먹어
-                1024~1279 에서 화면 밖으로 튀어나갔다 — 폰이 커서가 아니라 **자리가 좁아서**였다. */}
-            {/* ⚠ 1280 아래에서는 감춘다. 오른쪽 칸이 1fr(≈420px)인데 폰 두 대가 450px 을 먹어
                 1024~1279 에서 화면 밖으로 튀어나갔다 — 폰이 커서가 아니라 **자리가 좁아서**였다.
                 ⚠ 겹치는 정도도 주의. -s-8(-64px) 로 당겼더니 REC 폰이 왼쪽 폰을 통째로 덮었다. */}
             <div className="hidden origin-bottom-left scale-[.72] xl:block" style={{ marginLeft: "calc(var(--s-5) * -1)", marginBottom: "var(--s-5)" }}>
@@ -135,7 +135,7 @@ export default async function Home() {
             {[
               ["홈페이지", "상호명과 업종만 고르면 3분 만에 onstori.com/name 이 생깁니다. 이야기가 쌓일수록 페이지가 두꺼워집니다."],
               ["60초 영상", "매주(혹은 매일) 질문 하나에 60초. 아직도 타이핑하고 계신가요? 목소리가 있어야 고객이 신뢰합니다."],
-              ["6곳 발행", "유튜브 쇼츠·인스타 릴스·쓰레드·X(트위터)·네이버 블로그(복사 30초)·온스토리 사이트. 하루 최대 3건."],
+              [`${CHANNEL_COUNT}곳 동시 발행`, CHANNELS_PITCH],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>
@@ -154,9 +154,9 @@ export default async function Home() {
           <ol className="grid md:grid-cols-4" style={{ marginTop: "var(--s-7)", gap: "var(--s-4)" }}>
             {[
               ["문자로 질문이 옵니다", "매주 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
-              ["링크 누르고 60초", "크롬이 열리고 3·2·1. 앱 설치도, 글쓰기도 없습니다."],
+              ["링크 누르고 60초", "브라우저가 열리고 3·2·1. 앱 설치도, 글쓰기도 없습니다."],
               ["온스토리가 만듭니다", "30분 안에 자막 영상 · 다듬은 글 3종 · 사진 카드."],
-              ["6곳에 퍼지고 쌓입니다", "쇼츠·릴스·쓰레드·X(트위터)·네이버·홈페이지. 검색 면적이 늘어납니다."],
+              [`${CHANNEL_COUNT}곳에 퍼지고 쌓입니다`, `${CHANNELS_LINE}. 검색 면적이 늘어납니다.`],
             ].map(([t, d], i) => (
               <li key={t} style={{ background: "var(--n-800)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
                 <span className="t-h3" style={{ color: "var(--green-200)" }}>{String(i + 1).padStart(2, "0")}</span>
@@ -229,13 +229,14 @@ export default async function Home() {
             <div className="surface-900" style={{ borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}>
               <p className="chip chip-accent">가장 많이 선택</p>
               <h2 className="t-h2" style={{ marginTop: "var(--s-4)" }}>
-                정회원 월 <span style={{ color: "var(--accent)" }}>49,000</span>원
+                정회원 <span style={{ color: "var(--accent)" }}>{COPY.priceOnly}</span>
+                <span className="t-h3" style={{ fontWeight: "var(--w-semi)" }}> ({BILLING_INTERVAL} 구독 요금제)</span>
               </h2>
               <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>
-                30일 동안 전 기능 무료로 써 보시고, 마음에 드시면 매달 49,000원으로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
+                30일 동안 전 기능 무료로 써 보시고, 마음에 드시면 {COPY.priceLine}로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
               </p>
               <ul className="grid sm:grid-cols-2" style={{ marginTop: "var(--s-5)", gap: "var(--s-2)" }}>
-                {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", "쇼츠·릴스·쓰레드·네이버·홈페이지 발행", "견적·문의 알림 (문자·이메일)"].map((t) => (
+                {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", CHANNELS_LINE, "견적·문의 알림 (문자·이메일)"].map((t) => (
                   <li key={t} className="t-small flex" style={{ gap: "var(--s-2)", color: "var(--n-200)" }}>
                     <span style={{ color: "var(--green-200)" }}>✓</span>{t}
                   </li>
@@ -243,7 +244,7 @@ export default async function Home() {
               </ul>
               <div className="flex flex-wrap items-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
                 <Link href="/new" className="btn btn-primary">30일 무료로 시작</Link>
-                <span className="t-small" style={{ color: "var(--text-soft)" }}>매달 자동 결제 · 언제든 해지</span>
+                <span className="t-body" style={{ color: "var(--n-300)" }}>매달 자동 결제 · 언제든 해지</span>
               </div>
             </div>
             <div>
@@ -272,7 +273,7 @@ export default async function Home() {
           <ol className="grid sm:grid-cols-3" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
             {[
               ["상호명·업종 고르기", "3분이면 홈페이지 뼈대가 완성됩니다. 사진 10장이 있으면 더 좋고, 없어도 됩니다."],
-              ["문자 링크 누르고 60초", "매주 질문 하나. 크롬에서 열고 말씀만 하세요."],
+              ["문자 링크 누르고 60초", "매주 질문 하나. 브라우저에서 열고 말씀만 하세요."],
               ["이야기만 쌓기", "영상·글·사진 카드가 6곳에 퍼지고 홈페이지에 쌓입니다. 그게 시공 사례가 되고 문의가 됩니다."],
             ].map(([t, d], i) => (
               <li key={t} className="card" style={{ padding: "var(--s-5)" }}>
@@ -294,7 +295,7 @@ export default async function Home() {
             <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>녹화 화면 미리보기</p>
             <h2 className="t-h2" style={{ marginTop: "var(--s-3)" }}>녹화를 시도해보세요.<br />60초 정도 걸립니다.</h2>
             <p className="t-body measure" style={{ marginTop: "var(--s-4)", color: "var(--n-300)" }}>
-              문자로 온 링크를 크롬에서 열면 이 화면이 뜹니다. 질문을 고르고, 3·2·1, 말씀하시고, 보내기. 카카오톡 안에서 열렸다면 &ldquo;크롬으로 열기&rdquo; 한 번만 눌러 주세요.
+              문자로 온 링크를 브라우저에서 열면 이 화면이 뜹니다. 질문을 고르고, 3·2·1, 말씀하시고, 보내기. 카카오톡 안에서 열렸다면 &ldquo;기본 브라우저로 열기&rdquo; 한 번만 눌러 주세요.
             </p>
             <ul className="flex flex-wrap" style={{ marginTop: "var(--s-5)", gap: "var(--s-2)" }}>
               {["✎ 글쓰기 금지", "🔗 로그인 = 링크 열기", "⤓ 앱 설치 없음"].map((t) => (
@@ -427,10 +428,12 @@ export default async function Home() {
             ))}
           </ol>
           <p className="t-display" style={{ marginTop: "var(--s-6)" }}>
-            정회원 월 <span style={{ color: "var(--accent)" }}>49,000</span>원
+            정회원 <span style={{ color: "var(--accent)" }}>{COPY.priceOnly}</span>
+            <span className="t-h2" style={{ fontWeight: "var(--w-semi)" }}> ({BILLING_INTERVAL} 구독 요금제)</span>
           </p>
-          <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--text-soft)" }}>
-            매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · 6채널 발행 포함
+          {/* ⚠ t-small(15px) 이라 안 읽혔다 — t-body(17px) 로 키우고 색도 --text 로 올린다(2026-09-07 회장님) */}
+          <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-4)", color: "var(--n-200)" }}>
+            매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · {CHANNEL_COUNT}채널 발행 포함
           </p>
           <div style={{ marginTop: "var(--s-7)" }}>
             <Link href="/new" className="btn btn-primary">무료로 만들어보기 →</Link>

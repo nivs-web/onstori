@@ -40,6 +40,20 @@ const COLLECT = () => {
       size: parseFloat(cs.fontSize), weight: +cs.fontWeight,
       x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
       w: Math.round(r.width), h: Math.round(r.height),
+      /* ★ CSS 로 계산한 배경. 사진이 없는 자리에서는 이게 **화면 픽셀보다 정확하다**.
+         화면 픽셀은 스크롤·캡처 타이밍이 어긋나면 엉뚱한 곳을 읽는다 —
+         2026-09-07 에 어두운 섹션 글자를 흰 배경 위라고 세 번 잘못 신고했다. */
+      cssBg: (() => {
+        for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+          const c = getComputedStyle(n);
+          if (c.backgroundImage && c.backgroundImage !== "none") return null;  // 사진·그라데이션 → 픽셀로 재야 한다
+          const m = c.backgroundColor.match(/rgba?\(([^)]+)\)/);
+          if (!m) continue;
+          const v = m[1].split(",").map(Number);
+          if (v.length < 4 || v[3] > 0.95) return { r: v[0], g: v[1], b: v[2] };
+        }
+        return { r: 255, g: 255, b: 255 };
+      })(),
     });
     if (++i > 300) break;
   }
@@ -56,6 +70,19 @@ const HIDE = () => {
 async function scan(shotB64, items, bad, stats) {
   const { data, info } = await sharp(Buffer.from(shotB64, "base64")).raw().toBuffer({ resolveWithObject: true });
   for (const it of items) {
+    /* 사진·그라데이션이 없는 자리는 CSS 배경을 그대로 쓴다(위 cssBg 주석 참조).
+       사진 위 글자만 화면 픽셀로 잰다 — 거기서는 픽셀 말고는 알 방법이 없다. */
+    if (it.cssBg) {
+      const fg0 = parse(it.color);
+      if (!fg0) continue;
+      const cr0 = +ratio(fg0, it.cssBg).toFixed(2);
+      const large0 = it.size >= 24 && it.weight >= 600;
+      if (large0) stats.worstBig = Math.min(stats.worstBig, cr0);
+      else stats.worstBody = Math.min(stats.worstBody, cr0);
+      const need0 = large0 ? 3 : 4.5;
+      if (cr0 < need0) bad.push({ ...it, cr: cr0, need: need0, bg: `rgb(${Math.round(it.cssBg.r)},${Math.round(it.cssBg.g)},${Math.round(it.cssBg.b)})` });
+      continue;
+    }
     let R = 0, G = 0, B = 0, n = 0;
     const hx = Math.min(40, it.w >> 1), hy = Math.min(8, it.h >> 1);
     for (let dx = -hx; dx <= hx; dx += 8) {
@@ -149,7 +176,13 @@ async function scan(shotB64, items, bad, stats) {
             return m;
           });
           const live = items.map((it, k) => ({ ...it, ...(fresh[k] || {}) })).filter((it) => it.on);
-          await scan(await page.screenshot({ encoding: "base64" }), live, bad, stats);
+          /* ⚠ `captureBeyondViewport: false` 를 빼지 마라.
+             빼면 스크린샷이 **문서 맨 위부터** 찍힌다. 좌표는 화면 기준(viewport)인데
+             사진은 문서 기준이라, 첫 화면만 맞고 아래로 내려갈수록 엉뚱한 픽셀을 읽는다.
+             2026-09-07 에 어두운 섹션의 «이정표»·«여기까지 왔습니다» 를 흰 배경 위라고
+             1.39:1 · 1.12:1 로 잘못 신고했다. 실제로는 각각 9.9:1 · 15:1 이다. */
+          const shot = await page.screenshot({ encoding: "base64", captureBeyondViewport: false });
+          await scan(shot, live, bad, stats);
         }
         // ⚠ 글자를 하나도 못 봤으면 "통과"가 아니라 "건너뜀"이다
         if (!checked) {

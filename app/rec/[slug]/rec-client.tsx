@@ -105,7 +105,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       streamRef.current = stream;
       setScreen("setup");
     } catch {
-      setErr(inApp ? "카카오톡·인스타 안에서는 카메라를 열 수 없어요. 오른쪽 위 메뉴에서 '다른 브라우저로 열기'(크롬)를 눌러 주세요." : "카메라·마이크 권한이 필요해요. 브라우저 주소창의 자물쇠 아이콘에서 허용해 주세요.");
+      setErr(inApp ? "카카오톡·인스타 안에서는 카메라를 열 수 없어요. 오른쪽 위 메뉴에서 '다른 브라우저로 열기'를 눌러 주세요." : "카메라·마이크 권한이 필요해요. 브라우저 주소창의 자물쇠 아이콘에서 허용해 주세요.");
       setScreen("error");
     }
   }
@@ -210,7 +210,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             </ul>
             {inApp && (
               <p className="mt-6 rounded-xl bg-white/10 p-3 t-small leading-relaxed">
-                카카오톡·인스타 안에서 열렸어요. 카메라를 쓰려면 오른쪽 위 <b>⋮ 메뉴 → 다른 브라우저로 열기(크롬)</b>를 눌러 주세요.
+                카카오톡·인스타 안에서 열렸어요. 카메라를 쓰려면 오른쪽 위 <b>⋮ 메뉴 → 다른 브라우저로 열기</b>를 눌러 주세요.
               </p>
             )}
             <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !t-body">60초 영상 촬영하기</button>
@@ -350,7 +350,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <h2 className="font-display t-h2">카메라를 열지 못했어요</h2>
             <p className="mt-3 max-w-xs t-small leading-relaxed opacity-80">{err}</p>
             <button type="button" onClick={() => setScreen("mode")} className="btn-lime mt-8">다시 시도</button>
-            {inApp && <a href={`intent://onstori.com/rec/${slug}?k=${encodeURIComponent(k)}#Intent;scheme=https;package=com.android.chrome;end`} className="mt-4 t-small underline opacity-80">안드로이드: 크롬으로 열기</a>}
+            {inApp && <a href={`intent://onstori.com/rec/${slug}?k=${encodeURIComponent(k)}#Intent;scheme=https;package=com.android.chrome;end`} className="mt-4 t-small underline opacity-80">안드로이드: 브라우저로 열기</a>}
           </section>
         )}
       </div>

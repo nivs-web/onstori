@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const link = storyLinkUrl(r.site.slug, origin.startsWith("https://onstori.com") ? "https://onstori.com" : origin);
   const phone = (r.site.settings as { phone?: string } | null)?.phone ?? "";
   const q = pickQuestions(1)[0];
-  const text = `[온스토리] ${r.site.business_name} 사장님, 이번 주 질문이에요.\n"${q.text}"\n아래 링크를 크롬에서 열고 60초만 말씀해 주세요. (카톡 안에서 열리면 '크롬으로 열기')\n${link}`;
+  const text = `[온스토리] ${r.site.business_name} 사장님, 이번 주 질문이에요.\n"${q.text}"\n아래 링크를 브라우저에서 열고 60초만 말씀해 주세요. (카톡 안에서 열리면 '기본 브라우저로 열기')\n${link}`;
 
   let sent = false;
   if (phone && notifyChannels().sms) sent = await sendSmsRaw(phone, text);

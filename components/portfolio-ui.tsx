@@ -11,8 +11,9 @@ import type { ShowcaseItem } from "./portfolio";
  *   눌러 보게 만든 뒤 빈 화면을 보여 준다. 상호명과 [보기] 만 남긴다.
  */
 export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
-  /* 한 줄 4개 × 2줄 = 8개까지만. 그 이상은 첫 화면을 늘어지게 한다(2026-09-07 회장님). */
-  const shown = items.slice(0, 8);
+  /* 한 줄 3개 × 2줄 = **6개**까지만(2026-09-07 회장님: 4×2 는 조잡했다).
+     ⚠ 나중에 [전체] 6개 → 업종 탭을 누르면 더 나오는 구조로 바꾼다. 그때 이 숫자만 늘리면 된다. */
+  const shown = items.slice(0, 6);
 
   return (
     <div>
@@ -22,11 +23,11 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
         {shown.map((it) => (
           <figure key={it.slug} style={{ margin: 0 }}>
             {it.pc && it.phone ? (
-              <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} url={`onstori.com/${it.slug}`} />
+              <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} />
             ) : (
               /* 아직 안 찍힌 사이트 — 카드 자리는 지키되 비워 둔다 */
               <a href={`/${it.slug}`} target="_blank" rel="noreferrer" className="tcard" aria-label={`${it.name} 홈페이지 보기`}>
-                <span className="tcard-bar" aria-hidden><i /><i /><i /><span className="tcard-url">onstori.com/{it.slug}</span></span>
+                <span className="tcard-bar" aria-hidden><i /><i /><i /></span>
               </a>
             )}
             <figcaption className="flex items-center justify-between" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
