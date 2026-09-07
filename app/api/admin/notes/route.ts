@@ -34,8 +34,10 @@ export async function POST(req: Request) {
     .upsert({ id: key, body, updated_at: new Date().toISOString() }, { onConflict: "id" });
 
   if (error) {
-    /* 표가 없을 때(42P01)와 그 밖의 오류를 구분해 준다 — 원인을 짐작하게 두지 않는다 */
-    const missing = /relation .*admin_notes.* does not exist|42P01/i.test(error.message);
+    /* 표가 없을 때와 그 밖의 오류를 구분해 준다 — 원인을 짐작하게 두지 않는다.
+       ⚠ Supabase(PostgREST)는 42P01 이 아니라 **"Could not find the table ... in the
+       schema cache"** 로 답한다. 2026-09-07 에 그 문구를 못 잡아 원시 오류가 그대로 떴다. */
+    const missing = /relation .*admin_notes.* does not exist|42P01|could not find the table/i.test(error.message);
     return NextResponse.json(
       {
         error: missing
