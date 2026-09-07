@@ -9,6 +9,15 @@ import type { NextConfig } from "next";
  * 서브도메인은 폐기가 아니라 "본사 내부 기능 전용"으로 보류 — 어드민의
  * '서브도메인 만들기' 메뉴에서만 관리(공간만, 추후 사용). 고객 사이트에는 쓰지 않는다.
  */
+/**
+ * sharp 의 리눅스 네이티브 파일 — **필요한 라우트에만** 붙인다.
+ * 목록을 한 곳에 두어 라우트가 늘어나도 값을 복사하지 않게 한다.
+ */
+const SHARP_LINUX = [
+  "./node_modules/@img/sharp-linux-x64/**",
+  "./node_modules/@img/sharp-libvips-linux-x64/**",
+];
+
 const nextConfig: NextConfig = {
   /**
    * 이미지 저장소는 Cloudflare R2(`img.onstori.com`) — docs/specs/storage-r2.md, DECISIONS 2026-09-03.
@@ -27,19 +36,29 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "wpsrfjqfbhmeriscdacu.supabase.co" },
     ],
   },
-  /**
-   * sharp 의 리눅스 네이티브 파일을 서버리스 함수 번들에 강제 포함.
-   * 이게 없으면 프로덕션에서 sharp 를 쓰는 라우트가 전부 500 이었다:
-   *   ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.6: cannot open shared object file
-   * .node 는 올라가는데 libvips 공유 라이브러리(.so)가 트레이싱에서 빠진다.
-   * optionalDependencies 로 끌어올리는 것(2026-09-04 시도)만으로는 해결되지 않아
-   * 트레이싱에 파일을 직접 지정한다.
-   */
+  /* ★ 2026-09-07 — `/api/**` 였던 것을 **실제로 sharp 를 쓰는 5곳**으로 좁혔다.
+     전에는 API 라우트 **30개 전부**에 sharp 리눅스 바이너리(libvips 포함, 수십 MB)를
+     밀어 넣고 있었다. 27곳은 쓰지도 않는데 배포본마다 사본이 붙었다.
+     배포 스토리지 10GB 무료 한도를 다 쓴 원인 중 제일 큰 항목이다.
+     ⚠ 여기서 한 곳이라도 빠지면 프로덕션에서 그 라우트가 500 이 난다:
+       ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.6: cannot open shared object file
+     새로 sharp 를 쓰는 라우트를 만들면 **여기 줄을 추가해야 한다.**
+
+     원래 이 설정이 필요했던 이유(2026-09-04): .node 는 올라가는데 libvips 공유
+     라이브러리(.so)가 트레이싱에서 빠져 sharp 라우트가 전부 500 이었다.
+     optionalDependencies 로 끌어올리는 것만으로는 해결되지 않았다.
+
+     ⚠ 키 형식은 2026-09-07 에 실측했다. `/api/inquiry` 와 `/api/inquiry/route` **둘 다** 먹는다
+       (윈도우에 있는 sharp-win32-x64 로 시험해 .nft.json 에 들어가는 것을 확인했다).
+       리눅스 패키지는 윈도우에 없어서 로컬 빌드로는 확인할 수 없다 — 배포 뒤 사진 업로드로 확인할 것. */
   outputFileTracingIncludes: {
-    "/api/**": [
-      "./node_modules/@img/sharp-linux-x64/**",
-      "./node_modules/@img/sharp-libvips-linux-x64/**",
-    ],
+    // sharp 를 직접 import 하는 곳
+    "/api/inquiry": SHARP_LINUX,
+    "/api/site/logo": SHARP_LINUX,
+    "/api/site/upload": SHARP_LINUX,
+    // lib/site-shot.ts 를 거쳐 sharp 를 쓰는 곳
+    "/api/site/publish": SHARP_LINUX,
+    "/api/admin/site-shot": SHARP_LINUX,
     /**
      * 내부 대시보드는 content/ 에 있고 라우트 핸들러가 fs 로 읽는다(public/ 이 아니다).
      * 트레이싱에 넣지 않으면 서버리스 번들에 파일이 안 올라가 프로덕션에서 404 가 난다.
