@@ -8,6 +8,8 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "./ui";
+import { AdminNotes } from "./notes";
+import { ADMIN_NOTES_SEED } from "@/config/admin-notes-seed";
 import { trialInfo, TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
@@ -41,12 +43,15 @@ export default async function DashboardPage() {
   const sb = sbAdmin();
   const now = Date.now();
 
-  const [{ data: sites }, { data: pays }, { data: inqs }, { data: bank }, { data: stories }] = await Promise.all([
+  const [{ data: sites }, { data: pays }, { data: inqs }, { data: bank }, { data: stories }, { data: note }] = await Promise.all([
     sb.from("sites").select("slug, business_name, status, created_at, trial_ends_at, suspended_at, paid_at, payment, settings"),
     sb.from("payments").select("status, amount, created_at"),
     sb.from("inquiries").select("created_at"),
     sb.from("image_bank").select("model, quality_ok").eq("deleted", false),
     sb.from("story_entries").select("created_at"),
+    /* ⚠ `db push` 전에는 이 표가 없다. supabase-js 는 던지지 않고 {data:null,error} 를 주므로
+       Promise.all 이 깨지지 않는다 — 그때는 아래에서 기본 메모(seed)를 보여준다. */
+    sb.from("admin_notes").select("body").eq("id", "main").maybeSingle(),
   ]);
 
   const rows = sites ?? [];
@@ -82,8 +87,15 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
-      <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
+      {/* 제목과 메모장을 한 줄에 둔다 — 메모장은 **오른쪽 위**(2026-09-07 회장님).
+          폰에서는 세로로 쌓인다. items-start 라 메모장이 길어져도 제목이 따라 늘어나지 않는다. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_400px]">
+        <div>
+          <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+          <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
+        </div>
+        <AdminNotes initial={note?.body ?? ADMIN_NOTES_SEED} saved={Boolean(note?.body)} />
+      </div>
 
       <h2 className="mt-8 t-body font-bold">오늘 밤 03:00 크론이 할 일</h2>
       <p className="mt-1 t-caption text-[var(--text-soft)]">
