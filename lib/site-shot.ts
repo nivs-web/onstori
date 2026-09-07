@@ -144,9 +144,20 @@ export async function captureSite(slug: string, origin: string): Promise<ShotRes
           .sort((a, b) => a.y - b.y);
         return { first: cands[0] ?? null, innerH: window.innerHeight };
       });
-      // 제목 위 90px 에서 시작한다 — 제목과 그 아래 버튼이 카드 안에 온전히 들어온다
-      const cutCss = Math.max(0, probe.first ? probe.first.y - 90 : Math.round(probe.innerH * 0.45));
-      console.log(`     ${s.key}: 제목 y=${probe.first?.y ?? "?"} (${probe.first?.fs ?? "?"}px "${probe.first?.t ?? ""}") → ${cutCss}px 잘라냄`);
+      /* ★★ 2026-09-07 — **위를 잘라내지 않는다. 0 이다.**
+         전에는 `제목 y - 90` 에서 시작했는데(barun 기준 **591px**), 그 591px 안에
+         **사이트 헤더(로고·메뉴, y=0~56px)가 통째로** 들어간다. 그래서 카드가
+         눈썹 줄부터 뚝 시작해 "웹사이트"가 아니라 잘린 사진으로 보였다 —
+         회장님이 세 번 지적하신 그 증상의 진짜 원인이다.
+         (표시 쪽 CSS `top` 을 0 으로 고쳐도 소용없었다. **파일 자체가 잘려 저장**되고 있었다.)
+
+         ⚠ 카드 비율은 바꿀 필요가 없다. 1440 기준 히어로는 950px 이고,
+         카드(폭 362px)에 들어가면 950 × (1080/1440) × (362/1080) ≈ **239px** 이다.
+         지금 카드 높이가 453px 이므로 히어로 전체가 들어가고도 214px 이 남는다.
+
+         probe 는 남겨 둔다 — 로그로 "제목이 어디 있는지"를 계속 보기 위해서다. */
+      const cutCss = 0;
+      console.log(`     ${s.key}: 제목 y=${probe.first?.y ?? "?"} (${probe.first?.fs ?? "?"}px "${probe.first?.t ?? ""}") · 화면높이 ${probe.innerH} → 맨 위부터 찍는다(cut 0)`);
 
       const pageH = await page.evaluate(() => document.documentElement.scrollHeight);
       // 내보낸 사진의 세로가 out × maxTall 이 되려면 CSS 로 width × maxTall 만큼 남기면 된다
