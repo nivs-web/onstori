@@ -10,7 +10,6 @@ import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "./ui";
 import { AdminNotes } from "./notes";
 import { parseItems } from "@/lib/admin-notes";
-import { AdminThemeToggle } from "./theme-toggle";
 import { ADMIN_NOTES_SEED } from "@/config/admin-notes-seed";
 import { trialInfo, TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
 
@@ -91,10 +90,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      {/* 다크모드 토글 — **맨 왼쪽 위** (2026-09-07 회장님) */}
-      <AdminThemeToggle />
-
-      <p className="mt-4 text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 
       {/* 메모장 3종 — **대시보드 맨 위, 1/3씩** (2026-09-07 회장님).

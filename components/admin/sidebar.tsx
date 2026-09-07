@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ADMIN_GROUPS, ADMIN_DOCS, currentMenu, type AdminMenu } from "@/config/admin-menu";
+import { AdminThemeToggle } from "./theme-toggle";
 
 /**
  * 운영자 콘솔 왼쪽 고정 메뉴 + 폰 서랍.
@@ -127,6 +128,11 @@ export function AdminSidebar() {
           padding: "var(--s-5) var(--s-3)", overflowY: "auto",
         }}
       >
+        {/* 다크모드 토글 — **메뉴바 맨 위** (2026-09-07 회장님: 대시보드가 아니라 여기로).
+            사이드바에 두면 어드민 어느 화면에서나 같은 자리에 있다. */}
+        <div style={{ padding: "0 12px", marginBottom: "var(--s-4)" }}>
+          <AdminThemeToggle />
+        </div>
         <Link
           href="/admin"
           style={{ display: "block", padding: "0 12px", marginBottom: "var(--s-6)", fontWeight: "var(--w-bold)", color: "var(--text-strong)" }}
