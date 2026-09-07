@@ -89,6 +89,14 @@ async function scan(shotB64, items, bad, stats) {
     args: ["--no-sandbox", "--disable-gpu", "--hide-scrollbars"],
   });
   let totalBad = 0;
+  /* ★ 「건너뜀」과 「통과」를 구분한다 (2026-09-07 회장님 지시).
+     검사가 조용히 건너뛰면 "미달 0건"이 나오는데, 그걸 통과로 읽으면 안 된다.
+     실제로 첫 페이지가 세 폭 모두 건너뛰면서 0건으로 보고되고 있었다. */
+  const lines = [];
+  const say = (t) => lines.push(t);
+  let 검사함 = 0;
+  const 건너뜀 = [];
+
   for (const url of urls) {
     for (const W of [390, 768, 1440]) {
       const H = W === 390 ? 844 : W === 768 ? 1024 : 900;
@@ -143,24 +151,44 @@ async function scan(shotB64, items, bad, stats) {
           const live = items.map((it, k) => ({ ...it, ...(fresh[k] || {}) })).filter((it) => it.on);
           await scan(await page.screenshot({ encoding: "base64" }), live, bad, stats);
         }
+        // ⚠ 글자를 하나도 못 봤으면 "통과"가 아니라 "건너뜀"이다
+        if (!checked) {
+          건너뜀.push(`${url} @${W} — 잰 글자가 0개(빈 화면이거나 수집이 안 됐다)`);
+          say(`\n── ${url.replace("http://localhost:3001", "")} @${W}  ⏭ 건너뜀 — 잰 글자 0개`);
+          await page.close();
+          continue;
+        }
+        검사함++;
         totalBad += bad.length;
         const fmt = (v) => (v === Infinity ? "-" : v.toFixed(2));
-        console.log(`\n── ${url.replace("http://localhost:3001", "")} @${W}  검사 ${checked}개 · 최저 제목 ${fmt(stats.worstBig)}:1 · 최저 본문 ${fmt(stats.worstBody)}:1`);
-        if (!bad.length) console.log("   ✅ 기준 미달 없음");
+        say(`\n── ${url.replace("http://localhost:3001", "")} @${W}  검사 ${checked}개 · 최저 제목 ${fmt(stats.worstBig)}:1 · 최저 본문 ${fmt(stats.worstBody)}:1`);
+        if (!bad.length) say("   ✅ 기준 미달 없음");
         const seen = new Set();
         for (const b of bad) {
           const k = b.sel + b.txt;
           if (seen.has(k)) continue;
           seen.add(k);
           if (seen.size > 12) break;
-          console.log(`   ⚠ ${String(b.cr).padStart(5)}:1 (필요 ${b.need})  ${b.size}px/${b.weight}  ${b.sel.padEnd(28)} 글자${b.color} 배경${b.bg}  "${b.txt}"`);
+          say(`   ⚠ ${String(b.cr).padStart(5)}:1 (필요 ${b.need})  ${b.size}px/${b.weight}  ${b.sel.padEnd(28)} 글자${b.color} 배경${b.bg}  "${b.txt}"`);
         }
       } catch (e) {
-        console.log(`   @${W} 실패: ${e.message.slice(0, 70)}`);
+        // ⚠ 실패를 조용히 넘기지 않는다 — 맨 위 경고로 올린다
+        건너뜀.push(`${url} @${W} — ${e.message.slice(0, 70)}`);
+        say(`
+── ${url.replace("http://localhost:3001", "")} @${W}  ⏭ 건너뜀 — ${e.message.slice(0, 60)}`);
       }
       await page.close();
     }
   }
-  console.log(`\n합계 미달 ${totalBad}건`);
+  const 총칸 = urls.length * 3;
+  if (건너뜀.length) {
+    console.log("\n" + "⚠".repeat(30));
+    console.log(`⚠ 경고 — ${총칸}칸 중 ${건너뜀.length}칸을 **검사하지 못했다.** 아래 "미달 0건"은 그 칸을 뺀 결과다.`);
+    for (const s of 건너뜀) console.log("   ⏭ " + s);
+    console.log("⚠".repeat(30));
+  }
+  console.log(lines.join("\n"));
+  console.log(`\n합계 미달 ${totalBad}건 · 검사함 ${검사함}칸 / 건너뜀 ${건너뜀.length}칸 (전체 ${총칸}칸 = 주소 ${urls.length} × 폭 3)`);
+  if (건너뜀.length) { console.log("⚠ 건너뛴 칸이 있다. 전부 통과했다고 말하면 안 된다."); process.exitCode = 2; }
   await browser.close();
 })().catch((e) => { console.error(e.stack); process.exit(1); });

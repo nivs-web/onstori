@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
 import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
 import { TRIAL_DAYS, MONTHLY_SITE_CAP } from "@/lib/trial";
+import { SITES_PER_ACCOUNT, SITE_LIMIT_MSG } from "@/config/limits";
 import { isValidPhone } from "@/lib/phone";
 
 export const maxDuration = 60; // LLM 호출 여유
@@ -67,9 +68,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "사용할 수 없는 주소예요" }, { status: 409 });
   }
 
+  const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
+
+  /* ★ 한 계정에 홈페이지 하나 (config/limits.ts SITES_PER_ACCOUNT).
+     ⚠ AI 를 부르기 **전에** 막는다. 만들고 나서 막으면 돈만 나가고 버리게 된다.
+     ⚠ 로그인 안 한 익명 생성은 막지 않는다 — 지금 온보딩이 그 순서라 막으면 가입이 끊긴다. */
+  if (user) {
+    const { count: mine } = await sb
+      .from("sites").select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id);
+    if ((mine ?? 0) >= SITES_PER_ACCOUNT) {
+      return NextResponse.json({ error: SITE_LIMIT_MSG, goMy: true }, { status: 409 });
+    }
+  }
+
   const started = Date.now();
   try {
-    const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
     const { doc, industry, category, copy, inferred } = await generateSite(input as GenerateInput);
 
     const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000); // 무료 기간 (일수의 단일 출처는 lib/trial.ts)

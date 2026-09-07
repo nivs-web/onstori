@@ -92,6 +92,9 @@ export function Wizard() {
   /* 진행 단계. 92% 까지는 시간 추정이라 문구도 추정이고, 그 뒤는 실제로 끝난 일이다. */
   const [stage, setStage] = useState<"copy" | "photo" | "layout" | "logo" | "finish">("copy");
   const [errMsg, setErrMsg] = useState("");
+  /* 이미 홈페이지를 가진 계정인가 — 이때는 "다시 만들기" 가 아니라 "내 홈페이지로" 를 보여 준다.
+     한 계정에 하나뿐이라(config/limits.ts) 다시 눌러 봐야 똑같이 막힌다. */
+  const [alreadyHasSite, setAlreadyHasSite] = useState(false);
   const [result, setResult] = useState<{ url: string; slug: string } | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,7 +154,7 @@ export function Wizard() {
 
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
-    setState("loading"); setErrMsg(""); setProgress(1); setStage("copy");
+    setState("loading"); setErrMsg(""); setAlreadyHasSite(false); setProgress(1); setStage("copy");
     let elapsed = 0; // 초 — 400ms 마다 누적 (Date.now 대신 카운터: 렌더 순수성 규칙)
     const tick = setInterval(() => {
       elapsed += 0.4;
@@ -170,6 +173,7 @@ export function Wizard() {
       };
       const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await readJson(r);
+      if (r.status === 409 && d.goMy) { setAlreadyHasSite(true); throw new Error(String(d.error)); }
       if (!r.ok) throw new Error(String(d.error ?? "생성 실패"));
       // 로고 — 생성 뒤 소유권(anonId)으로 업로드. 실패해도 홈페이지는 이미 생겼으므로 조용히 넘어간다.
       try {
@@ -269,12 +273,22 @@ export function Wizard() {
             <p className="t-caption" style={{ marginTop: "var(--s-5)" }}>정회원 {COPY.priceLine} · 매달 자동 결제 · 언제든 해지</p>
           </section>
         ) : state === "error" ? (
+          alreadyHasSite ? (
+            /* 한 계정에 홈페이지 하나 — 실패가 아니라 안내다.
+               "다시 만들기" 를 보여 주면 안 된다. 눌러 봐야 똑같이 막힌다. */
+            <section className="mt-10 text-center">
+              <h1 className="t-h1">이미 홈페이지가 있어요</h1>
+              <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>{errMsg}</p>
+              <Link href="/my" className="btn btn-primary" style={{ marginTop: "var(--s-6)" }}>내 홈페이지로</Link>
+            </section>
+          ) : (
           <section className="mt-10 text-center">
             <h1 className="t-h1">잠깐 멈췄어요</h1>
             <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--danger)" }}>{errMsg}</p>
             <button type="button" onClick={create} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>다시 만들기</button>
             <button type="button" onClick={() => setStep(3)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
           </section>
+          )
         ) : (
           <section className="mt-10 text-center">
             <h1 className="t-h1">홈페이지를 만들고 있어요</h1>

@@ -77,6 +77,13 @@ const CHECK = () => {
   const hero = document.querySelector("#top");
   return {
     w: innerWidth,
+    /* ★ 실제로 몇 개를 봤는지. 0 이면 "통과"가 아니라 "아무것도 안 봤다"는 뜻이다.
+       2026-09-07 에 첫 페이지가 검사를 통째로 건너뛰면서도 조용했다. */
+    looked: {
+      누름: q("a,button,summary,select,textarea,input").length,
+      글: q("p,li,dd,blockquote,td").length,
+      전체요소: document.querySelectorAll("*").length,
+    },
     overflow: document.documentElement.scrollWidth > innerWidth ? document.documentElement.scrollWidth : 0,
     tap: tap.length,
     tapSample: tap.slice(0, 4).map((e) => ((e.getAttribute("aria-label") || e.textContent.trim()) || e.tagName).slice(0, 16)),
@@ -97,8 +104,16 @@ const CHECK = () => {
     executablePath: CHROME, headless: "new",
     args: ["--no-sandbox", "--disable-gpu", "--hide-scrollbars"],
   });
+  /* ★ 「건너뜀」과 「통과」를 구분해서 모은다 (2026-09-07 회장님 지시).
+     검사가 조용히 건너뛰면 0건이 나오는데, 그걸 통과로 읽으면 안 된다.
+     결과는 **맨 위에 경고를 먼저** 띄우려고 줄을 모아 뒀다가 마지막에 찍는다. */
+  const lines = [];
+  const say = (s) => lines.push(s);
+  let 검사함 = 0;
+  const 건너뜀 = [];
+
   for (const url of urls) {
-    console.log("\n═══ " + url);
+    say("\n═══ " + url);
     for (const v of WIDTHS) {
       const page = await browser.newPage();
       await page.setViewport({ width: v.w, height: v.h, deviceScaleFactor: 1 });
@@ -106,6 +121,13 @@ const CHECK = () => {
         await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
         await new Promise((r) => setTimeout(r, 1500));
         const r = await page.evaluate(CHECK);
+        if (!r.looked.전체요소 || r.looked.전체요소 < 20) {
+          건너뜀.push(`${url} @${v.name} — 화면에 요소가 ${r.looked.전체요소}개뿐(빈 화면이거나 안 열렸다)`);
+          say("  " + v.name.padStart(4) + " | ⏭ 건너뜀 — 요소 " + r.looked.전체요소 + "개뿐");
+          await page.close();
+          continue;
+        }
+        검사함++;
         const bad = [];
         if (r.overflow) bad.push("가로넘침 " + r.overflow);
         if (r.tap) bad.push("터치<48 " + r.tap + " " + JSON.stringify(r.tapSample));
@@ -116,14 +138,28 @@ const CHECK = () => {
         if (!r.isMobile && r.dock) bad.push("PC에 하단바 " + r.dock);
         if (r.isMobile && r.desktopNav) bad.push("폰에 가로메뉴 " + r.desktopNav);
         if (r.trapped.length) bad.push("fixed 갇힘 " + r.trapped.length + " " + JSON.stringify(r.trapped.slice(0, 2)));
-        console.log(
-          "  " + v.name.padStart(4) + " | 히어로 " + String(r.heroH ?? "-").padStart(4) + "px(top " + String(r.heroTop ?? "-") + ")" +
+        say(
+          "  " + v.name.padStart(4) + " | 봄 누를것 " + String(r.looked.누름).padStart(3) + "·글 " + String(r.looked.글).padStart(3) +
+          " | 히어로 " + String(r.heroH ?? "-").padStart(4) + "px" +
           " | " + (bad.length ? "⚠ " + bad.join(" · ") : "✅ 통과"));
       } catch (e) {
-        console.log("  " + v.name.padStart(4) + " | 실패 " + e.message.slice(0, 60));
+        // ⚠ 실패를 조용히 넘기지 않는다. 건너뛴 것으로 세어 맨 위 경고에 올린다.
+        건너뜀.push(`${url} @${v.name} — ${e.message.slice(0, 70)}`);
+        say("  " + v.name.padStart(4) + " | ⏭ 건너뜀 — " + e.message.slice(0, 60));
       }
       await page.close();
     }
   }
   await browser.close();
+
+  const 총칸 = urls.length * WIDTHS.length;
+  if (건너뜀.length) {
+    console.log("\n" + "⚠".repeat(30));
+    console.log(`⚠ 경고 — ${총칸}칸 중 ${건너뜀.length}칸을 **검사하지 못했다.** 아래 "통과"는 그 칸을 뺀 결과다.`);
+    for (const s of 건너뜀) console.log("   ⏭ " + s);
+    console.log("⚠".repeat(30));
+  }
+  console.log(lines.join("\n"));
+  console.log(`\n── 검사함 ${검사함}칸 / 건너뜀 ${건너뜀.length}칸 (전체 ${총칸}칸 = 주소 ${urls.length} × 폭 ${WIDTHS.length})`);
+  if (건너뜀.length) { console.log("⚠ 건너뛴 칸이 있다. 전부 통과했다고 말하면 안 된다."); process.exitCode = 2; }
 })().catch((e) => { console.error(e.message); process.exit(1); });

@@ -627,6 +627,23 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   }
   .table-scroll thead th:first-child { z-index: 2; }
 
+  /* ─────────────────── 운영자 콘솔 껍데기 ───────────────────
+     1024 아래는 서랍(햄버거), 위는 왼쪽 고정 메뉴 240px.
+     ⚠ 본문에 min-w-0 를 빼지 마라 — main 은 body(flex column)의 아이템인데
+       mx-auto(좌우 auto 마진)가 stretch 를 꺼서 내용 폭으로 부푼다. 회원 목록 표가
+       페이지 전체를 890px 옆으로 밀던 원인이다(2026-09-07). */
+  .admin-side { display: none; }
+  .admin-shell { padding-left: 0; }
+  @media (min-width: 1024px) {
+    .admin-side { display: block; }
+    .admin-topbar { display: none !important; }
+    .admin-shell { padding-left: 240px; }
+  }
+  @keyframes admin-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .admin-drawer * { animation: none !important; }
+  }
+
   /* ───────────────────────── 테마 카드 ───────────────────────── */
   /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
 

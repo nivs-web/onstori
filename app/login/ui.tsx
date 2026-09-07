@@ -5,8 +5,18 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { sbBrowser } from "@/lib/supabase/browser";
 
+/**
+ * 로그인 뒤 어디로 보낼지.
+ *
+ * ★ 기본값은 `/my` 다. 첫 페이지가 아니다(2026-09-07 회장님 확정).
+ *   로그인은 "내 것을 관리하러" 하는 행동이지 구경하러 하는 행동이 아니다.
+ *   전에는 `/` 라서, 주소창에 onstori.com/login 을 직접 치거나 옛 북마크로 들어온 사장님이
+ *   로그인하고도 첫 페이지에 떨어져 자기 홈페이지를 어디서 고치는지 알 길이 없었다.
+ *
+ * ⚠ `//` 로 시작하는 값은 남의 사이트로 튕겨 보내는 수법이라 반드시 막는다.
+ */
 function safeNext(raw: string | null): string {
-  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/my";
 }
 
 /** Supabase Email OTP Length 허용 범위 — 대시보드 설정에 따라 달라지므로 자릿수를 고정하지 않는다 */
@@ -89,7 +99,15 @@ export function LoginUi() {
 
   return (
     <main className="mx-auto w-full max-w-sm px-6 py-20">
-      <Link href="/" className="t-body font-bold" style={{ color: "var(--accent)" }}>온스토리</Link>
+      {/* 단독으로 서 있는 링크라 폰에서 48px 을 채운다(문장 속 링크는 예외지만 이건 아니다).
+          로고 글자만 크게 만들면 균형이 깨지므로 누를 수 있는 넓이를 키운다. */}
+      <Link
+        href="/"
+        className="t-body inline-flex items-center font-bold"
+        style={{ color: "var(--accent)", minHeight: "var(--tap)", paddingRight: "var(--s-3)" }}
+      >
+        온스토리
+      </Link>
       <h1 className="mt-4 text-2xl font-bold tracking-tight">로그인</h1>
       <p className="mt-2 t-body" style={{ color: "var(--muted)" }}>
         로그인하면 내 홈페이지를 어느 기기에서든 수정할 수 있어요.

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { AdminLogin } from "../ui";
 
@@ -15,7 +14,6 @@ export default async function SubdomainsAdmin() {
   if (!(await isAdmin())) return <AdminLogin />;
   return (
     <main className="mx-auto w-full max-w-2xl min-w-0 px-6 py-10">
-      <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">서브도메인 만들기</h1>
       <div className="mt-6 rounded-2xl border border-dashed border-n-300 p-6 text-sm leading-relaxed text-[var(--text-soft)]">
         <p><b className="text-n-700">준비된 공간입니다 — 아직 사용하지 않습니다.</b></p>

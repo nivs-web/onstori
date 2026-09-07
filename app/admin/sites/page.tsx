@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
@@ -16,7 +15,6 @@ export default async function SitesAdmin() {
 
   return (
     <main className="mx-auto w-full max-w-4xl min-w-0 px-6 py-10">
-      <Link href="/admin" className="text-xs text-[var(--text-soft)]">← 운영자 콘솔</Link>
       <h1 className="mt-1 text-xl font-bold">사이트 관리 <span className="text-sm font-normal text-[var(--text-soft)]">({rows?.length ?? 0})</span></h1>
       <div className="table-scroll card mt-6">
         <table className="w-full min-w-[640px] text-sm">
