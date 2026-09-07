@@ -685,6 +685,22 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   /* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
   [data-admin-theme="dark"] .admin-shell .btn-primary { color: #10201A; }
 
+  /* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
+     그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
+     제목·숫자가 배경(#131C19)에 그대로 묻혀 안 보였다.
+     ⚠ 그렇다고 `--n-900` 자체를 밝게 뒤집으면 안 된다. 사진 검수 화면
+       (app/admin/bank/fast-review.tsx)이 `bg-n-900/95` + 흰 글자로 **일부러 어두운**
+       전체화면이라, 뒤집는 순간 흰 배경에 흰 글자가 된다.
+     → 원시 토큰은 그대로 두고 **글자로 쓰는 자리만** 의미 토큰으로 돌린다. */
+  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
+  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
+    color: var(--text-strong);
+  }
+  /* 보조 버튼도 --n-900 을 글자로 쓴다(507행). 어두운 면 배경(--n-100)에 맞춰 밝게 */
+  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
+    color: var(--text-strong);
+  }
+
   /* ───────────────────────── 테마 카드 ───────────────────────── */
   /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
 
