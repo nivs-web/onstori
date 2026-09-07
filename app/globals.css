@@ -653,53 +653,6 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     .admin-drawer * { animation: none !important; }
   }
 
-  /* ─────────────────── 운영자 콘솔 다크모드 (2026-09-07 회장님) ───────────────────
-     ★ **운영자 화면에만** 적용한다. 손님 첫 페이지와 사장님 사이트는 팔레트가 따로 있고
-       (사장님이 고른 색을 --s-* 로 인라인 주입한다) 거기까지 뒤집으면 남의 홈페이지가 바뀐다.
-       그래서 선택자를 `.admin-shell` / `.admin-side` **안쪽으로 한정**했다 —
-       html 에 속성이 남아 있어도 운영자 화면 밖에서는 아무 일도 일어나지 않는다.
-
-     ★ 방식은 `.surface-900` 과 같다: **토큰 값만 바꾼다.** 컴포넌트는 --n-0 / --text 만
-       쓰면 되고 밝은 화면·어두운 화면을 신경 쓰지 않는다. 하드코딩 색을 새로 만들지 않았다.
-
-     ⚠ 대비를 재고 넣었다 (어두운 카드 #16211D 기준):
-       --text #E9EFEC 14:1 · --text-soft #C9D4D0 10:1 · 초록 #6FC4A2 8:1 · 빨강 #FF7A85 6:1
-       ⚠ 밝은 화면용 --green-700(#005B2A)을 그대로 두면 2:1 도 안 나온다. 그래서 초록·빨강도 같이 올린다. */
-  [data-admin-theme="dark"] .admin-shell,
-  [data-admin-theme="dark"] .admin-side {
-    --n-0: #16211D;      /* 카드·입력칸 면 */
-    --n-50: #1E2C27;     /* 연회색 자리 = 살짝 밝은 면 */
-    --n-100: #263630;    /* 구분선 */
-    --n-200: #33473F;    /* 테두리 */
-    --n-300: #3F5A50;
-    --text-strong: #FFFFFF;
-    --text: #E9EFEC;
-    --text-soft: #C9D4D0;
-    --green-700: #6FC4A2;  /* 밝은 면의 브랜드 초록은 어두운 배경에서 안 읽힌다 */
-    --green-500: #8ED9BB;
-    --danger: #FF7A85;
-    color: var(--text);
-  }
-  [data-admin-theme="dark"] .admin-shell { background: #131C19; min-height: 100vh; }
-  [data-admin-theme="dark"] .admin-side { background: #16211D; border-color: #263630; }
-  /* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
-  [data-admin-theme="dark"] .admin-shell .btn-primary { color: #10201A; }
-
-  /* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
-     그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
-     제목·숫자가 배경(#131C19)에 그대로 묻혀 안 보였다.
-     ⚠ 그렇다고 `--n-900` 자체를 밝게 뒤집으면 안 된다. 사진 검수 화면
-       (app/admin/bank/fast-review.tsx)이 `bg-n-900/95` + 흰 글자로 **일부러 어두운**
-       전체화면이라, 뒤집는 순간 흰 배경에 흰 글자가 된다.
-     → 원시 토큰은 그대로 두고 **글자로 쓰는 자리만** 의미 토큰으로 돌린다. */
-  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
-  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
-    color: var(--text-strong);
-  }
-  /* 보조 버튼도 --n-900 을 글자로 쓴다(507행). 어두운 면 배경(--n-100)에 맞춰 밝게 */
-  [data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
-    color: var(--text-strong);
-  }
 
   /* ───────────────────────── 테마 카드 ───────────────────────── */
   /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
@@ -1059,4 +1012,58 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   outline: 2px solid var(--green-500);
   outline-offset: 2px;
   border-radius: var(--r-sm);
+}
+
+/* ═══════════ 운영자 콘솔 다크모드 — ⚠ `@layer components` **밖**이어야 한다 ═══════════
+   레이어 밖 규칙이 레이어 안 규칙을 **명시도와 무관하게** 이긴다(CSS 캐스케이드 순서).
+   318행의 `h1..h6 { color: var(--n-900) }` 가 레이어 밖이라, 이 블록을 components 안에
+   두면 제목이 영영 안 바뀐다 — 2026-09-07 프로덕션에서 실제로 그랬다(제목이 배경에 묻힘).
+   같은 이유로 351행 블록에도 "components 밖에 둔다"는 경고가 이미 붙어 있었다. */
+/* ─────────────────── 운영자 콘솔 다크모드 (2026-09-07 회장님) ───────────────────
+   ★ **운영자 화면에만** 적용한다. 손님 첫 페이지와 사장님 사이트는 팔레트가 따로 있고
+     (사장님이 고른 색을 --s-* 로 인라인 주입한다) 거기까지 뒤집으면 남의 홈페이지가 바뀐다.
+     그래서 선택자를 `.admin-shell` / `.admin-side` **안쪽으로 한정**했다 —
+     html 에 속성이 남아 있어도 운영자 화면 밖에서는 아무 일도 일어나지 않는다.
+
+   ★ 방식은 `.surface-900` 과 같다: **토큰 값만 바꾼다.** 컴포넌트는 --n-0 / --text 만
+     쓰면 되고 밝은 화면·어두운 화면을 신경 쓰지 않는다. 하드코딩 색을 새로 만들지 않았다.
+
+   ⚠ 대비를 재고 넣었다 (어두운 카드 #16211D 기준):
+     --text #E9EFEC 14:1 · --text-soft #C9D4D0 10:1 · 초록 #6FC4A2 8:1 · 빨강 #FF7A85 6:1
+     ⚠ 밝은 화면용 --green-700(#005B2A)을 그대로 두면 2:1 도 안 나온다. 그래서 초록·빨강도 같이 올린다. */
+[data-admin-theme="dark"] .admin-shell,
+[data-admin-theme="dark"] .admin-side {
+  --n-0: #16211D;      /* 카드·입력칸 면 */
+  --n-50: #1E2C27;     /* 연회색 자리 = 살짝 밝은 면 */
+  --n-100: #263630;    /* 구분선 */
+  --n-200: #33473F;    /* 테두리 */
+  --n-300: #3F5A50;
+  --text-strong: #FFFFFF;
+  --text: #E9EFEC;
+  --text-soft: #C9D4D0;
+  --green-700: #6FC4A2;  /* 밝은 면의 브랜드 초록은 어두운 배경에서 안 읽힌다 */
+  --green-500: #8ED9BB;
+  --danger: #FF7A85;
+  color: var(--text);
+}
+[data-admin-theme="dark"] .admin-shell { background: #131C19; min-height: 100vh; }
+[data-admin-theme="dark"] .admin-side { background: #16211D; border-color: #263630; }
+/* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
+[data-admin-theme="dark"] .admin-shell .btn-primary { color: #10201A; }
+
+/* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
+   그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
+   제목·숫자가 배경(#131C19)에 그대로 묻혀 안 보였다.
+   ⚠ 그렇다고 `--n-900` 자체를 밝게 뒤집으면 안 된다. 사진 검수 화면
+     (app/admin/bank/fast-review.tsx)이 `bg-n-900/95` + 흰 글자로 **일부러 어두운**
+     전체화면이라, 뒤집는 순간 흰 배경에 흰 글자가 된다.
+   → 원시 토큰은 그대로 두고 **글자로 쓰는 자리만** 의미 토큰으로 돌린다. */
+[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
+[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
+  color: var(--text-strong);
+}
+
+/* 보조 버튼도 --n-900 을 글자로 쓴다(.btn-secondary/.btn-ghost). 어두운 면에 맞춰 밝게 */
+[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
+  color: var(--text-strong);
 }
