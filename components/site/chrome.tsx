@@ -69,7 +69,8 @@ export function SiteFooter() {
         style={{ gap: "var(--s-7)", paddingBlock: "var(--s-8)" }}
       >
         <div>
-          <Logo variant="cream" height={22} />
+          {/* ⚠ 푸터 로고는 priority 를 끈다 — 페이지 맨 아래라 preload 할 이유가 없다 */}
+          <Logo variant="cream" height={22} priority={false} />
           <p className="t-small measure" style={{ marginTop: "var(--s-3)", color: "var(--n-300)" }}>
             홈페이지는 빈 집입니다. 스토리에는 진짜 사람이 있습니다.<br />
             사장님이 들려주시는 스토리가 사업을 굴러가게 만듭니다.

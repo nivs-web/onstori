@@ -13,7 +13,7 @@ import Image from "next/image";
  */
 const RATIO = 600 / 103;
 
-export function Logo({ variant = "dark", height = 26 }: { variant?: "dark" | "cream"; height?: number }) {
+export function Logo({ variant = "dark", height = 26, priority = true }: { variant?: "dark" | "cream"; height?: number; priority?: boolean }) {
   const src = variant === "cream" ? "/brand/onstori-logo-cream-160.png" : "/brand/onstori-logo-160.png";
   const width = Math.round(height * RATIO);
   return (
@@ -22,8 +22,11 @@ export function Logo({ variant = "dark", height = 26 }: { variant?: "dark" | "cr
       alt="온스토리 ONSTORI"
       width={width}
       height={height}
-      // 헤더 로고는 첫 화면에 있다 — 늦게 부르면 상단이 비어 보인다
-      priority
+      /* 헤더 로고는 첫 화면에 있다 — 늦게 부르면 상단이 비어 보인다.
+         ⚠ 푸터는 `priority={false}` 로 부른다. 페이지 **맨 아래**인데 preload 가 걸려
+            첫 화면 자원과 대역폭을 다투고 있었다 (2026-09-07 실측: 첫 페이지 preload 4건
+            중 1건이 푸터 크림 로고였다). 기본값은 true 라 헤더 쪽은 그대로다. */
+      priority={priority}
       sizes={`${width}px`}
       style={{ height, width }}
     />
