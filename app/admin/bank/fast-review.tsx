@@ -71,7 +71,7 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
         <p className="t-h1">✓</p>
         <h2 className="mt-3 t-h2 font-bold">이 목록을 다 봤습니다</h2>
         <p className="mt-2 t-small text-white/70">{Object.keys(done).length}장 처리{failed.length ? ` · 저장 실패 ${failed.length}장` : ""}</p>
-        <button type="button" onClick={onClose} className="mt-8 rounded-full bg-white px-6 py-3 t-body font-bold text-n-900">
+        <button type="button" onClick={onClose} className="mt-8 rounded-full bg-n-0 px-6 py-3 t-body font-bold text-n-900">
           닫고 목록 새로고침
         </button>
       </div>
@@ -103,7 +103,7 @@ export function FastReview({ rows, onClose }: { rows: BankRow[]; onClose: () => 
       <div className="flex justify-center gap-2 px-5 pb-5 pt-3">
         {Object.entries(SCORES).map(([k, s]) => (
           <button key={k} type="button" onClick={() => mark(k)}
-            className={`rounded-full px-5 py-3 t-body font-bold ${s.ok ? "bg-white text-n-900" : "bg-danger text-white"}`}>
+            className={`rounded-full px-5 py-3 t-body font-bold ${s.ok ? "bg-n-0 text-n-900" : "bg-danger text-white"}`}>
             {s.label}<span className="ml-1.5 t-caption opacity-50">{k}</span>
           </button>
         ))}

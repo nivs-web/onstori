@@ -231,7 +231,7 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
                       className="shrink-0 rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">저장</button>
                   </div>
                 </div>
-                <div className="rounded-xl border border-danger bg-white p-3">
+                <div className="rounded-xl border border-danger bg-n-0 p-3">
                   <label className="flex items-center gap-2 t-small font-semibold">
                     <input type="checkbox" checked={r.blacklisted}
                       onChange={(e) => onPatch(r.id, { blacklisted: e.target.checked, blacklistReason: reason })} />
@@ -241,7 +241,7 @@ function RowView({ r, open, busy, onToggle, onPatch, onAct }: {
                     className="mt-2 w-full rounded-lg border border-n-300 px-3 py-1.5 t-caption" />
                   <p className="mt-1.5 t-caption text-[var(--text-soft)]">표시만 합니다. 이용을 막지 않습니다.</p>
                 </div>
-                <div className="rounded-xl border border-n-200 bg-white p-3">
+                <div className="rounded-xl border border-n-200 bg-n-0 p-3">
                   <p className="t-caption font-semibold text-[var(--text-soft)]">상태 조작</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button type="button" disabled={busy} onClick={() => onAct(r.id, "activate")}

@@ -9,6 +9,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "./ui";
 import { AdminNotes, parseItems } from "./notes";
+import { AdminThemeToggle } from "./theme-toggle";
 import { ADMIN_NOTES_SEED } from "@/config/admin-notes-seed";
 import { trialInfo, TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
 
@@ -30,7 +31,7 @@ const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString("ko-KR", 
 function Card({ label, value, sub, tone }: { label: string; value: string; sub?: React.ReactNode; tone?: "warn" | "danger" }) {
   const color = tone === "danger" ? "text-danger" : tone === "warn" ? "text-accent" : "text-green-700";
   return (
-    <div className="rounded-2xl border border-n-200 bg-white p-5">
+    <div className="rounded-2xl border border-n-200 bg-n-0 p-5">
       <p className="t-caption text-[var(--text-soft)]">{label}</p>
       <p className={`mt-1 t-h1 font-bold ${color}`}>{value}</p>
       {sub ? <p className="mt-1 t-caption text-[var(--text-soft)]">{sub}</p> : null}
@@ -89,7 +90,10 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      {/* 다크모드 토글 — **맨 왼쪽 위** (2026-09-07 회장님) */}
+      <AdminThemeToggle />
+
+      <p className="mt-4 text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
       <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
 
       {/* 메모장 3종 — **대시보드 맨 위, 1/3씩** (2026-09-07 회장님).
@@ -144,7 +148,7 @@ export default async function DashboardPage() {
       </div>
 
       <h2 className="mt-10 t-body font-bold">가까운 만료</h2>
-      <ul className="mt-3 divide-y divide-n-100 rounded-2xl border border-n-200 bg-white t-small">
+      <ul className="mt-3 divide-y divide-n-100 rounded-2xl border border-n-200 bg-n-0 t-small">
         {rows.filter((r) => !trialInfo(r).paid)
           .sort((a, b) => String(a.trial_ends_at ?? "").localeCompare(String(b.trial_ends_at ?? "")))
           .slice(0, 8).map((r) => {

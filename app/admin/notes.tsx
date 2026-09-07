@@ -52,7 +52,7 @@ export function parseItems(body: string): NoteItem[] {
 /* ── 공통 껍데기 ── */
 function Pad({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col rounded-2xl border border-n-200 bg-white p-4" aria-label={title}>
+    <section className="flex flex-col rounded-2xl border border-n-200 bg-n-0 p-4" aria-label={title}>
       <div className="flex items-baseline justify-between" style={{ gap: "var(--s-2)" }}>
         <h2 className="t-small font-bold">{title}</h2>
         <span className="t-micro">{right}</span>
@@ -201,7 +201,7 @@ export function AdminNotes({
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTodo(); } }}
             placeholder="항목 추가"
             aria-label="할일 항목 추가"
-            className="t-caption min-w-0 flex-1 rounded-lg border border-n-200 bg-white"
+            className="t-caption min-w-0 flex-1 rounded-lg border border-n-200 bg-n-0"
             style={{ padding: "var(--s-2)", color: "var(--text)" }}
           />
           <button type="button" onClick={addTodo} className="btn btn-secondary t-caption">추가</button>

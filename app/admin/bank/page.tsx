@@ -78,7 +78,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
           <div className="mt-2 flex flex-wrap gap-1.5">
             {low.map((s) => (
               <span key={`${s.industry}-${s.mood}`}
-                className={`rounded-full px-2 py-0.5 t-caption ${s.free === 0 ? "bg-danger-soft text-danger" : "bg-white text-accent-ink"}`}>
+                className={`rounded-full px-2 py-0.5 t-caption ${s.free === 0 ? "bg-danger-soft text-danger" : "bg-n-0 text-accent-ink"}`}>
                 {s.industry}·{s.mood} <b>{s.free}</b>/{s.total}
               </span>
             ))}

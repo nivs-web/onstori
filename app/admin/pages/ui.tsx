@@ -26,7 +26,7 @@ export function SectionToggles({ rows }: { rows: SectionRow[] }) {
   return (
     <>
       {msg && <p className="mt-3 t-small text-green-700">{msg}</p>}
-      <ul className="mt-4 divide-y divide-n-100 rounded-2xl border border-n-200 bg-white">
+      <ul className="mt-4 divide-y divide-n-100 rounded-2xl border border-n-200 bg-n-0">
         {list.map((s) => (
           <li key={s.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
             <div>

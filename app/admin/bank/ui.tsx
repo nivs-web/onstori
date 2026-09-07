@@ -100,7 +100,7 @@ function Card({ r, checked, onToggle, bulkApproved }: {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={r.url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
         </a>
-        <label className="absolute left-2 top-2 flex cursor-pointer items-center gap-1 rounded bg-white/90 px-1.5 py-1 backdrop-blur">
+        <label className="absolute left-2 top-2 flex cursor-pointer items-center gap-1 rounded bg-n-0/90 px-1.5 py-1 backdrop-blur">
           <input type="checkbox" checked={checked} onChange={onToggle} className="h-3.5 w-3.5 accent-green-700" />
           <span className="t-caption text-[var(--text)]">선택</span>
         </label>
@@ -195,7 +195,7 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-2 mt-6 flex flex-wrap items-center gap-2 bg-white/95 px-2 py-2 backdrop-blur">
+      <div className="sticky top-0 z-10 -mx-2 mt-6 flex flex-wrap items-center gap-2 bg-n-0/95 px-2 py-2 backdrop-blur">
         <button onClick={() => setSel(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
           className="rounded-full border border-n-300 px-3 py-1.5 text-xs font-medium">
           {allSelected ? "선택 해제" : "전체 선택"}
