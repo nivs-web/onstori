@@ -60,11 +60,15 @@
 - **Pretendard Variable 자체 호스팅** (`app/fonts.css`, `public/fonts/pretendard/`).
   `unicode-range` 로 92조각이라 브라우저는 실제 쓰는 3~6조각(100KB 안팎)만 받는다.
   `ascent-override: 92%` — 라틴 메트릭 그대로면 한글 행간이 뜬다.
-- **Noto Serif KR 은 `next/font/google`** (app/layout.tsx). 빌드 때 내려받아 자체 호스팅한다.
-  ⚠ 전에는 `globals.css` 의 `@import` 였다 — CSS → 구글 CSS → 폰트 파일로 이어지는
-  **렌더 차단 사슬**이라 LCP 를 그대로 늦춘다. 폰트를 `@import` 로 부르지 않는다.
-- 세리프는 `preload: false`. 한글 글리프가 커서 미리 받으면 히어로 사진과 대역폭을 다툰다.
-  제목은 폴백 명조로 먼저 그려지고 곧 바뀐다.
+- ★ **글꼴은 Pretendard 하나다. 명조(Noto Serif KR)는 2026-09-07 폐기했다** (CLAUDE.md 규칙 11).
+  제목은 서체가 아니라 **굵기(700/600)와 자간**으로 낸다.
+  **`Noto Serif` 참조가 코드에 다시 생기면 안 된다** — 2026-09-07 실측 확인: 코드 참조 0건.
+  ⚠ 아래는 명조를 쓰던 시절의 기록이다. **되살리라는 뜻이 아니라, 되살릴 때 무엇을
+  다시 밟게 되는지 남겨 둔 것이다.**
+  - 폰트를 `globals.css` 의 `@import` 로 부르지 않는다 — CSS → 구글 CSS → 폰트 파일로
+    이어지는 **렌더 차단 사슬**이라 LCP 를 그대로 늦춘다. (그래서 `next/font/google` 로 옮겼었다.)
+  - 한글 세리프는 글리프가 커서 `preload` 하면 히어로 사진과 대역폭을 다툰다.
+  - v5 시작 대비 **빌드 폰트 산출물 6.4MB → 64KB.** 명조를 뺀 것이 그 대부분이다.
 
 ## 5. CLS (화면이 튀지 않게)
 
