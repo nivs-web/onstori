@@ -362,7 +362,7 @@ export default async function Home() {
               ["유튜브를 시작하고 싶은데 편집이 무서운 사장님", "60초 찍으면 자막과 컷 편집은 온스토리가 합니다."],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
-                <h3 className="t-h3">{t}</h3>
+                <h3 className="t-h3" style={{ textWrap: "balance" }}>{t}</h3>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
               </div>
             ))}

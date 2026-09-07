@@ -56,7 +56,7 @@ export default function BlogPage() {
                 {/* 대표 이미지 자리 — 비율을 고정해 글이 들어와도 아래가 밀리지 않는다 */}
                 <div style={{ aspectRatio: "16 / 9", borderRadius: "var(--r-md)", background: "var(--n-800)" }} aria-hidden />
                 <p className="t-caption font-bold" style={{ marginTop: "var(--s-4)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>{c}</p>
-                <h2 className="t-h3" style={{ marginTop: "var(--s-1)" }}>{t}</h2>
+                <h2 className="t-h3" style={{ marginTop: "var(--s-1)", textWrap: "balance" }}>{t}</h2>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>{d}</p>
                 <p className="t-caption font-semibold" style={{ marginTop: "var(--s-3)" }}>준비 중 · 곧 올립니다</p>
               </li>
