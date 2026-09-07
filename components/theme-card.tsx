@@ -78,9 +78,12 @@ export function ThemeCard({ href, name, tag, pc, phone }: ThemeCardProps) {
       className="tcard"
       aria-label={`${name} 홈페이지 새 창에서 보기`}
     >
-      {/* ⚠ 주소창은 뺐다(2026-09-07 회장님: 카드에서는 지저분하다).
-          점 3개만 남겨 "창"이라는 신호만 준다. 상호명은 카드 아래에 따로 있다. */}
-      <span className="tcard-bar" aria-hidden><i /><i /><i /></span>
+      {/* ⚠ 브라우저 틀(상단 바 + 점 3개)을 **통째로 뺐다** (2026-09-07 회장님, 실제 화면을 보고).
+          이유 셋: ①바 높이(36px)만큼 히어로 위쪽이 잘려 제목이 온전히 안 보였다
+          ②마우스를 올려 사진이 내려가면 그 자리가 텅 빈 흰 공간으로 남았다
+          ③점 3개가 아무 정보도 주지 않았다.
+          주소창(.tcard-url)은 앞서 이미 뺐다. 부품 자체(.tcard-bar/.tcard-url)는 지우지 않았다 —
+          `/my` 카드가 주소창까지 쓰는 완전한 틀로 계속 쓴다. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="tcard-shot" src={pc} alt={`${name} 홈페이지 화면`} loading="lazy" decoding="async" />
       <span className="tcard-phone" aria-hidden>

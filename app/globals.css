@@ -690,13 +690,19 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* PC 화면 — 카드보다 길게 깔고 위를 맞춘 뒤 위로 민다 */
+  /* PC 화면 — 카드보다 길게 깔고 위를 맞춘 뒤 위로 민다.
+     ★ 기본은 **카드 맨 위(top:0)** 다 (2026-09-07 회장님: 포트폴리오 카드에서 상단 바를 뺐다).
+       위쪽 모서리는 .tcard 의 overflow:hidden + border-radius 가 알아서 둥글게 자른다.
+     ⚠ 바가 **있는** 카드(`/my` — 주소창까지 쓰는 완전한 틀)에서는 그 높이만큼 내려야 한다.
+       그래서 「앞에 .tcard-bar 가 있으면」에만 top 을 준다. 이렇게 갈라 두면
+       첫 페이지에서 바를 빼도 `/my` 는 한 픽셀도 안 움직인다. */
   .tcard-shot {
-    position: absolute; inset-inline: 0; top: var(--tc-bar-h);
+    position: absolute; inset-inline: 0; top: 0;
     width: 100%; display: block;
     transform: translateY(0);
     transition: transform var(--tc-back) ease-out;
   }
+  .tcard-bar ~ .tcard-shot { top: var(--tc-bar-h); }
 
   /* 폰 목업 — 카드 오른쪽 아래, 안쪽으로 16px. 폭은 카드 폭의 22%(--tc-phone-w).
      ⚠ max-height 로 주소창 바에 닿지 않게 묶는다. 카드가 16:10 이라 좁은 화면에서는
@@ -706,7 +712,8 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     position: absolute; right: 16px; bottom: 16px; z-index: 3;
     width: var(--tc-phone-w);
     aspect-ratio: var(--tc-phone-ratio);
-    max-height: calc(100% - var(--tc-bar-h) - 20px);
+    /* ⚠ 바를 뺀 카드에서는 뺄 것이 20px(아래 여백)뿐이다. 바가 있는 `/my` 는 아래에서 더 뺀다. */
+    max-height: calc(100% - 20px);
     padding: var(--tc-phone-border);
     border-radius: 11% / 5.65%;
     background: var(--n-900);
@@ -715,6 +722,8 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     opacity: 0; transform: translateY(24px) scale(.96);
     transition: opacity 420ms cubic-bezier(.25,.8,.25,1), transform 420ms cubic-bezier(.25,.8,.25,1);
   }
+  .tcard-bar ~ .tcard-phone { max-height: calc(100% - var(--tc-bar-h) - 20px); }
+
   /* 유리 가장자리 느낌 — 안쪽 1px 흰 링 */
   .tcard-phone::after {
     content: ""; position: absolute; inset: var(--tc-phone-border);

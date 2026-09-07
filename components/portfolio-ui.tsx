@@ -25,9 +25,11 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
             {it.pc && it.phone ? (
               <ThemeCard href={`/${it.slug}`} name={it.name} tag={it.tag} pc={it.pc} phone={it.phone} />
             ) : (
-              /* 아직 안 찍힌 사이트 — 카드 자리는 지키되 비워 둔다 */
-              <a href={`/${it.slug}`} target="_blank" rel="noreferrer" className="tcard" aria-label={`${it.name} 홈페이지 보기`}>
-                <span className="tcard-bar" aria-hidden><i /><i /><i /></span>
+              /* 아직 안 찍힌 사이트 — 카드 자리는 지킨다.
+                 ⚠ 전에는 브라우저 틀(.tcard-bar)만 덩그러니 놨는데, 그 틀을 뺀 뒤로는
+                 (2026-09-07 회장님) 아무것도 없는 회색 상자가 된다. `/my` 와 같은 문구를 쓴다. */
+              <a href={`/${it.slug}`} target="_blank" rel="noreferrer" className="tcard flex items-center justify-center" aria-label={`${it.name} 홈페이지 보기`}>
+                <span className="t-caption" style={{ color: "var(--text-soft)" }}>미리보기 준비 중</span>
               </a>
             )}
             <figcaption className="flex items-center justify-between" style={{ marginTop: "var(--s-3)", gap: "var(--s-2)" }}>
