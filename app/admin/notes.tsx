@@ -21,9 +21,11 @@ import { useCallback, useRef, useState } from "react";
  * ⚠ 글씨는 v5 최소인 `t-caption`(13px), 날짜만 `t-micro`(11px). 토큰 밖 크기를 적지 않는다.
  */
 
-export type NoteItem = { id: string; text: string; at: string; doneAt?: string };
+/* ⚠ 순수 함수(parseItems·uid·타입)는 `lib/admin-notes.ts` 에 있다. 여기 두면 안 된다 —
+   이 파일은 `"use client"` 라서, 서버 컴포넌트가 여기서 import 해 서버에서 부르면
+   **빌드는 통과하고 런타임에 /admin 전체가 500** 이 난다(2026-09-07 프로덕션 사고). */
+import { parseItems, noteUid as uid, type NoteItem } from "@/lib/admin-notes";
 
-const uid = () => Math.random().toString(36).slice(2, 10);
 const nowIso = () => new Date().toISOString();
 
 /** "9/7" — 올해면 월/일, 지난해면 연도까지 */
@@ -32,21 +34,6 @@ function shortDate(iso: string): string {
   if (Number.isNaN(d.getTime())) return "";
   const thisYear = d.getFullYear() === new Date().getFullYear();
   return thisYear ? `${d.getMonth() + 1}/${d.getDate()}` : `${String(d.getFullYear()).slice(2)}.${d.getMonth() + 1}.${d.getDate()}`;
-}
-
-export function parseItems(body: string): NoteItem[] {
-  try {
-    const v = JSON.parse(body);
-    if (!Array.isArray(v)) return [];
-    return v.filter((x) => x && typeof x.text === "string").map((x) => ({
-      id: typeof x.id === "string" ? x.id : uid(),
-      text: x.text,
-      at: typeof x.at === "string" ? x.at : nowIso(),
-      doneAt: typeof x.doneAt === "string" ? x.doneAt : undefined,
-    }));
-  } catch {
-    return [];
-  }
 }
 
 /* ── 공통 껍데기 ── */
