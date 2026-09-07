@@ -66,6 +66,10 @@
   --t-body: 1.0625rem;   /* 17px */
   --t-small: 0.9375rem;  /* 15px */
   --t-caption: 0.8125rem;/* 13px */
+  /* ⚠ 11px 은 **본문에 쓰지 않는다.** 운영자 화면의 곁다리 표시(메모 작성 날짜)에만 쓴다.
+     손님 화면에는 쓰지 않는다 — 규칙 11 의 본문 최소 크기를 깎는 구멍이 되면 안 된다.
+     2026-09-07 회장님이 "글쓴 날짜는 아주 작은 글씨로"라고 하셔서 토큰을 하나 늘렸다. */
+  --t-micro: 0.6875rem;  /* 11px */
 
   /* ── 굵기 ── Display·H1=700 / H2·H3=600 / 라벨=500 / 본문=400. 그 외 금지 */
   --w-bold: 700;
@@ -325,6 +329,8 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 .t-body { font-size: var(--t-body); letter-spacing: var(--ls-body); line-height: var(--lh-body); }
 .t-small { font-size: var(--t-small); letter-spacing: var(--ls-small); line-height: 1.6; }
 .t-caption { font-size: var(--t-caption); letter-spacing: var(--ls-small); line-height: 1.5; color: var(--text-soft); }
+/* 운영자 화면 전용 — 메모 작성 날짜처럼 곁다리 표시에만. 손님 화면에 쓰지 않는다 */
+.t-micro { font-size: var(--t-micro); letter-spacing: var(--ls-small); line-height: 1.4; color: var(--text-soft); }
 
 /* 키커 — 섹션 위에 붙는 작은 라벨. 자간을 컴포넌트에 적지 않는다. */
 .kicker { font-size: var(--t-caption); font-weight: var(--w-med); letter-spacing: var(--ls-eyebrow); color: var(--green-700); }

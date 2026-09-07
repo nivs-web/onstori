@@ -8,7 +8,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "./ui";
-import { AdminNotes } from "./notes";
+import { AdminNotes, parseItems } from "./notes";
 import { ADMIN_NOTES_SEED } from "@/config/admin-notes-seed";
 import { trialInfo, TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, DELETE_NOTICE_DAYS } from "@/lib/trial";
 
@@ -50,9 +50,11 @@ export default async function DashboardPage() {
     sb.from("image_bank").select("model, quality_ok").eq("deleted", false),
     sb.from("story_entries").select("created_at"),
     /* ⚠ `db push` 전에는 이 표가 없다. supabase-js 는 던지지 않고 {data:null,error} 를 주므로
-       Promise.all 이 깨지지 않는다 — 그때는 아래에서 기본 메모(seed)를 보여준다. */
-    sb.from("admin_notes").select("body").eq("id", "main").maybeSingle(),
+       Promise.all 이 깨지지 않는다 — 그때는 아래에서 기본 메모(seed)를 보여준다.
+       세 줄(main·todo·done)을 한 번에 읽는다 — 왕복을 셋으로 늘리지 않는다. */
+    sb.from("admin_notes").select("id, body"),
   ]);
+  const noteOf = (id: string) => (note ?? []).find((n) => n.id === id)?.body ?? "";
 
   const rows = sites ?? [];
   const since = (ms: number) => (r: { created_at: string }) => now - new Date(r.created_at).getTime() < ms;
@@ -87,14 +89,18 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-10">
-      {/* 제목과 메모장을 한 줄에 둔다 — 메모장은 **오른쪽 위**(2026-09-07 회장님).
-          폰에서는 세로로 쌓인다. items-start 라 메모장이 길어져도 제목이 따라 늘어나지 않는다. */}
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_400px]">
-        <div>
-          <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
-          <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
-        </div>
-        <AdminNotes initial={note?.body ?? ADMIN_NOTES_SEED} saved={Boolean(note?.body)} />
+      <p className="text-xs font-semibold kicker-wide text-green-700"><Link href="/admin">ONSTORI ADMIN</Link></p>
+      <h1 className="mt-2 text-2xl font-bold">대시보드</h1>
+
+      {/* 메모장 3종 — **대시보드 맨 위, 1/3씩** (2026-09-07 회장님).
+          폰에서는 세로로 쌓인다(lg 이상에서만 3열). */}
+      <div className="mt-5">
+        <AdminNotes
+          mainInit={noteOf("main") || ADMIN_NOTES_SEED}
+          mainSaved={Boolean(noteOf("main"))}
+          todoInit={parseItems(noteOf("todo"))}
+          doneInit={parseItems(noteOf("done"))}
+        />
       </div>
 
       <h2 className="mt-8 t-body font-bold">오늘 밤 03:00 크론이 할 일</h2>
