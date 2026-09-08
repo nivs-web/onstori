@@ -11,9 +11,9 @@
  *
  * ★ 컴포넌트 안에 `if (style === "bold")` 같은 조건문을 쓰지 마라. 전부 토큰으로만 갈린다.
  *
- * ⚠ **여기에는 토큰 '값'이 없다.** 스타일별 CSS 토큰 덩어리와 색 계산은 S1 에서
- *   `lib/design-tokens.ts` 로 들어간다 — CLAUDE.md 의 「config = 제품 정책(값 목록),
- *   lib = 로직」 구분을 지킨다. 이 파일이 정하는 것은 **무엇이 있는가**뿐이다.
+ * ⚠ 여기에는 **값 목록**만 둔다. 그 값으로 계산하는 일(색 램프·대비 보정)은
+ *   `lib/design-tokens.ts` 다 — CLAUDE.md 의 「config = 제품 정책(값 목록),
+ *   lib = 로직」 구분을 지킨다.
  *
  * ⚠ 소상공인에게 「스타일·서체·모드」라는 말을 **절대 보여주지 않는다**(지시 [0]).
  *   사장님이 보는 낱말은 「분위기」·「색」·「글씨체」뿐이다. 그래서 아래 타입에는
@@ -40,6 +40,50 @@ export const STYLES: Style[] = [
   { id: "warm", adminName: "따뜻한", adminDesc: "모서리가 둥글고 움직임이 부드럽다" },
   { id: "refined", adminName: "정갈한", adminDesc: "모서리가 없고 자간이 넓다" },
 ];
+
+/**
+ * 스타일 한 벌이 덮어쓰는 CSS 값 **42개**. 스타일을 늘릴 때는 여기에 덩어리 하나만 더하면 된다.
+ *
+ * ★ 컴포넌트는 이 값을 직접 읽지 않는다. 서버가 고른 한 벌만 화면에 심고,
+ *   컴포넌트는 늘 `var(--r-md)` 처럼 이름으로만 쓴다.
+ *
+ * ★ **basic = 지금 화면이다.** basic/밝은/온스토리초록으로 켜면 화면이 지금과 같아야 한다.
+ *
+ * ⚠ 시안 값에서 **세 곳을 고쳤다** (2026-09-08, CLAUDE.md 규칙 11 준수):
+ *   · basic `--t-h3` — 시안은 18px 고정인데 지금은 PC 에서 20px 로 커진다. **지금 값을 쓴다.**
+ *   · bold `--w-title` 800 → **700** — 굵기는 400·500·600·700 넷뿐이다.
+ *   · bold `--lh-display` 1.14 → **1.2** — 한글은 제목 행간을 1.2 아래로 내리지 않는다.
+ *
+ * ⚠ 시안의 49개 중 **7개를 뺐다.** 스타일이 건드리면 안 되는 것들이다:
+ *   · `--t-body` `--lh-body` — 본문 크기·행간은 읽기 쉬움의 바닥이라 스타일마다 흔들면 안 된다.
+ *     `:root` 에 17px · 1.68 로 고정한다(규칙 11).
+ *   · `--font-title` `--font-body` — 이건 스타일이 아니라 **서체 축**의 것이다.
+ *   · `--r-full` `--w-body` `--s-1` — 5벌이 값이 같다. `:root` 에 두면 손님이 받는 양이 줄어든다.
+ *
+ * ⚠ 표기가 `-.035em` 처럼 0 이 생략돼 있다. 지금 globals.css 의 `-0.035em` 과 **CSS 로는 같은 값**이다.
+ *   시안 원문을 기계로 읽어 온 것이라 일부러 손대지 않았다 — 손으로 옮기면 틀린다.
+ */
+export const STYLE_TOKENS: Record<StyleId, Record<string, string>> = {
+  basic: { "--r-xs": "4px", "--r-sm": "6px", "--r-md": "10px", "--r-lg": "16px", "--w-title": "700", "--w-sub": "600", "--w-label": "500", "--ls-display": "-.035em", "--ls-h1": "-.032em", "--ls-h2": "-.028em", "--ls-h3": "-.024em", "--ls-body": "-.015em", "--ls-eyebrow": ".02em", "--lh-display": "1.32", "--lh-h1": "1.36", "--lh-h2": "1.4", "--t-display": "clamp(2.25rem,1.55rem + 2.8vw,3.5rem)", "--t-h1": "clamp(1.75rem,1.3rem + 1.8vw,2.5rem)", "--t-h2": "clamp(1.375rem,1.15rem + .9vw,1.75rem)", "--t-h3": "clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem)", "--t-small": ".9375rem", "--t-caption": ".8125rem", "--s-2": "6px", "--s-3": "8px", "--s-4": "16px", "--s-5": "24px", "--s-6": "32px", "--s-7": "48px", "--s-8": "64px", "--s-9": "96px", "--s-10": "120px", "--dur-1": "120ms", "--dur-2": "200ms", "--dur-3": "320ms", "--dur-rv": "700ms", "--rv-y": "28px", "--ease": "cubic-bezier(.25,.46,.45,.94)", "--ease-hover": "cubic-bezier(.25,.8,.25,1)", "--ease-spring": "cubic-bezier(.34,1.32,.64,1)", "--hv-scale": "1.08", "--hv-lift": "8px", "--bw": "1px" },
+  quiet: { "--r-xs": "3px", "--r-sm": "4px", "--r-md": "6px", "--r-lg": "10px", "--w-title": "600", "--w-sub": "500", "--w-label": "500", "--ls-display": "-.02em", "--ls-h1": "-.018em", "--ls-h2": "-.016em", "--ls-h3": "-.014em", "--ls-body": "-.008em", "--ls-eyebrow": ".1em", "--lh-display": "1.42", "--lh-h1": "1.46", "--lh-h2": "1.5", "--t-display": "clamp(2rem,1.4rem + 2.4vw,3rem)", "--t-h1": "clamp(1.5rem,1.2rem + 1.4vw,2.125rem)", "--t-h2": "clamp(1.25rem,1.1rem + .7vw,1.5rem)", "--t-h3": "1.0625rem", "--t-small": ".875rem", "--t-caption": ".75rem", "--s-2": "8px", "--s-3": "12px", "--s-4": "20px", "--s-5": "32px", "--s-6": "44px", "--s-7": "64px", "--s-8": "88px", "--s-9": "128px", "--s-10": "160px", "--dur-1": "140ms", "--dur-2": "240ms", "--dur-3": "360ms", "--dur-rv": "520ms", "--rv-y": "12px", "--ease": "cubic-bezier(.4,0,.2,1)", "--ease-hover": "cubic-bezier(.4,0,.2,1)", "--ease-spring": "cubic-bezier(.4,0,.2,1)", "--hv-scale": "1.03", "--hv-lift": "3px", "--bw": "1px" },
+  bold: { "--r-xs": "2px", "--r-sm": "3px", "--r-md": "4px", "--r-lg": "6px", "--w-title": "700", "--w-sub": "700", "--w-label": "600", "--ls-display": "-.045em", "--ls-h1": "-.042em", "--ls-h2": "-.036em", "--ls-h3": "-.03em", "--ls-body": "-.018em", "--ls-eyebrow": ".06em", "--lh-display": "1.2", "--lh-h1": "1.2", "--lh-h2": "1.26", "--t-display": "clamp(2.75rem,1.8rem + 3.6vw,4.25rem)", "--t-h1": "clamp(2rem,1.45rem + 2.2vw,2.875rem)", "--t-h2": "clamp(1.5rem,1.25rem + 1.1vw,2rem)", "--t-h3": "1.25rem", "--t-small": ".9375rem", "--t-caption": ".8125rem", "--s-2": "6px", "--s-3": "8px", "--s-4": "14px", "--s-5": "20px", "--s-6": "28px", "--s-7": "40px", "--s-8": "56px", "--s-9": "80px", "--s-10": "104px", "--dur-1": "90ms", "--dur-2": "150ms", "--dur-3": "240ms", "--dur-rv": "420ms", "--rv-y": "20px", "--ease": "cubic-bezier(.2,.8,.2,1)", "--ease-hover": "cubic-bezier(.2,.8,.2,1)", "--ease-spring": "cubic-bezier(.34,1.32,.64,1)", "--hv-scale": "1.1", "--hv-lift": "6px", "--bw": "2px" },
+  warm: { "--r-xs": "8px", "--r-sm": "12px", "--r-md": "18px", "--r-lg": "26px", "--w-title": "700", "--w-sub": "600", "--w-label": "500", "--ls-display": "-.028em", "--ls-h1": "-.026em", "--ls-h2": "-.022em", "--ls-h3": "-.018em", "--ls-body": "-.01em", "--ls-eyebrow": ".04em", "--lh-display": "1.36", "--lh-h1": "1.42", "--lh-h2": "1.46", "--t-display": "clamp(2.25rem,1.55rem + 2.8vw,3.5rem)", "--t-h1": "clamp(1.75rem,1.3rem + 1.8vw,2.5rem)", "--t-h2": "clamp(1.375rem,1.15rem + .9vw,1.75rem)", "--t-h3": "1.125rem", "--t-small": ".9375rem", "--t-caption": ".8125rem", "--s-2": "8px", "--s-3": "12px", "--s-4": "18px", "--s-5": "28px", "--s-6": "36px", "--s-7": "52px", "--s-8": "72px", "--s-9": "104px", "--s-10": "132px", "--dur-1": "140ms", "--dur-2": "260ms", "--dur-3": "400ms", "--dur-rv": "760ms", "--rv-y": "24px", "--ease": "cubic-bezier(.34,1.2,.64,1)", "--ease-hover": "cubic-bezier(.34,1.2,.64,1)", "--ease-spring": "cubic-bezier(.34,1.5,.64,1)", "--hv-scale": "1.06", "--hv-lift": "10px", "--bw": "1px" },
+  refined: { "--r-xs": "0px", "--r-sm": "0px", "--r-md": "2px", "--r-lg": "3px", "--w-title": "500", "--w-sub": "500", "--w-label": "500", "--ls-display": ".01em", "--ls-h1": ".008em", "--ls-h2": ".006em", "--ls-h3": ".004em", "--ls-body": "-.004em", "--ls-eyebrow": ".24em", "--lh-display": "1.46", "--lh-h1": "1.5", "--lh-h2": "1.56", "--t-display": "clamp(2rem,1.4rem + 2.4vw,3.125rem)", "--t-h1": "clamp(1.5rem,1.2rem + 1.4vw,2.125rem)", "--t-h2": "clamp(1.25rem,1.1rem + .7vw,1.5rem)", "--t-h3": "1.0625rem", "--t-small": ".9375rem", "--t-caption": ".75rem", "--s-2": "8px", "--s-3": "14px", "--s-4": "24px", "--s-5": "36px", "--s-6": "52px", "--s-7": "76px", "--s-8": "104px", "--s-9": "144px", "--s-10": "184px", "--dur-1": "160ms", "--dur-2": "300ms", "--dur-3": "460ms", "--dur-rv": "900ms", "--rv-y": "16px", "--ease": "cubic-bezier(.22,.61,.36,1)", "--ease-hover": "cubic-bezier(.22,.61,.36,1)", "--ease-spring": "cubic-bezier(.22,.61,.36,1)", "--hv-scale": "1.04", "--hv-lift": "4px", "--bw": "1px" },
+};
+
+/**
+ * 밝은/어두운이 덮어쓰는 CSS 값 **24개** — 면·선·글자·그림자·브랜드 역할.
+ *
+ * ⚠ 시안에서 **글자색 두 개를 우리 뜻대로 바꿨다.**
+ *   시안의 `--text` 는 가장 진한 글자색(#1A2722)인데, 우리 `--text` 는 **본문 글자색**이다.
+ *   그대로 가져오면 사이트 전체 본문이 확 진해져 「화면이 지금과 같다」가 깨진다.
+ *   그래서 `--text` 는 지금 값(#50665E)을 지키고, 시안의 가장 진한 색은 `--text-strong` 으로 받는다.
+ *   ⚠ 이건 **의도한 어긋남**이다. 다음 세션이 「시안과 다르다」며 되돌리면 사이트 본문이 전부 진해진다.
+ */
+export const MODE_TOKENS: Record<ModeId, Record<string, string>> = {
+  light: { "--canvas": "#F2F6F4", "--surface": "#FFFFFF", "--surface-2": "#E9EFEC", "--surface-3": "#E5EBE9", "--border": "#E5EBE9", "--border-2": "#C9D4D0", "--text": "#50665E", "--text-2": "#2E4038", "--text-3": "#455A53", "--text-4": "#5E7169", "--placeholder": "#96A7A1", "--on-brand": "#FFFFFF", "--shadow-1": "0 1px 2px rgba(26,39,34,.05),0 6px 20px rgba(26,39,34,.06)", "--shadow-2": "0 20px 44px rgba(26,39,34,.14)", "--hv-shadow": "0 16px 32px rgba(26,39,34,.12)", "--brand-solid": "var(--brand-7)", "--brand-solid-h": "var(--brand-5)", "--on-solid": "#FFFFFF", "--brand-ink": "var(--brand-text)", "--brand-tint": "var(--brand-1)", "--brand-tint-2": "var(--brand-0)", "--brand-tint-ink": "var(--brand-8)", "--brand-ring": "var(--brand-1)", "--text-strong": "#1A2722" },
+  dark: { "--canvas": "#101815", "--surface": "#18211E", "--surface-2": "#212B27", "--surface-3": "#2A3531", "--border": "#2A3531", "--border-2": "#3B4844", "--text": "#E5EBE9", "--text-2": "#D3DDD8", "--text-3": "#A9B8B2", "--text-4": "#8D9F98", "--placeholder": "#6E837B", "--on-brand": "#FFFFFF", "--shadow-1": "0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3)", "--shadow-2": "0 20px 44px rgba(0,0,0,.5)", "--hv-shadow": "0 16px 32px rgba(0,0,0,.45)", "--brand-solid": "var(--brand-3)", "--brand-solid-h": "var(--brand-2)", "--on-solid": "var(--brand-9)", "--brand-ink": "var(--brand-3)", "--brand-tint": "var(--brand-9)", "--brand-tint-2": "var(--brand-9)", "--brand-tint-ink": "var(--brand-2)", "--brand-ring": "var(--brand-8)", "--text-strong": "#EDF3F0" },
+};
 
 /* ─────────────────────────── 밝은/어두운 ─────────────────────────── */
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { defaultSetting, themeAttrs, themeVars } from "@/lib/design-tokens";
 
 /* ★ 2026-09-07 — 제목용 명조(Noto Serif KR)를 완전히 폐기했다.
    화면당 서른 글자 남짓 쓰자고 한글 세리프 405KB 를 받고 있었다(Lighthouse 실측).
@@ -21,9 +22,29 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * ★ 테마 엔진 주입 지점 (2026-09-08, S1).
+ *
+ * `<html>` 을 그리는 파일은 이 하나뿐이고, App Router 의 레이아웃은 **자기가 어느 경로인지
+ * 알 수 없다.** 그래서 여기는 **온스토리 홈(site) 설정**을 심고, 다른 화면은 각자
+ * 래퍼에서 덮는다(`/admin` 은 `.admin-shell`, 손님 사이트는 `app/[slug]/page.tsx`).
+ * 미들웨어도 라우트 그룹 재배치도 필요 없다.
+ *
+ * ⚠ **여기서 `cookies()`·`headers()` 를 부르면 안 된다.** 부르는 순간 `/` 와 `/{slug}` 가
+ *   전부 동적으로 떨어져 TTFB 0.06초를 잃는다(2026-09-08 기준값 측정).
+ *
+ * ⚠ 지금은 `DEFAULTS.site`(기본/밝은/온스토리초록) 고정이다 — 그래서 화면이 지금과 똑같다.
+ *   운영자가 고른 값을 DB 에서 읽어 오는 것은 S2 다.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const setting = defaultSetting("site");
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html
+      lang="ko"
+      className="h-full antialiased"
+      {...themeAttrs(setting, "site")}
+      style={themeVars(setting) as React.CSSProperties}
+    >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
