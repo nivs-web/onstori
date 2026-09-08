@@ -55,9 +55,22 @@ function Pad({ title, right, children }: { title: string; right?: React.ReactNod
 /** 6점 손잡이 — 구글 Keep 과 같은 자리(체크박스 왼쪽) */
 function Grip() {
   return (
-    <span aria-hidden className="t-caption select-none" style={{ color: "var(--text-soft)", cursor: "grab", lineHeight: 1.2 }}>
+    <span
+      aria-hidden
+      className="t-caption select-none"
+      /* ⚠ 행간을 따로 주지 않는다 — 줄의 다른 요소와 **같은 높이**(--memo-line-h)를 쓰고
+         그 안에서 가운데 맞춘다. 예전엔 1.2 라 손잡이만 위로 떠 보였다. */
+      style={{ display: "flex", alignItems: "center", height: "var(--memo-line-h)", color: "var(--text-soft)", cursor: "grab" }}
+    >
       ⠿
     </span>
+  );
+}
+
+/** 체크박스를 첫 줄 높이 안에서 세로 가운데로. 예전엔 `marginTop: 0.15em` 손보정이었다. */
+function CheckSlot({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ display: "flex", alignItems: "center", height: "var(--memo-line-h)" }}>{children}</span>
   );
 }
 
@@ -183,7 +196,11 @@ export function AdminNotes({
 
   const listCls = "mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto";
   const rowCls = "flex items-start rounded-lg bg-n-50";
-  const rowStyle = { gap: "var(--s-2)", padding: "var(--s-2)" } as const;
+  /* ★ lineHeight 를 줄 전체에 걸어 번호·글·날짜가 **같은 밑줄**에 앉게 한다.
+     t-caption(1.5)·t-micro(1.4) 가 제각각이라 줄이 어긋나 보였다 — 2026-09-08. */
+  const rowStyle = { gap: "var(--s-2)", padding: "var(--s-2)", lineHeight: "var(--memo-line-h)" } as const;
+  /* 줄 안의 글자 요소가 공통으로 쓰는 값 — 클래스의 행간을 이걸로 덮는다 */
+  const lineH = { lineHeight: "var(--memo-line-h)" } as const;
   const ctl = { height: "var(--memo-ctl-h)" } as const;
 
   return (
@@ -215,12 +232,13 @@ export function AdminNotes({
               {/* ★ 우선순위 번호 — **자리 번호일 뿐 항목에 붙어 있지 않다**(2026-09-08 회장님).
                   맨 위면 무조건 1이다. 순서를 끌어 옮기거나 새 항목을 넣으면 번호가 다시 매겨진다.
                   그래서 저장하지 않는다 — 목록 순서 자체가 곧 우선순위다. */}
-              <span className="t-caption select-none tabular-nums" style={{ color: "var(--text-soft)", minWidth: "var(--s-5)", textAlign: "right", lineHeight: 1.5 }}>
+              <span className="t-caption select-none tabular-nums" style={{ ...lineH, color: "var(--text-soft)", minWidth: "var(--s-5)", textAlign: "right" }}>
                 {i + 1}
               </span>
               <Grip />
-              <input type="checkbox" checked={false} onChange={() => complete(i)}
-                     aria-label={`완료: ${it.text}`} style={{ marginTop: "0.15em" }} />
+              <CheckSlot>
+                <input type="checkbox" checked={false} onChange={() => complete(i)} aria-label={`완료: ${it.text}`} />
+              </CheckSlot>
               {editId === it.id ? (
                 <input
                   autoFocus
@@ -235,19 +253,20 @@ export function AdminNotes({
                   onBlur={() => saveEdit(it.id)}
                   aria-label={`수정: ${it.text}`}
                   className="t-caption min-w-0 flex-1 rounded-lg border border-n-200 bg-n-0"
-                  style={{ paddingInline: "var(--s-2)", color: "var(--text)" }}
+                  /* 높이를 줄 높이에 맞춘다 — 안 맞추면 고치는 동안 줄이 들썩인다 */
+                  style={{ height: "var(--memo-line-h)", paddingInline: "var(--s-1)", color: "var(--text)" }}
                 />
               ) : (
                 <span
                   onDoubleClick={() => startEdit(it)}
                   title="더블클릭하면 고칠 수 있습니다 (엔터로 적용)"
                   className="t-caption min-w-0 flex-1"
-                  style={{ color: "var(--text)", wordBreak: "break-word", cursor: "text" }}
+                  style={{ ...lineH, color: "var(--text)", wordBreak: "break-word", cursor: "text" }}
                 >
                   {it.text}
                 </span>
               )}
-              <span className="t-micro whitespace-nowrap">{shortDate(it.at)}</span>
+              <span className="t-micro whitespace-nowrap" style={lineH}>{shortDate(it.at)}</span>
             </li>
           ))}
           {todo.length === 0 && <li className="t-caption" style={{ padding: "var(--s-2)" }}>할 일이 없습니다.</li>}
@@ -272,18 +291,19 @@ export function AdminNotes({
           {done.map((it, i) => (
             <li key={it.id} {...rowProps("done", i)} className={rowCls} style={rowStyle}>
               <Grip />
-              <input
-                type="checkbox"
-                checked={picked.has(it.id)}
-                onChange={() => setPicked((p) => { const n = new Set(p); n.has(it.id) ? n.delete(it.id) : n.add(it.id); return n; })}
-                aria-label={`선택: ${it.text}`}
-                style={{ marginTop: "0.15em" }}
-              />
+              <CheckSlot>
+                <input
+                  type="checkbox"
+                  checked={picked.has(it.id)}
+                  onChange={() => setPicked((p) => { const n = new Set(p); n.has(it.id) ? n.delete(it.id) : n.add(it.id); return n; })}
+                  aria-label={`선택: ${it.text}`}
+                />
+              </CheckSlot>
               <span className="t-caption min-w-0 flex-1"
-                    style={{ color: "var(--text-soft)", textDecoration: "line-through", wordBreak: "break-word" }}>{it.text}</span>
-              <span className="t-micro whitespace-nowrap">{shortDate(it.doneAt ?? it.at)}</span>
+                    style={{ ...lineH, color: "var(--text-soft)", textDecoration: "line-through", wordBreak: "break-word" }}>{it.text}</span>
+              <span className="t-micro whitespace-nowrap" style={lineH}>{shortDate(it.doneAt ?? it.at)}</span>
               <button type="button" onClick={() => removeDone(it.id)} aria-label={`삭제: ${it.text}`}
-                      className="t-caption" style={{ color: "var(--text-soft)", lineHeight: 1 }}>×</button>
+                      className="t-caption" style={{ ...lineH, color: "var(--text-soft)" }}>×</button>
             </li>
           ))}
           {done.length === 0 && <li className="t-caption" style={{ padding: "var(--s-2)" }}>완료한 일이 없습니다.</li>}
