@@ -13,7 +13,8 @@ const nowIso = () => new Date().toISOString();
  * 운영자 메모장 3종 — 대시보드 맨 위 (2026-09-07 회장님).
  *
  *   [온스토리 메모장]  자유 글 · [저장하기]
- *   [할일 메모]        체크박스 · **새 항목이 맨 위로** · 6점 손잡이로 순서 이동
+ *   [할일 메모]        **우선순위 번호** · 체크박스 · **새 항목이 맨 위로** · 6점 손잡이로 순서 이동
+ *                      항목을 **더블클릭하면 고칠 수 있다**(엔터 적용 · Esc 취소)
  *   [완료된 메모]      체크로 고르고 하단 [전체선택][삭제]
  *
  * ★ 세 칸의 **높이가 같고 고정**이다(`--memo-h`). 내용이 늘어도 카드가 길어지지 않고
@@ -68,6 +69,9 @@ export function AdminNotes({
   const [done, setDone] = useState<NoteItem[]>(doneInit);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState("");
+  /* 수정 중인 할일 — 더블클릭으로 들어가고 엔터로 나온다 (2026-09-08 회장님) */
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   const [state, setState] = useState<"idle" | "saving" | "done">("idle");
   const [err, setErr] = useState("");
   const drag = useRef<{ list: "todo" | "done"; from: number } | null>(null);
@@ -108,6 +112,22 @@ export function AdminNotes({
     if (!t) return;
     const next = [{ id: uid(), text: t, at: nowIso() }, ...todo];
     setTodo(next); setDraft("");
+    void persist(next, done);
+  }
+
+  /** 할일 글자 고치기 — 더블클릭으로 시작, **엔터로 적용**, Esc 로 취소 (2026-09-08 회장님).
+   *  ⚠ 칸을 비우고 엔터를 쳐도 **지우지 않는다.** 지우기는 체크(완료) → 삭제 두 걸음으로만 한다
+   *    — 불변 규칙 10 의 취지대로, 한 번의 실수로 사라지는 길을 만들지 않는다. */
+  function startEdit(it: NoteItem) { setEditId(it.id); setEditText(it.text); }
+
+  function saveEdit(id: string) {
+    const t = editText.trim();
+    setEditId(null);
+    if (!t) return;                                   // 비웠으면 취소로 본다
+    const cur = todo.find((x) => x.id === id);
+    if (!cur || cur.text === t) return;               // 안 바뀌었으면 저장하러 가지 않는다
+    const next = todo.map((x) => (x.id === id ? { ...x, text: t } : x));
+    setTodo(next);
     void persist(next, done);
   }
 
@@ -152,8 +172,10 @@ export function AdminNotes({
     else { const n = move(done); setDone(n); void persist(todo, n); }
   }
 
-  const rowProps = (list: "todo" | "done", i: number) => ({
-    draggable: true,
+  /* ⚠ 수정 중인 줄은 draggable 을 끈다. 켜 두면 브라우저가 입력칸 안의 글자 선택을
+     드래그로 가로채 글을 고칠 수 없다. */
+  const rowProps = (list: "todo" | "done", i: number, id?: string) => ({
+    draggable: editId === null || editId !== id,
     onDragStart: () => { drag.current = { list, from: i }; },
     onDragOver: (e: React.DragEvent) => e.preventDefault(),
     onDrop: () => drop(list, i),
@@ -189,11 +211,42 @@ export function AdminNotes({
       <Pad title="할일 메모" right={todo.length ? `${todo.length}건` : ""}>
         <ul className={listCls} style={{ gap: "var(--s-1)" }}>
           {todo.map((it, i) => (
-            <li key={it.id} {...rowProps("todo", i)} className={rowCls} style={rowStyle}>
+            <li key={it.id} {...rowProps("todo", i, it.id)} className={rowCls} style={rowStyle}>
+              {/* ★ 우선순위 번호 — **자리 번호일 뿐 항목에 붙어 있지 않다**(2026-09-08 회장님).
+                  맨 위면 무조건 1이다. 순서를 끌어 옮기거나 새 항목을 넣으면 번호가 다시 매겨진다.
+                  그래서 저장하지 않는다 — 목록 순서 자체가 곧 우선순위다. */}
+              <span className="t-caption select-none tabular-nums" style={{ color: "var(--text-soft)", minWidth: "var(--s-5)", textAlign: "right", lineHeight: 1.5 }}>
+                {i + 1}
+              </span>
               <Grip />
               <input type="checkbox" checked={false} onChange={() => complete(i)}
                      aria-label={`완료: ${it.text}`} style={{ marginTop: "0.15em" }} />
-              <span className="t-caption min-w-0 flex-1" style={{ color: "var(--text)", wordBreak: "break-word" }}>{it.text}</span>
+              {editId === it.id ? (
+                <input
+                  autoFocus
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  /* 엔터=적용 · Esc=취소 · 딴 데를 눌러도 적용(구글 Keep 과 같다) */
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); saveEdit(it.id); }
+                    else if (e.key === "Escape") { e.preventDefault(); setEditId(null); }
+                  }}
+                  onBlur={() => saveEdit(it.id)}
+                  aria-label={`수정: ${it.text}`}
+                  className="t-caption min-w-0 flex-1 rounded-lg border border-n-200 bg-n-0"
+                  style={{ paddingInline: "var(--s-2)", color: "var(--text)" }}
+                />
+              ) : (
+                <span
+                  onDoubleClick={() => startEdit(it)}
+                  title="더블클릭하면 고칠 수 있습니다 (엔터로 적용)"
+                  className="t-caption min-w-0 flex-1"
+                  style={{ color: "var(--text)", wordBreak: "break-word", cursor: "text" }}
+                >
+                  {it.text}
+                </span>
+              )}
               <span className="t-micro whitespace-nowrap">{shortDate(it.at)}</span>
             </li>
           ))}
