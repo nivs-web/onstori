@@ -18,7 +18,8 @@ export function PortfolioTabs({ items }: { items: ShowcaseItem[] }) {
   return (
     <div>
       {/* 살아 있는 사이트를 iframe 으로 띄우지 않는다 — 미리 찍은 스크린샷이다.
-          폰에서는 가로로 밀어 넘기고 다음 카드가 살짝 보인다(.tcard-rail). */}
+          ⚠ 배치는 전부 격자다. **가로 스크롤은 2026-09-08 폐기**했다(.tcard-rail).
+          작은 폰 1개 / 425px이상 2개 / 1100px이상 3개. */}
       <div className="tcard-rail" style={{ marginTop: "var(--s-6)" }}>
         {shown.map((it) => (
           <figure key={it.slug} style={{ margin: 0 }}>

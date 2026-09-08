@@ -845,30 +845,29 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     aspect-ratio: var(--tc-phone-ratio); object-fit: cover; object-position: center top;
   }
 
-  /* 폰 배치 — 가로로 밀어 넘기고 다음 카드가 살짝 보인다(약 1.4개) */
+  /* 포트폴리오 배치 — 전부 격자다. **가로 스크롤은 폐기했다**(2026-09-08 회장님).
+     가로로 밀면 카드가 화면폭의 72%로 작아지고, 손님은 옆에 더 있는 줄도 모른다.
+     세로로 길어지더라도 포트폴리오는 **큰 화면으로** 보여 주는 것이 낫다는 판단.
+
+     기준은 셋뿐이다 — 작은 폰 1개 / 425px이상 2개 / 1100px이상 3개.
+     ★ 425px = 흔히 말하는 「L 사이즈 폰」 가로폭. 그 위는 태블릿과 같은 2열로 본다. */
   .tcard-rail {
-    display: grid; grid-auto-flow: column;
-    grid-auto-columns: 72%;
+    display: grid;
+    grid-template-columns: 1fr;     /* 작은 폰(<425px) — 1개씩 6개 연속 */
     gap: var(--s-4);
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-inline: var(--gutter);
-    margin-inline: calc(var(--gutter) * -1);
-    scrollbar-width: none;
   }
-  .tcard-rail::-webkit-scrollbar { display: none; }
-  .tcard-rail > * { scroll-snap-align: start; }
+  /* L 사이즈 폰(425px)부터는 태블릿과 똑같이 2개 */
+  @media (min-width: 425px) {
+    .tcard-rail { grid-template-columns: repeat(2, 1fr); }
+  }
+  /* 태블릿부터는 칸 사이를 넓힌다(열 수는 2개 그대로) */
   @media (min-width: 768px) {
-    .tcard-rail {
-      grid-auto-flow: row; grid-template-columns: repeat(2, 1fr);
-      overflow: visible; padding-inline: 0; margin-inline: 0; gap: var(--s-5);
-    }
+    .tcard-rail { gap: var(--s-5); }
   }
-  /* PC 는 한 줄에 4개 — 최대 2줄(8개)까지만 보여준다(호출부에서 자른다) */
   /* PC 는 한 줄에 **3개** — 2줄(6개)까지만(2026-09-07 회장님: 4×2 는 조잡했다).
      ⚠ 개수는 호출부에서 자른다(components/portfolio-ui.tsx). */
   @media (min-width: 1100px) {
-    .tcard-rail { grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+    .tcard-rail { grid-template-columns: repeat(3, 1fr); }
   }
 
   /* 터치 목표 48×48 — 손가락으로 누르는 화면에서만.
