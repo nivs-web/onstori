@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className="h-full antialiased"
       {...themeAttrs(setting, "site")}
-      style={themeVars(setting) as React.CSSProperties}
+      style={themeVars(setting, "site") as React.CSSProperties}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

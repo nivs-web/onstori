@@ -242,6 +242,90 @@
   --accent-strong: var(--green-700);
   --tracking-kicker: var(--ls-eyebrow);
   --tracking-wide: 0.16em;
+
+  /* THEME-DEFAULTS:START — scripts/design-sync-css.ts 가 생성한다. 손으로 고치지 마라 */
+  /* 테마 엔진 기본값 = config/design.ts 의 기본/밝은/온스토리초록.
+     서버는 이 기본과 **다른 값만** 화면에 심는다(lib/design-tokens.ts).
+     78개. 값을 고치려면 config/design.ts 를 고치고 이 스크립트를 다시 돌린다. */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --w-title: 700;
+  --w-sub: 600;
+  --w-label: 500;
+  --ls-display: -.035em;
+  --ls-h1: -.032em;
+  --ls-h2: -.028em;
+  --ls-h3: -.024em;
+  --ls-body: -.015em;
+  --ls-eyebrow: .02em;
+  --lh-display: 1.32;
+  --lh-h1: 1.36;
+  --lh-h2: 1.4;
+  --t-display: clamp(2.25rem,1.55rem + 2.8vw,3.5rem);
+  --t-h1: clamp(1.75rem,1.3rem + 1.8vw,2.5rem);
+  --t-h2: clamp(1.375rem,1.15rem + .9vw,1.75rem);
+  --t-h3: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
+  --t-small: .9375rem;
+  --t-caption: .8125rem;
+  --s-2: 6px;
+  --s-3: 8px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 120px;
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-rv: 700ms;
+  --rv-y: 28px;
+  --ease: cubic-bezier(.25,.46,.45,.94);
+  --ease-hover: cubic-bezier(.25,.8,.25,1);
+  --ease-spring: cubic-bezier(.34,1.32,.64,1);
+  --hv-scale: 1.08;
+  --hv-lift: 8px;
+  --bw: 1px;
+  --canvas: #F2F6F4;
+  --surface: #FFFFFF;
+  --surface-2: #E9EFEC;
+  --surface-3: #E5EBE9;
+  --border: #E5EBE9;
+  --border-2: #C9D4D0;
+  --text: #50665E;
+  --text-2: #2E4038;
+  --text-3: #455A53;
+  --text-4: #5E7169;
+  --placeholder: #96A7A1;
+  --on-brand: #FFFFFF;
+  --shadow-1: 0 1px 2px rgba(26,39,34,.05),0 6px 20px rgba(26,39,34,.06);
+  --shadow-2: 0 20px 44px rgba(26,39,34,.14);
+  --hv-shadow: 0 16px 32px rgba(26,39,34,.12);
+  --brand-solid: var(--brand-7);
+  --brand-solid-h: var(--brand-5);
+  --on-solid: #FFFFFF;
+  --brand-ink: var(--brand-text);
+  --brand-tint: var(--brand-1);
+  --brand-tint-2: var(--brand-0);
+  --brand-tint-ink: var(--brand-8);
+  --brand-ring: var(--brand-1);
+  --text-strong: #1A2722;
+  --brand-0: hsl(148 30% 97%);
+  --brand-1: hsl(148 43% 92%);
+  --brand-2: hsl(148 56% 84%);
+  --brand-3: hsl(148 69% 72%);
+  --brand-4: hsl(148 82% 58%);
+  --brand-5: hsl(148 90% 31%);
+  --brand-6: hsl(148 96% 24%);
+  --brand-7: hsl(148 100% 18%);
+  --brand-8: hsl(148 100% 13%);
+  --brand-9: hsl(148 100% 9%);
+  --brand-text: hsl(148 100% 18%);
+  --brand-hex: #005B2A;
+  /* THEME-DEFAULTS:END */
 }
 
 /* 위 토큰을 Tailwind 색 이름으로 등록한다 — `bg-n-50` `text-green-700` `border-danger` 처럼

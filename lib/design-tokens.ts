@@ -127,12 +127,15 @@ export function brandRamp(hex: string): Record<string, string> {
 /* ─────────────────────────── 한 벌 만들기 ─────────────────────────── */
 
 /**
- * 화면 하나에 심을 CSS 값 한 벌.
+ * 한 설정이 만들어 내는 **값 78개 전부.**
  *
- * ★ 스타일 5벌을 CSS 파일에 다 싣지 않는다. **고른 한 벌만** 여기서 만들어
- *   서버가 인라인으로 심는다 — 스타일을 15개로 늘려도 손님이 받는 양은 그대로다.
+ * ★ 스타일 5벌을 CSS 파일에 다 싣지 않는다. **고른 한 벌만** 여기서 만든다 —
+ *   스타일을 15개로 늘려도 손님이 받는 양은 그대로다.
+ *
+ * ⚠ 화면에 심을 때는 이걸 그대로 쓰지 말고 `themeVars()` 를 써라. 기본값은 이미
+ *   globals.css 에 있어서 다시 보낼 필요가 없다.
  */
-export function themeVars(setting: DesignSetting): Record<string, string> {
+export function themeVarsFull(setting: DesignSetting): Record<string, string> {
   const style = (STYLE_TOKENS[setting.style] ? setting.style : "basic") as StyleId;
   const mode = (MODE_TOKENS[setting.mode] ? setting.mode : "light") as ModeId;
   return {
@@ -140,6 +143,25 @@ export function themeVars(setting: DesignSetting): Record<string, string> {
     ...MODE_TOKENS[mode],
     ...brandRamp(/^#[0-9a-fA-F]{6}$/.test(setting.color) ? setting.color : "#005B2A"),
   };
+}
+
+/**
+ * 화면에 실제로 심을 값 — **기본값과 다른 것만.**
+ *
+ * ★ 왜 이렇게 하나: 기본 설정인데도 78개를 페이지마다 다시 보내면 첫 페이지가
+ *   **1,292 B** 무거워진다(2026-09-08 프로덕션 실측). 기본값은 globals.css 에 한 번
+ *   들어 있고 CSS 는 캐시되므로, 페이지는 **바뀐 것만** 나른다.
+ *   기본 그대로면 **0 바이트**다.
+ *
+ * ⚠ 이게 성립하려면 globals.css 의 기본값 블록이 `config/design.ts` 와 같아야 한다.
+ *   `scripts/design-sync-css.ts --check` 가 어긋남을 잡는다. 빌드 전에 돌린다.
+ */
+export function themeVars(setting: DesignSetting, target: DesignTarget = "site"): Record<string, string> {
+  const base = themeVarsFull(DEFAULTS[target]);
+  const now = themeVarsFull(setting);
+  const out: Record<string, string> = {};
+  for (const k of Object.keys(now)) if (now[k] !== base[k]) out[k] = now[k];
+  return out;
 }
 
 /** `<html>`·래퍼에 붙일 `data-*` 속성. 서체는 손님 사이트에서만 붙는다 */
