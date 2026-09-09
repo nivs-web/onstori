@@ -1,7 +1,8 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { AdminLogin } from "./ui";
 import { AdminSidebar } from "@/components/admin/sidebar";
-import { defaultSetting, themeAttrs, themeVars } from "@/lib/design-tokens";
+import { themeAttrs, themeVars } from "@/lib/design-tokens";
+import { readDesignAll } from "@/lib/design-settings";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -29,13 +30,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
        CSS 값만 아래로 흘려보낸다.
      ★ 표시를 `<html>` 이 아니라 여기 붙이는 이유: 어드민 안에 손님 사이트 미리보기를
        띄우는 자리가 있는데, html 에 붙이면 그 미리보기까지 어두워진다.
-     ⚠ 값은 아직 `DEFAULTS.admin` 고정이다 — 대표님이 고른 값을 DB 에서 읽는 것은 다음 단계다. */
-  const setting = defaultSetting("admin");
+     ⚠ 로그인 화면에는 테마를 씌우지 않는다 — `isAdmin()` 검사보다 뒤에 있다. */
+  const all = await readDesignAll();
+  /* ★ 바깥(`<html>`)이 무엇을 쓰는지 **알려 준다.** 안 알려 주면 어드민이 「기본과 같다」며
+     아무것도 안 심고 홈 설정에 끌려간다(2026-09-09 조사가 잡아낸 결함). */
+  const setting = all.admin;
   return (
     <div
       data-admin-root
       {...themeAttrs(setting, "admin")}
-      style={{ display: "contents", ...themeVars(setting, "admin") } as React.CSSProperties}
+      style={{ display: "contents", ...themeVars(setting, all.site) } as React.CSSProperties}
     >
       <AdminSidebar />
       <div className="admin-shell">{children}</div>

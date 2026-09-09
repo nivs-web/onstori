@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { defaultSetting, themeAttrs, themeVars } from "@/lib/design-tokens";
+import { themeAttrs, themeVars } from "@/lib/design-tokens";
+import { readDesign } from "@/lib/design-settings";
 
 /* ★ 2026-09-07 — 제목용 명조(Noto Serif KR)를 완전히 폐기했다.
    화면당 서른 글자 남짓 쓰자고 한글 세리프 405KB 를 받고 있었다(Lighthouse 실측).
@@ -33,17 +34,21 @@ export const metadata: Metadata = {
  * ⚠ **여기서 `cookies()`·`headers()` 를 부르면 안 된다.** 부르는 순간 `/` 와 `/{slug}` 가
  *   전부 동적으로 떨어져 TTFB 0.06초를 잃는다(2026-09-08 기준값 측정).
  *
- * ⚠ 지금은 `DEFAULTS.site`(기본/밝은/온스토리초록) 고정이다 — 그래서 화면이 지금과 똑같다.
- *   운영자가 고른 값을 DB 에서 읽어 오는 것은 S2 다.
+ * ⚠ **DB 읽기는 위 금지에 걸리지 않는다.** 정적 렌더를 깨는 것은 `cookies()`·`headers()` 같은
+ *   동적 API 와 `cache:"no-store"` 를 명시한 fetch 뿐이다. Supabase 클라이언트는 둘 다 아니다
+ *   (2026-09-09 Next 16.1.6 소스 확인). 빌드·재생성 시점에 한 번 읽어 화면에 구워진다.
+ * ⚠ `readDesign` 은 **절대 던지지 않는다.** 표가 없거나 DB 가 죽어도 기본값으로 떨어진다 —
+ *   여기서 던지면 사이트 전체가 500 이다.
  */
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  const setting = defaultSetting("site");
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const setting = await readDesign("site");
   return (
     <html
       lang="ko"
       className="h-full antialiased"
       {...themeAttrs(setting, "site")}
-      style={themeVars(setting, "site") as React.CSSProperties}
+      /* 루트는 기준선이다 — globals.css 의 기본값과 다른 것만 심는다(기본이면 0바이트) */
+      style={themeVars(setting) as React.CSSProperties}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

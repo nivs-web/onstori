@@ -156,15 +156,22 @@ export function themeVarsFull(setting: DesignSetting): Record<string, string> {
  * ⚠ 이게 성립하려면 globals.css 의 기본값 블록이 `config/design.ts` 와 같아야 한다.
  *   `scripts/design-sync-css.ts --check` 가 어긋남을 잡는다. 빌드 전에 돌린다.
  */
-export function themeVars(setting: DesignSetting, target: DesignTarget = "site"): Record<string, string> {
+export function themeVars(setting: DesignSetting, parent: DesignSetting = DEFAULTS.site): Record<string, string> {
   /* ⚠ 밝은/어두운 값(MODE_TOKENS)은 여기서 빼야 한다. 그건 globals.css 에
-     `[data-mode="dark"]` 로 한 벌 들어 있고, 화면은 **표시만** 바꾼다.
-     여기서 또 심으면 인라인이 CSS 를 이겨서 **표시를 바꿔도 색이 안 바뀐다.** */
+     `[data-mode="light"]` · `[data-mode="dark"]` 로 한 벌씩 들어 있고, 화면은 **표시만** 바꾼다.
+     여기서 또 심으면 인라인이 CSS 를 이겨서 **표시를 바꿔도 색이 안 바뀐다.**
+
+     ★ `parent` 는 **이 상자를 감싼 바깥 화면이 실제로 쓰고 있는 설정**이다.
+       바깥과 같은 값은 보낼 필요가 없다 — 물려받으면 되니까.
+     ⚠ 예전에는 여기에 `DEFAULTS[target]` 을 썼다. 그건 **틀렸다.**
+       바깥(`<html>`)이 기본이 아닌 값을 쓰고 있으면, 안쪽이 「기본과 같다」며 아무것도 안 보내고
+       **바깥 값에 끌려간다.** 홈을 조용한 분위기로 바꾸면 어드민까지 조용해졌다
+       (2026-09-09 조사가 잡아냈다). 바깥이 무엇을 쓰는지 **불러 주는 쪽이 알려 줘야** 한다. */
   const pick = (s: DesignSetting) => {
     const style = (STYLE_TOKENS[s.style] ? s.style : "basic") as StyleId;
     return { ...STYLE_TOKENS[style], ...brandRamp(/^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : "#005B2A") };
   };
-  const base = pick(DEFAULTS[target]);
+  const base = pick(parent);
   const now = pick(setting);
   const out: Record<string, string> = {};
   for (const k of Object.keys(now)) if (now[k] !== base[k]) out[k] = now[k];

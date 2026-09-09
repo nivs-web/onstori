@@ -29,6 +29,7 @@ function render(): string {
   const vars = themeVarsFull(DEFAULTS.site);
   const light = Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`);
   const dark = Object.entries(MODE_TOKENS.dark).map(([k, v]) => `  ${k}: ${v};`);
+  const lightMode = Object.entries(MODE_TOKENS.light).map(([k, v]) => `  ${k}: ${v};`);
   return [
     START,
     "/* 테마 엔진 기본값 = config/design.ts 의 기본 · 밝은 · 온스토리초록.",
@@ -38,11 +39,19 @@ function render(): string {
     ...light,
     "}",
     "",
-    "/* 어두운 값 — CSS 에 한 벌 둔다. 화면은 표시(data-mode)만 바꾸면 된다.",
+    "/* 밝은/어두운 값 — CSS 에 한 벌씩 둔다. 화면은 표시(data-mode)만 바꾸면 된다.",
     "   ★ 그래서 어두운 화면도 서버가 나르는 양이 0 이다.",
     "   ★ 이 표시는 `<html>` 에도, 화면 일부를 감싼 상자에도 붙일 수 있다.",
     "     어드민은 **상자에** 붙인다 — 안에 띄우는 손님 미리보기까지 어두워지면 안 되기 때문이다.",
-    `   ${dark.length}개. MODE_TOKENS.dark 에서 생성한다. */`,
+    "",
+    '   ⚠ `[data-mode="light"]` 를 **반드시 같이 둬야 한다.** 없으면 바깥이 어두울 때',
+    "     안쪽 상자를 밝게 해도 **되돌아오지 않는다** — 어두운 값이 그대로 물려 내려온다.",
+    "     (홈을 어둡게 하고 어드민만 밝게 하는 조합에서 2026-09-09 조사가 잡아냈다.)",
+    `   각 ${dark.length}개. MODE_TOKENS 에서 생성한다. */`,
+    '[data-mode="light"] {',
+    ...lightMode,
+    "}",
+    "",
     '[data-mode="dark"] {',
     ...dark,
     "}",

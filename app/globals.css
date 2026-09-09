@@ -331,11 +331,42 @@
   --brand-hex: #005B2A;
 }
 
-/* 어두운 값 — CSS 에 한 벌 둔다. 화면은 표시(data-mode)만 바꾸면 된다.
+/* 밝은/어두운 값 — CSS 에 한 벌씩 둔다. 화면은 표시(data-mode)만 바꾸면 된다.
    ★ 그래서 어두운 화면도 서버가 나르는 양이 0 이다.
    ★ 이 표시는 `<html>` 에도, 화면 일부를 감싼 상자에도 붙일 수 있다.
      어드민은 **상자에** 붙인다 — 안에 띄우는 손님 미리보기까지 어두워지면 안 되기 때문이다.
-   24개. MODE_TOKENS.dark 에서 생성한다. */
+
+   ⚠ `[data-mode="light"]` 를 **반드시 같이 둬야 한다.** 없으면 바깥이 어두울 때
+     안쪽 상자를 밝게 해도 **되돌아오지 않는다** — 어두운 값이 그대로 물려 내려온다.
+     (홈을 어둡게 하고 어드민만 밝게 하는 조합에서 2026-09-09 조사가 잡아냈다.)
+   각 24개. MODE_TOKENS 에서 생성한다. */
+[data-mode="light"] {
+  --canvas: #F2F6F4;
+  --surface: #FFFFFF;
+  --surface-2: #E9EFEC;
+  --surface-3: #E5EBE9;
+  --border: #E5EBE9;
+  --border-2: #C9D4D0;
+  --text: #50665E;
+  --text-2: #2E4038;
+  --text-3: #455A53;
+  --text-4: #5E7169;
+  --placeholder: #96A7A1;
+  --on-brand: #FFFFFF;
+  --shadow-1: 0 1px 2px rgba(26,39,34,.05),0 6px 20px rgba(26,39,34,.06);
+  --shadow-2: 0 20px 44px rgba(26,39,34,.14);
+  --hv-shadow: 0 16px 32px rgba(26,39,34,.12);
+  --brand-solid: var(--brand-7);
+  --brand-solid-h: var(--brand-5);
+  --on-solid: #FFFFFF;
+  --brand-ink: var(--brand-text);
+  --brand-tint: var(--brand-1);
+  --brand-tint-2: var(--brand-0);
+  --brand-tint-ink: var(--brand-8);
+  --brand-ring: var(--brand-1);
+  --text-strong: #1A2722;
+}
+
 [data-mode="dark"] {
   --canvas: #101815;
   --surface: #18211E;

@@ -57,7 +57,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
   {
     group: "설정",
     items: [
-      { href: "/admin/settings/brand", label: "로고·테마", desc: "본사 브랜드 자산", ready: false },
+      { href: "/admin/settings/brand", label: "디자인 설정", desc: "화면별 분위기·색·밝기 (온스토리 홈 · 운영자 콘솔 · 사장님 편집화면)", ready: true },
       { href: "/admin/settings", label: "예약 슬러그·운영자", desc: "쓸 수 없는 주소 · 운영자 목록", ready: false },
     ],
   },
