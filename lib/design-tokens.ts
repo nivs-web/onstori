@@ -157,8 +157,15 @@ export function themeVarsFull(setting: DesignSetting): Record<string, string> {
  *   `scripts/design-sync-css.ts --check` 가 어긋남을 잡는다. 빌드 전에 돌린다.
  */
 export function themeVars(setting: DesignSetting, target: DesignTarget = "site"): Record<string, string> {
-  const base = themeVarsFull(DEFAULTS[target]);
-  const now = themeVarsFull(setting);
+  /* ⚠ 밝은/어두운 값(MODE_TOKENS)은 여기서 빼야 한다. 그건 globals.css 에
+     `[data-mode="dark"]` 로 한 벌 들어 있고, 화면은 **표시만** 바꾼다.
+     여기서 또 심으면 인라인이 CSS 를 이겨서 **표시를 바꿔도 색이 안 바뀐다.** */
+  const pick = (s: DesignSetting) => {
+    const style = (STYLE_TOKENS[s.style] ? s.style : "basic") as StyleId;
+    return { ...STYLE_TOKENS[style], ...brandRamp(/^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : "#005B2A") };
+  };
+  const base = pick(DEFAULTS[target]);
+  const now = pick(setting);
   const out: Record<string, string> = {};
   for (const k of Object.keys(now)) if (now[k] !== base[k]) out[k] = now[k];
   return out;

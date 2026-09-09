@@ -243,10 +243,14 @@
   --tracking-kicker: var(--ls-eyebrow);
   --tracking-wide: 0.16em;
 
-  /* THEME-DEFAULTS:START — scripts/design-sync-css.ts 가 생성한다. 손으로 고치지 마라 */
-  /* 테마 엔진 기본값 = config/design.ts 의 기본/밝은/온스토리초록.
-     서버는 이 기본과 **다른 값만** 화면에 심는다(lib/design-tokens.ts).
-     78개. 값을 고치려면 config/design.ts 를 고치고 이 스크립트를 다시 돌린다. */
+
+}
+
+/* THEME-DEFAULTS:START — scripts/design-sync-css.ts 가 생성한다. 손으로 고치지 마라 */
+/* 테마 엔진 기본값 = config/design.ts 의 기본 · 밝은 · 온스토리초록.
+   서버는 이 기본과 **다른 값만** 화면에 심는다(lib/design-tokens.ts).
+   78개. 값을 고치려면 config/design.ts 를 고치고 이 스크립트를 다시 돌린다. */
+:root {
   --r-xs: 4px;
   --r-sm: 6px;
   --r-md: 10px;
@@ -325,8 +329,41 @@
   --brand-9: hsl(148 100% 9%);
   --brand-text: hsl(148 100% 18%);
   --brand-hex: #005B2A;
-  /* THEME-DEFAULTS:END */
 }
+
+/* 어두운 값 — CSS 에 한 벌 둔다. 화면은 표시(data-mode)만 바꾸면 된다.
+   ★ 그래서 어두운 화면도 서버가 나르는 양이 0 이다.
+   ★ 이 표시는 `<html>` 에도, 화면 일부를 감싼 상자에도 붙일 수 있다.
+     어드민은 **상자에** 붙인다 — 안에 띄우는 손님 미리보기까지 어두워지면 안 되기 때문이다.
+   24개. MODE_TOKENS.dark 에서 생성한다. */
+[data-mode="dark"] {
+  --canvas: #101815;
+  --surface: #18211E;
+  --surface-2: #212B27;
+  --surface-3: #2A3531;
+  --border: #2A3531;
+  --border-2: #3B4844;
+  --text: #E5EBE9;
+  --text-2: #D3DDD8;
+  --text-3: #A9B8B2;
+  --text-4: #8D9F98;
+  --placeholder: #6E837B;
+  --on-brand: #FFFFFF;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+  --shadow-2: 0 20px 44px rgba(0,0,0,.5);
+  --hv-shadow: 0 16px 32px rgba(0,0,0,.45);
+  --brand-solid: var(--brand-3);
+  --brand-solid-h: var(--brand-2);
+  --on-solid: var(--brand-9);
+  --brand-ink: var(--brand-3);
+  --brand-tint: var(--brand-9);
+  --brand-tint-2: var(--brand-9);
+  --brand-tint-ink: var(--brand-2);
+  --brand-ring: var(--brand-8);
+  --text-strong: #EDF3F0;
+}
+/* THEME-DEFAULTS:END */
+
 
 /* 위 토큰을 Tailwind 색 이름으로 등록한다 — `bg-n-50` `text-green-700` `border-danger` 처럼
    유틸리티로 쓸 수 있게 된다. `inline` 이라 Tailwind 는 값을 복사하지 않고 var() 를 그대로 내보낸다:
@@ -1128,25 +1165,29 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
    ⚠ 대비를 재고 넣었다 (어두운 카드 #16211D 기준):
      --text #E9EFEC 14:1 · --text-soft #C9D4D0 10:1 · 초록 #6FC4A2 8:1 · 빨강 #FF7A85 6:1
      ⚠ 밝은 화면용 --green-700(#005B2A)을 그대로 두면 2:1 도 안 나온다. 그래서 초록·빨강도 같이 올린다. */
-[data-admin-theme="dark"] .admin-shell,
-[data-admin-theme="dark"] .admin-side {
-  --n-0: #16211D;      /* 카드·입력칸 면 */
-  --n-50: #1E2C27;     /* 연회색 자리 = 살짝 밝은 면 */
-  --n-100: #263630;    /* 구분선 */
-  --n-200: #33473F;    /* 테두리 */
-  --n-300: #3F5A50;
-  --text-strong: #FFFFFF;
-  --text: #E9EFEC;
-  --text-soft: #C9D4D0;
-  --green-700: #6FC4A2;  /* 밝은 면의 브랜드 초록은 어두운 배경에서 안 읽힌다 */
-  --green-500: #8ED9BB;
+[data-mode="dark"] .admin-shell,
+[data-mode="dark"] .admin-side {
+  /* v5 원시 토큰 → v6 테마 토큰 다리. 어드민 컴포넌트 수백 곳이 아직 --n-* 를 쓴다.
+     ⚠ 하드코딩 hex 를 걷어냈다(2026-09-09) — 이제 config/design.ts 의 MODE_TOKENS.dark 한 곳만 고치면 된다. */
+  --n-0: var(--surface);        /* 카드·입력칸 면 */
+  --n-50: var(--surface-2);     /* 연회색 자리 = 살짝 밝은 면 */
+  --n-100: var(--surface-3);    /* 구분선 */
+  --n-200: var(--border);       /* 테두리 */
+  --n-300: var(--border-2);
+  --green-700: var(--brand-ink); /* 밝은 면의 브랜드 초록은 어두운 배경에서 안 읽힌다 */
+  --green-500: var(--brand-2);
   --danger: #FF7A85;
   color: var(--text);
 }
-[data-admin-theme="dark"] .admin-shell { background: #131C19; min-height: 100vh; }
-[data-admin-theme="dark"] .admin-side { background: #16211D; border-color: #263630; }
+[data-mode="dark"] .admin-shell { background: var(--canvas); min-height: 100vh; }
+[data-mode="dark"] .admin-side { background: var(--surface); border-color: var(--border); }
+
+/* 로고 갈아 끼우기 — 자바스크립트 없이 CSS 로만. 두 장을 겹쳐 두고 하나만 보인다.
+   ⚠ 스크립트로 src 를 바꾸면 화면이 처음 뜰 때 **잘못된 색이 한 번 스쳐 간다.** */
+[data-mode="dark"] .logo-light { display: none !important; }
+[data-mode="dark"] .logo-dark { display: block !important; }
 /* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
-[data-admin-theme="dark"] .admin-shell .btn-primary { color: #10201A; }
+[data-mode="dark"] .admin-shell .btn-primary { color: var(--on-solid); }
 
 /* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
    그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
@@ -1155,13 +1196,13 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
      (app/admin/bank/fast-review.tsx)이 `bg-n-900/95` + 흰 글자로 **일부러 어두운**
      전체화면이라, 뒤집는 순간 흰 배경에 흰 글자가 된다.
    → 원시 토큰은 그대로 두고 **글자로 쓰는 자리만** 의미 토큰으로 돌린다. */
-[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
-[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
+[data-mode="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
+[data-mode="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
   color: var(--text-strong);
 }
 
 /* 보조 버튼도 --n-900 을 글자로 쓴다(.btn-secondary/.btn-ghost). 어두운 면에 맞춰 밝게 */
-[data-admin-theme="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
+[data-mode="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
   color: var(--text-strong);
 }
 

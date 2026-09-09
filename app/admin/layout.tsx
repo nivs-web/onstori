@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { AdminLogin } from "./ui";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { defaultSetting, themeAttrs, themeVars } from "@/lib/design-tokens";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -23,10 +24,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // 로그인 화면에는 메뉴를 씌우지 않는다 — 아직 아무 데도 갈 수 없는 사람이다
   if (!(await isAdmin())) return <AdminLogin />;
 
+  /* 테마 엔진 — 운영자 콘솔의 밝은/어두운·분위기·색 (2026-09-09, S2).
+     ★ `display: contents` 라 이 상자는 **자리를 차지하지 않는다.** 배치는 그대로 두고
+       CSS 값만 아래로 흘려보낸다.
+     ★ 표시를 `<html>` 이 아니라 여기 붙이는 이유: 어드민 안에 손님 사이트 미리보기를
+       띄우는 자리가 있는데, html 에 붙이면 그 미리보기까지 어두워진다.
+     ⚠ 값은 아직 `DEFAULTS.admin` 고정이다 — 대표님이 고른 값을 DB 에서 읽는 것은 다음 단계다. */
+  const setting = defaultSetting("admin");
   return (
-    <>
+    <div
+      data-admin-root
+      {...themeAttrs(setting, "admin")}
+      style={{ display: "contents", ...themeVars(setting, "admin") } as React.CSSProperties}
+    >
       <AdminSidebar />
       <div className="admin-shell">{children}</div>
-    </>
+    </div>
   );
 }

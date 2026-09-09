@@ -23,17 +23,24 @@ export function AdminThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(KEY) === "dark") setDark(true);
-    } catch { /* 사생활 보호 모드 등 — 기본(밝게)으로 둔다 */ }
+    /* 서버가 준 값이 먼저다. 사람이 이 브라우저에서 따로 바꿨으면 그게 이긴다. */
+    const el = document.querySelector<HTMLElement>("[data-admin-root]");
+    const fromServer = el?.dataset.mode === "dark";
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(KEY); } catch { /* 사생활 보호 모드 등 */ }
+    setDark(saved ? saved === "dark" : fromServer);
   }, []);
 
   useEffect(() => {
-    const el = document.documentElement;
-    if (dark) el.dataset.adminTheme = "dark";
-    else delete el.dataset.adminTheme;
+    /* 2026-09-09 — `html[data-admin-theme]` 에서 **어드민 상자의 `data-mode`** 로 옮겼다.
+       어두운 값이 이제 globals.css 에 `[data-mode="dark"]` 로 한 벌 들어 있어서,
+       표시만 바꾸면 색이 따라온다. 서버가 처음부터 어둡게 주면 깜빡임도 없다.
+       ⚠ 이 토글은 아직 **이 브라우저에서만** 바뀐다. 대표님이 정한 값을 모두에게
+         적용하는 것은 `/admin/settings/brand` 의 「디자인 설정」이다. */
+    const el = document.querySelector<HTMLElement>("[data-admin-root]");
+    if (!el) return;
+    el.dataset.mode = dark ? "dark" : "light";
     try { localStorage.setItem(KEY, dark ? "dark" : "light"); } catch { /* 무시 */ }
-    return () => { delete el.dataset.adminTheme; };
   }, [dark]);
 
   return (

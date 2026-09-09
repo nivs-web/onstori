@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/site/logo";
 import { ADMIN_GROUPS, ADMIN_DOCS, currentMenu, type AdminMenu } from "@/config/admin-menu";
 import { AdminThemeToggle } from "./theme-toggle";
 
@@ -133,12 +134,18 @@ export function AdminSidebar() {
         <div style={{ padding: "0 12px", marginBottom: "var(--s-4)" }}>
           <AdminThemeToggle />
         </div>
+        {/* 로고 — 2026-09-09 대표님 지시로 글자에서 **그림 로고**로 바꿨다.
+            어두운 화면에서는 **순백**이다(크림은 어두운 회녹색 위에서 누렇게 뜬다).
+            ⚠ 두 장을 겹쳐 두고 CSS 로 하나만 보인다 — 자바스크립트로 갈아 끼우면
+              화면이 처음 뜰 때 잘못된 색이 한 번 스쳐 간다. */}
         <Link
           href="/admin"
+          aria-label="운영자 콘솔 첫 화면"
           style={{ display: "block", padding: "0 12px", marginBottom: "var(--s-6)", fontWeight: "var(--w-bold)", color: "var(--text-strong)" }}
         >
-          <span style={{ fontSize: "var(--t-caption)", letterSpacing: "var(--tracking-kicker)", color: "var(--green-700)", display: "block" }}>ONSTORI</span>
-          운영자 콘솔
+          <span className="logo-light" style={{ display: "block" }}><Logo height={22} priority={false} /></span>
+          <span className="logo-dark" style={{ display: "none" }}><Logo variant="white" height={22} priority={false} /></span>
+          <span style={{ fontSize: "var(--t-caption)", color: "var(--text-soft)", display: "block", marginTop: "var(--s-1)" }}>운영자 콘솔</span>
         </Link>
         <Nav pathname={pathname} />
       </aside>

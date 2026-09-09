@@ -13,8 +13,20 @@ import Image from "next/image";
  */
 const RATIO = 600 / 103;
 
-export function Logo({ variant = "dark", height = 26, priority = true }: { variant?: "dark" | "cream"; height?: number; priority?: boolean }) {
-  const src = variant === "cream" ? "/brand/onstori-logo-cream-160.png" : "/brand/onstori-logo-160.png";
+/**
+ * `variant`
+ *  · `dark`  — 초록 로고. 밝은 면에 쓴다(기본)
+ *  · `cream` — 크림색. **손님 사이트의 어두운 띠 전용.** 따뜻한 면에 어울리게 만든 것이다
+ *  · `white` — 순백. **운영자 콘솔·편집화면의 어두운 화면 전용**(2026-09-09)
+ *
+ * ⚠ 어두운 회녹색 면(어드민 #18211E)에는 크림을 쓰지 마라 — **누렇게 뜬다.**
+ *   그 자리는 `white` 다. 두 파일을 합치지 않는 이유가 이것이다.
+ */
+export function Logo({ variant = "dark", height = 26, priority = true }: { variant?: "dark" | "cream" | "white"; height?: number; priority?: boolean }) {
+  const src =
+    variant === "cream" ? "/brand/onstori-logo-cream-160.png"
+    : variant === "white" ? "/brand/onstori-logo-white-160.png"
+    : "/brand/onstori-logo-160.png";
   const width = Math.round(height * RATIO);
   return (
     <Image
