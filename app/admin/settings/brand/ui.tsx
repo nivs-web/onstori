@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { COLORS, MODES, STYLES, TARGETS, colorName, type DesignSetting } from "@/config/design";
 import { themeAttrs, themeVarsFull } from "@/lib/design-tokens";
+import { clearOverride, DESIGN_APPLIED } from "@/lib/admin-theme";
 import { DesignPreview } from "./preview";
 
 /**
@@ -62,6 +63,19 @@ export function DesignSettingsUi({ initial }: { initial: All }) {
       setMsg("적용했습니다");
       /* ★ 루트 레이아웃은 화면 이동만으로 다시 그려지지 않는다.
          이게 없으면 **대표님 화면만** 옛 색으로 남는다. */
+
+      /* ★ 새 설정이 **밝기 토글의 임시값을 이긴다** (2026-09-09 회장님).
+         이 브라우저는 지금 바로 지우고, 표시(data-mode)도 새 설정으로 되돌린다.
+         ⚠ 다른 브라우저의 임시값은 서버가 못 지운다 — 대신 저장된 지문(rev)이
+           안 맞아 다음에 열 때 스스로 버려진다(lib/admin-theme.ts).
+         ⚠ 토글 버튼은 계속 떠 있으므로, 버튼 글자도 같이 되돌리라고 알린다. */
+      if (tab === "admin") {
+        clearOverride();
+        const el = document.querySelector<HTMLElement>("[data-admin-root]");
+        if (el) el.dataset.mode = cur.mode;
+        window.dispatchEvent(new Event(DESIGN_APPLIED));
+      }
+
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

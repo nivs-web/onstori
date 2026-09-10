@@ -2,6 +2,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { AdminLogin } from "./ui";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { themeAttrs, themeVars } from "@/lib/design-tokens";
+import { designRev } from "@/lib/admin-theme";
 import { readDesignAll } from "@/lib/design-settings";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -38,6 +39,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div
       data-admin-root
+      /* ★ 설정 지문 — 밝기 토글이 남긴 **임시값을 무효로 만드는 열쇠**다(2026-09-09 회장님).
+         설정이 바뀌면 이 값이 달라지고, 지문이 안 맞는 임시값은 브라우저가 스스로 버린다.
+         남의 브라우저 localStorage 는 서버가 지울 수 없어서 이렇게 한다. */
+      data-design-rev={designRev(setting)}
       {...themeAttrs(setting, "admin")}
       style={{ display: "contents", ...themeVars(setting, all.site) } as React.CSSProperties}
     >
