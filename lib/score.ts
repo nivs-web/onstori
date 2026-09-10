@@ -26,7 +26,10 @@ const CHECKS: Record<string, (c: Ctx) => boolean> = {
   contact: (c) => isValidPhone(typeof c.settings.phone === "string" ? c.settings.phone : ""),
   story_1: (c) => c.storyCount >= 1,
   cta_form: (c) => !!c.doc?.sections.some((s) => s.type === "quoteForm"),
-  logo: () => false,     // P6 브랜드키트에서 활성
+  /* ★ 2026-09-10 — 켰다. 값은 **이미 쌓이고 있었다**(온보딩 3단계 → /api/site/logo → settings.logo).
+     판정만 `false` 로 못 박혀 있어서, 로고를 넣은 사장님이 5점을 손해 보고
+     만점도 사실상 95점이었다 — 화면이 「100점 만점」이라고 말하는데 거짓이었다. */
+  logo: (c) => typeof c.settings.logo === "string" && (c.settings.logo as string).length > 0,
   published: (c) => c.publishedAt,
   // c.doc 은 zod 검증 없이 캐스팅한 draft 라 ?. 가 필수다. 판정 대상이 draft 이므로 저장 즉시 오른다(발행 전)
   widget_1: (c) => (c.doc?.widgets?.length ?? 0) > 0,

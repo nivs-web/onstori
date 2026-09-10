@@ -33,6 +33,7 @@ export const ANCHOR_MENU: Record<string, EditorMenuId> = {
   "sec-form": "home",
   "set-contact": "home",
   "set-hours": "home",
+  "panel-brand": "design",
   "panel-widgets": "link",
   "panel-inbox": "inbox",
   "story-new": "story",

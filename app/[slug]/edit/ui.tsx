@@ -409,7 +409,9 @@ export function EditUi({ slug }: { slug: string }) {
 
       {/* 점수 올리기 힌트 — ⚠ logo(panel-brand)는 P6 라 갈 곳이 없다. 이 제외를 빼면 먹통 힌트가 된다 */}
       <section className="rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
-        {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo"].includes(r.id)).slice(0, 3).map((r) => (
+        {/* ★ 2026-09-10 — `logo` 제외를 뗐다. 전에는 앵커(panel-brand)가 화면에 없어서
+            누르면 먹통이라 숨겨 뒀다. 이제 「디자인」 메뉴에 로고 칸이 실재한다. */}
+        {RULES.filter((r) => !data.rulesDone.includes(r.id)).slice(0, 3).map((r) => (
           <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
             className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">
             ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
@@ -523,7 +525,18 @@ export function EditUi({ slug }: { slug: string }) {
         <ContentTab doc={doc} slug={slug} patchSection={patchSection} setDoc={(d) => { setDoc(d); setDirty(true); }}
           notify={notify} setNotify={(n) => { setNotify(n); setDirty(true); }} channels={inbox?.channels ?? null} />
       ) : menu === "design" ? (
-        <DesignPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} />
+        <DesignPanel
+          doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }}
+          slug={slug}
+          logo={typeof data.settings?.logo === "string" ? data.settings.logo : ""}
+          onLogo={(url, score, rulesDone) =>
+            setData((prev) => prev && {
+              ...prev,
+              settings: { ...prev.settings, logo: url },
+              score: score ?? prev.score,
+              rulesDone: rulesDone ?? prev.rulesDone,
+            })}
+        />
       ) : menu === "story" ? (
         <div className="space-y-4">
           {/* 60초 녹화 링크 — 문자로 받기 / 지금 열기 (이야기 엔진 1차, 기획1 #rec) */}
@@ -551,8 +564,16 @@ function sectionLabel(type: string): string {
  * 「디자인」 메뉴 — 지금은 분위기 넷뿐이다(내용 수정 탭에서 옮겨 왔다).
  * ⚠ S3 에서 **분위기 카드 40장**으로 바뀐다. 색·글씨체도 그때 여기 들어온다.
  */
-function DesignPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteDocT) => void }) {
+function DesignPanel({ doc, setDoc, slug, logo, onLogo }: {
+  doc: SiteDocT; setDoc: (d: SiteDocT) => void;
+  slug: string;
+  /** 지금 저장된 로고 주소. 빈 문자열이면 아직 없다 */
+  logo: string;
+  onLogo: (url: string, score?: number, rulesDone?: string[]) => void;
+}) {
   return (
+    <div className="space-y-6">
+    <LogoBox slug={slug} logo={logo} onLogo={onLogo} />
     <section className="rounded-2xl border border-n-200 p-4">
       <h2 className="t-small font-bold">분위기</h2>
       <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">고르면 홈페이지 색과 느낌이 바뀌어요. 오른쪽 미리보기에서 바로 확인하세요.</p>
@@ -564,6 +585,61 @@ function DesignPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteDocT) => 
           </button>
         ))}
       </div>
+    </section>
+    </div>
+  );
+}
+
+/**
+ * 로고 칸 — 「디자인」 메뉴 (2026-09-10).
+ *
+ * ★ 왜 지금 만들었나: 완성도 규칙 `logo`(5점)의 판정을 켰는데(lib/score.ts),
+ *   **사장님이 편집화면에서 로고를 넣을 자리가 없으면** 그 5점은 온보딩 때
+ *   넣은 사람만 받는 «닫힌 점수»가 된다. 그러면 만점 100점이 또 거짓말이 된다.
+ *
+ * ★ 앵커 `panel-brand` 가 여기 산다. 전에는 FUTURE_ANCHORS(P6)였고 화면에 없어서
+ *   힌트가 먹통이었다 — 그래서 힌트 목록에서 아예 빼 두고 있었다.
+ *
+ * ⚠ 로고는 `draft` 가 아니라 `sites.settings.logo` 에 산다(섹션 스키마를 안 건드린다).
+ *   그래서 자동저장이 아니라 **올리는 즉시** 서버가 저장하고 점수를 다시 계산한다.
+ */
+function LogoBox({ slug, logo, onLogo }: {
+  slug: string; logo: string;
+  onLogo: (url: string, score?: number, rulesDone?: string[]) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function upload(file: File) {
+    setBusy(true); setErr("");
+    const fd = new FormData();
+    fd.set("slug", slug); fd.set("anonId", anon()); fd.set("file", file);
+    const r = await fetch("/api/site/logo", { method: "POST", body: fd });
+    const d = (await r.json().catch(() => ({}))) as { url?: string; score?: number; rulesDone?: string[]; error?: string };
+    setBusy(false);
+    // ⚠ 조용히 실패하지 않는다 — 올렸는데 아무 일도 안 일어나면 파일이 나쁜 건지 우리가 나쁜 건지 모른다
+    if (!r.ok || !d.url) { setErr(d.error ?? "로고를 올리지 못했어요. 잠시 후 다시 시도해 주세요."); return; }
+    onLogo(d.url, d.score, d.rulesDone);
+  }
+
+  return (
+    <section data-tour="panel-brand" className="space-y-3 rounded-2xl border border-n-200 p-4">
+      <h2 className="t-small font-bold">로고 <span className="font-normal text-[var(--text-soft)]">(+5점)</span></h2>
+      <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+        가게 로고가 있으면 홈페이지·명함·도장까지 같은 얼굴로 이어져요. PNG·JPG·SVG, 2MB 까지.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        {logo && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={logo} alt="지금 로고" className="h-16 w-16 rounded-lg border border-n-200 bg-n-0 object-contain p-1" />
+        )}
+        <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
+          {busy ? "올리는 중…" : logo ? "로고 교체" : "로고 올리기"}
+          <input type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" disabled={busy}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} />
+        </label>
+      </div>
+      {err && <p className="t-caption text-danger">{err}</p>}
     </section>
   );
 }

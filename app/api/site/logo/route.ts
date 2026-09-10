@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
+import { recomputeScore } from "@/lib/score";
 
 export const maxDuration = 30;
 
@@ -48,7 +49,10 @@ export async function POST(req: Request) {
     const url = storage.publicUrl(key);
     const settings = { ...(r.site.settings as Record<string, unknown>), logo: url };
     await sbAdmin().from("sites").update({ settings }).eq("id", r.site.id);
-    return NextResponse.json({ url });
+    /* ★ 로고는 완성도 5점짜리 규칙(`logo`)의 판정 대상이다. 여기서 다시 계산하지 않으면
+       사장님이 로고를 넣어도 **다음 저장 때까지 점수가 안 오른다** — 「올렸는데 왜 그대로냐」가 된다. */
+    const progress = await recomputeScore(r.site.id);
+    return NextResponse.json({ url, score: progress?.score, rulesDone: progress?.done });
   } catch (e) {
     return NextResponse.json({ error: "로고 저장에 실패했어요", detail: String(e).slice(0, 120) }, { status: 500 });
   }

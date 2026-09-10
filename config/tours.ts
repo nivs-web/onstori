@@ -63,6 +63,8 @@ export const ACTIVE_ANCHORS = [
   ...new Set([
     ...TOURS.filter((t) => !t.pendingPhase).flatMap((t) => t.steps.map((s) => s.anchor)),
     "sec-hero", "panel-photos", "set-contact", "story-new", "sec-form", "btn-publish", "panel-widgets",
+    // 2026-09-10 — 로고 칸이 「디자인」 메뉴에 생겼다. FUTURE_ANCHORS 에서 옮겨 왔다
+    "panel-brand",
   ]),
 ];
 
@@ -81,7 +83,7 @@ export const CONDITIONAL_ANCHORS: { anchor: string; onlyOn: string[] }[] = [
  */
 export const FUTURE_ANCHORS: { anchor: string; phase: "P5" | "P6" | "P8" }[] = [
   { anchor: "btn-activate", phase: "P5" },  // 체험 활성화 버튼
-  { anchor: "panel-brand", phase: "P6" },   // 브랜드키트(로고) 패널
+  // panel-brand 는 2026-09-10 에 「디자인」 메뉴로 실현돼 ACTIVE_ANCHORS 로 옮겼다
 ];
 
 /** 하위 호환 — 기존 호출부가 있으면 계속 동작하게 (현재+미래 전체) */
