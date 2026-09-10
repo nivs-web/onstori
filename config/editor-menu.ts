@@ -42,7 +42,7 @@ export const EDITOR_MENUS: EditorMenu[] = [
   { id: "inbox",    label: "문의함",   desc: "손님이 남긴 문의를 봐요",            ready: true },
   // ── 아래는 아직 없는 화면 (S3~S5). 자리만 잡아 둔다 ──
   { id: "photo",    label: "사진",     desc: "사진을 모아서 관리해요",             ready: false },
-  { id: "video",    label: "영상",     desc: "녹화한 영상을 관리해요",             ready: false },
+  { id: "video",    label: "영상",     desc: "찍은 영상을 홈페이지에 걸어요",       ready: true },
   { id: "settings", label: "설정",     desc: "알림 받을 곳·계정",                  ready: false },
 ];
 

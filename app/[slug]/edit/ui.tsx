@@ -18,6 +18,7 @@ import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
+import { VideosPanel } from "./videos-panel";
 import { LogoutButton } from "@/app/my/ui";
 import { EditorShell } from "./shell";
 import { DEFAULT_EDITOR_MENU, isEditorMenu, type EditorMenuId } from "@/config/editor-menu";
@@ -543,6 +544,13 @@ export function EditUi({ slug }: { slug: string }) {
           <StoryLinkButton slug={slug} phone={String(data.settings?.phone ?? "")} />
           <StoryTab slug={slug} onDone={(score) => { setData((p) => p && { ...p, score, storyCount: p.storyCount + 1 }); flash("이야기가 올라갔어요! 바로 홈페이지에 보여요"); }} />
         </div>
+      ) : menu === "video" ? (
+        <VideosPanel
+          slug={slug} doc={doc}
+          phone={String(data.settings?.phone ?? "")}
+          onAttach={(section) => { setDoc(attachVideo(doc, section)); setDirty(true); flash("홈페이지에 걸었어요 — 손님에게 보이려면 [사이트 반영]을 눌러 주세요"); }}
+          onDetach={() => { setDoc({ ...doc, sections: doc.sections.filter((s) => s.type !== "video") }); setDirty(true); flash("홈페이지에서 내렸어요 (영상은 지워지지 않았어요)"); }}
+        />
       ) : menu === "link" ? (
         <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
       ) : inboxDone ? (
@@ -552,6 +560,17 @@ export function EditUi({ slug }: { slug: string }) {
       )}
     </EditorShell>
   );
+}
+
+/**
+ * 영상 섹션을 doc 에 끼운다 — **히어로 바로 다음** 자리다(회장님 지시).
+ * ⚠ 이미 걸린 영상이 있으면 **바꾼다**(V-1 은 한 편만). 두 개가 쌓이지 않게 먼저 걷어낸다.
+ */
+function attachVideo(doc: SiteDocT, section: SectionT): SiteDocT {
+  const rest = doc.sections.filter((s) => s.type !== "video");
+  const heroAt = rest.findIndex((s) => s.type === "hero");
+  const at = heroAt >= 0 ? heroAt + 1 : 0;
+  return { ...doc, sections: [...rest.slice(0, at), section, ...rest.slice(at)] };
 }
 
 /** 섹션 이름 — 목록은 lib/section-defaults.ts 하나에서 온다. hero 만 거기 없다(더할 수 없는 칸이라) */

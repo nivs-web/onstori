@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { sbAdmin } from "./db-admin";
 
@@ -127,6 +127,60 @@ export async function readHead(bucket: Bucket, key: string, bytes: number): Prom
 }
 
 /**
+ * 공개용 영상 키 — 표지와 같은 규칙으로 **영상 키에서 계산한다.**
+ *   `private/stories/{slug}/{uuid}.mp4`  →  `uploads/{slug}/video-{uuid}.mp4`
+ *
+ * ⚠ 접두사가 `uploads/` 인 이유: 키의 첫 segment 가 곧 Supabase 버킷명이고(위 split 주석),
+ *   실제로 만들어진 공개 버킷은 `uploads` 와 `bank` 둘뿐이다. `media/` 로 시작하는 키는
+ *   R2 가 없는 로컬·CI 에서 폴백이 깨진다.
+ */
+export function publicVideoKeyOf(videoKey: string): string | null {
+  const p = parseStoryKey(videoKey);
+  return p ? `uploads/${p.slug}/video-${p.uuid}.mp4` : null;
+}
+
+/**
+ * 비공개 → 공개 **버킷 안에서 복사한다.** 파일이 우리 서버를 통과하지 않는다.
+ *
+ * ★ 2026-09-10 실측: R2 는 CopyObject 를 지원하고, `MetadataDirective:"REPLACE"` 로
+ *   **1년 캐시를 새로 붙일 수 있다.** 그래서 「비공개 보관 → 걸 때 공개 복사」가 성립한다.
+ *   (브라우저가 쓰는 서명 PUT URL 에는 Cache-Control 을 못 넣는다 — 넣으면 403 이다.
+ *    처음부터 공개에 올리는 길을 못 쓰는 이유가 이것이다.)
+ *
+ * ⚠ R2 가 없으면(로컬·CI) 파일을 **읽어서 다시 쓴다.** 느리지만 그 환경엔 60초 영상이 없다.
+ */
+export async function copyToPublic(fromKey: string, toKey: string, contentType: string): Promise<void> {
+  const env = r2Env();
+  if (env) {
+    await client(env).send(
+      new CopyObjectCommand({
+        Bucket: env.media,
+        Key: toKey,
+        CopySource: `${env.private}/${fromKey}`,
+        ContentType: contentType,
+        CacheControl: IMMUTABLE,
+        MetadataDirective: "REPLACE",
+      })
+    );
+    return;
+  }
+  const { bucket, path } = split(fromKey);
+  const { data, error } = await sbAdmin().storage.from(bucket).download(path);
+  if (error || !data) throw new Error(error?.message ?? "원본을 읽지 못했다");
+  await put("media", toKey, Buffer.from(await data.arrayBuffer()), contentType);
+}
+
+/** `private/stories/{slug}/{uuid}.{ext}` 를 쪼갠다. 형식이 다르면 null */
+function parseStoryKey(videoKey: string): { slug: string; uuid: string } | null {
+  const part = videoKey.split("/");
+  if (part.length !== 4 || part[0] !== "private" || part[1] !== "stories") return null;
+  const slug = part[2];
+  const uuid = part[3].replace(/\.[a-z0-9]+$/i, "");
+  if (!/^[a-z0-9-]{2,30}$/.test(slug) || !/^[0-9a-f-]{36}$/i.test(uuid)) return null;
+  return { slug, uuid };
+}
+
+/**
  * 표지 사진 키 — **영상 키에서 계산한다.** DB 에 칸을 새로 만들지 않기 위해서다.
  *   `private/stories/{slug}/{uuid}.mp4`  →  `uploads/{slug}/poster-{uuid}.webp`
  *
@@ -136,13 +190,8 @@ export async function readHead(bucket: Bucket, key: string, bytes: number): Prom
  * ⚠ `uploads/` 는 **공개** 버킷이다(20260901100000_uploads_bucket.sql). 손님이 봐야 하므로 맞다.
  */
 export function posterKeyOf(videoKey: string): string | null {
-  // 슬래시가 많아 정규식이 읽기 어렵다 — 쪼개서 본다
-  const part = videoKey.split("/");
-  if (part.length !== 4 || part[0] !== "private" || part[1] !== "stories") return null;
-  const slug = part[2];
-  const uuid = part[3].replace(/\.[a-z0-9]+$/i, "");
-  if (!/^[a-z0-9-]{2,30}$/.test(slug) || !/^[0-9a-f-]{36}$/i.test(uuid)) return null;
-  return `uploads/${slug}/poster-${uuid}.webp`;
+  const p = parseStoryKey(videoKey);
+  return p ? `uploads/${p.slug}/poster-${p.uuid}.webp` : null;
 }
 
 /** 비공개 파일 열람용 서명 URL(기본 10분) */
