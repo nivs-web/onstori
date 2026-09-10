@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FastReview } from "./fast-review";
+import { adminError } from "@/lib/admin-error";
 
 export type BankRow = {
   id: string; industry: string; mood: string; role: string;
@@ -14,12 +15,16 @@ export type BankRow = {
   usedBy: { slug: string; businessName: string; role: string }[];
 };
 
-async function patch(id: string, p: Record<string, unknown>) {
+/**
+ * ★ 2026-09-10 — 전에는 `return r.ok` 로 **실패 이유를 버렸다.**
+ *   승인·거부·점수·태그·휴지통이 전부 조용히 실패했다. 이제 이유를 돌려준다.
+ */
+async function patch(id: string, p: Record<string, unknown>, what: string): Promise<string | null> {
   const r = await fetch("/api/admin/bank", {
     method: "PATCH", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, ...p }),
   });
-  return r.ok;
+  return r.ok ? null : await adminError(r, what);
 }
 
 /** 사용 중 배지 — 1곳이면 사이트명, 여러 곳이면 개수 */
@@ -43,11 +48,12 @@ function TagEditor({ id, initial }: { id: string; initial: string[] }) {
   const [tags, setTags] = useState<string[]>(initial);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   async function save(next: string[]) {
-    setBusy(true);
-    const ok = await patch(id, { tags: next });
-    if (ok) setTags(next);
+    setBusy(true); setErr("");
+    const e = await patch(id, { tags: next }, "태그 저장");
+    if (e) setErr(e); else setTags(next);
     setBusy(false);
   }
   function add() {
@@ -73,25 +79,34 @@ function TagEditor({ id, initial }: { id: string; initial: string[] }) {
         placeholder="태그 추가"
         className="w-20 rounded border border-n-200 px-1.5 py-0.5 t-caption outline-none focus:border-green-700"
       />
+      {err && <span className="w-full t-caption text-danger">{err}</span>}
     </div>
   );
 }
 
-function Card({ r, checked, onToggle, bulkApproved }: {
+function Card({ r, checked, onToggle, bulkApproved, pendingTab }: {
   r: BankRow; checked: boolean; onToggle: () => void; bulkApproved: boolean;
+  /** 「검수 대기」 탭인가 — 그 탭에서는 처리한 사진이 목록에서 빠져야 한다 */
+  pendingTab: boolean;
 }) {
   const [state, setState] = useState<{ ok: boolean | null; score: number; gone: boolean }>(
     { ok: r.quality_ok, score: r.quality_score, gone: false },
   );
   const [busy, setBusy] = useState(false);
+  /** ★ 실패를 말하는 자리. 없으면 눌러도 아무 일도 안 일어난 것처럼 보인다(2026-09-10) */
+  const [err, setErr] = useState("");
   // 일괄 승인은 부모가 알려준다 — 카드 내부 state는 개별 클릭만 반영하므로 표시에서 합친다
   const ok = bulkApproved ? true : state.ok;
   async function act(p: Record<string, unknown>) {
-    setBusy(true);
-    if (await patch(r.id, p)) setState((s) => ({ ...s, ...(p as Partial<typeof s>) }));
+    setBusy(true); setErr("");
+    const e = await patch(r.id, p, "저장");
+    if (e) setErr(e); else setState((s) => ({ ...s, ...(p as Partial<typeof s>) }));
     setBusy(false);
   }
-  if (state.gone) return null;
+  /* ★ 「검수 대기」 탭은 «아직 안 본 사진»만 모아 놓은 자리다. 처리한 사진이 그대로 남으면
+     몇 장이 남았는지 셀 수 없다. 다른 탭(전체·승인됨)에서는 그대로 둔다 — 거기서는
+     딱지만 바뀌는 게 맞다(2026-09-10 회장님 확인). */
+  if (state.gone || (pendingTab && ok !== null)) return null;
 
   return (
     <figure className={`overflow-hidden rounded-xl border ${checked ? "border-green-700 ring-1 ring-green-700" : "border-n-200"}`}>
@@ -133,9 +148,10 @@ function Card({ r, checked, onToggle, bulkApproved }: {
           {r.deleted ? (
             <button disabled={busy}
               onClick={async () => {
-                setBusy(true);
+                setBusy(true); setErr("");
                 // 복구 = 표시를 되돌리는 것뿐. 파일은 애초에 지운 적이 없다
-                if (await patch(r.id, { deleted: false })) setState((s) => ({ ...s, gone: true }));
+                const e = await patch(r.id, { deleted: false }, "복구");
+                if (e) setErr(e); else setState((s) => ({ ...s, gone: true }));
                 setBusy(false);
               }}
               className="rounded-full bg-green-700 px-2.5 py-1 font-semibold text-white">↩ 복구</button>
@@ -145,13 +161,16 @@ function Card({ r, checked, onToggle, bulkApproved }: {
                 // ★ 파일은 지우지 않는다. 목록에서만 내린다(휴지통) — 언제든 복구할 수 있다.
                 const reason = prompt("휴지통으로 내립니다. 파일은 지우지 않아 언제든 복구할 수 있어요. 사유(선택):", "");
                 if (reason === null) return;
-                setBusy(true);
-                if (await patch(r.id, { deleted: true, reason })) setState((s) => ({ ...s, gone: true }));
+                setBusy(true); setErr("");
+                const e = await patch(r.id, { deleted: true, reason }, "휴지통으로 내리기");
+                if (e) setErr(e); else setState((s) => ({ ...s, gone: true }));
                 setBusy(false);
               }}
               className="rounded-full border border-n-300 px-2.5 py-1 text-[var(--text-soft)]">🗑 휴지통</button>
           )}
         </div>
+
+        {err && <p className="rounded bg-danger-soft px-1.5 py-1 t-caption text-danger">{err}</p>}
 
         <TagEditor id={r.id} initial={r.tags ?? []} />
 
@@ -164,43 +183,57 @@ function Card({ r, checked, onToggle, bulkApproved }: {
   );
 }
 
-export function BankGrid({ rows }: { rows: BankRow[] }) {
+export function BankGrid({ rows, pendingTab = false }: { rows: BankRow[]; pendingTab?: boolean }) {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [fast, setFast] = useState(false);
+
+  /* ★ 성공 문구는 **스스로 사라진다.** 안 지우면 「선택 0장」 옆에 「120장 승인했어요」가
+     나란히 남아, 방금 한 일인지 아까 한 일인지 알 수 없다(2026-09-10 회장님).
+     ⚠ 실패 문구는 지우지 않는다 — 놓치면 안 되는 말이다. */
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(""), 6000);
+    return () => clearTimeout(t);
+  }, [msg]);
 
   const pendingIds = useMemo(() => rows.filter((r) => r.quality_ok === null).map((r) => r.id), [rows]);
   const allSelected = sel.size > 0 && sel.size === rows.length;
 
   function toggle(id: string) {
+    setMsg("");
     setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
   async function bulkApprove() {
     if (sel.size === 0) return;
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setErr("");
     const ids = [...sel];
     const r = await fetch("/api/admin/bank", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }),
     });
-    const d = await r.json().catch(() => ({}));
     setBusy(false);
-    if (!r.ok) { setMsg(`실패: ${d.error ?? r.status}`); return; }
+    /* ★ 0건도 여기로 온다(409) — 서버가 「처리된 사진이 없습니다」를 준다.
+       전에는 0건이 성공이라 「0장 승인했어요」가 떴다. */
+    if (!r.ok) { setErr(await adminError(r, "일괄 승인")); return; }
+    const d = (await r.json()) as { approved: number; trashed: number };
     setApproved((a) => new Set([...a, ...ids]));
     setSel(new Set());
-    setMsg(`${d.approved}장 승인했어요`);
+    /* 휴지통에 있어 빠진 장수는 «조용히» 빼면 안 된다 — 고른 수와 승인 수가 안 맞는 이유다 */
+    setMsg(`${d.approved}장 승인했어요` + (d.trashed ? ` · ${d.trashed}장은 휴지통에 있어 제외했습니다` : ""));
   }
 
   return (
     <>
       <div className="sticky top-0 z-10 -mx-2 mt-6 flex flex-wrap items-center gap-2 bg-n-0/95 px-2 py-2 backdrop-blur">
-        <button onClick={() => setSel(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
+        <button onClick={() => { setMsg(""); setSel(allSelected ? new Set() : new Set(rows.map((r) => r.id))); }}
           className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-medium">
           {allSelected ? "선택 해제" : "전체 선택"}
         </button>
-        <button onClick={() => setSel(new Set(pendingIds))} disabled={pendingIds.length === 0}
+        <button onClick={() => { setMsg(""); setSel(new Set(pendingIds)); }} disabled={pendingIds.length === 0}
           className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-medium disabled:opacity-40">
           검수 대기만 선택 ({pendingIds.length})
         </button>
@@ -214,6 +247,7 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
           {busy ? "승인 중…" : `선택 ${sel.size}장 일괄 승인`}
         </button>
         {msg && <span className="t-caption text-green-700">{msg}</span>}
+        {err && <span className="t-caption font-semibold text-danger">{err}</span>}
         <span className="ml-auto t-caption text-[var(--text-soft)]">거부·삭제는 오판 위험이 커서 한 장씩</span>
       </div>
 
@@ -228,6 +262,7 @@ export function BankGrid({ rows }: { rows: BankRow[] }) {
         {rows.map((r) => (
           <Card
             key={r.id}
+            pendingTab={pendingTab}
             r={r}
             checked={sel.has(r.id)}
             onToggle={() => toggle(r.id)}

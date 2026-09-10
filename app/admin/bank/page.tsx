@@ -27,7 +27,11 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
   if (sp.q === "pending") q = q.is("quality_ok", null);
   if (sp.q === "ok") q = q.eq("quality_ok", true);
 
-  const [{ data: raw }, usage, stock] = await Promise.all([q, loadImageUsage(), heroStock()]);
+  /* ★ «필터 결과가 0» 과 «뱅크가 통째로 비었다» 는 완전히 다른 상태다.
+     둘을 같은 문구로 안내하면 검수를 다 끝낸 화면이 「아직 이미지가 없어요」라고 말한다 —
+     사진이 120장 있는데 없다고 하는 셈이다(2026-09-10 회장님이 이 문구에 속았다). */
+  const totalQ = sbAdmin().from("image_bank").select("id", { count: "exact", head: true });
+  const [{ data: raw }, usage, stock, { count: total }] = await Promise.all([q, loadImageUsage(), heroStock(), totalQ]);
 
   const rows: BankRow[] = (raw ?? []).map((r) => ({
     id: r.id, industry: r.industry, mood: r.mood, role: r.role, url: r.url,
@@ -102,11 +106,23 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="mt-16 text-center t-small text-[var(--text-soft)]">
-          아직 이미지가 없어요. <code className="rounded bg-n-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
-        </p>
+        (total ?? 0) === 0 ? (
+          <p className="mt-16 text-center t-small text-[var(--text-soft)]">
+            아직 이미지가 없어요. <code className="rounded bg-n-100 px-1.5 py-0.5">npx tsx --env-file=.env.local scripts/bank-generate.ts --limit 20 --count 20</code> 로 생성하세요.
+          </p>
+        ) : sp.q === "pending" ? (
+          <p className="mt-16 text-center t-small text-[var(--text-soft)]">
+            검수를 모두 마쳤습니다 — 대기 중인 사진이 없어요.<br />
+            <Link href="/admin/bank" className="text-green-700 underline underline-offset-4">전체 {total}장 보기</Link>
+          </p>
+        ) : (
+          <p className="mt-16 text-center t-small text-[var(--text-soft)]">
+            이 조건에 맞는 사진이 없어요. 뱅크에는 모두 {total}장 있습니다.<br />
+            <Link href="/admin/bank" className="text-green-700 underline underline-offset-4">조건 지우고 전체 보기</Link>
+          </p>
+        )
       ) : (
-        <BankGrid rows={rows} />
+        <BankGrid rows={rows} pendingTab={sp.q === "pending"} />
       )}
     </main>
   );

@@ -52,7 +52,33 @@ export async function POST(req: Request) {
     .eq("deleted", false)
     .select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, approved: data?.length ?? 0 });
+
+  const approved = data?.length ?? 0;
+
+  /* ★ 휴지통에 있는 사진은 위 `.eq("deleted", false)` 에서 **조용히 빠진다.**
+     몇 장이 왜 빠졌는지 말해 주지 않으면 「120장 골랐는데 118장 승인」이 수수께끼가 된다.
+     정확히 세서 알린다 — 「나머지」로 뭉뚱그리면 없는 id 까지 휴지통으로 몰아 거짓말이 된다. */
+  const { count: trashed } = await sbAdmin()
+    .from("image_bank")
+    .select("id", { count: "exact", head: true })
+    .in("id", ids as string[])
+    .eq("deleted", true);
+
+  /* ★ **0건은 성공이 아니다.** id 를 받았는데 한 장도 안 바뀌었으면 화면이
+     「승인했어요」라고 말하면 안 된다 — 회장님이 「승인이 안 됐다」고 착각한 원인이다. */
+  if (approved === 0) {
+    return NextResponse.json(
+      {
+        error: trashed
+          ? `처리된 사진이 없습니다 — 고른 ${trashed}장이 전부 휴지통에 있어요. 먼저 복구해 주세요.`
+          : "처리된 사진이 없습니다 — 목록이 바뀐 것 같아요. 새로고침 후 다시 시도해 주세요.",
+        approved: 0,
+        trashed: trashed ?? 0,
+      },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({ ok: true, approved, trashed: trashed ?? 0 });
 }
 
 /** 태그 정리 — 공백 제거·중복 제거·빈값 제거, 태그당 20자·최대 12개 */

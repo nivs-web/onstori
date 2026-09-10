@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PORTFOLIO_TABS } from "@/config/industries";
+import { adminError } from "@/lib/admin-error";
 
 type Row = { id: string; slug: string; tag: string; sort: number; featured: boolean };
 const TAGS = PORTFOLIO_TABS.filter((t) => t !== "전체");
@@ -11,6 +12,8 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  /** ⚠ 실패는 «연회색 안내»가 아니라 **빨간 글씨**여야 한다. 놓치면 안 되는 말이다 */
+  const [err, setErr] = useState("");
 
   async function add() {
     setBusy(true); setMsg("");
@@ -23,9 +26,13 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
     location.reload();
   }
 
+  /** ★ 2026-09-10 — 전에는 `if (r.ok)` 뿐이라 **실패하면 아무 말도 없었다.**
+   *  칸은 옛 값으로 되돌아가는데 이유를 몰라 「눌러도 안 된다」로만 보였다. */
   async function patch(id: string, p: Partial<Row>) {
+    setMsg(""); setErr("");
     const r = await fetch("/api/admin/showcase", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...p }) });
-    if (r.ok) setRows((rs) => rs.map((x) => (x.id === id ? { ...x, ...p } : x)));
+    if (!r.ok) { setErr(await adminError(r, "수정")); return; }
+    setRows((rs) => rs.map((x) => (x.id === id ? { ...x, ...p } : x)));
   }
 
   /** 수동 재촬영 — 첫 페이지 테마 카드 사진을 다시 찍는다.
@@ -46,10 +53,18 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
         : `/${slug} 재촬영 실패 — ${d.error}`);
   }
 
+  /**
+   * ★★ 여기가 여섯 곳 중 **가장 위험했다** (2026-09-10 회장님).
+   *   조용히 실패하면 「뺐다」고 생각하는데 **손님 첫 페이지에 그대로 남는다.**
+   *   목록에서 사라지지도 않으니 두 번 세 번 누르다 포기하게 된다.
+   */
   async function remove(id: string, slug: string) {
     if (!confirm(`/${slug} 을(를) 포트폴리오에서 뺄까요? (사이트 자체는 그대로)`)) return;
+    setMsg(""); setErr("");
     const r = await fetch("/api/admin/showcase", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    if (r.ok) setRows((rs) => rs.filter((x) => x.id !== id));
+    if (!r.ok) { setErr(await adminError(r, `/${slug} 빼기`)); return; }
+    setRows((rs) => rs.filter((x) => x.id !== id));
+    setMsg(`/${slug} 을(를) 포트폴리오에서 뺐어요`);
   }
 
   return (
@@ -66,6 +81,7 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
           </button>
         </div>
         {msg && <p className="mt-2 t-caption text-[var(--text-soft)]">{msg}</p>}
+        {err && <p className="mt-2 t-caption font-semibold text-danger">{err}</p>}
       </div>
 
       <ul className="space-y-2">
