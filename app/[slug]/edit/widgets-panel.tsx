@@ -15,16 +15,12 @@ import { contactOf } from "@/components/sections";
 const inp = "w-full rounded-xl border border-n-200 px-3.5 py-2.5 t-body outline-none focus:border-green-700";
 const KIND_LABEL: Record<WidgetT["kind"], string> = { call: "전화", kakao: "카카오톡" };
 
-/** ui.tsx 의 goToAnchor 와 같은 동작 — 이 패널은 props 2개만 받으므로 여기서 직접 한다. */
-function scrollToAnchor(anchor: string) {
-  const el = document.querySelector<HTMLElement>(`[data-tour="${anchor}"]`);
-  if (!el) return;
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
-  const ring = ["ring-2", "ring-green-600", "ring-offset-2", "rounded-xl"];
-  el.classList.add(...ring);
-  window.setTimeout(() => el.classList.remove(...ring), 1800);
-}
+/* ★ 2026-09-09 (S2⑥) — 여기 있던 `scrollToAnchor` 사본을 **지웠다.**
+   ui.tsx 의 goToAnchor 와 글자까지 같은 복사본이었는데, 못 찾았을 때 조용히 끝나는
+   차이가 하나 있었다. 그래서 문의 받기 섹션이 **아예 없는** 사이트에서는
+   「문의 받기 섹션에 전화번호를 넣어주세요」를 눌러도 아무 일도 안 일어났다
+   (그 버튼이 뜨는 경우가 바로 그 경우다 — 2026-09-09 조사가 잡아냈다).
+   이제 부모의 goToAnchor 를 받아 쓴다: 메뉴를 옮겨 다시 찾고, 그래도 없으면 안내한다. */
 
 /** 스킴이 없으면 https 를 붙여 본다. 주소가 아니면 null — 저장되는 값은 항상 zod .url() 을 통과한다. */
 function normalizeUrl(v: string): string | null {
@@ -48,7 +44,12 @@ function Toggle({ on, disabled, onChange, name }: { on: boolean; disabled: boole
   );
 }
 
-export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteDocT) => void }) {
+export function WidgetsPanel({ doc, setDoc, onGoToAnchor }: {
+  doc: SiteDocT;
+  setDoc: (d: SiteDocT) => void;
+  /** ui.tsx 의 goToAnchor — 앵커가 다른 메뉴에 있으면 그 메뉴로 옮긴 뒤 찾는다 */
+  onGoToAnchor: (anchor: string) => void;
+}) {
   const widgets = doc.widgets ?? [];
   const hasQuoteForm = doc.sections.some((s) => s.type === "quoteForm");
   const { tel, kakaoUrl } = contactOf(doc);
@@ -111,7 +112,7 @@ export function WidgetsPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteD
           </div>
           {callBlocked ? (
             <button
-              type="button" onClick={() => scrollToAnchor("sec-form")}
+              type="button" onClick={() => onGoToAnchor("sec-form")}
               className="mt-2 block w-full rounded-lg bg-accent-soft p-2.5 text-left t-caption leading-relaxed text-accent-ink hover:underline"
             >
               문의 받기 섹션에 전화번호를 넣어주세요 — 그 번호로 전화 버튼이 걸립니다.

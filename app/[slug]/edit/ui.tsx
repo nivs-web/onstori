@@ -19,6 +19,9 @@ import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
 import { LogoutButton } from "@/app/my/ui";
+import { EditorShell } from "./shell";
+import { DEFAULT_EDITOR_MENU, isEditorMenu, type EditorMenuId } from "@/config/editor-menu";
+import { highlightAnchor, highlightId, menuOfAnchor } from "@/lib/editor/anchors";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -29,6 +32,9 @@ const MOODS = [
   { id: "clean", name: "깔끔한" }, { id: "warm", name: "따뜻한" },
   { id: "premium", name: "프리미엄" }, { id: "lively", name: "활기찬" },
 ] as const;
+
+/** 앵커를 못 찾았을 때의 안내 — 두 자리에서 같은 말을 쓴다 */
+const ANCHOR_MISSING = "이 홈페이지에는 아직 그 항목이 없어요 — '홈페이지' 메뉴의 '섹션 추가'에서 넣을 수 있어요";
 
 const STORY_TYPES = [
   { id: "work", name: "작업 기록" }, { id: "news", name: "소식" },
@@ -62,9 +68,14 @@ export function EditUi({ slug }: { slug: string }) {
   const [denied, setDenied] = useState<{ signedIn: boolean; notFound: boolean } | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   /** 알림 문자·메일의 링크가 `?tab=inbox` 다. useSearchParams 는 Suspense 경계를 요구해
-   *  빌드가 걸리므로 초기값에서 직접 읽는다. 첫 렌더는 data=null 이라 탭이 트리에 없다. */
-  const [tab, setTab] = useState<"content" | "story" | "inbox">(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "inbox" ? "inbox" : "content");
+   *  빌드가 걸리므로 초기값에서 직접 읽는다. 첫 렌더는 data=null 이라 화면이 트리에 없다.
+   *  ★ 2026-09-09 — 탭 3개가 **상단 메뉴**로 바뀌었다(S2⑥). 옛 `?tab=inbox` 링크는
+   *    그대로 동작한다 — 이미 나간 알림 문자가 전부 그 주소다(lib/notify.ts). */
+  const [menu, setMenu] = useState<EditorMenuId>(() => {
+    if (typeof window === "undefined") return DEFAULT_EDITOR_MENU;
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return isEditorMenu(t) ? t : DEFAULT_EDITOR_MENU;
+  });
   /** 문의함 초기 데이터 — 배지 숫자와 알림 채널 상태는 탭을 열기 전에 알아야 한다 */
   const [inbox, setInbox] = useState<InboxRes | null>(null);
   /** 조회가 끝났는지. InboxTab 은 initial 을 마운트 때 한 번만 읽으므로,
@@ -86,27 +97,42 @@ export function EditUi({ slug }: { slug: string }) {
 
   /**
    * "＋N점" 클릭 → 해당 data-tour 앵커로 스크롤·강조 (P3 이월, 투어의 최소 동작형).
-   * 앵커가 지금 탭에 없으면 내용 탭으로 바꾼 뒤 다시 찾는다.
+   *
+   * ★ 스크롤·강조 자체는 `lib/editor/anchors.ts` 하나가 한다 — 전에는 이 함수와
+   *   `widgets-panel.tsx` 의 `scrollToAnchor` 가 **글자까지 같은 사본 둘**이었다.
+   * ★ 앵커가 지금 메뉴에 없으면 **그 앵커가 사는 메뉴로 먼저 옮긴 뒤** 다시 찾는다.
+   *   표는 `ANCHOR_MENU` 다. 조용히 끝내면 버튼이 고장난 것처럼 보인다.
    */
   function goToAnchor(anchor: string) {
-    const focus = () => {
-      const el = document.querySelector<HTMLElement>(`[data-tour="${anchor}"]`);
-      if (!el) return false;
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
-      const ring = ["ring-2", "ring-green-600", "ring-offset-2", "rounded-xl"];
-      el.classList.add(...ring);
-      window.setTimeout(() => el.classList.remove(...ring), 1800);
-      return true;
-    };
-    if (focus()) return;
-    setTab("content");
-    // 탭 전환 렌더 후 재시도. 그래도 없으면 이 사이트에 그 자리가 없는 것이다
-    // (예: 영업시간은 VISIT 템플릿에만 있다). 조용히 끝내면 버튼이 고장난 것처럼 보인다.
-    window.setTimeout(() => {
-      if (!focus()) flash("이 홈페이지에는 아직 그 항목이 없어요 — 아래 '섹션 추가'에서 넣을 수 있어요");
-    }, 60);
+    const home = menuOfAnchor(anchor);
+    /* ★ 표에 «다른 메뉴» 라고 적혀 있으면 **찾기 전에 메뉴부터 바꾼다.**
+       ⚠ 순서를 뒤집으면 안 된다. story-new·panel-inbox 는 앵커가 «메뉴 버튼» 위에 붙어
+         있어서 어느 메뉴에서든 늘 찾힌다. 먼저 찾으면 버튼만 1.8초 반짝이고 화면은
+         그대로다 — 배점 최고(15점) 「첫 스토리 작성」 힌트가 실제로 그랬다
+         (2026-09-09 반증 검사). */
+    if (home && home !== menu) {
+      setMenu(home);
+      window.setTimeout(() => { if (!highlightAnchor(anchor)) flash(ANCHOR_MISSING); }, 60);
+      return;
+    }
+    if (highlightAnchor(anchor)) return;
+    // 표에 없는 앵커(껍데기에 늘 있는 것)인데 못 찾았다면 이 사이트에 그 자리가 없는 것이다
+    // (예: 영업시간은 VISIT 템플릿에만 있다).
+    setMenu(home ?? DEFAULT_EDITOR_MENU);
+    window.setTimeout(() => { if (!highlightAnchor(anchor)) flash(ANCHOR_MISSING); }, 60);
   }
+  /**
+   * 왼쪽 칸의 «섹션 목록» → 그 칸으로 데려간다.
+   * ⚠ 섹션 카드 대부분은 앵커가 없다(규칙 3 — 이름을 새로 지을 수 없다). 그래서 id 로 찾는다.
+   * ★ 미리보기도 같이 그 자리로 스크롤한다 — 고칠 칸과 보이는 칸을 맞춘다.
+   */
+  function goToSection(i: number) {
+    const go = () => { if (!highlightId(`edit-sec-${i}`)) return false; setFocusIndex(i); return true; };
+    if (go()) return;
+    setMenu("home");
+    window.setTimeout(go, 60);
+  }
+
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -173,7 +199,7 @@ export function EditUi({ slug }: { slug: string }) {
     if (opts.silent) setAutoStatus("saving");
     const r = await fetch("/api/site/update", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug, anonId: anon(), draft: doc,
-        settings: { phone: phoneOf(doc), address: addressOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
+        settings: { phone: phoneOf(doc), address: addressOf(doc), hours: hoursOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
     const d = await r.json();
     setBusy("");
     if (!r.ok) {
@@ -216,10 +242,10 @@ export function EditUi({ slug }: { slug: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty, busy, doc, notify]);
 
-  /** 탭을 옮기기 전에 편집 중이던 내용을 붙잡는다(자동저장 타이머를 기다리지 않는다) */
-  function switchTab(next: "content" | "story" | "inbox") {
+  /** 메뉴를 옮기기 전에 편집 중이던 내용을 붙잡는다(자동저장 타이머를 기다리지 않는다) */
+  function switchMenu(next: EditorMenuId) {
     if (dirty && !busy) void autoSave();
-    setTab(next);
+    setMenu(next);
   }
 
   async function publish() {
@@ -271,6 +297,9 @@ export function EditUi({ slug }: { slug: string }) {
   // 로그인한 사람에게 "로그인하세요"라고 하면 /login이 세션을 발견해 곧장 되돌려보내 같은 화면으로 돈다.
   // 이 계정에 안 붙은 사이트라는 사실을 알려주고 연결 경로(처음 만든 기기 / 내 홈페이지)로 보낸다.
   if (denied) return (
+    /* ⚠ 이 화면들도 `.editor-shell` 안에 둔다 — 밖에 두면 어두운 설정에서
+       배경만 밝게 남아 «반쯤 어두운» 화면이 된다(2026-09-09 S2⑥). */
+    <div className="editor-shell">
     <main className="mx-auto max-w-md px-6 py-24 text-center">
       <h1 className="t-h3 font-bold">{denied.notFound ? "홈페이지를 찾지 못했어요" : "수정 권한이 없어요"}</h1>
       {denied.notFound ? (
@@ -298,8 +327,13 @@ export function EditUi({ slug }: { slug: string }) {
       )}
       <p className="mt-4 t-caption text-[var(--text-soft)]">운영자라면 <a className="text-green-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
     </main>
+    </div>
   );
-  if (!data || !doc) return <main className="px-6 py-24 text-center text-[var(--text-soft)]">불러오는 중…</main>;
+  if (!data || !doc) return (
+    <div className="editor-shell">
+      <main className="px-6 py-24 text-center text-[var(--text-soft)]">불러오는 중…</main>
+    </div>
+  );
 
   // 무료 종료(정지) — 운영자가 아니면 차단 화면 + 결제 모달 (단일 출처 lib/trial.ts)
   //
@@ -308,8 +342,9 @@ export function EditUi({ slug }: { slug: string }) {
   //   `?tab=inbox` 라(lib/notify.ts) 여기를 막으면 문자를 받고도 열 곳이 없어진다.
   //   페이월이 잠그는 것은 편집·저장·발행·미리보기까지다 — 차단 화면 문구가 약속한 범위와 같다.
   if (data.trial?.expired && !data.isAdmin) {
-    if (tab === "inbox") {
+    if (menu === "inbox") {
       return (
+        <div className="editor-shell">
         <main className="mx-auto max-w-xl px-5 pb-24 pt-8">
           <section className="rounded-2xl border border-accent bg-accent-soft p-4">
             <p className="t-small font-bold">무료 기간이 끝나 홈페이지는 비공개예요</p>
@@ -322,7 +357,7 @@ export function EditUi({ slug }: { slug: string }) {
                 className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white">
                 정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원
               </button>
-              <button type="button" onClick={() => setTab("content")}
+              <button type="button" onClick={() => setMenu("home")}
                 className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
                 돌아가기
               </button>
@@ -336,9 +371,11 @@ export function EditUi({ slug }: { slug: string }) {
           {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
           {toast && <div className="toast" role="status">{toast}</div>}
         </main>
+        </div>
       );
     }
     return (
+      <div className="editor-shell">
       <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center px-6 text-center">
         <p className="text-[11.5px] font-bold" style={{ color: "var(--teal)" }}>{data.businessName}</p>
         <h1 className="font-display mt-3 text-[26px]" style={{ color: "var(--forest)" }}>홈페이지가 정지됐어요</h1>
@@ -347,7 +384,7 @@ export function EditUi({ slug }: { slug: string }) {
           매달 {MEMBERSHIP_PRICE.toLocaleString()}원 정기결제를 시작하시면 <b>바로 다시 켜지고</b>, 이야기·영상·발행 기능이 모두 열립니다.
         </p>
         <button type="button" onClick={() => setPayOpen(true)} className="btn-lime mt-8 w-full !py-4 !text-[16px]">정기결제 시작 — 월 {MEMBERSHIP_PRICE.toLocaleString()}원</button>
-        <button type="button" onClick={() => setTab("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>
+        <button type="button" onClick={() => setMenu("inbox")} className="mt-3 text-[13.5px] font-semibold underline underline-offset-4" style={{ color: "var(--forest)" }}>
           받아둔 문의 보기{newCount > 0 ? ` (${newCount})` : ""}
         </button>
         <div className="mt-4 flex items-center gap-4">
@@ -357,40 +394,52 @@ export function EditUi({ slug }: { slug: string }) {
         </div>
         {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
       </main>
+      </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-xl px-5 pb-32 pt-8 lg:flex lg:max-w-6xl lg:items-start lg:gap-8 lg:px-8 lg:pb-8">
-    <main className="min-w-0 lg:max-w-xl lg:flex-1">
-      {/* 상단: 점수 + 발행 */}
-      <header className="sticky top-0 z-10 -mx-5 border-b border-n-200 bg-white/95 px-5 py-3 backdrop-blur">
-        <div className="flex items-center justify-between gap-3">
-          <div data-tour="score-bar" className="min-w-0">
-            <p className="truncate t-small font-bold">{data.businessName}</p>
-            <p className="t-caption text-[var(--text-soft)]">완성도 <b className="text-green-700">{data.score}점</b> / 100</p>
-            <AutoSaveStatus status={autoStatus} onRetry={() => void autoSave()} />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={save} disabled={!!busy} className="rounded-full border border-n-300 px-4 py-2 t-small font-semibold disabled:opacity-40">
-              {busy === "save" ? "저장 중…" : "저장"}
-            </button>
-            <button data-tour="btn-publish" onClick={publish} disabled={!!busy} className="rounded-full bg-green-700 px-4 py-2 t-small font-semibold text-white disabled:opacity-40">
-              {busy === "publish" ? "반영 중…" : "사이트 반영"}
-            </button>
-            {/* 로그아웃 — /my 의 컴포넌트를 그대로 쓴다. data-tour 앵커를 새로 만들지 않는다(규칙 3). */}
-            <LogoutButton next="/login" />
-          </div>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-n-100">
-          <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${data.score}%` }} />
-        </div>
-      </header>
+  /* ── 왼쪽 칸 — 완성도 막대 · 점수 힌트 · 섹션 목록 (S2⑥) ──
+     ⚠ 완성도 막대와 힌트는 **없어진 게 아니라 자리를 옮겼다.** 전에는 상단 헤더와
+       본문 위에 있었다. 앵커 score-bar 는 상단바로 갔다(shell.tsx). */
+  const rail = (
+    <div className="space-y-4">
+      <div className="h-1.5 overflow-hidden rounded-full bg-n-100">
+        <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${data.score}%` }} />
+      </div>
 
+      {/* 점수 올리기 힌트 — ⚠ logo(panel-brand)는 P6 라 갈 곳이 없다. 이 제외를 빼면 먹통 힌트가 된다 */}
+      <section className="rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
+        {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo"].includes(r.id)).slice(0, 3).map((r) => (
+          <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
+            className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">
+            ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
+          </button>
+        ))}
+        {data.score >= 75 && <p>잘하고 있어요! 이야기를 계속 쌓으면 홈페이지가 강해져요.</p>}
+      </section>
+
+      {/* 섹션 목록 — 누르면 그 칸으로 데려간다. 이름은 lib/section-defaults.ts 하나에서 온다 */}
+      <nav aria-label="섹션 목록" className="space-y-1">
+        <p className="t-caption font-semibold" style={{ color: "var(--text)" }}>내 홈페이지 칸</p>
+        {doc.sections.map((sec, i) => (
+          <button
+            key={i} type="button" onClick={() => goToSection(i)}
+            className="block w-full truncate rounded-lg px-2.5 py-1.5 text-left t-caption hover:bg-n-50"
+          >
+            {sectionLabel(sec.type)}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
+  /* ── 상단 바 아래 늘 보이는 알림 ── */
+  const banners = (
+    <>
       {/* 로그인/계정 연결 유도 — 이 브라우저 anonId로만 접근 중일 때만. 조건은 서버 판정값 하나로만 본다(규칙 4).
           투어 앵커 목록(config/tours.ts·completeness.ts)에 없는 요소라 data-tour는 붙이지 않는다(규칙 3). */}
       {(data.ownership === "anon" || data.ownership === "anon-signedin") && (
-        <section className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-white p-3">
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-n-0 p-3">
           <div className="min-w-0">
             <p className="t-caption font-bold">
               {data.ownership === "anon" ? "지금은 이 기기에서만 수정할 수 있어요" : "이 홈페이지가 아직 계정에 연결되지 않았어요"}
@@ -413,80 +462,109 @@ export function EditUi({ slug }: { slug: string }) {
         </section>
       )}
 
-      {/* 무료 기간 바 + 정회원 모달 (2026-09-05) */}
+      {/* 무료 기간 바 (2026-09-05) */}
       {data.trial && !data.isAdmin && <TrialBar trial={data.trial} onPay={() => setPayOpen(true)} />}
-      {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
+    </>
+  );
 
-      {/* 60초 녹화 링크 — 문자로 받기 / 지금 열기 (이야기 엔진 1차, 기획1 #rec) */}
-      <StoryLinkButton slug={slug} phone={String(data.settings?.phone ?? "")} />
+  return (
+    <EditorShell
+      slug={slug}
+      businessName={data.businessName}
+      score={data.score}
+      menu={menu}
+      onMenu={switchMenu}
+      newCount={newCount}
+      storyCount={data.storyCount}
+      busy={busy}
+      onSave={save}
+      onPublish={publish}
+      status={<AutoSaveStatus status={autoStatus} onRetry={() => void autoSave()} />}
+      /* 로그아웃 — /my 의 컴포넌트를 그대로 쓴다. data-tour 앵커를 새로 만들지 않는다(규칙 3). */
+      logout={<LogoutButton next="/login" />}
+      banners={banners}
+      rail={rail}
+      preview={
+        /* 미리보기 — 폰 프레임. 1024px 미만에서는 아예 마운트하지 않는다(폰에서 불필요한 로드를 막는다) */
+        <div className="overflow-hidden border border-n-300 bg-n-0" style={{ height: "calc(100vh - 8rem)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-1)" }}>
+          {isDesktop && <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />}
+        </div>
+      }
+      overlays={
+        <>
+          {payOpen && <PayModal slug={slug} trial={data.trial} onClose={() => setPayOpen(false)} />}
 
-      {/* 점수 올리기 힌트 */}
-      <section className="mt-4 rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
-        {RULES.filter((r) => !data.rulesDone.includes(r.id) && !["logo"].includes(r.id)).slice(0, 3).map((r) => (
-          <button key={r.id} type="button" onClick={() => goToAnchor(r.anchor)}
-            className="block w-full rounded text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-700">
-            ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
-          </button>
-        ))}
-        {data.score >= 75 && <p>잘하고 있어요! 이야기를 계속 쌓으면 홈페이지가 강해져요.</p>}
-      </section>
+          {/* 폰 하단 고정 바 — 미리보기는 무거우니 기본으로 열지 않는다 */}
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-n-200 bg-n-0 p-3 lg:hidden">
+            <button onClick={() => setSheetOpen(true)} className="mx-auto block w-full max-w-xl rounded-full bg-n-900 py-3 t-small font-semibold text-white">
+              미리보기
+            </button>
+          </div>
 
-      {/* 탭 */}
-      <nav className="mt-5 flex flex-wrap items-center gap-2">
-        <button onClick={() => switchTab("content")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "content" ? "bg-n-900 text-white" : "border border-n-300"}`}>내용 수정</button>
-        <button data-tour="story-new" onClick={() => switchTab("story")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "story" ? "bg-n-900 text-white" : "border border-n-300"}`}>
-          이야기 쓰기 <span className="opacity-60">({data.storyCount})</span>
-        </button>
-        <button data-tour="panel-inbox" onClick={() => switchTab("inbox")} className={`rounded-full px-4 py-2 t-small font-semibold ${tab === "inbox" ? "bg-n-900 text-white" : "border border-n-300"}`}>
-          문의함
-          {newCount > 0 && (
-            <span className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-green-700 px-1.5 py-0.5 text-[11px] font-bold text-white">{newCount}</span>
+          {/* 폰 전체화면 시트 */}
+          {sheetOpen && (
+            <div className="fixed inset-0 z-50 flex flex-col bg-n-0 lg:hidden">
+              <div className="flex shrink-0 items-center justify-between border-b border-n-200 px-4 py-3">
+                <p className="t-small font-bold">미리보기</p>
+                <button onClick={() => setSheetOpen(false)} className="rounded-full border border-n-300 px-3.5 py-1.5 t-caption font-semibold">닫기</button>
+              </div>
+              <div className="min-h-0 flex-1">
+                <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />
+              </div>
+            </div>
           )}
-        </button>
-        <a href={`/${slug}`} target="_blank" className="ml-auto self-center t-small text-green-700 underline underline-offset-4">내 사이트 보기 ↗</a>
-      </nav>
 
-      {tab === "content" ? (
+          {toast && <div className="toast" role="status">{toast}</div>}
+        </>
+      }
+    >
+      {/* ── 메뉴별 화면 ── */}
+      {menu === "home" ? (
         <ContentTab doc={doc} slug={slug} patchSection={patchSection} setDoc={(d) => { setDoc(d); setDirty(true); }}
           notify={notify} setNotify={(n) => { setNotify(n); setDirty(true); }} channels={inbox?.channels ?? null} />
-      ) : tab === "story" ? (
-        <StoryTab slug={slug} onDone={(score) => { setData((p) => p && { ...p, score, storyCount: p.storyCount + 1 }); flash("이야기가 올라갔어요! 바로 홈페이지에 보여요"); }} />
+      ) : menu === "design" ? (
+        <DesignPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} />
+      ) : menu === "story" ? (
+        <div className="space-y-4">
+          {/* 60초 녹화 링크 — 문자로 받기 / 지금 열기 (이야기 엔진 1차, 기획1 #rec) */}
+          <StoryLinkButton slug={slug} phone={String(data.settings?.phone ?? "")} />
+          <StoryTab slug={slug} onDone={(score) => { setData((p) => p && { ...p, score, storyCount: p.storyCount + 1 }); flash("이야기가 올라갔어요! 바로 홈페이지에 보여요"); }} />
+        </div>
+      ) : menu === "link" ? (
+        <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
       ) : inboxDone ? (
         <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
       ) : (
         <p className="mt-8 text-center t-small text-[var(--text-soft)]">문의를 불러오는 중…</p>
       )}
-    </main>
+    </EditorShell>
+  );
+}
 
-    {/* PC 미리보기 — 폰 프레임. 투어 앵커는 여기 한 곳에만 붙인다(아래 폰 버튼은 같은 자리를 가리키는 중복이라 안 붙인다) */}
-    <aside data-tour="panel-preview" className="hidden lg:sticky lg:top-4 lg:block lg:w-[390px] lg:flex-shrink-0">
-      <div className="overflow-hidden border border-n-300 bg-white" style={{ height: "calc(100vh - 8rem)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-1)" }}>
-        {isDesktop && <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />}
+/** 섹션 이름 — 목록은 lib/section-defaults.ts 하나에서 온다. hero 만 거기 없다(더할 수 없는 칸이라) */
+function sectionLabel(type: string): string {
+  if (type === "hero") return "첫 화면";
+  return ADDABLE_SECTIONS.find((a) => a.type === type)?.name ?? type;
+}
+
+/**
+ * 「디자인」 메뉴 — 지금은 분위기 넷뿐이다(내용 수정 탭에서 옮겨 왔다).
+ * ⚠ S3 에서 **분위기 카드 40장**으로 바뀐다. 색·글씨체도 그때 여기 들어온다.
+ */
+function DesignPanel({ doc, setDoc }: { doc: SiteDocT; setDoc: (d: SiteDocT) => void }) {
+  return (
+    <section className="rounded-2xl border border-n-200 p-4">
+      <h2 className="t-small font-bold">분위기</h2>
+      <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">고르면 홈페이지 색과 느낌이 바뀌어요. 오른쪽 미리보기에서 바로 확인하세요.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {MOODS.map((m) => (
+          <button key={m.id} onClick={() => setDoc({ ...doc, theme: { ...doc.theme, palette: m.id } })}
+            className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${doc.theme.palette === m.id ? "bg-green-700 text-white" : "border border-n-300"}`}>
+            {m.name}
+          </button>
+        ))}
       </div>
-    </aside>
-
-    {/* 폰 하단 고정 바 — 미리보기는 무거우니 기본으로 열지 않는다 */}
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-n-200 bg-white p-3 lg:hidden">
-      <button onClick={() => setSheetOpen(true)} className="mx-auto block w-full max-w-xl rounded-full bg-n-900 py-3 t-small font-semibold text-white">
-        미리보기
-      </button>
-    </div>
-
-    {/* 폰 전체화면 시트 */}
-    {sheetOpen && (
-      <div className="fixed inset-0 z-50 flex flex-col bg-white lg:hidden">
-        <div className="flex shrink-0 items-center justify-between border-b border-n-200 px-4 py-3">
-          <p className="t-small font-bold">미리보기</p>
-          <button onClick={() => setSheetOpen(false)} className="rounded-full border border-n-300 px-3.5 py-1.5 t-caption font-semibold">닫기</button>
-        </div>
-        <div className="min-h-0 flex-1">
-          <PreviewPane slug={slug} doc={doc} focusIndex={focusIndex} />
-        </div>
-      </div>
-    )}
-
-    {toast && <div className="toast" role="status">{toast}</div>}
-    </div>
+    </section>
   );
 }
 
@@ -508,6 +586,24 @@ function phoneOf(doc: SiteDocT): string {
   const q = doc.sections.find((s) => s.type === "quoteForm");
   return q && "phone" in q ? q.phone : "";
 }
+/**
+ * 영업시간을 섹션에서 뽑아 `sites.settings.hours` 로 옮긴다 (2026-09-10).
+ *
+ * ★ 왜 필요한가: 완성도 규칙 `hours`(10점)의 판정은 `settings.hours` 를 보는데
+ *   (lib/score.ts), 화면은 `doc.sections[hoursCard].hours` 에만 쓴다. 그래서
+ *   **사장님이 영업시간을 아무리 정성껏 채워도 10점이 영원히 안 붙었다.**
+ *   저장소 전체에 settings.hours 를 채우는 코드가 한 곳도 없었다(2026-09-10 실측).
+ *
+ * ★ 점수 규칙·배점은 건드리지 않았다(회장님 지시). 화면이 그 칸을 채우게만 했다 —
+ *   `phoneOf`·`addressOf` 와 똑같은 방식이다.
+ *
+ * ⚠ 영업시간 칸이 없는 사이트(QUOTE 템플릿)는 `null` 이다. 그 사이트에서는
+ *   원래 이 10점을 받을 자리가 없다 — 앵커도 CONDITIONAL_ANCHORS 로 빠져 있다.
+ */
+function hoursOf(doc: SiteDocT): string | null {
+  const h = doc.sections.find((s) => s.type === "hoursCard");
+  return h && "hours" in h ? h.hours : null;
+}
 function addressOf(doc: SiteDocT): string | null {
   const m = doc.sections.find((s) => s.type === "map");
   return m && "address" in m ? m.address : null;
@@ -516,7 +612,20 @@ function addressOf(doc: SiteDocT): string | null {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">{label}</span>{children}</label>;
 }
-const inp = "w-full rounded-xl border border-n-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-green-700";
+/**
+ * 입력칸 공통 — **폭은 여기 넣지 않는다.**
+ *
+ * ⚠ 전에는 `w-full` 이 이 문자열 안에 있었다. 그래서 폭을 좁히려던 두 자리
+ *   (진행 과정의 «단계 이름», 메뉴판의 «가격»)가 `${inp} w-28` 로 적어 놓고도
+ *   **w-28 이 못 이겼다** — Tailwind 는 class 를 쓴 순서가 아니라 CSS 파일 순서로 이긴다.
+ *   결과: 그 칸이 줄 전체를 차지하고 옆 칸과 사진 버튼이 화면 밖으로 밀려났다
+ *   (768px 에서 39px 가로넘침 — 2026-09-09 S2⑦ 실측).
+ *   옛 배치는 본문이 576px 로 좁고 가운데 정렬이라 우연히 안 보였을 뿐, 결함은 같았다.
+ */
+const inpBase = "rounded-xl border border-n-200 px-3.5 py-2.5 text-[15px] outline-none focus:border-green-700";
+const inp = `w-full ${inpBase}`;
+/** 좁은 칸 — 폭을 쓰는 자리에서 정한다 */
+const inpNarrow = `${inpBase} w-28 flex-shrink-0`;
 
 /**
  * 문의 알림 수신처 — docs/specs/inquiry.md 5장. quoteForm 카드 안에 붙는다.
@@ -608,22 +717,11 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
   const missing = ADDABLE_SECTIONS.filter((m) => !doc.sections.some((s) => s.type === m.type));
 
   return (
-    <div data-tour="panel-sections" className="mt-5 space-y-6">
-      {/* 분위기 */}
-      <section className="rounded-2xl border border-n-200 p-4">
-        <h2 className="t-small font-bold">분위기</h2>
-        <div className="mt-2 flex gap-2">
-          {MOODS.map((m) => (
-            <button key={m.id} onClick={() => setDoc({ ...doc, theme: { ...doc.theme, palette: m.id } })}
-              className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${doc.theme.palette === m.id ? "bg-green-700 text-white" : "border border-n-300"}`}>
-              {m.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <WidgetsPanel doc={doc} setDoc={setDoc} />
-
+    /* ★ 2026-09-09 (S2⑥) — 여기 있던 둘이 **없어진 게 아니라 옮겨 갔다.**
+       · 분위기 4칩 → 「디자인」 메뉴 (DesignPanel)
+       · 연결 버튼 패널 → 「연결」 메뉴 (WidgetsPanel)
+       앵커 panel-widgets 도 같이 옮겨 갔다. goToAnchor 가 ANCHOR_MENU 를 보고 메뉴를 바꾼다. */
+    <div data-tour="panel-sections" className="space-y-6">
       {doc.sections.map((s, i) => {
         const card = (() => {
         switch (s.type) {
@@ -666,7 +764,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               <h2 className="t-small font-bold">진행 과정</h2>
               {s.steps.map((st, j) => (
                 <div key={j} className="flex items-center gap-2">
-                  <input className={`${inp} w-28 flex-shrink-0`} value={st.name} maxLength={20}
+                  <input className={inpNarrow} value={st.name} maxLength={20}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, name: e.target.value } : x) })} />
                   <input className={inp} value={st.desc ?? ""} maxLength={80}
                     onChange={(e) => patchSection(i, { steps: s.steps.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} />
@@ -831,7 +929,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                   <div className="flex gap-2">
                     <input className={inp} value={it.name} maxLength={40} placeholder="메뉴 이름"
                       onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, name: e.target.value } : x) })} />
-                    <input className={`${inp} w-28 flex-shrink-0`} value={it.price} maxLength={20} placeholder="가격"
+                    <input className={inpNarrow} value={it.price} maxLength={20} placeholder="가격"
                       onChange={(e) => patchSection(i, { items: s.items.map((x, k) => k === j ? { ...x, price: e.target.value } : x) })} />
                     <button disabled={s.items.length <= 1} onClick={() => patchSection(i, { items: s.items.filter((_, k) => k !== j) })}
                       className="flex-shrink-0 rounded-full border border-n-200 px-2.5 t-caption text-danger disabled:opacity-30" aria-label="메뉴 삭제">✕</button>
@@ -858,16 +956,18 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
         }
         })();
         return (
-          <div key={i} className="relative">
+          /* id 는 왼쪽 칸의 «섹션 목록» 이 찾는 자리다(lib/editor/anchors.ts 의 highlightId).
+             data-tour 앵커가 아니다 — 앵커 이름은 config 에서만 온다(규칙 3). */
+          <div key={i} id={`edit-sec-${i}`} className="relative">
             {s.type !== "hero" && (
               <div className="absolute right-3 top-3 flex gap-1">
                 <button disabled={i === 0 || doc.sections[i - 1].type === "hero"} onClick={() => moveSection(i, -1)}
-                  className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="위로 이동">↑</button>
+                  className="h-6 w-6 rounded border border-n-200 bg-n-0 t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="위로 이동">↑</button>
                 <button disabled={i === doc.sections.length - 1} onClick={() => moveSection(i, 1)}
-                  className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="아래로 이동">↓</button>
+                  className="h-6 w-6 rounded border border-n-200 bg-n-0 t-caption text-[var(--text-soft)] disabled:opacity-30" aria-label="아래로 이동">↓</button>
                 {s.type !== "quoteForm" && (
                   <button onClick={() => deleteSection(i)}
-                    className="h-6 w-6 rounded border border-n-200 bg-white t-caption text-[var(--text-soft)] hover:border-danger hover:text-danger" aria-label="섹션 삭제">✕</button>
+                    className="h-6 w-6 rounded border border-n-200 bg-n-0 t-caption text-[var(--text-soft)] hover:border-danger hover:text-danger" aria-label="섹션 삭제">✕</button>
                 )}
               </div>
             )}

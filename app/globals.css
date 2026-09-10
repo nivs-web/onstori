@@ -819,6 +819,120 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     .admin-drawer * { animation: none !important; }
   }
 
+  /* ───────────── 사장님 편집화면 껍데기 (2026-09-09, S2⑥) ─────────────
+     「디자인 1」 — 상단 가로 메뉴 한 줄 + 3단(왼쪽 칸 · 편집 · 미리보기).
+
+     ★ 폭에 따라 세 모습이지만 **DOM 은 하나다.** 같은 내용을 두 번 그리지 않는다 —
+       두 번 그리면 앵커(data-tour)가 두 개가 되어 goToAnchor 가 엉뚱한 쪽으로 간다.
+       · ~1023    한 줄로 쌓인다. 미리보기는 아래 고정 바 → 전체화면 시트
+       · 1024~1279  편집 + 미리보기 2단. 왼쪽 칸은 편집 **위로** 올라간다
+       · 1280~     왼쪽 칸 + 편집 + 미리보기 3단
+
+     ⚠ 미리보기 폭 390px 을 바꾸지 마라 — 손님 폰 화면 폭이다.
+       넓히면 사장님이 보는 미리보기와 실제 폰이 달라진다. */
+  .editor-shell { background: var(--canvas); min-height: 100svh; }
+
+  .editor-bar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .editor-bar-row {
+    display: flex; align-items: center; gap: var(--s-3);
+    min-height: var(--bar-h); padding: var(--s-2) var(--s-4);
+    /* ⚠ 넘치면 **접힌다.** 안 접으면 [사이트 반영]이 화면 밖으로 나간다 —
+       375px 에서 로고 117 + 버튼 244 = 377 > 343 이었다(2026-09-09 S2⑦ 실측). */
+    flex-wrap: wrap;
+  }
+  .editor-brand { display: flex; align-items: center; flex-shrink: 0; }
+  .editor-brand .logo-light { display: block; }
+  .editor-brand .logo-dark { display: none; }
+  .editor-ident { min-width: 0; flex: 1; }
+  .editor-ident-name {
+    font-size: var(--t-small); font-weight: var(--w-sub); color: var(--text-strong);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .editor-ident-score { color: var(--text); }
+  .editor-actions { display: flex; align-items: center; gap: var(--s-2); flex-shrink: 0; }
+
+  /* 좁은 화면에서는 로고를 뺀다. 로고는 장식이고, 신원은 바로 옆 «상호»가 말한다.
+     ⚠ 상호·완성도 칸이 0px 로 찌그러지지 않게 최소 폭을 준다(그러면 점수가 안 보인다). */
+  @media (max-width: 639px) {
+    .editor-brand { display: none; }
+    /* 6rem = 상단바가 폰에서 **한 줄에 들어가는 최대 기준폭**이다(375px 실측:
+       8rem 이면 두 줄 149px, 6rem 이면 한 줄 99px). 더 줄여도 이득이 없다. */
+    .editor-ident { flex: 1 1 6rem; }
+    .editor-actions { margin-left: auto; }
+  }
+  /* ★ [내 사이트 ↗] — **모든 폭에서 보인다.** 메뉴가 넘쳐도 밀려나지 않게
+     스크롤되는 메뉴 «밖»에 둔다(2026-09-09: 폰에서 숨겼더니 사장님이 반영 뒤
+     손님 화면을 확인할 길이 통째로 없어졌다 — 대조 검사가 잡아냈다). */
+  .editor-menu-row { display: flex; align-items: stretch; }
+  .editor-view-link {
+    flex-shrink: 0; align-self: center; white-space: nowrap;
+    padding-inline: var(--s-4);
+    color: var(--brand-ink); text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  .editor-menu {
+    flex: 1; min-width: 0;
+    display: flex; gap: var(--s-5); align-items: stretch;
+    padding: 0 var(--s-4);
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .editor-menu::-webkit-scrollbar { display: none; }
+  .editor-menu-item {
+    position: relative; white-space: nowrap;
+    padding: var(--s-2) 0 var(--s-3);
+    font-size: var(--t-small); font-weight: var(--w-label); color: var(--text);
+    border-bottom: 2px solid transparent;
+    transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+  }
+  .editor-menu-item:hover { color: var(--text-strong); }
+  /* 지금 보고 있는 메뉴 = 초록 밑줄 2px (docs/specs/디자인정의… §2) */
+  .editor-menu-item.is-on {
+    color: var(--text-strong); font-weight: var(--w-sub);
+    border-bottom-color: var(--brand-solid);
+  }
+  .editor-badge {
+    margin-left: 6px; display: inline-block; min-width: 1.25rem; text-align: center;
+    padding: 1px 6px; border-radius: var(--r-full);
+    background: var(--brand-solid); color: var(--on-solid);
+    font-size: var(--t-micro); font-weight: var(--w-title);
+  }
+  .editor-count { margin-left: 4px; opacity: 0.6; }
+
+  .editor-body {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4); padding: var(--s-4); align-items: start;
+  }
+  /* ⚠ 1024px 아래에는 화면 맨 아래 «미리보기» 고정 바가 깔린다(약 69px).
+     이 여백이 없으면 본문 마지막 ~53px 이 그 바 밑에 영구히 잠긴다 —
+     「이야기 올리기」 제출 버튼·마지막 문의 카드가 실제로 가려졌다.
+     옛 배치에는 pb-32(128px)가 있었는데 새 껍데기로 옮기며 빠졌다(2026-09-09 대조).
+     ⚠ 홈 인디케이터가 있는 폰을 위해 safe-area 를 더한다. */
+  @media (max-width: 1023px) {
+    .editor-body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  }
+  .editor-main { min-width: 0; }
+  .editor-preview { display: none; }
+  @media (min-width: 1024px) {
+    .editor-body { grid-template-columns: minmax(0, 1fr) 390px; }
+    .editor-rail    { grid-column: 1; grid-row: 1; }
+    .editor-main    { grid-column: 1; grid-row: 2; }
+    .editor-preview {
+      display: block; grid-column: 2; grid-row: 1 / span 2;
+      position: sticky; top: calc(var(--bar-h) + var(--s-6));
+    }
+  }
+  @media (min-width: 1280px) {
+    .editor-body { grid-template-columns: 240px minmax(0, 1fr) 390px; }
+    .editor-rail    { grid-column: 1; grid-row: 1; position: sticky; top: calc(var(--bar-h) + var(--s-6)); }
+    .editor-main    { grid-column: 2; grid-row: 1; }
+    .editor-preview { grid-column: 3; grid-row: 1; }
+  }
+
+
 
   /* ───────────────────────── 테마 카드 ───────────────────────── */
   /* 자바스크립트 없다. transform 과 opacity 만 움직인다 — GPU 가 처리해 폰에서도 부드럽다. */
@@ -1197,7 +1311,8 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
      --text #E9EFEC 14:1 · --text-soft #C9D4D0 10:1 · 초록 #6FC4A2 8:1 · 빨강 #FF7A85 6:1
      ⚠ 밝은 화면용 --green-700(#005B2A)을 그대로 두면 2:1 도 안 나온다. 그래서 초록·빨강도 같이 올린다. */
 [data-mode="dark"] .admin-shell,
-[data-mode="dark"] .admin-side {
+[data-mode="dark"] .admin-side,
+[data-mode="dark"] .editor-shell {
   /* v5 원시 토큰 → v6 테마 토큰 다리. 어드민 컴포넌트 수백 곳이 아직 --n-* 를 쓴다.
      ⚠ 하드코딩 hex 를 걷어냈다(2026-09-09) — 이제 config/design.ts 의 MODE_TOKENS.dark 한 곳만 고치면 된다. */
   --n-0: var(--surface);        /* 카드·입력칸 면 */
@@ -1208,9 +1323,17 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   --green-700: var(--brand-ink); /* 밝은 면의 브랜드 초록은 어두운 배경에서 안 읽힌다 */
   --green-500: var(--brand-2);
   --danger: #FF7A85;
+  /* ⚠ `.t-caption`·`.t-micro` 는 **클래스에 색이 박혀 있다**(--text-soft = --n-700 #50665E).
+     어두운 면(#18211E) 위에서 1.9:1 이라 안 읽힌다. `.phone-screen` 과 같은 방식으로
+     의미 토큰만 뒤집는다 — 새 색을 만들지 않는다(2026-09-09 S2⑥ 실측). */
+  --text-soft: var(--text-3);
   color: var(--text);
 }
 [data-mode="dark"] .admin-shell { background: var(--canvas); min-height: 100vh; }
+/* ⚠ 편집화면의 바깥 상자는 `display:contents` 라 배경을 못 칠한다 —
+   그래서 `.editor-shell` 이 **실제 상자**다. 여기가 칠하는 자리다(2026-09-09 S2⑥). */
+[data-mode="dark"] .editor-shell { background: var(--canvas); }
+[data-mode="dark"] .editor-bar { background: var(--surface); border-color: var(--border); }
 [data-mode="dark"] .admin-side { background: var(--surface); border-color: var(--border); }
 
 /* 로고 갈아 끼우기 — 자바스크립트 없이 CSS 로만. 두 장을 겹쳐 두고 하나만 보인다.
@@ -1218,7 +1341,7 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 [data-mode="dark"] .logo-light { display: none !important; }
 [data-mode="dark"] .logo-dark { display: block !important; }
 /* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
-[data-mode="dark"] .admin-shell .btn-primary { color: var(--on-solid); }
+[data-mode="dark"] :is(.admin-shell, .editor-shell) .btn-primary { color: var(--on-solid); }
 
 /* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
    그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
@@ -1227,14 +1350,34 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
      (app/admin/bank/fast-review.tsx)이 `bg-n-900/95` + 흰 글자로 **일부러 어두운**
      전체화면이라, 뒤집는 순간 흰 배경에 흰 글자가 된다.
    → 원시 토큰은 그대로 두고 **글자로 쓰는 자리만** 의미 토큰으로 돌린다. */
-[data-mode="dark"] :is(.admin-shell, .admin-side) :is(h1, h2, h3, h4, h5, h6),
-[data-mode="dark"] :is(.admin-shell, .admin-side) :is(.t-display, .t-h1, .t-h2, .t-h3) {
+[data-mode="dark"] :is(.admin-shell, .admin-side, .editor-shell) :is(h1, h2, h3, h4, h5, h6),
+[data-mode="dark"] :is(.admin-shell, .admin-side, .editor-shell) :is(.t-display, .t-h1, .t-h2, .t-h3) {
   color: var(--text-strong);
 }
 
 /* 보조 버튼도 --n-900 을 글자로 쓴다(.btn-secondary/.btn-ghost). 어두운 면에 맞춰 밝게 */
-[data-mode="dark"] :is(.admin-shell, .admin-side) :is(.btn-secondary, .btn-ghost) {
+[data-mode="dark"] :is(.admin-shell, .admin-side, .editor-shell) :is(.btn-secondary, .btn-ghost) {
   color: var(--text-strong);
+}
+
+/* ─── 어두운 면에서 «원시 토큰 --n-900 / --n-0» 을 글자로 쓰는 자리 세 곳 (2026-09-09 S2⑥ 실측) ───
+   다크 다리(위 블록)는 --n-0·--n-50·--n-100·--n-200·--n-300 만 바꾼다. --n-900 은 일부러 그대로 둔다
+   (사진 검수 화면이 bg-n-900 을 **일부러 어두운** 전체화면으로 쓴다 — 뒤집으면 흰 글자가 사라진다).
+   그래서 --n-900·--n-0 를 **글자색으로** 쓰는 자리만 골라 되돌린다. */
+
+/* ① 입력칸 — .field 는 color: var(--n-900) 을 직접 박고 있다. 어두운 면에서 글자가 검게 남는다 */
+[data-mode="dark"] :is(.admin-shell, .editor-shell) .field { color: var(--text-strong); }
+
+/* ② 토스트 — background:--n-900(어두움) + color:--n-0 인데, 다리가 --n-0 를 --surface(어두움)로
+   바꿔 버려 **어두운 글자 위 어두운 글자**가 된다. 배경은 그대로 두고 글자만 되돌린다. */
+[data-mode="dark"] :is(.admin-shell, .editor-shell) .toast { color: var(--text-strong); }
+
+/* ③ 초록 «면» 버튼 — 다리가 --green-700 을 --brand-ink(밝은 초록)로 바꾸므로 그 위의 흰 글자가
+   사라진다. 어두운 화면의 주 버튼은 **밝은 초록 면 + 어두운 글자**다(디자인 정의 §4).
+   ⚠ 글자색으로 쓰는 .text-green-700 은 건드리지 않는다 — 그건 밝은 초록이 맞다. */
+[data-mode="dark"] :is(.admin-shell, .editor-shell) .bg-green-700 {
+  background-color: var(--brand-solid);
+  color: var(--on-solid);
 }
 
 /* 운영자 메모장 전용 — 입력칸과 **같은 높이**의 작은 버튼 (2026-09-07 회장님: 절반 크기로).
@@ -1243,4 +1386,13 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   min-height: var(--memo-ctl-h);
   height: var(--memo-ctl-h);
   padding-inline: var(--s-4);
+}
+
+/* 좁은 화면의 편집화면 상단바 — 버튼 셋이 한 줄에 들어가게 여백만 줄인다.
+   ⚠ 이 규칙은 **레이어 밖**이어야 한다. `@layer components` 안에 두면 바로 위
+     `.btn.btn-xs` 를 못 이긴다 — 레이어 밖 규칙이 명시도와 무관하게 이긴다.
+     실제로 레이어 안에 뒀다가 상단바가 두 줄로 접혔다(2026-09-09 S2⑦ 실측).
+   ⚠ 높이는 건드리지 않는다 — 손가락으로 누르는 자리다. */
+@media (max-width: 639px) {
+  .editor-bar-row .btn.btn-xs { padding-inline: var(--s-3); }
 }
