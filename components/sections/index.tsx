@@ -470,7 +470,9 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
             poster={s.poster}
             controls
             playsInline
-            preload="metadata"
+            /* ⚠ "metadata" 가 아니라 "none" 이다. metadata 면 **영상을 누르지도 않은 손님이**
+               mp4 머리를 받는다. 표지 사진(WebP 한 장)만 받고, 영상 바이트는 재생을 눌러야 흐른다. */
+            preload="none"
             style={{ maxHeight: "100%", maxWidth: "100%", display: "block" }}
           />
         </div>

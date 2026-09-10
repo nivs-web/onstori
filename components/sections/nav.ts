@@ -37,6 +37,10 @@ export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[
   for (const s of doc.sections) {
     const id = ANCHOR_OF[s.type];
     if (!id || seen.has(id)) continue;
+    /* ⚠ 영상은 주소가 비면 **화면에 안 그려진다**(index.tsx 의 VideoSecR).
+       그런데 차례에는 남으면 손님이 「영상」을 눌러도 아무 데도 안 간다 — 죽은 링크다.
+       화면과 차례의 판정을 같은 것으로 맞춘다(불변 규칙 12 의 정신). */
+    if (s.type === "video" && !s.url?.trim()) continue;
     seen.add(id);
     const title = "title" in s && typeof s.title === "string" ? s.title.trim() : "";
     out.push({ href: `#${id}`, label: title || fallback[s.type] || id });
