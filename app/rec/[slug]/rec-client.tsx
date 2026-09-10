@@ -40,7 +40,7 @@ const SHOOT_TIPS: [string, string][] = [
    "하실 말씀이 끝나면 정지를 눌러 주세요. 20초도 충분합니다."],
   /* ★ 「얼굴 안 나와도 된다」는 말만으로는 부족하다 — **안 나오게 하는 방법**을 줘야 실제로 찍는다 */
   ["얼굴이 어색하시면 [카메라 전환]",
-   "카메라 확인 화면에서 [카메라 전환]을 누르면 뒷면 카메라로 바뀝니다. 매장이나 제품을 비추면서 말씀하셔도 됩니다."],
+   "카메라 확인 화면에 [카메라 전환]이 보이면 눌러 뒷면으로 바꾸실 수 있어요. 버튼이 없는 폰이면 폰을 돌려 매장을 비추면서 말씀하셔도 됩니다."],
   ["매장이라면, 60초 동안 매장을 걸으세요",
    "“오늘 매장을 보여드릴게요”처럼 편하게 말씀하시면 됩니다."],
   ["상품이 있다면, 상품을 보여주세요",
@@ -165,6 +165,33 @@ function pickMime(mode: "video" | "audio"): string {
   return "";
 }
 
+/**
+ * 지금 열린 카메라가 **앞면인가 뒷면인가** — 우리가 요청한 값이 아니라 **브라우저가 실제로 준 값**을 본다.
+ * ⚠ 이게 틀리면 거울 반전이 틀린다. 뒷면인데 좌우를 뒤집으면 간판 글씨가 거꾸로 나온다.
+ * ⚠ `facingMode` 를 안 채워 주는 기기가 있다. 그때는 카메라 «이름»으로 짐작하고,
+ *   그것도 모르면 `unknown` 을 돌려 **뒤집지 않는다** — 셀카가 안 뒤집히는 건 어색할 뿐이지만
+ *   뒷면이 뒤집히는 건 글씨가 깨지는 진짜 사고다.
+ */
+function facingOf(t: MediaStreamTrack | undefined, dev: MediaDeviceInfo | undefined): "user" | "environment" | "unknown" {
+  const f = t?.getSettings?.().facingMode;
+  if (f === "user" || f === "environment") return f;
+  const l = (dev?.label ?? t?.label ?? "").toLowerCase();
+  if (/back|rear|environment|후면|뒷/.test(l)) return "environment";
+  if (/front|user|전면|앞/.test(l)) return "user";
+  return "unknown";
+}
+
+/** 전환 실패 이유를 사장님 말로. ⚠ 「바꾸지 못했어요」만 띄우면 뭐가 문제인지 알 길이 없다 */
+const SWITCH_WHY: Record<string, string> = {
+  NotReadableError: "이 폰은 카메라를 한 번에 하나만 열 수 있어요",
+  AbortError: "이 폰은 카메라를 한 번에 하나만 열 수 있어요",
+  TrackStartError: "다른 앱이 카메라를 쓰고 있어요",
+  NotFoundError: "바꿀 카메라를 찾지 못했어요",
+  OverconstrainedError: "이 폰에서는 그 카메라를 열 수 없어요",
+  NotAllowedError: "카메라 사용이 허용되지 않았어요",
+  SecurityError: "카메라 사용이 허용되지 않았어요",
+};
+
 type Device = "ios" | "android" | "other";
 
 /**
@@ -280,10 +307,15 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
   const [camFailed, setCamFailed] = useState(false);
   /** 앞면(user) / 뒷면(environment) 카메라. 다시 켤 때도 고르신 쪽을 그대로 쓴다 */
   const [facing, setFacing] = useState<"user" | "environment">("user");
-  /** 카메라가 둘 이상인가. **하나뿐인 폰에는 전환 버튼을 아예 안 보여준다** —
-      눌러도 아무 일이 안 나는 버튼을 두지 않는다. 권한을 받은 뒤에만 정확히 셀 수 있다 */
-  const [multiCam, setMultiCam] = useState(false);
+  /** 이 폰에 달린 카메라 목록. **deviceId 로 바꾼다** — `facingMode` 요청은 안드로이드에서
+      무시되는 기기가 흔하다(2026-09-11 회장님 실측). 권한을 받은 뒤에만 이름·id 가 채워진다 */
+  const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
+  /** 지금 켜져 있는 카메라의 deviceId */
+  const [camId, setCamId] = useState("");
   const [switching, setSwitching] = useState(false);
+  /** 이 폰에서는 전환이 **구조적으로 안 되는** 것으로 판명됐다 → 버튼을 감춘다.
+      ⚠ 「권한 거부」는 여기 넣지 않는다. 그건 다시 누르면 되는 일이다 */
+  const [switchDead, setSwitchDead] = useState("");
   /** 어느 길로 찍었나 — 브라우저 녹화 / 폰 기본 카메라 */
   const [source, setSource] = useState<"browser" | "camera">("browser");
   /** 표지 사진 — 못 만들어도 업로드는 막지 않는다(회장님 지시 5). 다만 사장님이 알 수 있게 한다 */
@@ -332,7 +364,10 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       setScreen("setup");
       /* ⚠ 카메라 개수는 **권한을 받은 뒤에야** 정확하다. 그전에 세면 목록에 이름이 없어
          한 대로 보이는 폰이 있다 — 그러면 전환 버튼이 영영 안 뜬다. */
-      void countCameras();
+      void countCameras(stream);
+      /* 실제로 열린 카메라가 앞면인지 뒷면인지 **브라우저에게 물어서** 정한다.
+         우리가 «user 로 요청했으니 앞면일 것»이라고 단정하지 않는다 — 거울 반전이 걸려 있다. */
+      setFacing(facingOf(stream.getVideoTracks()[0], undefined) === "environment" ? "environment" : "user");
     } catch (e) {
       /* ⚠ 전에는 오류를 통째로 버리고 한 문구만 띄웠다. 원인이 다르면 할 일도 다르다. */
       const name = (e as DOMException)?.name ?? "";
@@ -357,11 +392,15 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     }
   }
 
-  async function countCameras() {
+  /** 카메라 목록 읽기 — **권한을 받은 뒤에** 불러야 이름과 id 가 채워진다 */
+  async function countCameras(stream: MediaStream | null) {
     try {
       const ds = await navigator.mediaDevices.enumerateDevices();
-      setMultiCam(ds.filter((d) => d.kind === "videoinput").length > 1);
-    } catch { setMultiCam(false); }
+      const vids = ds.filter((d) => d.kind === "videoinput" && d.deviceId);
+      setCams(vids);
+      const now = stream?.getVideoTracks()[0]?.getSettings().deviceId ?? "";
+      setCamId(now || vids[0]?.deviceId || "");
+    } catch { setCams([]); }
   }
 
   /**
@@ -378,22 +417,69 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
    * ⚠ 실패하면 **쓰던 카메라를 그대로 둔다.** 화면이 검게 죽는 것이 최악이다.
    */
   async function switchCamera() {
-    if (switching || mode !== "video") return;
-    const next = facing === "user" ? "environment" : "user";
+    if (switching || mode !== "video" || cams.length < 2) return;
+    const i = Math.max(0, cams.findIndex((c) => c.deviceId === camId));
+    const target = cams[(i + 1) % cams.length];
     setSwitching(true); setErr("");
-    const old = streamRef.current;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
-      });
-      old?.getTracks().forEach((t) => t.stop());
-      streamRef.current = stream;
-      if (liveRef.current) liveRef.current.srcObject = stream;
-      setFacing(next);
-    } catch {
-      setErr("카메라를 바꾸지 못했어요. 지금 카메라로 찍으셔도 됩니다.");
-    } finally { setSwitching(false); }
+
+    const cur = streamRef.current;
+    const oldVideo = cur?.getVideoTracks()[0] ?? null;
+    /* ★★ **마이크는 다시 요청하지 않는다.** 쓰던 마이크 트랙을 그대로 들고 간다.
+       2026-09-11 실측에서 「카메라, 마이크를 사용하려고 합니다」 팝업이 다시 뜬 이유가
+       옛 코드의 `audio: true` 였다 — 이미 쓰고 있는 마이크를 또 달라고 했다. */
+    const audio = cur?.getAudioTracks() ?? [];
+
+    const openVideo = (id: string) => navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    });
+    const attach = (v: MediaStreamTrack) => {
+      const merged = new MediaStream([v, ...audio]);
+      streamRef.current = merged;
+      if (liveRef.current) liveRef.current.srcObject = merged;
+      return merged;
+    };
+
+    let got: MediaStream | null = null;
+    let why = "";
+    /* ① 먼저 **옛 카메라를 켜 둔 채로** 새 카메라를 연다. 여기서 되면 화면이 한 순간도 안 끊긴다. */
+    try { got = await openVideo(target.deviceId); }
+    catch (e) { why = (e as DOMException)?.name || "unknown"; }
+
+    /* ② 「이미 쓰는 중」이면 옛 카메라를 놓고 한 번 더 — **폰 한 대가 카메라를 하나만
+       열 수 있는 기기가 흔하다.** 여기서 놓아도 ③의 되살리기가 있어서 안전하다. */
+    if (!got && (why === "NotReadableError" || why === "AbortError" || why === "TrackStartError")) {
+      oldVideo?.stop();
+      try { got = await openVideo(target.deviceId); }
+      catch (e) { why = (e as DOMException)?.name || why; }
+    }
+
+    if (got) {
+      const v = got.getVideoTracks()[0];
+      oldVideo?.stop();
+      attach(v);
+      setCamId(target.deviceId);
+      setFacing(facingOf(v, target) === "environment" ? "environment" : "user");
+      setSwitching(false);
+      return;
+    }
+
+    /* ③ ★ 못 바꿨다 — **원래 카메라를 반드시 되살린다.** 화면이 멈춘 채로 두지 않는다
+       (2026-09-11 회장님 지시). ②에서 옛 트랙을 놓았을 수 있다. */
+    if (!oldVideo || oldVideo.readyState !== "live") {
+      try { attach((await openVideo(camId)).getVideoTracks()[0]); }
+      catch { /* 이것마저 실패하면 아래 문구가 «다시 켜기»로 안내한다 */ }
+    }
+    const backOk = (streamRef.current?.getVideoTracks()[0]?.readyState ?? "") === "live";
+
+    setErr(
+      `${SWITCH_WHY[why] ?? "카메라를 바꾸지 못했어요"} (오류: ${why})` +
+      (backOk ? " — 지금 카메라로 그대로 찍으셔도 됩니다." : " — 아래 [카메라 다시 켜기]를 눌러 주세요."),
+    );
+    /* ★ 기기 문제로 확정된 것만 버튼을 감춘다. 「권한 거부」는 다시 누르면 되는 일이라 남긴다 */
+    if (why !== "NotAllowedError" && why !== "SecurityError") setSwitchDead(why);
+    /* ★ 실패를 서버에 남긴다 — 어떤 폰에서 안 되는지 저절로 쌓인다(회장님 지시) */
+    void tellServer("camera_switch_failed", `${why} cams=${cams.length} label=${(target.label || "no-label").slice(0, 40)} back=${backOk}`);
+    setSwitching(false);
   }
 
   function startCountdown() {
@@ -667,20 +753,30 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
               <div className="absolute inset-x-3 top-3 rounded-xl bg-white/95 p-3 t-small font-semibold leading-snug" style={{ color: "var(--forest)" }}>{questionText}</div>
               {/* ★ 카메라 앱과 같은 자리(오른쪽 아래)에 둔다. 어두운 알약 위 흰 글자 — 밝은 매장을
                   비춰도 읽힌다(8.46:1). 카메라가 하나뿐인 폰에는 아예 안 나타난다. */}
-              {mode === "video" && multiCam && (
+              {/* ★ 카메라가 둘 이상이고, **이 폰에서 전환이 불가능하다고 판명나지 않은** 동안만 보인다.
+                  한 번 「이 기기는 안 된다」가 확인되면 사라진다 — 눌러도 안 되는 버튼은 없는 게 낫다. */}
+              {mode === "video" && cams.length > 1 && !switchDead && (
                 <button type="button" onClick={switchCamera} disabled={switching}
                   className="absolute bottom-3 right-3 rounded-full bg-black/70 px-4 py-2.5 t-small font-bold text-white disabled:opacity-60">
                   {switching ? "바꾸는 중…" : facing === "user" ? "⟲ 카메라 전환 · 뒷면으로" : "⟲ 카메라 전환 · 앞면으로"}
                 </button>
               )}
             </div>
-            {err && <p className="mt-3 t-small font-semibold" style={{ color: "var(--danger-soft)" }}>{err}</p>}
+            {err && (
+              <div className="mt-3">
+                <p className="t-small font-semibold leading-relaxed" style={{ color: "var(--danger-soft)" }}>{err}</p>
+                {/* ★ 미리보기가 죽었을 때 빠져나갈 길. 이것이 없으면 검은 화면 앞에서 갇힌다 */}
+                <button type="button" onClick={setup} className="mt-2 rounded-full border border-white/40 px-4 py-2 t-caption font-bold">
+                  카메라 다시 켜기
+                </button>
+              </div>
+            )}
             {/* ★ 「얼굴 안 나와도 된다」는 말만으로는 부족하다 — **어떻게** 안 나오게 하는지 방법을 준다 */}
             <p className="mt-3 t-small leading-relaxed opacity-80">
               얼굴이 나오는 게 어색하실 수 있습니다.{" "}
-              {multiCam
+              {cams.length > 1 && !switchDead
                 ? <><b>[카메라 전환]</b> 을 눌러 매장이나 제품을 비추면서 말씀하셔도 됩니다.</>
-                : <>카메라를 매장 쪽으로 돌려 비추면서 말씀하셔도 됩니다.</>}
+                : <>카메라를 매장 쪽으로 돌려 비추면서 말씀하셔도 됩니다. 화면을 안 보셔도 괜찮아요.</>}
             </p>
             {/* ★ 「끝낼 권한」을 먼저 드린다 — 60초를 다 채워야 하는 줄 알면 20초에 말이 끝난 뒤
                 어색해지고, 그 어색함이 그대로 영상에 남는다(2026-09-11 회장님 지시 4). */}
