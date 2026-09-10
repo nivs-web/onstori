@@ -611,6 +611,37 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 .surface-900 .t-lead { color: var(--text-on-dark); }
 .surface-900 .t-caption { color: var(--text-soft-on-dark); }
 
+/* ─────────────── 녹화 화면(/rec/{slug}) — 어두운 면 (2026-09-11 회장님 폰 실측) ───────────────
+   ★ 왜 필요한가: 이 화면은 `--forest`(#2E4038) 위에 흰 글자를 얹는 **독자 화면**이라
+     `.surface-900` 도 어드민 다크모드도 닿지 않았다. 그런데 `.t-caption`·`.t-micro` 는
+     **클래스에 밝은 화면용 색이 박혀 있고**(--text-soft = --n-700 #50665E),
+     `.t-h1`~`.t-h3`·`.t-display` 도 마찬가지다(--n-900 #1A2722).
+     그 색들이 `<main>` 의 흰 글자 지정을 **이겨서** 초록 위에 초록 글자가 됐다.
+     실측: 보조 글자 **1.42:1** · 모든 제목 **1.40:1** — 21곳이 4.5:1 미달이었다.
+   ★ 방식은 `.surface-900` 과 똑같다: **토큰만 뒤집는다.** 새 색을 만들지 않는다.
+   ⚠ `@layer components` **밖**에 둔다. `.t-h1 { color: var(--n-900) }` 이 레이어 밖이라
+     레이어 안에 두면 제목이 영영 안 바뀐다(2026-09-07 어드민에서 같은 사고).
+   ⚠ 검사: `npx tsx scripts/rec-contrast.ts --fixed` — 미달 0건이어야 한다. */
+.rec-shell {
+  background: var(--forest);
+  color: var(--cream);
+  --text-strong: var(--n-0);
+  --text: var(--n-200);
+  --text-soft: var(--n-300);
+}
+.rec-shell h1, .rec-shell h2, .rec-shell h3,
+.rec-shell .t-display, .rec-shell .t-h1, .rec-shell .t-h2, .rec-shell .t-h3 { color: var(--n-0); }
+.rec-shell .t-lead { color: var(--text-on-dark); }
+/* ⚠ **흰색**이다. 회색빛(--n-300)이 아니다 — 이 화면의 보조 글자는 마크업에서 이미
+   `opacity-60`~`opacity-70` 으로 한 번 흐려진다. 색으로 또 낮추면 «두 번 흐려져»
+   3.71:1 로 떨어진다(2026-09-11 실측). 흐리기는 마크업에 맡기고 색은 흰색을 준다 →
+   opacity-60 에서 5.14:1 · opacity-70 에서 6.35:1. */
+.rec-shell .t-caption, .rec-shell .t-micro { color: var(--n-0); }
+/* ⚠ 주 버튼도 안 보였다. `--green-700`(#005B2A)은 어두운 초록 바탕과 **1.33:1** —
+   「버튼이 어디 있는지」가 안 보인다. 이 화면에서만 밝은 라임으로 뒤집는다(7.19:1). */
+.rec-shell .btn-lime { background: var(--lime); color: var(--forest); }
+.rec-shell .btn-lime:hover { background: var(--green-300); }
+
 /* ② 중앙 정렬 헤드 — 최대 36em */
 .head-center { margin-inline: auto; max-width: var(--head-measure); text-align: center; }
 

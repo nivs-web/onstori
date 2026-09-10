@@ -34,6 +34,13 @@ class PutFail extends Error {
 const SHOOT_TIPS: [string, string][] = [
   ["얼굴이 안 나와도 됩니다",
    "목소리만으로도 충분합니다. 처음엔 목 아래만 나오게 찍으셔도 돼요."],
+  /* ★ 2026-09-11 회장님 — 60초는 처음 하는 사람에게 길다. 20초에 할 말이 끝나면
+     「더 말해야 하나」 하고 어색해진다. 끝낼 권한을 먼저 드린다. */
+  ["꼭 60초를 다 쓰지 않으셔도 됩니다",
+   "하실 말씀이 끝나면 정지를 눌러 주세요. 20초도 충분합니다."],
+  /* ★ 「얼굴 안 나와도 된다」는 말만으로는 부족하다 — **안 나오게 하는 방법**을 줘야 실제로 찍는다 */
+  ["얼굴이 어색하시면 [카메라 전환]",
+   "카메라 확인 화면에서 [카메라 전환]을 누르면 뒷면 카메라로 바뀝니다. 매장이나 제품을 비추면서 말씀하셔도 됩니다."],
   ["매장이라면, 60초 동안 매장을 걸으세요",
    "“오늘 매장을 보여드릴게요”처럼 편하게 말씀하시면 됩니다."],
   ["상품이 있다면, 상품을 보여주세요",
@@ -81,10 +88,13 @@ function isInApp(): boolean {
  *   폰 카메라는 1분에 자동으로 멈추지 않는다.
  * ⚠ `capture` 는 값을 반드시 적는다. 빈 값의 해석이 브라우저마다 다르다.
  */
-function CameraFallback({ device, mode, onFile }: {
+function CameraFallback({ device, mode, onFile, show }: {
   device: Device; mode: "video" | "audio"; onFile: (f: File | null) => void;
+  /** ★ **브라우저 녹화를 시도해서 실패했을 때만** 켠다(2026-09-11 회장님 지시 3).
+      평소에 띄워 두면 선택지가 둘이 되어 처음 오신 사장님이 그 자리에서 멈춘다. */
+  show: boolean;
 }) {
-  if (device !== "android" || mode !== "video") return null;
+  if (!show || device !== "android" || mode !== "video") return null;
   return (
     <details className="faq mt-6 rounded-2xl bg-white/10 px-4 py-3 text-left">
       <summary className="flex items-center justify-between gap-3 t-small font-bold">
@@ -264,6 +274,16 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
   const device = useSyncExternalStore(() => () => {}, detectDevice, () => "other" as Device);
   /** 왜 녹화가 안 되는지 — 없으면 정상. 카메라를 켜기 전에 미리 안다(권한창을 띄우지 않는다) */
   const [block, setBlock] = useState<Block | "perm" | "busy">(null);
+  /** 브라우저 녹화를 **실제로 시도해서 실패했나.** 「폰 카메라로 찍기」는 그때만 나타난다.
+      ⚠ 처음 오신 사장님에게 길이 둘이면 «어느 걸 눌러야 하지»에서 멈춘다 —
+        되는 길 하나만 보여 주고, 막혔을 때 다른 길을 준다(2026-09-11 회장님 지시 3). */
+  const [camFailed, setCamFailed] = useState(false);
+  /** 앞면(user) / 뒷면(environment) 카메라. 다시 켤 때도 고르신 쪽을 그대로 쓴다 */
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  /** 카메라가 둘 이상인가. **하나뿐인 폰에는 전환 버튼을 아예 안 보여준다** —
+      눌러도 아무 일이 안 나는 버튼을 두지 않는다. 권한을 받은 뒤에만 정확히 셀 수 있다 */
+  const [multiCam, setMultiCam] = useState(false);
+  const [switching, setSwitching] = useState(false);
   /** 어느 길로 찍었나 — 브라우저 녹화 / 폰 기본 카메라 */
   const [source, setSource] = useState<"browser" | "camera">("browser");
   /** 표지 사진 — 못 만들어도 업로드는 막지 않는다(회장님 지시 5). 다만 사장님이 알 수 있게 한다 */
@@ -304,12 +324,15 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     /* ★ 카메라를 켜기 «전에» 먼저 본다 — 권한창을 띄우지 않는 공짜 검사다.
        여기서 걸리면 사장님이 네 걸음을 걷고 막히는 일이 없다(회장님 지시 3). */
     const b = canRecordHere(mode);
-    if (b) { setBlock(b); setScreen("error"); return; }
+    if (b) { setBlock(b); setCamFailed(true); setScreen("error"); return; }
     setBlock(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(mode === "video" ? { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true } : { audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(mode === "video" ? { video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true } : { audio: true });
       streamRef.current = stream;
       setScreen("setup");
+      /* ⚠ 카메라 개수는 **권한을 받은 뒤에야** 정확하다. 그전에 세면 목록에 이름이 없어
+         한 대로 보이는 폰이 있다 — 그러면 전환 버튼이 영영 안 뜬다. */
+      void countCameras();
     } catch (e) {
       /* ⚠ 전에는 오류를 통째로 버리고 한 문구만 띄웠다. 원인이 다르면 할 일도 다르다. */
       const name = (e as DOMException)?.name ?? "";
@@ -318,13 +341,59 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
         setErr("이 폰에서 카메라를 찾지 못했어요.");
       } else if (inApp) {
-        setErr("카카오톡·인스타 안에서 열려서 그래요.");
+        /* ★ 원인 설명을 앞에 두지 않는다(회장님 지시 2). 사장님은 「왜」가 아니라
+           「다음에 뭘 누를지」가 궁금하다. 「인스타」는 뺐다 — 우리는 카톡·문자로만 보낸다. */
+        setErr("오른쪽 위 ⋮ → 다른 브라우저로 열기 를 눌러 주세요. (크롬·사파리)");
       } else {
         setErr("카메라·마이크를 쓰려면 '허용'을 눌러 주세요.");
       }
+      /* ★ 여기서 서버에 기록을 남긴다. 「카톡 인앱에서 카메라가 열리는가」는 저장소 안에서
+         알 수 없다 — 폰이 있어야 안다. 이제 **실패했을 때만** 진짜 답이 서버에 쌓인다.
+         짐작으로 경고를 띄우는 대신 사실을 모은다(2026-09-11 회장님 지시 2). */
+      void tellServer("camera_open_failed", `${name || "unknown"} inApp=${inApp} dev=${device}`);
+      setCamFailed(true);
       setBlock("perm");
       setScreen("error");
     }
+  }
+
+  async function countCameras() {
+    try {
+      const ds = await navigator.mediaDevices.enumerateDevices();
+      setMultiCam(ds.filter((d) => d.kind === "videoinput").length > 1);
+    } catch { setMultiCam(false); }
+  }
+
+  /**
+   * 앞↔뒤 카메라 바꾸기 — **녹화를 «시작하기 전»에만** 된다 (2026-09-11 회장님 지시 5).
+   *
+   * ★ 왜 필요한가: 「얼굴이 안 나와도 됩니다」라고 **말만** 해서는 부족하다.
+   *   화면에 자기 얼굴이 떠 있으면 대부분 그 자리에서 말이 안 나온다.
+   *   **안 나오게 하는 방법**을 손에 쥐여 드려야 실제로 찍으신다.
+   *   뒷면으로 현장을 비추며 말하는 쪽이 손님에게도 더 좋은 영상이 된다.
+   *
+   * ⚠ **녹화 중에는 못 바꾼다.** MediaRecorder 는 `start()` 때 붙잡은 트랙을 끝까지 녹화하고,
+   *   스트림을 갈아 끼워도 따라오지 않는다(브라우저 규격). 그래서 **녹화 화면에는 이 버튼을 두지 않는다** —
+   *   눌러도 안 되는 버튼을 두느니 없는 편이 낫다.
+   * ⚠ 실패하면 **쓰던 카메라를 그대로 둔다.** 화면이 검게 죽는 것이 최악이다.
+   */
+  async function switchCamera() {
+    if (switching || mode !== "video") return;
+    const next = facing === "user" ? "environment" : "user";
+    setSwitching(true); setErr("");
+    const old = streamRef.current;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      });
+      old?.getTracks().forEach((t) => t.stop());
+      streamRef.current = stream;
+      if (liveRef.current) liveRef.current.srcObject = stream;
+      setFacing(next);
+    } catch {
+      setErr("카메라를 바꾸지 못했어요. 지금 카메라로 찍으셔도 됩니다.");
+    } finally { setSwitching(false); }
   }
 
   function startCountdown() {
@@ -514,8 +583,11 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
 
   const mm = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
 
+  /* ⚠ 배경·글자색을 인라인으로 적지 않는다. `.t-caption`·`.t-h1` 이 클래스에 박아 둔
+       밝은 화면용 색이 인라인 `color` 를 **이겨서** 초록 위에 초록 글자가 됐다(2026-09-11 실측).
+       `.rec-shell` 이 토큰째 뒤집는다 — globals.css 참조. */
   return (
-    <main className="min-h-svh" style={{ background: "var(--forest)", color: "var(--cream)" }}>
+    <main className="rec-shell min-h-svh">
       <div className="mx-auto flex min-h-svh max-w-md flex-col px-5 pb-10 pt-6">
         <div className="flex items-center justify-between t-caption opacity-70">
           <span>onstori.com/rec · {businessName}</span>
@@ -531,11 +603,12 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <ul className="mx-auto mt-6 flex flex-wrap justify-center gap-2 t-caption font-semibold">
               {["✎ 글쓰기 금지", "🔗 이 링크가 로그인", "⤓ 앱 설치 없음"].map((t) => <li key={t} className="rounded-full border border-white/25 px-3 py-1.5">{t}</li>)}
             </ul>
-            {inApp && (
-              <p className="mt-6 rounded-xl bg-white/10 p-3 t-small leading-relaxed">
-                카카오톡·인스타 안에서 열렸어요. 카메라를 쓰려면 오른쪽 위 <b>⋮ 메뉴 → 다른 브라우저로 열기</b>를 눌러 주세요.
-              </p>
-            )}
+            {/* ★ 2026-09-11 — 「카카오톡·인스타 안에서 열렸어요」 경고를 **없앴다.**
+                ⚠ 그 경고는 **카메라를 열어 보지도 않고** 앱 이름(UA 문자열)만 보고 떴다.
+                  한국 사장님은 거의 다 카톡으로 링크를 여신다. 첫 화면부터 「막혔다」고
+                  말하면 대부분이 시작하기도 전에 겁을 먹는다 — 실제로는 열리는데도.
+                ★ 대신 **진짜로 카메라를 열어 보고 실패했을 때만** 길을 안내한다(`setup()` 의 catch).
+                  「하지 마라」가 아니라 「알 수 없는 것은 묻지 않고 해 본다」로 바꾼 것이다. */}
             <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !t-body">60초 영상 촬영하기</button>
             <ShootGuide />
           </section>
@@ -575,7 +648,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             {/* ⚠ 이 화면에도 안내 자리를 둔다 — 폰 카메라로 찍고 돌아왔는데 아무 말이 없으면
                 사장님은 버튼이 고장 난 줄 안다(2026-09-10 반증 검사가 잡아냈다). */}
             {badWhy && <p className="mt-4 rounded-xl bg-white/10 p-3 t-small leading-relaxed">{badWhy}</p>}
-            <CameraFallback device={device} mode={mode} onFile={takeFromCamera} />
+            <CameraFallback device={device} mode={mode} onFile={takeFromCamera} show={camFailed} />
           </section>
         )}
 
@@ -585,16 +658,37 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <p className="mt-4 t-caption font-bold opacity-60">카메라 확인</p>
             <div className="relative mt-3 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
               {mode === "video" ? (
-                <video ref={liveRef} autoPlay muted playsInline className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
+                /* ⚠ 거울처럼 좌우를 뒤집는 것은 **앞면 카메라일 때만**이다. 뒷면으로 매장을 비추는데
+                   좌우가 뒤집히면 간판 글씨가 거꾸로 보인다. 찍히는 파일은 원래 안 뒤집힌다(CSS 일 뿐). */
+                <video ref={liveRef} autoPlay muted playsInline className="h-full w-full object-cover" style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }} />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center text-center"><span className="t-h1">🎙</span><p className="mt-2 t-small opacity-80">음성만 녹음합니다</p></div>
               )}
               <div className="absolute inset-x-3 top-3 rounded-xl bg-white/95 p-3 t-small font-semibold leading-snug" style={{ color: "var(--forest)" }}>{questionText}</div>
+              {/* ★ 카메라 앱과 같은 자리(오른쪽 아래)에 둔다. 어두운 알약 위 흰 글자 — 밝은 매장을
+                  비춰도 읽힌다(8.46:1). 카메라가 하나뿐인 폰에는 아예 안 나타난다. */}
+              {mode === "video" && multiCam && (
+                <button type="button" onClick={switchCamera} disabled={switching}
+                  className="absolute bottom-3 right-3 rounded-full bg-black/70 px-4 py-2.5 t-small font-bold text-white disabled:opacity-60">
+                  {switching ? "바꾸는 중…" : facing === "user" ? "⟲ 카메라 전환 · 뒷면으로" : "⟲ 카메라 전환 · 앞면으로"}
+                </button>
+              )}
             </div>
-            <p className="mt-3 text-center t-caption opacity-70">
-              카메라를 매장 쪽으로 돌려도 됩니다. 얼굴이 안 나와도 괜찮아요.
+            {err && <p className="mt-3 t-small font-semibold" style={{ color: "var(--danger-soft)" }}>{err}</p>}
+            {/* ★ 「얼굴 안 나와도 된다」는 말만으로는 부족하다 — **어떻게** 안 나오게 하는지 방법을 준다 */}
+            <p className="mt-3 t-small leading-relaxed opacity-80">
+              얼굴이 나오는 게 어색하실 수 있습니다.{" "}
+              {multiCam
+                ? <><b>[카메라 전환]</b> 을 눌러 매장이나 제품을 비추면서 말씀하셔도 됩니다.</>
+                : <>카메라를 매장 쪽으로 돌려 비추면서 말씀하셔도 됩니다.</>}
             </p>
-            <p className="mt-4 t-small leading-relaxed opacity-80">준비되셨으면 시작을 누르세요. 3·2·1 뒤 녹화가 시작되고 60초에 자동으로 멈춥니다. 다시 찍기는 무제한이에요.</p>
+            {/* ★ 「끝낼 권한」을 먼저 드린다 — 60초를 다 채워야 하는 줄 알면 20초에 말이 끝난 뒤
+                어색해지고, 그 어색함이 그대로 영상에 남는다(2026-09-11 회장님 지시 4). */}
+            <p className="mt-4 t-small leading-relaxed opacity-80">
+              준비되셨으면 시작을 누르세요. 3·2·1 뒤 녹화가 시작됩니다.{" "}
+              <b>꼭 60초를 다 쓰지 않으셔도 됩니다 — 하실 말씀이 끝나면 정지를 눌러 주세요.</b>{" "}
+              다시 찍기는 무제한이에요.
+            </p>
             <button type="button" onClick={startCountdown} className="btn-lime mt-6 w-full !py-4 !t-body">준비됐어요 · 시작</button>
           </section>
         )}
@@ -604,19 +698,24 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
           <section className="flex flex-1 flex-col">
             <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
               {mode === "video" ? (
-                <video ref={liveRef} autoPlay muted playsInline className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
+                <video ref={liveRef} autoPlay muted playsInline className="h-full w-full object-cover" style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }} />
               ) : (
                 <div className="flex h-full items-center justify-center"><span className="t-h1">🎙</span></div>
               )}
               <div className="absolute inset-x-3 top-3 rounded-xl bg-white/95 p-3 t-small font-semibold leading-snug" style={{ color: "var(--forest)" }}>{questionText}</div>
               {screen === "count" ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                /* ⚠ 스크림 40% → 50%. 밝은 매장을 비추면 카운트다운 숫자가 2.85:1 로 묻혔다(→3.95:1) */
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                   <span className="font-display t-h1 text-white">{count > 0 ? count : "●"}</span>
-                  <button type="button" onClick={startRec} className="absolute bottom-5 t-small text-white/70 underline">건너뛰기</button>
+                  {/* ⚠ 「흰 글자 70%」가 스크림 위에 얹혀 2.16:1 이었다. 밝은 매장을 비추면
+                      글자가 사라진다. 알약을 깔고 흰 글자를 100% 로 올린다(8.46:1). */}
+                  <button type="button" onClick={startRec} className="absolute bottom-5 rounded-full bg-black/70 px-3 py-1 t-small font-semibold text-white underline">건너뛰기</button>
                 </div>
               ) : (
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 t-small font-bold text-white">
+                  {/* ⚠ 알약을 50%→70% 로 어둡게 했다. 밝은 매장을 비추면 50% 로는 3.95:1 이라
+                      「REC 0:42」가 안 읽힌다(2026-09-11 실측 → 8.46:1). */}
+                  <span className="inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-1 t-small font-bold text-white">
                     {/* 깜빡이지 않는다 — 무한 루프 애니메이션은 MOTION.md 금지 목록이다.
                         멈춤/녹화 중은 색으로 구분한다. */}
                     <span className="inline-block" style={{ width: 10, height: 10, borderRadius: "var(--r-full)", background: paused ? "var(--n-400)" : "var(--danger)" }} /> {paused ? "일시정지" : "REC"} {mm(sec)} / {mm(MAX_SEC)}
@@ -624,15 +723,22 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
                 </div>
               )}
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full transition-all" style={{ width: `${(sec / MAX_SEC) * 100}%`, background: "var(--terra)" }} /></div>
+            {/* ⚠ 빨간 막대(--terra)는 홈 색과 1.55:1 이라 «얼마나 찍었는지»가 안 보였다.
+                라임으로 바꾼다(4.55:1). 「녹화 중」은 위의 빨간 점과 REC 글자가 이미 말한다. */}
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full transition-all" style={{ width: `${(sec / MAX_SEC) * 100}%`, background: "var(--lime)" }} /></div>
             {screen === "rec" && (
               <div className="mt-6 flex items-center justify-center gap-8">
                 <button type="button" onClick={togglePause} className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white/60 t-small font-bold">{paused ? "재개" : "잠깐"}</button>
-                <button type="button" onClick={stopRec} aria-label="정지" className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white"><span className="block h-8 w-8 rounded-md" style={{ background: "var(--terra)" }} /></button>
+                {/* ⚠ 빨간 네모가 초록 바탕 위에 바로 얹혀 2.45:1 이었다 — 정지 버튼이 잘 안 보인다.
+                    흰 원을 깔고 그 위에 빨간 네모를 올린다(3.70:1). 카메라 앱의 표준 모양이다. */}
+                <button type="button" onClick={stopRec} aria-label="정지" className="flex h-20 w-20 items-center justify-center rounded-full bg-white"><span className="block h-8 w-8 rounded-md" style={{ background: "var(--terra)" }} /></button>
                 <span className="h-14 w-14" />
               </div>
             )}
-            <p className="mt-4 text-center t-caption opacity-60">얼굴이 안 나와도 됩니다. 목소리면 충분합니다.</p>
+            <p className="mt-4 text-center t-caption leading-relaxed opacity-60">
+              얼굴이 안 나와도 됩니다. 목소리면 충분합니다.<br />
+              꼭 60초를 다 쓰지 않으셔도 됩니다 — 하실 말씀이 끝나면 정지를 눌러 주세요.
+            </p>
           </section>
         )}
 
@@ -740,7 +846,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             {/* 안드로이드는 여기서도 폰 카메라로 빠져나갈 수 있다 */}
             <div className="w-full max-w-xs">
               {badWhy && <p className="mt-4 rounded-xl bg-white/10 p-3 text-left t-small leading-relaxed">{badWhy}</p>}
-              <CameraFallback device={device} mode={mode} onFile={takeFromCamera} />
+              <CameraFallback device={device} mode={mode} onFile={takeFromCamera} show={camFailed} />
             </div>
           </section>
         )}
