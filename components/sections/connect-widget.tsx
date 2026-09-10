@@ -1,5 +1,6 @@
 import type { SiteDocT, WidgetT } from "@/lib/schema";
-import { contactOf } from "./index";
+/* ⚠ ./index 가 아니라 잎 모듈에서 — 렌더러를 손님 브라우저로 끌고 오지 않기 위해서다 */
+import { contactOf } from "./nav";
 
 /**
  * ⚠ 2026-09-06 부로 화면에 그리지 않는다 — 하단 고정 바(components/sections/site-chrome.tsx)가

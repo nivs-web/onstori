@@ -50,6 +50,7 @@
 공통: `hero` `about` `storyFeed` `gallery` `reviews` `map` `banner`
 QUOTE 전용: `portfolioGallery` `processSteps` `quoteForm`
 VISIT 전용: `hoursCard` `menuPrice`
+영상: `video` (2026-09-10 추가 — 「섹션 추가」로는 못 넣는다. 편집화면의 [홈페이지에 걸기] 전용)
 
 모든 섹션은 `type` literal 필드로 판별한다(discriminatedUnion). 아래 표에서 `type`은 생략.
 
@@ -150,6 +151,27 @@ VISIT 전용: `hoursCard` `menuPrice`
 |---|---|---|---|
 | title | string | ⬜ | ≤40자, 기본값 `"메뉴"` |
 | items | `{ name, price, desc? }[]` | ✅ | 1~40개. name ≤40자, price ≤20자 문자열(자유 표기, 예: `"12,000원"`), desc ≤80자(선택) |
+
+### video (60초 영상 — 2026-09-10, V-1)
+
+| 필드 | 타입 | 필수 | 제약·기본값 |
+|---|---|---|---|
+| title | string | ⬜ | ≤40자 · 기본 「사장님 이야기」 |
+| url | string | ✅ | 1~500자. **공개 버킷의 mp4 주소** |
+| poster | string | ⬜ | ≤500자. 표지 사진. **없어도 정상**이다 |
+| caption | string | ⬜ | ≤120자. 녹화할 때의 「오늘의 질문」 |
+
+★ **사장님이 이 값을 타이핑하지 않는다.** 편집화면의 [홈페이지에 걸기] 가 넣는다.
+  그래서 「섹션 추가」 목록(`ADDABLE_SECTIONS`)에 **없다** — 타입(`AddableType`)으로 막아 뒀다.
+
+★ **url 이 비면 이 섹션은 아예 안 그려진다.** 빈 검은 칸을 남기지 않는다(2026-09-10 회장님).
+
+⚠ `url` 에 zod `.url()` 을 걸지 않았다. 우리 R2 주소만 들어오는 자리이고, R2 없이
+  Supabase 폴백으로 돌 때 주소 형태가 달라진다. 길이로만 막는다.
+
+⚠ **자동재생·음소거 자동재생을 넣지 마라.** 손님이 들어오자마자 사장님 목소리가 나면
+  그 자리에서 나간다. 그리고 재생 제어는 JS 를 부르는데, 섹션 렌더러는 서버 컴포넌트라
+  JS 가 붙는 순간 **영상이 없는 사이트까지** 무거워진다(docs/PERFORMANCE.md §5-2).
 
 ## 예시 (인테리어 QUOTE)
 

@@ -557,6 +557,8 @@ export function EditUi({ slug }: { slug: string }) {
 /** 섹션 이름 — 목록은 lib/section-defaults.ts 하나에서 온다. hero 만 거기 없다(더할 수 없는 칸이라) */
 function sectionLabel(type: string): string {
   if (type === "hero") return "첫 화면";
+  // 영상은 「섹션 추가」로 못 넣어서 ADDABLE_SECTIONS 에 없다(2026-09-10) — 이름을 여기서 준다
+  if (type === "video") return "영상";
   return ADDABLE_SECTIONS.find((a) => a.type === type)?.name ?? type;
 }
 
@@ -1018,6 +1020,31 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                 <button onClick={() => patchSection(i, { items: [...s.items, { name: "", price: "" }] })}
                   className="rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">＋ 메뉴 추가</button>
               )}
+            </section>
+          );
+          case "video": return (
+            /* 60초 영상 (2026-09-10, V-1).
+               ★ 사장님이 «주소»를 고칠 수는 없다. 고칠 수 있는 것은 제목과 한 줄뿐이고,
+                 영상 자체를 바꾸거나 내리는 것은 「영상」 메뉴에서 한다.
+               ⚠ 여기서 소리를 내지 않는다 — 편집 중에 갑자기 사장님 목소리가 나면 놀란다.
+                 `controls` 만 두고 자동재생을 넣지 않는다(손님 화면과 같은 규칙). */
+            <section data-tour="sec-video" className="space-y-3 rounded-2xl border border-n-200 p-4">
+              <h2 className="t-small font-bold">영상</h2>
+              <div className="overflow-hidden rounded-xl bg-n-900" style={{ maxHeight: 220 }}>
+                <video src={s.url} poster={s.poster} controls playsInline preload="metadata"
+                  className="mx-auto block" style={{ maxHeight: 220, maxWidth: "100%" }} />
+              </div>
+              {!s.poster && (
+                <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+                  표지 사진이 없어요. 손님에게는 영상의 첫 장면이 먼저 보입니다.
+                </p>
+              )}
+              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <Field label="영상 아래 한 줄 (선택)"><input className={inp} value={s.caption ?? ""} maxLength={120} placeholder="예: 20년째 같은 자리에서 합니다"
+                onChange={(e) => patchSection(i, { caption: e.target.value || undefined })} /></Field>
+              <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+                다른 영상으로 바꾸거나 내리려면 위 <b>「영상」</b> 메뉴에서 하세요. 여기서 ✕ 를 눌러도 홈페이지에서만 내려가고 영상은 그대로 남아 있어요.
+              </p>
             </section>
           );
           default: return (

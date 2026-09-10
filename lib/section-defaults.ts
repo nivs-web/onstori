@@ -7,7 +7,15 @@ import type { SectionT } from "@/lib/schema";
  * - hero는 생성 시 항상 존재하고 순서가 고정이라 추가 대상에서 제외.
  */
 
-export type AddableType = Exclude<SectionT["type"], "hero">;
+/**
+ * 「섹션 추가」로 넣을 수 있는 것.
+ *
+ * ⚠ `hero` 는 생성 시 항상 있고 순서가 고정이라 제외한다.
+ * ⚠ **`video` 도 제외한다** (2026-09-10 회장님). 사장님은 영상 «주소»를 타이핑할 수 없다.
+ *   영상은 편집화면의 **[홈페이지에 걸기] 하나로만** 들어간다 — 길이 하나여야 헷갈리지 않는다.
+ *   ★ 주석이 아니라 **타입으로** 막아 둔다. ADDABLE_SECTIONS 에 video 를 적으면 컴파일이 깨진다.
+ */
+export type AddableType = Exclude<SectionT["type"], "hero" | "video">;
 
 export const ADDABLE_SECTIONS: { type: AddableType; name: string; needsPhoto?: boolean }[] = [
   { type: "about", name: "소개" },
@@ -38,4 +46,24 @@ export function sectionDefault(type: AddableType, photoUrl?: string): SectionT {
     case "hoursCard": return { type, title: "영업시간", hours: "영업시간을 입력해 주세요" };
     case "menuPrice": return { type, title: "메뉴", items: [{ name: "", price: "" }] };
   }
+}
+
+/**
+ * 영상 섹션 만들기 — **편집화면의 [홈페이지에 걸기] 전용** (2026-09-10, V-1).
+ *
+ * ★ `sectionDefault()` 와 따로 둔 이유: 영상은 「섹션 추가」로 못 만든다(위 AddableType 참조).
+ *   빈 값으로 만들 수 있는 물건이 아니라 **주소가 반드시 있어야** 하는 물건이다.
+ * ★ 기본값이 한 곳에만 있게 여기 둔다 — C덩어리가 객체를 직접 조립하면 제목이 곳곳에서 갈린다.
+ *
+ * ⚠ `poster` 는 없을 수 있다(표지 뽑기 실패). 그때는 넣지 않는다 — 빈 문자열을 넣으면
+ *   브라우저가 «없는 사진»을 받으러 가서 404 를 한 번 낸다.
+ */
+export function videoSection(v: { url: string; poster?: string; caption?: string }): SectionT {
+  return {
+    type: "video",
+    title: "사장님 이야기",
+    url: v.url,
+    ...(v.poster ? { poster: v.poster } : {}),
+    ...(v.caption ? { caption: v.caption.slice(0, 120) } : {}),
+  };
 }

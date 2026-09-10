@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { SiteDocT, WidgetT } from "@/lib/schema";
-import { contactOf } from "@/components/sections";
+/* ⚠ 잎 모듈에서 가져온다 — @/components/sections 는 렌더러를 통째로 끌고 온다 */
+import { contactOf } from "@/components/sections/nav";
 
 /**
  * 플로팅 연결 버튼 설정 (2026-09-05).

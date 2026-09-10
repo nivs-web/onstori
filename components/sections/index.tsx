@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
 import { workCount } from "@/lib/stories";
-import { telValue } from "@/lib/phone";
+import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
 
 /**
@@ -44,33 +44,12 @@ export function onColor(bgHex: string): string {
   return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.05) ? "#FFFFFF" : "#111111";
 }
 
-/* ── 앵커 ── 햄버거 시트가 이 목록으로 차례를 만든다 (site-chrome.tsx) */
-
-/** 섹션 종류 → 앵커 id. 같은 종류가 두 번 있어도 첫 번째만 차례에 올린다. */
-export const ANCHOR_OF: Partial<Record<SectionT["type"], string>> = {
-  about: "about", storyFeed: "stories", gallery: "gallery", portfolioGallery: "portfolio",
-  processSteps: "process", reviews: "reviews", menuPrice: "menu", hoursCard: "hours",
-  map: "map", quoteForm: "quote",
-};
-
-/** 시트에 올릴 차례. 제목이 비어 있으면 종류의 기본 이름을 쓴다. */
-export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[] {
-  const fallback: Partial<Record<SectionT["type"], string>> = {
-    about: "소개", storyFeed: "작업 기록", gallery: "사진", portfolioGallery: "시공 사례",
-    processSteps: "진행 과정", reviews: "후기", menuPrice: "가격", hoursCard: "영업시간",
-    map: "오시는 길", quoteForm: "견적 문의",
-  };
-  const seen = new Set<string>();
-  const out: { href: string; label: string }[] = [];
-  for (const s of doc.sections) {
-    const id = ANCHOR_OF[s.type];
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    const title = "title" in s && typeof s.title === "string" ? s.title.trim() : "";
-    out.push({ href: `#${id}`, label: title || fallback[s.type] || id });
-  }
-  return out;
-}
+/* ★ 2026-09-10 — ANCHOR_OF · SECTION_ANCHORS · contactOf 는 `./nav` 로 옮겼다.
+   그 셋을 "use client" 파일이 여기서 가져가는 바람에 **섹션 렌더러 13종이 통째로**
+   손님 브라우저 번들에 실리고 있었다(2026-09-10 실측 — 번들에서 영상 렌더러의 `70svh` 가 나왔다).
+   ⚠ 서버 쪽 기존 호출부가 깨지지 않게 여기서 다시 내보낸다. **새 코드는 `./nav` 에서 직접 가져와라.**
+   ⚠ 특히 "use client" 파일은 절대 이 파일에서 가져오지 마라(docs/PERFORMANCE.md §5-2). */
+export { ANCHOR_OF, SECTION_ANCHORS, contactOf } from "./nav";
 
 /* ── 공통 부품 ── */
 
@@ -95,20 +74,6 @@ function SectionShell({ id, title, children }: { id?: string; title?: string; ch
       </div>
     </section>
   );
-}
-
-/**
- * 연결 수단의 단일 출처 — 히어로 CTA·햄버거 시트·하단 고정 바가 같은 값을 본다.
- * 값을 사본으로 늘리지 않고 여기서 파생한다.
- * 전화번호가 안내 문구면 tel 이 "" 로 돌아온다 — 호출부가 죽은 링크를 만들지 않게 한다.
- * map.phone 은 쓰지 않는다: 생성 시 값이 굳고 에디터에 수정 UI가 없어 사장님이 고칠 수 없는 값이다.
- */
-export function contactOf(doc: SiteDocT): { tel: string; kakaoUrl: string } {
-  const q = doc.sections.find((s) => s.type === "quoteForm");
-  return {
-    tel: telValue(q && "phone" in q ? q.phone : ""),
-    kakaoUrl: (q && "kakaoUrl" in q ? q.kakaoUrl : "") ?? "",
-  };
 }
 
 function ctaHref(action: string, ctx: Ctx): string {
@@ -449,6 +414,74 @@ function MenuSec({ s }: { s: Extract<SectionT, { type: "menuPrice" }> }) {
   );
 }
 
+/**
+ * 60초 영상 한 편 (2026-09-10, V-1).
+ *
+ * ★★ **서버 컴포넌트를 유지한다.** 이 파일에는 `"use client"` 가 없고, 그래서 손님 브라우저로
+ *   JS 가 한 바이트도 안 간다. 영상이 없는 사이트는 HTML 도 안 늘어난다.
+ *   ⚠ 자동재생·음소거 자동재생·직접 만든 재생 버튼을 넣는 순간 이 성질이 깨지고,
+ *     **영상을 안 쓰는 사장님 사이트까지** 무거워진다(docs/PERFORMANCE.md §5-2).
+ *
+ * ★ **자동재생 금지** (2026-09-10 회장님). 손님이 사이트에 들어왔는데 갑자기 사장님 목소리가
+ *   나면 그 자리에서 나간다. 손님이 눌러야 재생된다 — `<video controls>` 는 브라우저가 공짜로 준다.
+ *
+ * ★ **어두운 띠**는 손님 팔레트의 `--s-ink` 로 낸다(규칙 11: 배경을 번갈아 쓴다).
+ *   글자색은 그 색에서 **계산한다**(`onColor`) — 사장님이 어떤 분위기를 골라도 읽힌다.
+ *   ⚠ 하드코딩 색도, 어드민 토큰(`--surface` 등)도 쓰지 않는다.
+ *
+ * ★ **높이를 고정한 띠** 안에 영상을 담는다. 영상 크기를 미리 모르는데 자리를 안 잡아 두면
+ *   재생기가 뜨는 순간 아래 내용이 밀린다(CLS). 띠 높이가 고정이면 그 일이 없다.
+ *   화면의 **70%** 를 넘지 않는다(회장님 지시).
+ */
+function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: Ctx }) {
+  // ★ 주소가 없으면 **아무것도 그리지 않는다.** 빈 검은 칸이 남으면 안 된다(회장님 지시)
+  if (!s.url?.trim()) return null;
+
+  const ink = PALETTES[ctx.doc.theme.palette]?.ink ?? "#17202B";
+  const on = onColor(ink);
+
+  return (
+    <section
+      id={ANCHOR_OF.video}
+      className="reveal"
+      style={{
+        background: "var(--s-ink)", color: on,
+        paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)",
+        scrollMarginTop: "var(--bar-h)",
+      }}
+    >
+      <div className="mx-auto max-w-3xl">
+        {s.title && (
+          <h2 className="t-h2" style={{ marginBottom: "var(--s-5)", color: on, fontFamily: "inherit" }}>
+            <span className="mr-2 inline-block" style={{ height: 3, width: 24, transform: "translateY(-4px)", background: "var(--s-accent)" }} />
+            {s.title}
+          </h2>
+        )}
+        {/* 높이가 고정된 자리 — 영상이 세로든 가로든 이 안에서 가운데 담긴다 */}
+        <div
+          style={{
+            height: "min(70svh, 560px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            borderRadius: "var(--r-lg)", overflow: "hidden",
+          }}
+        >
+          <video
+            src={s.url}
+            poster={s.poster}
+            controls
+            playsInline
+            preload="metadata"
+            style={{ maxHeight: "100%", maxWidth: "100%", display: "block" }}
+          />
+        </div>
+        {s.caption && (
+          <p className="t-small" style={{ marginTop: "var(--s-4)", color: on, opacity: 0.8 }}>{s.caption}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ── 레지스트리 ── */
 
 export function RenderSection({ s, ctx, index }: { s: SectionT; ctx: Ctx; index?: number }) {
@@ -465,5 +498,6 @@ export function RenderSection({ s, ctx, index }: { s: SectionT; ctx: Ctx; index?
     case "quoteForm": return <QuoteFormSec s={s} ctx={ctx} />;
     case "hoursCard": return <HoursSec s={s} />;
     case "menuPrice": return <MenuSec s={s} />;
+    case "video": return <VideoSecR s={s} ctx={ctx} />;
   }
 }

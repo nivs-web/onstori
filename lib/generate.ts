@@ -109,6 +109,11 @@ export async function generateSite(input: GenerateInput) {
   ]);
   const copy = copyResult.data;
 
+  /* ⚠ 영상(video) 섹션은 **여기서 만들지 않는다** (2026-09-10, V-1).
+     새로 만든 사이트에는 찍은 영상이 아직 없다. 빈 영상 칸을 넣으면 렌더러가 아무것도
+     안 그리므로 화면은 멀쩡하지만, 에디터 섹션 목록에는 «영상»이 있는 것처럼 보인다 —
+     사장님이 눌러도 아무것도 없는 칸이다.
+     영상은 편집화면의 [홈페이지에 걸기] 로만 들어온다(lib/section-defaults.ts 의 videoSection). */
   const sections: SiteDocT["sections"] = [
     {
       type: "hero",

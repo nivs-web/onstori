@@ -73,8 +73,12 @@ export const ACTIVE_ANCHORS = [
  * set-hours(영업시간)는 VISIT 템플릿에만 붙는다. 완성도 규칙 hours 는 모든 템플릿에 적용되므로
  * QUOTE 사이트에서 "＋10점 영업시간" 힌트를 눌러도 갈 곳이 없다 — 에디터가 안내로 처리한다.
  */
-export const CONDITIONAL_ANCHORS: { anchor: string; onlyOn: string[] }[] = [
+export const CONDITIONAL_ANCHORS: { anchor: string; onlyOn: string[]; note?: string }[] = [
   { anchor: "set-hours", onlyOn: ["visit"] },
+  /* 2026-09-10 V-1 — 영상은 «템플릿»이 아니라 «영상을 건 사이트»에만 있다.
+     ★ 지금은 점수를 붙이지 않는다(회장님). 그래서 completeness.ts 에는 넣지 않았고,
+       앵커만 미리 만들어 둔다 — 나중에 점수를 붙일 때 갈 곳이 이미 있게. */
+  { anchor: "sec-video", onlyOn: [], note: "영상을 홈페이지에 건 사이트에만 있다" },
 ];
 
 /**

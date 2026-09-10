@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { SiteDocT } from "@/lib/schema";
-import { contactOf, SECTION_ANCHORS } from "./index";
+/* ⚠ ./index 에서 가져오면 **섹션 렌더러 13종이 손님 브라우저 번들에 통째로 실린다.**
+   이 파일은 "use client" 다 — 잎 모듈(./nav)에서만 가져온다(2026-09-10 실측). */
+import { contactOf, SECTION_ANCHORS } from "./nav";
 import { ICON, ARIA } from "./connect-widget";
 
 /**

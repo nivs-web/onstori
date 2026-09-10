@@ -128,6 +128,31 @@ export const MenuPrice = z.object({
   })).min(1).max(40),
 });
 
+/* ── 60초 영상 ── */
+
+/**
+ * 사장님이 찍은 60초 영상 한 편 (2026-09-10, V-1).
+ *
+ * ★ **사장님이 이 값을 타이핑하지 않는다.** 편집화면의 [홈페이지에 걸기] 가 넣는다.
+ *   그래서 「섹션 추가」 목록(`lib/section-defaults.ts` 의 ADDABLE_SECTIONS)에는 **넣지 않는다** —
+ *   빈 영상 칸을 만들 수 있게 하면 사장님이 주소를 칠 수 없어 막다른 길이 된다(2026-09-10 회장님).
+ *
+ * ⚠ `url` 을 `.url()` 로 막지 않는다. 우리 R2 주소만 들어오는 자리이고, 저장소가
+ *   R2 없이 Supabase 폴백으로 돌 때 주소 형태가 달라진다. 대신 **최대 길이**로만 막는다.
+ * ⚠ `poster` 는 **선택**이다. 표지 뽑기가 실패해도 영상은 정상으로 보여야 한다(회장님 지시).
+ * ⚠ 필드를 늘릴 때는 전부 `.optional()` 로 — **이미 발행된 사이트의 문서가 그대로 통과해야 한다**
+ *   (`About.image` 주석이 같은 이유로 붙어 있다).
+ */
+export const VideoSec = z.object({
+  type: z.literal("video"),
+  title: z.string().max(40).default("사장님 이야기"),
+  url: z.string().min(1).max(500),
+  /** 표지 사진. 없으면 브라우저 기본 첫 프레임으로 보인다 */
+  poster: z.string().max(500).optional(),
+  /** 영상 아래 한 줄. 녹화할 때의 «오늘의 질문»이 들어온다 */
+  caption: z.string().max(120).optional(),
+});
+
 /* ── 플로팅 연결 위젯 ── */
 
 /**
@@ -147,6 +172,8 @@ export const Section = z.discriminatedUnion("type", [
   Hero, About, StoryFeed, Gallery, Reviews, MapSec, Banner,
   PortfolioGallery, ProcessSteps, QuoteForm,
   HoursCard, MenuPrice,
+  // 2026-09-10 V-1 — 맨 뒤에 더한다. 순서는 union 판정에 영향이 없고, 이미 발행된 문서도 그대로 통과한다
+  VideoSec,
 ]);
 
 export const SiteDoc = z.object({
