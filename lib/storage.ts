@@ -104,6 +104,47 @@ export function publicUrl(key: string): string {
   return sbAdmin().storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
 
+/**
+ * 파일 **앞부분 몇 바이트만** 읽는다 — 진짜 형식을 확인하려고 쓴다(`lib/media-sniff.ts`).
+ *
+ * ★ 통째로 받지 않는다. 60초 영상이 8MB 여도 실제로 오가는 건 64바이트다.
+ *   Range 요청이라 R2 전송 과금·시간이 사실상 0 이다.
+ * ⚠ 파일이 없으면 던진다. 부르는 쪽이 «없음»과 «형식 틀림»을 구분해야 한다.
+ */
+export async function readHead(bucket: Bucket, key: string, bytes: number): Promise<Uint8Array> {
+  const env = r2Env();
+  if (env) {
+    const r = await client(env).send(
+      new GetObjectCommand({ Bucket: r2Bucket(env, bucket), Key: key, Range: `bytes=0-${bytes - 1}` })
+    );
+    return new Uint8Array(await r.Body!.transformToByteArray());
+  }
+  // Supabase 폴백 — Range 를 못 쓰므로 서명 URL 에 Range 헤더를 붙여 받는다
+  const url = await signedGetUrl(key, 60);
+  const res = await fetch(url, { headers: { Range: `bytes=0-${bytes - 1}` } });
+  if (!res.ok) throw new Error(`storage.readHead: ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/**
+ * 표지 사진 키 — **영상 키에서 계산한다.** DB 에 칸을 새로 만들지 않기 위해서다.
+ *   `private/stories/{slug}/{uuid}.mp4`  →  `uploads/{slug}/poster-{uuid}.webp`
+ *
+ * ★ 왜 이렇게 하나: 표지 주소를 저장할 칸을 만들면 마이그레이션 → `db push`(사람이 해야 함) →
+ *   그때까지 V-1 이 멈춘다. 규칙으로 정해 두면 양쪽이 같은 자리를 계산해 낸다.
+ * ⚠ 표지가 없을 수도 있다(뽑기 실패). 쓰는 쪽은 **있는지 확인하고** 없으면 표지 없이 간다.
+ * ⚠ `uploads/` 는 **공개** 버킷이다(20260901100000_uploads_bucket.sql). 손님이 봐야 하므로 맞다.
+ */
+export function posterKeyOf(videoKey: string): string | null {
+  // 슬래시가 많아 정규식이 읽기 어렵다 — 쪼개서 본다
+  const part = videoKey.split("/");
+  if (part.length !== 4 || part[0] !== "private" || part[1] !== "stories") return null;
+  const slug = part[2];
+  const uuid = part[3].replace(/\.[a-z0-9]+$/i, "");
+  if (!/^[a-z0-9-]{2,30}$/.test(slug) || !/^[0-9a-f-]{36}$/i.test(uuid)) return null;
+  return `uploads/${slug}/poster-${uuid}.webp`;
+}
+
 /** 비공개 파일 열람용 서명 URL(기본 10분) */
 export async function signedGetUrl(key: string, expiresSec = 600): Promise<string> {
   const env = r2Env();
