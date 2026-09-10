@@ -42,8 +42,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "영상 목록을 불러오지 못했어요" }, { status: 500 });
   }
 
+  /* ⚠ **소리만 녹음한 것은 이 목록에서 뺀다.** 그것도 `video_key` 에 저장되지만
+     그림이 없다 — 걸면 홈페이지에 검은 칸이 붙는다.
+     `audio-` 이름은 `publicVideoKeyOf` 가 못 읽으므로 여기서 저절로 걸러진다
+     (주석이 아니라 구조로 막는다 — `app/api/story/upload-url/route.ts`). */
+  const videoRows = (data ?? []).filter((row) => storage.publicVideoKeyOf(String(row.video_key ?? "")) !== null);
+
   const items = await Promise.all(
-    (data ?? []).map(async (row) => {
+    videoRows.map(async (row) => {
       const key = row.video_key as string;
       const publicKey = storage.publicVideoKeyOf(key);
       const posterKey = storage.posterKeyOf(key);

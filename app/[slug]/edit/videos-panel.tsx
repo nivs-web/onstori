@@ -137,15 +137,19 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
             return (
               <section key={it.id} className={`space-y-3 rounded-2xl border p-4 ${on ? "border-green-700" : "border-n-200"}`}>
                 <div className="flex flex-wrap items-start gap-3">
+                  {/* ⚠ `preload="none"` 이다. `metadata` 로 두면 목록을 여는 것만으로
+                      **사장님 폰 데이터가 수십~수백 MB** 나간다 — 녹화기가 만든 mp4 는 조각형이라
+                      브라우저가 길이를 알려면 파일을 거의 다 받아야 한다.
+                      표지 사진만 먼저 보이고, 사장님이 재생을 눌러야 영상이 흐른다. */}
                   <div className="w-40 shrink-0 overflow-hidden rounded-xl bg-n-900">
                     {it.preview ? (
                       <video
                         src={it.preview} poster={it.poster ?? undefined}
-                        controls playsInline preload="metadata"
+                        controls playsInline preload="none"
                         className="block w-full" style={{ maxHeight: 160 }}
                         onLoadedMetadata={(e) => {
                           const v = e.currentTarget.duration;
-                          if (Number.isFinite(v) && v > 0) setDur((p) => ({ ...p, [it.id]: v }));
+                          setDur((p) => ({ ...p, [it.id]: Number.isFinite(v) && v > 0 ? v : -1 }));
                         }}
                       />
                     ) : (
@@ -154,9 +158,11 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="t-small font-bold">{it.question || it.title || "제목 없음"}</p>
+                    {/* ⚠ 길이를 «조용히 빼지» 않는다. 못 잰 것과 안 재 본 것을 구분해 말한다 —
+                        녹화기가 만든 mp4 는 길이가 안 적혀 있는 경우가 실제로 흔하다. */}
                     <p className="mt-1 t-caption text-[var(--text-soft)]">
                       {it.date}
-                      {d ? ` · ${mmss(d)}` : ""}
+                      {d === undefined ? " · 길이는 ▶ 를 누르면 나와요" : d > 0 ? ` · ${mmss(d)}` : " · 길이 모름"}
                       {!it.poster && " · 표지 없음"}
                     </p>
                     {on && <p className="mt-1.5 t-caption font-semibold text-green-700">홈페이지에 걸려 있어요</p>}

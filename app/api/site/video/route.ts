@@ -5,6 +5,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
 import { videoSection } from "@/lib/section-defaults";
+import { trialInfo } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -43,7 +44,10 @@ export async function POST(req: Request) {
       { status: r.error === "forbidden" ? 403 : 404 },
     );
   }
-  if (r.site.status === "expired" || r.site.status === "suspended") {
+  /* ⚠ raw status 를 보면 **무료기간이 끝났는데 만료 크론이 아직 안 돈 사이트**를 놓친다.
+     그 사이 영상을 걸면 손님에게 안 보이는 홈페이지에 파일만 공개로 복사된다.
+     정지·만료 판정의 단일 출처는 `lib/trial.ts` 다(에디터 상단 바·차단 화면도 이것만 본다). */
+  if (trialInfo(r.site).expired) {
     return NextResponse.json({ error: "홈페이지가 정지 상태예요. 정기결제를 시작하시면 다시 열려요" }, { status: 402 });
   }
 
@@ -91,12 +95,18 @@ export async function POST(req: Request) {
     catch { poster = undefined; }
   }
 
-  /* story_entries 갱신 — 발행본 주소와 상태.
-     ⚠ `visible` 은 건드리지 않는다. true 로 바꾸면 **이야기 피드에도 같이 뜬다** —
-       사장님은 «영상을 홈페이지에 건 것»이지 «이야기를 공개한 것»이 아니다. 두 가지는 다르다. */
+  /* story_entries 갱신 — **발행본 주소만** 적는다.
+     ⚠ `media_status` 를 건드리지 않는다. 워커용 인덱스가
+       `where media_status in (uploaded, processing)` 이라 `ready` 로 올리면
+       **STEP 4 자막 워커가 이 영상을 영영 집지 않는다.** 게다가 마이그레이션이 정의한
+       `ready` 는 「자막 영상 완성」인데 우리는 자막을 만든 적이 없다 — 화면이 거짓말하는 것과 같다.
+       「공개 사본이 있다」는 사실은 `video_out_key` 하나가 이미 다 말한다.
+     ⚠ `visible` 도 건드리지 않는다. true 로 바꾸면 **이야기 피드에 내용이 텅 빈 항목이 뜨고**,
+       완성도 규칙 story_1(15점)이 저절로 올라간다 — 판정·화면·힌트가 어긋난다(불변 규칙 12).
+     ⚠ `sort` 도 건드리지 않는다. 저장소 어느 코드도 그 칸을 읽지 않는다. */
   const { error: upErr } = await sb
     .from("story_entries")
-    .update({ video_out_key: publicKey, media_status: "ready" })
+    .update({ video_out_key: publicKey })
     .eq("id", entryId);
   if (upErr) {
     // 파일은 이미 복사됐다. 기록만 실패한 것이라 섹션은 그대로 돌려준다 — 다시 걸면 덮어쓴다
