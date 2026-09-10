@@ -14,6 +14,22 @@ import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media
 const MAX_SEC = 60;
 type Screen = "greet" | "ask" | "mode" | "setup" | "count" | "rec" | "review" | "sending" | "done" | "error";
 
+/**
+ * 업로드 PUT 이 실패한 **모양**. (2026-09-11)
+ *
+ * ★ 왜 만들었나: 예전에는 넷을 전부 「네트워크 오류 — 다시 시도해 주세요」 한 줄로 뭉뚱그렸다.
+ *   2026-09-11 회장님 실측에서 **와이파이는 멀쩡한데** 그 문구가 떴다. 진짜 원인은
+ *   저장소가 브라우저의 예비 질문(preflight)을 거절한 것이었고, 화면은 **엉뚱한 곳**을
+ *   가리키고 있었다. 사장님이 폰과 와이파이를 붙잡고 헛수고하게 만든다.
+ *   브라우저는 `onerror` 에 이유를 **주지 않는다.** 그래서 우리가 모양을 나눠 들고,
+ *   `explainPut()` 이 서버에 한 번 물어본 뒤 이유를 확정한다.
+ */
+class PutFail extends Error {
+  constructor(readonly kind: "status" | "neterr" | "timeout" | "abort", readonly status: number) {
+    super(`put-${kind}`);
+  }
+}
+
 /** 촬영 안내 — 회장님 문구(2026-09-06). 화면 3곳이 이 하나를 쓴다. 사본을 만들지 않는다. */
 const SHOOT_TIPS: [string, string][] = [
   ["얼굴이 안 나와도 됩니다",
@@ -253,6 +269,9 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
   /** 표지 사진 — 못 만들어도 업로드는 막지 않는다(회장님 지시 5). 다만 사장님이 알 수 있게 한다 */
   const [poster, setPoster] = useState<{ st: "idle" | "work" | "ok" | "fail"; blob?: Blob }>({ st: "idle" });
   const posterJob = useRef<Promise<Blob | null> | null>(null);
+  /** 뽑아 둔 표지의 미리보기 주소 — 확인 화면에서 **사장님이 직접 눈으로 본다.**
+      말로 「표지가 있다」고 하는 것보다 보여 주는 편이 확실하다(2026-09-11 실패에서 배움) */
+  const [posterUrl, setPosterUrl] = useState("");
   /** 찍힌 파일이 못 쓰는 형식일 때의 안내. 업로드 실패(err)와 섞지 않는다 — 원인이 다르다 */
   const [badWhy, setBadWhy] = useState("");
   const [count, setCount] = useState(3);
@@ -354,7 +373,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
   function reRecord() {
     const wasCamera = source === "camera";
     setBlob(null); setBlobUrl(""); setSec(0); secRef.current = 0;
-    setBadWhy(""); setPoster({ st: "idle" }); posterJob.current = null; setSource("browser");
+    setBadWhy(""); setPoster({ st: "idle" }); setPosterUrl(""); posterJob.current = null; setSource("browser");
     /* ⚠ 폰 카메라로 찍어 온 사장님은 브라우저 녹화가 안 되는 폰일 수 있다.
        그 사람을 카메라 준비 화면으로 보내면 [시작]을 눌러도 아무 일이 없다. */
     setScreen(wasCamera ? "mode" : "setup");
@@ -368,7 +387,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
    * ★ ②는 불만 붙이고 기다리지 않는다. 사장님이 미리보기를 보는 몇 초 동안 뒤에서 끝난다.
    */
   async function checkAndPrepare(b: Blob, recordedSec: number, kind: "video" | "audio") {
-    setBadWhy(""); setPoster({ st: "idle" }); posterJob.current = null;
+    setBadWhy(""); setPoster({ st: "idle" }); setPosterUrl(""); posterJob.current = null;
     if (kind !== "video") return;
     const head = new Uint8Array(await b.slice(0, SNIFF_BYTES).arrayBuffer().catch(() => new ArrayBuffer(0)));
     const found = sniff(head);
@@ -376,6 +395,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     setPoster({ st: "work" });
     posterJob.current = capturePoster(b, recordedSec).then((pb) => {
       setPoster(pb ? { st: "ok", blob: pb } : { st: "fail" });
+      setPosterUrl(pb ? URL.createObjectURL(pb) : "");
       return pb;
     });
   }
@@ -397,6 +417,36 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     void checkAndPrepare(f, 0, "video");
   }
 
+  /**
+   * 우리 서버에 한 번 말을 걸어 본다. **대답이 오면 폰 인터넷은 살아 있다.**
+   * 겸사겸사 무슨 일이 있었는지 서버 기록에 남긴다 — 다음 실패는 조용하지 않다.
+   * ⚠ 상태 코드는 보지 않는다. 「대답이 왔다」는 사실 하나만 쓴다.
+   */
+  async function tellServer(stage: string, detail: string): Promise<boolean> {
+    try {
+      const c = new AbortController();
+      const t = setTimeout(() => c.abort(), 5000);
+      await fetch("/api/story/trouble", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, k, stage, detail }), signal: c.signal, cache: "no-store",
+      });
+      clearTimeout(t);
+      return true;
+    } catch { return false; }
+  }
+
+  /** 「네트워크 오류」로 뭉뚱그리지 않는다. **진짜 끊김인지 저장소 거절인지 가려서** 말한다 */
+  async function explainPut(f: PutFail): Promise<string> {
+    if (f.kind === "status") return `저장소가 ${f.status} 로 거절했어요. [보내기]를 한 번 더 눌러 주세요.`;
+    if (f.kind === "abort") return "보내기가 중간에 멈췄어요. [보내기]를 다시 눌러 주세요.";
+    const mb = blob ? (blob.size / 1048576).toFixed(1) : "?";
+    const alive = await tellServer(`put_${f.kind}`, `${mb}MB ${blob?.type ?? ""} ${sec}s ${source}`);
+    if (!alive) return "인터넷 연결이 끊겼어요. 연결된 뒤 [보내기]를 다시 눌러 주세요.";
+    return f.kind === "timeout"
+      ? `영상이 커서(${mb}MB) 시간 안에 다 못 올렸어요. 와이파이가 잘 잡히는 곳에서 [보내기]를 다시 눌러 주세요.`
+      : "인터넷은 정상인데 저장소가 업로드를 받아 주지 않았어요. 폰 문제가 아니라 저희 쪽 설정 문제입니다 — 방금 온스토리에 자동으로 알렸어요. 찍은 영상은 그대로 있으니 잠시 뒤 [보내기]를 눌러 주세요.";
+  }
+
   async function send() {
     if (!blob) return;
     setScreen("sending"); setProgress(0); setErr("");
@@ -411,8 +461,14 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
           x.open("PUT", d.url!);
           x.setRequestHeader("Content-Type", d.contentType ?? ct);
           x.upload.onprogress = (e) => { if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100)); };
-          x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(new Error(`업로드 실패 (${x.status})`)));
-          x.onerror = () => reject(new Error("네트워크 오류 — 다시 시도해 주세요"));
+          /* ⚠ 여기가 «뭉뚱그리던» 자리다. 브라우저는 왜 실패했는지 알려 주지 않는다 —
+             진짜 끊김도, 저장소가 예비 질문(preflight)을 거절한 것도 똑같이 `onerror` 로 온다.
+             그래서 모양만 담아 던지고, 이유는 `explainPut()` 이 서버에 물어본 뒤 확정한다. */
+          x.timeout = 180_000;
+          x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(new PutFail("status", x.status)));
+          x.onerror = () => reject(new PutFail("neterr", 0));
+          x.ontimeout = () => reject(new PutFail("timeout", 0));
+          x.onabort = () => reject(new PutFail("abort", 0));
           x.send(blob);
         });
       } else {
@@ -451,7 +507,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       stopStream();
       setScreen("done");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "보내지 못했어요");
+      setErr(e instanceof PutFail ? await explainPut(e) : e instanceof Error ? e.message : "보내지 못했어요");
       setScreen("review");
     }
   }
@@ -585,7 +641,10 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
           <section className="flex flex-1 flex-col">
             <p className="mt-4 t-caption font-bold opacity-60">확인 · {mm(sec)}</p>
             <div className="mt-3 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
-              {mode === "video" ? <video src={blobUrl} controls playsInline className="h-full w-full object-contain" /> : <div className="flex h-full flex-col items-center justify-center gap-4"><span className="t-h1">🎙</span><audio src={blobUrl} controls /></div>}
+              {/* ★ `poster` 를 붙인다 — 붙이기 전에는 재생을 누르기 전까지 «회색 바탕에 재생 아이콘»만
+                     보였다. 그래서 표지가 잘 뽑혔는지 사장님이 알 길이 없었다(2026-09-11 회장님 지적).
+                     이제 여기 보이는 그림이 곧 손님이 처음 보게 될 그림이다. */}
+              {mode === "video" ? <video src={blobUrl} poster={posterUrl || undefined} controls playsInline className="h-full w-full object-contain" /> :<div className="flex h-full flex-col items-center justify-center gap-4"><span className="t-h1">🎙</span><audio src={blobUrl} controls /></div>}
             </div>
             {/* ⚠ 못 쓰는 형식이면 «보내기»를 아예 없앤다. 남겨 두면 눌러도 또 되돌아와
                 8MB 를 다시 올리게 된다 — 요금과 시간만 태운다(2026-09-10 반증 검사). */}
@@ -605,9 +664,13 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
                     [보내기]로 뻗던 손가락이 [다시 찍기]를 누른다 — 60초를 되돌릴 수 없다.
                     ★ 성공했을 때는 아무 말도 하지 않는다. 사장님이 판단할 것이 없다(회장님 지시 5는 «알게 하라»다). */}
                 <p className="mt-3 min-h-[2.5rem] text-center t-caption leading-relaxed opacity-60">
+                  {/* ⚠ 실패를 «저희가 채워 드릴게요» 로만 말하면 사장님은 실패한 줄을 모른다.
+                      2026-09-11 에 실제로 그랬다 — 못 뽑았다는 사실을 먼저 말한다(회장님 지시 1). */}
                   {poster.st === "fail"
-                    ? "손님에게 먼저 보이는 사진은 저희가 채워 드릴게요. 보내는 데는 문제 없습니다."
-                    : "보내면 홈페이지에 걸 수 있어요."}
+                    ? "표지 사진을 못 뽑았어요. 손님 첫 화면은 저희가 채워 드릴게요 — 보내는 데는 문제 없습니다."
+                    : poster.st === "work"
+                      ? "표지 사진을 뽑는 중이에요…"
+                      : "보내면 홈페이지에 걸 수 있어요."}
                 </p>
               </>
             )}
