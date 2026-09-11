@@ -577,6 +577,18 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 
 /* ───────────────────────── 레이아웃 ───────────────────────── */
 
+/* ─── 「마우스가 있는 기기」에만 하는 말 (2026-09-11 박팀장) ───
+   ★ 폰·태블릿에는 마우스가 없다. 「마우스를 올리면」이라고 하면 그 자리에서 거짓말이 된다.
+   ⚠ **화면 폭으로 가르지 않는다.** 아이패드는 넓어도 마우스가 없다 — 폭으로 가르면
+     태블릿 사장님에게 또 틀린 말을 하게 된다. `hover`·`pointer` 로 «기기 능력»을 직접 묻는다.
+   ★ 기본값은 **손가락 쪽**이다. 모르는 기기에는 누구에게나 참인 말을 보여 준다. */
+.say-hover { display: none; }
+.say-touch { display: inline; }
+@media (hover: hover) and (pointer: fine) {
+  .say-hover { display: inline; }
+  .say-touch { display: none; }
+}
+
 .wrap {
   max-width: var(--container);
   margin-inline: auto;

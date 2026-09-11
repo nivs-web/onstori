@@ -40,7 +40,12 @@ export default function HowItWorks() {
                 <span
                   className="absolute t-caption flex items-center justify-center font-bold"
                   style={{
-                    left: "calc((var(--s-6) + var(--s-5) + 15px) * -1)", top: "var(--s-5)",
+                    /* ⚠ 전에는 `--s-5` 가 한 번 더 들어가 있어 원이 **화면 왼쪽 밖으로 17px** 나갔다
+                       (28px 중 17px 이 잘림 — 2026-09-11 박팀장이 768px 에서 발견).
+                       계산: li 의 위치 기준점은 ol 안쪽(= ol 테두리 + 2 + --s-6)이다.
+                       원 28px 을 그 테두리 «선 위»에 얹으려면 -(--s-6 + 15px) 면 된다.
+                       --s-5 는 옛 배치에서 남은 군더더기였다. */
+                    left: "calc((var(--s-6) + 15px) * -1)", top: "var(--s-5)",
                     width: 28, height: 28, borderRadius: "var(--r-full)",
                     background: "var(--n-800)", color: "var(--green-200)",
                   }}
