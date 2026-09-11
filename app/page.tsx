@@ -248,10 +248,20 @@ export default async function Home() {
               <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>
                 30일 동안 전 기능 무료로 써 보시고, 마음에 드시면 {COPY.priceLine}로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
               </p>
+              {/* ★★ 2026-09-11 회장님 확정 — **지금 되는 것(✓)과 준비 중(⏳)을 갈라서** 적는다.
+                  전에는 여섯 줄을 전부 ✓ 로 적어 «자막 영상»·«유튜브 발행»처럼 **아직 없는 것까지
+                  포함된 것처럼** 보였다. 돈을 내는 자리에서 그러면 안 된다.
+                  ⚠ 준비 중 줄은 지우지 않는다 — 무엇이 올지 보이는 편이 기다릴 이유가 된다. */}
               <ul className="grid sm:grid-cols-2" style={{ marginTop: "var(--s-5)", gap: "var(--s-2)" }}>
-                {["onstori.com/name 홈페이지", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", CHANNELS_LINE, "견적·문의 알림 (문자·이메일)"].map((t) => (
-                  <li key={t} className="t-small flex" style={{ gap: "var(--s-2)", color: "var(--n-200)" }}>
-                    <span style={{ color: "var(--green-200)" }}>✓</span>{t}
+                {([
+                  ["✓", "onstori.com/상호 홈페이지"],
+                  ["✓", "매주 질문 문자 + 60초 녹화 링크"],
+                  ["✓", "인스타그램에 함께 올리기"],
+                  ["⏳", "유튜브 · 틱톡 · 쓰레드 · X · 페이스북 — 준비 중"],
+                  ["✓", "견적·문의 알림 (이메일)"],
+                ] as const).map(([mark, t]) => (
+                  <li key={t} className="t-small flex" style={{ gap: "var(--s-2)", color: mark === "✓" ? "var(--n-200)" : "var(--n-300)" }}>
+                    <span style={{ color: mark === "✓" ? "var(--green-200)" : "var(--n-400)" }}>{mark}</span>{t}
                   </li>
                 ))}
               </ul>
@@ -343,7 +353,8 @@ export default async function Home() {
             {[
               [<MarkStack key="s" />, "기록이 신뢰가 됩니다", "「작업 127건」은 말이 아니라 쌓인 기록으로 증명됩니다."],
               [<MarkSearch key="p" />, "이야기마다 새 페이지", "이야기 하나가 새 페이지 하나. 검색에 잡히는 면이 넓어집니다."],
-              [<MarkVoice key="v" />, "사장님 목소리 그대로", "AI 목소리를 쓰지 않습니다. 자막과 컷 편집만 합니다."],
+              /* ⚠ 「자막과 컷 편집」을 뺐다 — 아직 없는 기능이다(2026-09-11 회장님 확정) */
+              [<MarkVoice key="v" />, "사장님 목소리 그대로", "AI 목소리를 쓰지 않습니다. 사장님 목소리 그대로 올라갑니다."],
             ].map(([icon, t, d]) => (
               <div key={t as string} style={{ background: "var(--green-50)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
                 <span style={{ display: "block", color: "var(--green-700)" }}>{icon}</span>
@@ -359,7 +370,11 @@ export default async function Home() {
             {[
               ["홈페이지는 있는데 손님이 없는 사장님", "만든 지 1년, 방문자 하루 3명. 새 페이지가 안 생기니 검색도 안 됩니다."],
               ["글은 못 쓰지만 말은 잘하는 사장님", "블로그 쓰라는 말은 많이 들었는데 한 번도 못 썼습니다. 말은 매일 합니다."],
-              ["유튜브를 시작하고 싶은데 편집이 무서운 사장님", "60초 찍으면 자막과 컷 편집은 온스토리가 합니다."],
+              /* ★ 2026-09-11 회장님 확정 — 전에는 「유튜브를 시작하고 싶은데 편집이 무서운 사장님 /
+                 60초 찍으면 자막과 컷 편집은 온스토리가 합니다」였다. **자막도 유튜브도 아직 없다.**
+                 지금 진짜 되는 것(홈페이지·인스타)만 말하고, 나머지는 «곧»이라고 분명히 한다. */
+              ["영상을 찍긴 찍는데 어떻게 올릴지 모르는 사장님",
+               "한 번 찍으면 홈페이지와 인스타그램에 한 방에 올라갑니다. 유튜브·틱톡·쓰레드·X는 곧 열립니다. 어디에 올릴지 고민하지 않으셔도 됩니다."],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3" style={{ textWrap: "balance" }}>{t}</h3>
