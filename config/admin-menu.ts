@@ -51,6 +51,8 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       { href: "/admin/bank", label: "이미지뱅크", desc: "생성 이미지 검수·점수·삭제", ready: true },
       { href: "/admin/videos", label: "영상 관리", desc: "녹화 영상 검수·발행 (V 배치)", ready: false },
       { href: "/admin/pages", label: "온스토리 홈페이지", desc: "첫 페이지 섹션 보이기·가리기", ready: true },
+      /* ★ 2026-09-11 — 「100건도 안 썼는데 $10 이 사라졌다」를 알아채는 자리(회장님 요청) */
+      { href: "/admin/sns", label: "SNS 발행 현황", desc: "채널별 올린 건수·실패·추정 비용", ready: true },
       { href: "/admin/movies", label: "무비 주문", desc: "히어로 무비 제작 보드 (P6)", ready: false },
     ],
   },
