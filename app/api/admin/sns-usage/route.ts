@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { PROVIDER_NAME, PROVIDERS, type SnsProvider } from "@/lib/sns";
+import { readXBalance, readXPricing } from "@/lib/sns/x-billing";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,9 @@ export const dynamic = "force-dynamic";
  *     그 차이를 화면에 분명히 적는다 — 추정치를 사실처럼 보여주지 않는다.
  */
 
-/** ⚠ 단가는 **확인 필요.** 회장님이 주신 값(X: 링크 없음 $0.015 / 링크 있음 $0.200)을 적어 둔다.
- *  공식 문서로 대조되기 전까지 화면에도 「추정」이라고 쓴다. */
+/** ★ 2026-09-11 확인 완료 — X 공식 요금표에 「Post: Create $0.015 / Post: Create (with URL) $0.200」이
+ *  그대로 적혀 있다. 회장님이 주신 13배가 **문서로 확인됐다.**
+ *  ⚠ 우리는 X 로 나가는 글에서 URL 을 서버가 지운다(lib/sns/no-url.ts). 그래서 $0.015 로 잡는다. */
 const UNIT_USD: Partial<Record<SnsProvider, number>> = { x: 0.015 };
 
 export async function GET() {
@@ -59,12 +61,9 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({
-    rows,
-    tableMissing,
-    /* ⚠ 잔액은 여기에 안 담는다. X API 에 잔액 조회가 있는지 확인되기 전까지 «없는 것»을
-       있는 척하지 않는다. 확인되면 이 자리에 채운다. */
-    balance: null,
-    unitUsd: UNIT_USD,
-  });
+  /* ★ 2026-09-11 — 잔액 조회가 **실제로 있다**(GET /2/usage/credits, 공식 문서·OpenAPI 확인).
+     못 읽어도 «왜 못 읽었는지»를 같이 준다 — 조용히 0 으로 보여주지 않는다. */
+  const [balance, pricing] = await Promise.all([readXBalance(), readXPricing()]);
+
+  return NextResponse.json({ rows, tableMissing, balance, pricing, unitUsd: UNIT_USD });
 }
