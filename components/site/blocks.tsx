@@ -124,7 +124,13 @@ export function RecMockup({ question = "이 일을 처음 시작하던 날, 무�
                 <>
                   <p className="t-display" style={{ color: "var(--n-0)" }}>✓</p>
                   <p className="t-small font-bold" style={{ marginTop: "var(--s-1)", color: "var(--n-0)" }}>보냈어요</p>
-                  <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--text-soft)" }}>자막 영상은 30분쯤 뒤<br />문자로 보내드릴게요</p>
+                  {/* ★ 2026-09-11 — 「자막 영상은 30분쯤 뒤 문자로」를 지웠다.
+                      자막 워커도 그 문자도 **아직 없다.** 녹화 화면에서는 2026-09-10 에 이미 지웠는데
+                      **손님이 실제로 보는 `/how-it-works` 목업에는 그대로 남아 있었다**(박팀장 발견).
+                      오지 않는 것을 약속하면 사장님은 고장으로 여긴다. 지금 진짜 되는 것만 말한다.
+                      ⚠ 자막·문자 발송이 실제로 도는 날 되살려라. 그전에는 안 된다.
+                      ⚠ 목업이 좁아 줄바꿈을 직접 넣는다 — 폭 제한이 없어 길면 목업 밖으로 샌다. */}
+                  <p className="t-caption" style={{ marginTop: "var(--s-1)", color: "var(--text-soft)" }}>영상이 저장됐어요<br />홈페이지 관리에서<br />홈페이지에 걸 수 있어요</p>
                 </>
               )}
             </div>
