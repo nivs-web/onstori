@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
+import { SnsPanel } from "./sns-panel";
 
 /**
  * 「영상」 메뉴 — 찍어 올린 60초 영상을 **홈페이지에 걸고 내린다** (2026-09-11, V-1 C).
@@ -45,6 +46,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<{ id: string; msg: string } | null>(null);
   const [dur, setDur] = useState<Record<string, number>>({});
+  /** 영상 메뉴 안의 두 갈래 — 「내 영상」과 「SNS 연결」 */
+  const [view, setView] = useState<"list" | "sns">("list");
+  /** 올릴 곳으로 고른 SNS. ④ 올리기가 이 값을 쓴다 */
+  const [snsPicked, setSnsPicked] = useState<string[]>([]);
 
   /** 지금 홈페이지에 걸려 있는 영상 주소 — doc 이 진실이다 */
   const attachedUrl = (() => {
@@ -107,10 +112,38 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     }
   }
 
-  if (items === null) return <p className="mt-8 text-center t-small text-[var(--text-soft)]">영상을 불러오는 중…</p>;
+  /* ★ 두 갈래를 **early return 위에** 그린다. 목록을 불러오는 동안에도
+       [SNS 연결]로 넘어갈 수 있어야 한다 — 영상이 없어도 연결은 먼저 해 둘 수 있다. */
+  const tabs = (
+    /* ⚠ `data-tour` 를 붙이지 않았다. 불변 규칙 3 은 앵커 이름을 `config/tours.ts` 에
+       등록된 것만 쓰라고 한다. 「SNS 연결」로 데려가는 힌트가 필요해지면 그때 먼저 등록한다. */
+    <div className="flex gap-2">
+      {([["list", "내 영상"], ["sns", "SNS 연결"]] as const).map(([id, label]) => (
+        <button key={id} type="button" onClick={() => setView(id)}
+          className={`rounded-full px-4 py-2 t-caption font-semibold ${
+            view === id ? "bg-green-700 text-white" : "border border-n-300"}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (view === "sns") {
+    return (
+      <div className="space-y-4">
+        {tabs}
+        <SnsPanel slug={slug} selected={snsPicked} onSelected={setSnsPicked} />
+      </div>
+    );
+  }
+
+  if (items === null) {
+    return <div className="space-y-4">{tabs}<p className="mt-8 text-center t-small text-[var(--text-soft)]">영상을 불러오는 중…</p></div>;
+  }
 
   return (
     <div className="space-y-4">
+      {tabs}
       {loadErr && <p className="rounded-xl bg-danger-soft p-3 t-caption font-semibold text-danger">{loadErr}</p>}
 
       {items.length === 0 ? (
