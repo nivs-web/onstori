@@ -124,13 +124,19 @@ export async function notifyInquiry(args: NotifyInquiryArgs): Promise<void> {
     return;
   }
 
-  if (ch.sms && targets.phone) {
-    const text = `[온스토리] ${businessName} 견적 문의 · ${inquiry.name} ${inquiry.phone} · 사진 ${inquiry.photoCount}장 · ${inboxUrl}`;
-    try {
-      await sendSms(targets.phone, text);
-    } catch (e) {
-      await recordError(siteId, "sms", String(e));
-    }
+  /* ★★ 2026-09-11 회장님 결정 — **손님 문의 알림은 이메일로만 보낸다.**
+     문자는 건당 요금이 든다. 문의가 하루 1000건 오면 막을 수 없고 월 요금에 타산이 안 맞는다.
+     ⚠ 전에는 문자와 이메일이 **둘 다** 나갔다(두 열쇠가 다 있으면 둘 다 보내는 구조였다).
+       즉 문자 요금이 이미 나가고 있었다. 그 줄을 여기서 걷어낸다.
+     ⚠ **문자 보내는 코드는 지우지 않는다.** 주 1회 촬영 알림·만료 예고·녹화 링크가
+       `sendSmsRaw` 로 계속 쓴다(app/api/cron/expire · app/api/story/send-link).
+       여기서 «문의 알림»만 문자를 안 쓰는 것이다. */
+
+  /* ★ 보낼 이메일이 없으면 **조용히 넘어가지 않는다.** 그대로 두면 문의가 와도
+     사장님이 영영 모른다. 기록을 남겨 운영자 화면에서 보이게 한다.
+     ⚠ 새 가입은 /new 에서 이메일을 반드시 받는다(2026-09-11). 옛 사장님은 이 기록으로 찾아낸다. */
+  if (ch.email && !targets.email) {
+    await recordError(siteId, "email", "받을 이메일 주소가 없습니다 — 사장님께 메일 주소를 받아야 합니다");
   }
 
   if (ch.email && targets.email) {

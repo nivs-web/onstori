@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { FaqItem } from "@/config/faq";
-import { CHANNELS } from "./chrome";
-import { CHANNEL_COUNT } from "@/config/channels";
+import { CHANNELS, CHANNEL_COUNT } from "@/config/channels";
+
 
 /* 본사 페이지 공용 블록 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md). */
 
@@ -25,8 +25,17 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
   );
 }
 
-/** 채널 6개 로고 띠 */
-export function ChannelStrip({ title = "한 번 말하면 6곳에 퍼지는 자동화 엔진" }: { title?: string }) {
+/**
+ * 채널 띠 — **글자만.** 로고를 쓰지 않는다. (2026-09-11)
+ *
+ * ★★ 유튜브 브랜드 규칙: 로고를 쓰면 **반드시 유튜브로 가는 링크**여야 하고,
+ *   **우리 앱 이름 옆에 나란히 두면 안 된다.** 전에는 로고가 `<span>` 안에 있어
+ *   링크가 아니었고(규칙 위반), 우리 서비스 이름과 같은 띠에 놓여 있었다.
+ * ★ 다른 SNS 도 같은 부류의 규칙이 있다(메타·틱톡 모두 «허가 없이 나란히 두어
+ *   제휴처럼 보이게 하지 말 것»을 요구한다). **가장 안전한 것은 로고를 안 쓰는 것**이라
+ *   여섯 곳 전부 글자로만 적는다. 로고를 되살리려면 각 사 브랜드 가이드를 먼저 확인해야 한다.
+ */
+export function ChannelStrip({ title = `한 번 말하면 ${CHANNEL_COUNT}곳에 퍼지는 자동화 엔진` }: { title?: string }) {
   return (
     <section className="surface-50" style={{ borderBlock: "1px solid var(--n-200)" }}>
       <div
@@ -40,27 +49,12 @@ export function ChannelStrip({ title = "한 번 말하면 6곳에 퍼지는 자�
             className="t-small flex items-center font-bold"
             style={{ gap: "var(--s-2)", color: "var(--n-800)" }}
           >
-            <ChannelMark id={c.id} /> {c.name}
+            {c.name}
           </span>
         ))}
       </div>
     </section>
   );
-}
-
-/* 채널 아이콘 — 각 사의 브랜드 색은 그 회사 자산이라 토큰으로 바꾸지 않는다.
-   토큰은 온스토리 화면의 색을 정하는 것이지 남의 로고 색을 정하는 게 아니다. */
-function ChannelMark({ id }: { id: string }) {
-  const s = { width: 18, height: 18 } as const;
-  switch (id) {
-    case "youtube": return <svg {...s} viewBox="0 0 24 24" fill="#FF0000" aria-hidden><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-4.8.5-4.8s0-2.9-.5-4.8zM9.8 15.1V8.9L15.8 12l-6 3.1z" /></svg>;
-    case "instagram": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="#C13584" strokeWidth="2" aria-hidden><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#C13584" /></svg>;
-    case "threads": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2" aria-hidden><path d="M12 3c-5 0-8 3.5-8 9s3 9 8 9c4 0 6.5-2 6.5-5 0-2.5-2-4-5-4-2.5 0-4 1.2-4 3s1.5 2.7 3.2 2.7c2 0 3.3-1.3 3.5-4.2.2-3-1.5-5-4.5-5" /></svg>;
-    case "x": return <svg {...s} viewBox="0 0 24 24" fill="#000000" aria-hidden><path d="M18.9 2H22l-7.4 8.5L23 22h-6.8l-5.3-6.9L4.8 22H1.7l7.9-9L1 2h7l4.8 6.3L18.9 2zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20z" /></svg>;
-    case "naver": return <svg {...s} viewBox="0 0 24 24" fill="#03C75A" aria-hidden><path d="M3 3h6l6 9V3h6v18h-6l-6-9v9H3z" /></svg>;
-    // eslint-disable-next-line @next/next/no-img-element
-    default: return <img src="/brand/on-mark-64.png" alt="" width={18} height={18} className="inline-block" aria-hidden />;
-  }
 }
 
 /** 60초 녹화 화면 목업 — 히어로 옆·데모 섹션·작동방식에서 재사용 (정적) */

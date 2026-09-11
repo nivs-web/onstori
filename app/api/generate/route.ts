@@ -15,6 +15,10 @@ const Input = z.object({
   oneLiner: z.string().min(2).max(120),
   // .max(20) 은 QuoteForm.phone 의 max(20) 과 맞물리므로 남긴다
   phone: z.string().min(9).max(20).refine((v) => isValidPhone(v), "전화번호를 정확히 입력해 주세요"),
+  /* ★ 2026-09-11 — **손님 문의 알림이 이 주소로 간다.**(회장님 결정: 문자→이메일)
+     ⚠ 옛 가입 화면은 이 값을 안 보낸다. 그래서 optional 이다 — 필수로 막으면
+       열려 있는 옛 화면에서 만들던 사장님이 그 자리에서 실패한다. 화면이 필수로 받는다. */
+  email: z.string().max(120).email("메일 주소를 정확히 입력해 주세요").optional(),
   slug: z.string().regex(/^[a-z0-9-]{3,30}$/),
   mood: z.enum(["clean", "warm", "premium", "lively"]).default("clean"),
   address: z.string().max(120).optional(),
@@ -103,7 +107,14 @@ export async function POST(req: Request) {
         status: "trial",
         trial_ends_at: trialEnds.toISOString(),
         theme: doc.theme,
-        settings: { phone: input.phone, address: input.address ?? null, oneLiner: input.oneLiner, industryLabel: input.industryLabel ?? null },
+        /* ⚠ 이메일은 `notify.email` 에 넣는다. `lib/notify.ts` 의 resolveTargets() 가
+           **그 자리**를 읽기 때문이다. 다른 곳에 넣으면 알림이 조용히 안 간다.
+           ★ 표를 새로 만들지 않았다 — settings 가 jsonb 라 칸을 늘릴 필요가 없다. */
+        settings: {
+          phone: input.phone, address: input.address ?? null, oneLiner: input.oneLiner,
+          industryLabel: input.industryLabel ?? null,
+          ...(input.email ? { notify: { email: input.email } } : {}),
+        },
         draft: doc,
         published: doc,
         published_at: new Date().toISOString(),

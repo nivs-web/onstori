@@ -76,6 +76,8 @@ export function Wizard() {
   // 3
   const [oneLiner, setOneLiner] = useState("");
   const [phone, setPhone] = useState("");
+  /** ★ 문의 알림이 가는 주소. 비면 문의가 와도 사장님이 모른다(2026-09-11 회장님 결정) */
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [slug, setSlug] = useState("");
   const [slugMsg, setSlugMsg] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -150,7 +152,11 @@ export function Wizard() {
   const can2 = !!sub;
   // 비어 있을 때는 조용히 둔다 — 아직 안 적은 것을 틀렸다고 하지 않는다. 적었는데 형식이 아닐 때만 말한다.
   const phoneErr = phone.trim() && !isValidPhone(phone) ? "전화번호를 정확히 입력해 주세요 — 숫자 9자리 이상" : "";
-  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && !!slug && !!slugMsg?.ok;
+  /* ⚠ 지나치게 깐깐하게 잡지 않는다. 「@ 가 있고 점이 있는가」만 본다 —
+     정규식으로 조이면 멀쩡한 회사 메일이 막히는 일이 더 잦다. */
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const emailErr = email.trim() && !emailOk ? "메일 주소를 정확히 입력해 주세요 — 예: example@gmail.com" : "";
+  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk && !!slug && !!slugMsg?.ok;
 
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
@@ -166,7 +172,7 @@ export function Wizard() {
       const theme = themeFor(tone, accent);
       const aid = anonId();
       const body = {
-        businessName: name.trim(), oneLiner: oneLiner.trim(), phone: phone.trim(), slug,
+        businessName: name.trim(), oneLiner: oneLiner.trim(), phone: phone.trim(), email: email.trim(), slug,
         mood: theme.palette, accent: theme.accent,
         industryId: sub?.industryId, industryLabel: sub?.label,
         address: address.trim() || undefined, whyStarted: why.trim() || undefined, anonId: aid || undefined,
@@ -437,9 +443,31 @@ export function Wizard() {
               aria-invalid={!!phoneErr}
               aria-describedby="phone-why"
             />
-            {/* 회색 힌트로 만들지 않는다 — 문의 문자가 이 번호로만 가므로 눈에 걸려야 한다 */}
+            {/* 회색 힌트로 만들지 않는다 — 손님이 전화를 걸 번호라 눈에 걸려야 한다.
+                ⚠ 2026-09-11 — 「문자가 옵니다」를 뺐다. 문의 알림은 **이메일로** 간다(회장님 결정). */}
             <p id="phone-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
-              고객 문의가 오면 사장님 연락처로 문자가 옵니다. 반드시 사장님의 정확한 전화번호를 입력해주세요.
+              고객의 문의를 받을 수 있는 실제 사장님의 정확한 전화번호를 입력해주세요.
+            </p>
+          </Field>
+          {/* ★ 2026-09-11 신설 — **문의 알림이 이 주소로 간다.** 비면 문의가 와도 사장님이 모른다.
+              ⚠ 표를 새로 만들지 않았다. `sites.settings` 가 jsonb 라 `settings.notify.email` 에 넣는다 —
+                `lib/notify.ts` 의 `resolveTargets()` 가 이미 그 자리를 읽는다. */}
+          <Field label="이메일 (필수)" hint={emailErr} hintColor={emailErr ? "text-danger" : undefined}>
+            <input
+              className="field"
+              value={email}
+              maxLength={120}
+              inputMode="email"
+              autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@gmail.com"
+              aria-invalid={!!emailErr}
+              aria-describedby="email-why"
+            />
+            <p id="email-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
+              정확한 메일 주소를 입력해주세요. 고객 문의가 오면 이메일로 연락이 옵니다.<br />
+              반드시 이메일의 알림 기능을 활성화 해주세요<br />
+              (이메일 앱에서 알림을 켜면 메일 도착 즉시 핸드폰에 알림이 옵니다)
             </p>
           </Field>
           <Field label="주소 (선택)" hint="오시는 길 섹션에 들어가요">

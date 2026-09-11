@@ -71,7 +71,7 @@ export default async function Home() {
               <Link href="/how-it-works" className="btn btn-text">작동방식 보기 →</Link>
             </div>
             <dl className="grid grid-cols-3 text-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "28rem" }}>
-              {[["3분", "제작 시간"], ["6곳", "퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
+              {[["3분", "제작 시간"], [`${CHANNEL_COUNT}곳`, "퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
                 <div key={k} className="card" style={{ padding: "var(--s-3) var(--s-2)" }}>
                   <dd className="t-h3" style={{ color: "var(--green-700)" }}>{v}</dd>
                   <dt className="t-caption">{k}</dt>
@@ -287,7 +287,7 @@ export default async function Home() {
             {[
               ["상호명·업종 고르기", "3분이면 홈페이지 뼈대가 완성됩니다. 사진 10장이 있으면 더 좋고, 없어도 됩니다."],
               ["문자 링크 누르고 60초", "매주 질문 하나. 브라우저에서 열고 말씀만 하세요."],
-              ["이야기만 쌓기", "영상·글·사진 카드가 6곳에 퍼지고 홈페이지에 쌓입니다. 그게 시공 사례가 되고 문의가 됩니다."],
+              ["이야기만 쌓기", `영상·글·사진 카드가 ${CHANNEL_COUNT}곳에 퍼지고 홈페이지에 쌓입니다. 그게 시공 사례가 되고 문의가 됩니다.`],
             ].map(([t, d], i) => (
               <li key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <span className="t-small font-bold" style={{ color: "var(--green-700)" }}>{String(i + 1).padStart(2, "0")}</span>

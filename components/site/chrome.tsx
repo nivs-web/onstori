@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BIZ_LINE } from "@/config/company";
+import { CHANNELS } from "@/config/channels";
 import { COPY } from "@/lib/trial";
 import { Logo } from "./logo";
 import { SiteHeaderClient } from "./header-client";
@@ -19,14 +20,10 @@ export const NAV = [
   { href: "/blog", label: "블로그" },
 ] as const;
 
-export const CHANNELS = [
-  { id: "youtube", name: "유튜브 쇼츠", short: "Shorts" },
-  { id: "instagram", name: "인스타 릴스", short: "Reels" },
-  { id: "threads", name: "쓰레드", short: "Threads" },
-  { id: "x", name: "X(트위터)", short: "X" },
-  { id: "naver", name: "네이버 블로그", short: "Naver" },
-  { id: "onstori", name: "온스토리 사이트", short: "onstori" },
-] as const;
+/* ★★ 2026-09-11 — 채널 목록을 여기에 **두지 않는다.** `config/channels.ts` 하나가 단일 출처다.
+   전에는 같은 목록이 두 군데 있어 순서·표기가 갈라져 있었다. 다시 갈라지지 않게
+   여기서는 가져다 쓰기만 하고, 옛 이름으로 부르던 코드를 위해 그대로 내보낸다. */
+export { CHANNELS };
 
 export { Logo };
 
