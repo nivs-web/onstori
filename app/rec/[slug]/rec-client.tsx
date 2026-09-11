@@ -314,7 +314,6 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       무시되는 기기가 흔하다(2026-09-11 회장님 실측). 권한을 받은 뒤에만 이름·id 가 채워진다 */
   const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
   /** 지금 켜져 있는 카메라의 deviceId */
-  const [camId, setCamId] = useState("");
   const [switching, setSwitching] = useState(false);
   /** 이 폰에서는 전환이 **구조적으로 안 되는** 것으로 판명됐다 → 버튼을 감춘다.
       ⚠ 「권한 거부」는 여기 넣지 않는다. 그건 다시 누르면 되는 일이다 */
@@ -421,7 +420,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       setScreen("setup");
       /* ⚠ 카메라 개수는 **권한을 받은 뒤에야** 정확하다. 그전에 세면 목록에 이름이 없어
          한 대로 보이는 폰이 있다 — 그러면 전환 버튼이 영영 안 뜬다. */
-      void countCameras(stream);
+      void countCameras();
       /* 실제로 열린 카메라가 앞면인지 뒷면인지 **브라우저에게 물어서** 정한다.
          우리가 «뒷면으로 요청했으니 뒷면일 것»이라고 단정하지 않는다 — 거울 반전이 걸려 있다. */
       const got = facingOf(stream.getVideoTracks()[0], undefined);
@@ -460,119 +459,122 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     }
   }
 
-  /** 카메라 목록 읽기 — **권한을 받은 뒤에** 불러야 이름과 id 가 채워진다 */
-  async function countCameras(stream: MediaStream | null) {
+  /** 카메라가 둘 이상인가 — 전환 버튼을 보일지 판단하는 데만 쓴다.
+   *  ⚠ **권한을 받은 뒤에** 세야 한다. 그전엔 목록에 id·이름이 비어 한 대로 보이는 폰이 있다.
+   *  ⚠ 전환은 이 목록의 deviceId 로 하지 않는다 — facingMode 로 한다(switchCamera 주석 참조). */
+  async function countCameras() {
     try {
       const ds = await navigator.mediaDevices.enumerateDevices();
-      const vids = ds.filter((d) => d.kind === "videoinput" && d.deviceId);
-      setCams(vids);
-      const now = stream?.getVideoTracks()[0]?.getSettings().deviceId ?? "";
-      setCamId(now || vids[0]?.deviceId || "");
+      setCams(ds.filter((d) => d.kind === "videoinput" && d.deviceId));
     } catch { setCams([]); }
   }
 
   /**
-   * 앞↔뒤 카메라 바꾸기 — **녹화를 «시작하기 전»에만** 된다 (2026-09-11 회장님 지시 5).
+   * 앞↔뒤 카메라 바꾸기 — **녹화를 «시작하기 전»에만** 된다.
    *
-   * ★ 왜 필요한가: 「얼굴이 안 나와도 됩니다」라고 **말만** 해서는 부족하다.
-   *   화면에 자기 얼굴이 떠 있으면 대부분 그 자리에서 말이 안 나온다.
-   *   **안 나오게 하는 방법**을 손에 쥐여 드려야 실제로 찍으신다.
-   *   뒷면으로 현장을 비추며 말하는 쪽이 손님에게도 더 좋은 영상이 된다.
+   * ★★ 2026-09-11 3차 재설계 (Fable 5.1). 회장님 실측 증상 세 개가 원인을 확정했다:
+   *   ③ [허용] 뒤 검은 화면  ⑤ 두 번째 허용 뒤 «바뀌기 전» 카메라가 열림  ⑥ 2~3번 반복해야 됨.
    *
-   * ⚠ **녹화 중에는 못 바꾼다.** MediaRecorder 는 `start()` 때 붙잡은 트랙을 끝까지 녹화하고,
-   *   스트림을 갈아 끼워도 따라오지 않는다(브라우저 규격). 그래서 **녹화 화면에는 이 버튼을 두지 않는다** —
-   *   눌러도 안 되는 버튼을 두느니 없는 편이 낫다.
-   * ⚠ 실패하면 **쓰던 카메라를 그대로 둔다.** 화면이 검게 죽는 것이 최악이다.
+   *   W3C 규격: 「사용자 에이전트는 세션에 **카메라 독점 접근**을 요구할 수 있다.」
+   *   안드로이드 폰 다수가 **카메라를 한 대만** 동시에 연다. 그래서 옛 코드처럼
+   *   «옛 것을 켠 채 새 것을 열면» → 브라우저가 옛 것을 강제로 끊고(검은 화면=③)
+   *   열기도 실패한다. 그러면 코드가 되살리기(facingMode=원래)로 떨어져 원래 카메라가
+   *   돌아온다(=⑤). deviceId 경로는 이 폰에서 계속 깨졌고 facingMode 는 됐다(setup 성공이 증거).
+   *
+   * ★ 그래서 순서를 뒤집는다(회장님 제안 1·2·4):
+   *   ① **옛 카메라를 먼저 완전히 놓는다** → ② OS 가 풀 시간을 준다(점점 길게)
+   *   → ③ **facingMode 로** 반대쪽을 연다(검증된 방식, deviceId 안 씀)
+   *   → 실패하면 지연을 늘려 **한 번의 누름 안에서** 재시도한다(사장님이 여러 번 안 눌러도 되게).
+   *
+   * ⚠ **영상만 요청한다.** 마이크는 쓰던 트랙을 그대로 들고 간다 — 마이크를 다시 달라고 하면
+   *   팝업이 「카메라·마이크」로 뜬다(2026-09-11 실측). 소리를 안 건드리면 팝업은 «카메라»뿐이고,
+   *   권한이 남아 있으면 아예 안 뜬다.
+   * ⚠ 녹화 «중»에는 못 바꾼다(MediaRecorder 가 start 때 트랙을 붙잡는다). 녹화 화면엔 버튼이 없다.
    */
   async function switchCamera() {
     if (switching || mode !== "video" || cams.length < 2) return;
-    const i = Math.max(0, cams.findIndex((c) => c.deviceId === camId));
-    const target = cams[(i + 1) % cams.length];
+    const next: "user" | "environment" = facing === "user" ? "environment" : "user";
+    const sideKo = next === "environment" ? "뒷면" : "앞면";
     setSwitching(true); setErr("");
 
-    const cur = streamRef.current;
-    const oldVideo = cur?.getVideoTracks()[0] ?? null;
-    /* ★★ **마이크는 다시 요청하지 않는다.** 쓰던 마이크 트랙을 그대로 들고 간다.
-       2026-09-11 실측에서 「카메라, 마이크를 사용하려고 합니다」 팝업이 다시 뜬 이유가
-       옛 코드의 `audio: true` 였다 — 이미 쓰고 있는 마이크를 또 달라고 했다. */
-    const audio = cur?.getAudioTracks() ?? [];
+    /* 회장님이 폰 화면에서 그대로 옮겨 적으실 수 있게 **단계마다** 남긴다 — 화면이 유일한 창구다 */
+    const steps: string[] = [];
+    const mark = (s: string) => { steps.push(s); setDiag("전환 " + steps.join(" → ")); };
 
-    const openVideo = (id: string) => navigator.mediaDevices.getUserMedia({
-      video: { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 } },
-    });
+    const cur = streamRef.current;
+    const keepAudio = cur?.getAudioTracks() ?? [];
     const attach = (v: MediaStreamTrack) => {
-      const merged = new MediaStream([v, ...audio]);
+      const merged = new MediaStream([v, ...keepAudio]);
       streamRef.current = merged;
       if (liveRef.current) liveRef.current.srcObject = merged;
-      return merged;
     };
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    /* 영상만. 첫 시도는 exact(요청한 쪽을 못 열면 실패시켜 «엉뚱한 카메라»를 막는다),
+       재시도는 ideal(그 쪽이 애매한 폰이라도 뭐라도 열리게) */
+    const openSide = (kind: "exact" | "ideal") => navigator.mediaDevices.getUserMedia({
+      video: { facingMode: kind === "exact" ? { exact: next } : { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    });
+
+    /* ① 옛 카메라를 먼저 완전히 놓는다 — 독점 접근 폰의 검은 화면·실패를 막는 핵심 */
+    cur?.getVideoTracks().forEach((t) => t.stop());
+    mark("옛 카메라 놓음");
 
     let got: MediaStream | null = null;
     let why = "";
-    /* ① 먼저 **옛 카메라를 켜 둔 채로** 새 카메라를 연다. 여기서 되면 화면이 한 순간도 안 끊긴다. */
-    try { got = await openVideo(target.deviceId); }
-    catch (e) { why = (e as DOMException)?.name || "unknown"; }
-
-    /* ② ★ 2026-09-11 — **오류 종류를 가리지 않고** 옛 카메라를 놓고 한 번 더 한다.
-       전에는 「이미 쓰는 중」 계열일 때만 내려왔다. 그래서 회장님 폰의 `NotAllowedError` 는
-       ①에서 막히면 그걸로 끝이었고, 몇 번을 눌러도 **완전히 같은 요청**을 반복할 뿐이었다.
-       ⚠ **마이크 트랙은 놓지 않는다.** 소리 녹음이 살아 있으면 «촬영 중»이 끊기지 않아
-         브라우저가 잡아 둔 허락도 함께 풀리지 않는다. 카메라 자리만 비워 주는 것이다.
-       ⚠ 여기서 놓아도 ③의 되살리기가 있어서 화면이 죽지 않는다. */
-    const why1 = why;
-    if (!got) {
-      oldVideo?.stop();
-      try { got = await openVideo(target.deviceId); }
-      catch (e) { why = (e as DOMException)?.name || why; }
+    const delays = [200, 450, 900];   // 놓은 직후엔 아직 안 풀렸을 수 있다 — 점점 길게 기다린다
+    for (let i = 0; i < delays.length && !got; i++) {
+      await wait(delays[i]);
+      try {
+        got = await openSide(i === 0 ? "exact" : "ideal");
+        mark(`${sideKo} 열림(${i + 1}번째)`);
+      } catch (e) {
+        why = (e as DOMException)?.name || "unknown";
+        mark(`오류 ${why}(${i + 1})`);
+        if (why === "OverconstrainedError" || why === "NotFoundError") break; // 그 쪽 카메라가 없다 — 재시도 무의미
+      }
     }
 
     if (got) {
       const v = got.getVideoTracks()[0];
-      oldVideo?.stop();
       attach(v);
-      setCamId(target.deviceId);
-      setFacing(facingOf(v, target) === "environment" ? "environment" : "user");
+      const real = facingOf(v, undefined);
+      setFacing(real === "unknown" ? next : real);
+      mark(`실제 면 ${real}`);
+      if (real !== "unknown" && real !== next) {
+        /* 요청한 쪽과 실제가 다르면 조용히 넘어가지 않는다(회장님 지시 1) */
+        setErr(`이 폰은 ${sideKo} 카메라를 열지 못했어요. 폰을 돌려 비추면서 찍으셔도 됩니다.`);
+      }
+      void tellServer("camera_switch_ok", `to=${next} real=${real} steps=${steps.join("|")} dev=${device}`);
       setSwitching(false);
       return;
     }
 
-    /* ③ ★ 못 바꿨다 — **원래 카메라를 반드시 되살린다.** 화면이 멈춘 채로 두지 않는다
-       (2026-09-11 회장님 지시). ②에서 옛 트랙을 놓았을 수 있다. */
-    if (!oldVideo || oldVideo.readyState !== "live") {
-      try { attach((await openVideo(camId)).getVideoTracks()[0]); }
-      catch {
-        /* ⚠ **되살리기를 «막힌 그 방식»으로 하면 같이 막힌다.** deviceId 요청이 거절당하는
-           폰이라면 되살리기도 deviceId 라서 똑같이 실패한다 — 실제로 그렇게 화면이 죽었다
-           (2026-09-11 흉내 시험에서 잡음). 마지막에는 **처음 켤 때와 똑같은 요청**으로 되돌린다.
-           그 요청은 이 폰에서 이미 성공이 확인된 모양이다. 마이크까지 새로 받는다. */
-        try {
-          const back = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: true,
-          });
-          streamRef.current = back;
-          if (liveRef.current) liveRef.current.srcObject = back;
-        } catch { /* 이것마저 실패하면 아래 문구가 [앞·뒤 다시 고르기]로 안내한다 */ }
-      }
+    /* ③ 새 쪽을 못 열었다 — 원래 카메라를 되살린다. facingMode(원래), 영상만, 지연 재시도. */
+    let backOk = false;
+    for (const d of [200, 550]) {
+      await wait(d);
+      try {
+        const back = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        attach(back.getVideoTracks()[0]);
+        backOk = true; mark("원래 카메라 되살림");
+        break;
+      } catch { /* 다음 지연으로 */ }
     }
-    const backOk = (streamRef.current?.getVideoTracks()[0]?.readyState ?? "") === "live";
+    if (!backOk) mark("되살림 실패");
 
     const pnow = await readPerm();
     setErr(
-      `${SWITCH_WHY[why] ?? "카메라를 바꾸지 못했어요"} (오류: ${why})` +
-      (backOk ? " — 지금 카메라로 그대로 찍으셔도 됩니다." : " — 아래 [카메라 다시 켜기]를 눌러 주세요."),
+      (why === "OverconstrainedError" || why === "NotFoundError"
+        ? `이 폰에는 ${sideKo} 카메라가 없어요.`
+        : `${SWITCH_WHY[why] ?? "카메라를 바꾸지 못했어요"} (오류: ${why})`)
+      + (backOk ? " — 지금 카메라로 그대로 찍으셔도 됩니다." : " — 아래 [앞·뒤 다시 고르기]를 눌러 주세요."),
     );
-    /* ★ 회장님이 화면에서 읽어 그대로 알려 주실 수 있게 사실을 남긴다.
-       Vercel 런타임 기록을 이 컴퓨터에서 못 읽기 때문이다 — 화면이 유일한 창구다. */
-    setDiag(`전환 실패 · ①${why1 || "-"} ②${why} · 권한 ${pnow || "모름"} · 카메라 ${cams.length}대 · 되살림 ${backOk ? "성공" : "실패"}`);
-    /* ★ **두 순서를 다 해 보고도 막혔으면 버튼을 감춘다** — 오류 이름을 가리지 않는다
-       (2026-09-11 회장님 지시: 「정말 못 바꾸는 기기면 그 폰에서는 버튼을 숨겨라」).
-       ⚠ 갇히지 않는다 — 바로 아래 [앞·뒤 다시 고르기]가 «처음 켤 때와 똑같은 요청»으로
-         데려간다. 그 길은 이 폰에서 이미 성공이 확인된 경로다. */
-    setSwitchDead(why);
-    /* ★ 실패를 서버에 남긴다 — 어떤 폰에서 안 되는지 저절로 쌓인다(회장님 지시) */
-    void tellServer("camera_switch_failed",
-      `try1=${why1} try2=${why} perm=${pnow} cams=${cams.length} label=${(target.label || "no-label").slice(0, 30)} back=${backOk} dev=${device}`);
+    setDiag(`전환 실패 · ${steps.join(" → ")} · 권한 ${pnow || "모름"}`);
+    /* 못 바꾸는 폰에서는 버튼을 감춘다. 갇히지 않는다 — 아래 [앞·뒤 다시 고르기]가 검증된 경로로 데려간다 */
+    setSwitchDead(why || "fail");
+    void tellServer("camera_switch_failed", `why=${why} perm=${pnow} steps=${steps.join("|")} back=${backOk} dev=${device}`);
     setSwitching(false);
   }
 
