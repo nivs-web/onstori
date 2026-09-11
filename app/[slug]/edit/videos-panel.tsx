@@ -86,6 +86,57 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     return () => window.clearTimeout(t);
   }, [load]);
 
+  /* ── SNS 올리기 ────────────────
+     ★ 인스타는 한 번에 안 끝난다. `processing` 이면 **1분에 한 번, 최대 5분** 이어 간다
+       (회장님 지시 4). 기다림을 서버에 맡기면 시간 초과로 끊기고, 그 끊김이 곧
+       «같은 영상 두 번 올리기»가 된다. 그래서 화면이 기다린다. */
+  type PubRow = { provider: string; name: string; state: string; msg: string; url?: string | null; kind?: string };
+  const [pub, setPub] = useState<Record<string, PubRow[]>>({});
+  const [pubBusy, setPubBusy] = useState<string | null>(null);
+
+  async function publish(entryId: string) {
+    setPubBusy(entryId);
+    try {
+      let anonId = "";
+      try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
+      const r = await fetch("/api/sns/publish", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, entryId, providers: snsPicked }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { results?: PubRow[]; error?: string };
+      if (!r.ok) {
+        setPub((p) => ({ ...p, [entryId]: [{ provider: "-", name: "올리기", state: "failed", msg: d.error ?? `실패했어요 (${r.status})` }] }));
+        return;
+      }
+      const rows = d.results ?? [];
+      setPub((p) => ({ ...p, [entryId]: rows }));
+      /* 아직 받는 중인 곳만 이어 간다 */
+      for (const row of rows.filter((x) => x.state === "processing")) void followUp(entryId, row.provider, anonId);
+    } catch {
+      setPub((p) => ({ ...p, [entryId]: [{ provider: "-", name: "올리기", state: "failed", msg: "연결이 끊겼어요. 잠시 후 다시 시도해 주세요." }] }));
+    } finally { setPubBusy(null); }
+  }
+
+  /** 1분 간격 · 최대 5번 — 그래도 안 끝나면 「아직 받는 중」으로 남겨 둔다 */
+  async function followUp(entryId: string, provider: string, anonId: string) {
+    for (let i = 0; i < 5; i++) {
+      await new Promise((res) => setTimeout(res, 60_000));
+      try {
+        const r = await fetch("/api/sns/publish/poll", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, anonId, entryId, provider }),
+        });
+        const d = (await r.json().catch(() => ({}))) as { state?: string; msg?: string; url?: string | null };
+        if (!r.ok || !d.state) continue;
+        setPub((p) => ({
+          ...p,
+          [entryId]: (p[entryId] ?? []).map((x) => x.provider === provider ? { ...x, state: d.state!, msg: d.msg ?? x.msg, url: d.url ?? x.url } : x),
+        }));
+        if (d.state === "published" || d.state === "failed") return;
+      } catch { /* 다음 차례에 다시 */ }
+    }
+  }
+
   async function attach(it: Item) {
     // ⚠ V-1 은 한 편만 — 이미 걸린 게 있으면 반드시 묻는다
     if (attachedUrl && attachedUrl !== it.publicUrl) {
@@ -220,6 +271,27 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     </button>
                   )}
                 </div>
+
+                {/* ★ SNS 올리기 — [SNS 연결]에서 고른 곳에만 올린다.
+                    ⚠ 고른 곳이 없으면 이 칸 자체가 안 보인다. 눌러도 아무 일이 안 나는
+                      버튼을 두지 않는다. */}
+                {snsPicked.length > 0 && (
+                  <div className="rounded-xl border border-n-200 p-3">
+                    <p className="t-caption font-semibold">SNS {snsPicked.length}곳에 올리기</p>
+                    <button type="button" disabled={pubBusy === it.id}
+                      onClick={() => void publish(it.id)}
+                      className="mt-2 rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
+                      {pubBusy === it.id ? "올리는 중…" : "고른 곳에 올리기"}
+                    </button>
+                    {(pub[it.id] ?? []).map((r) => (
+                      <p key={r.provider} className={`mt-1.5 t-caption leading-relaxed ${
+                        r.state === "failed" ? "font-semibold text-danger" : "text-[var(--text-soft)]"}`}>
+                        {r.name} · {r.msg}
+                        {r.url && <> · <a href={r.url} target="_blank" rel="noreferrer" className="underline">보기</a></>}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </section>
             );
           })}
