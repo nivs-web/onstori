@@ -227,6 +227,13 @@ function Row({ it, busy, err, selected, onToggle, onCall, onHowTo }: {
       {!it.available.ok && (
         <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">{it.available.why}</p>
       )}
+      {/* ★ X 는 글에 링크가 들어가면 요금이 13배라 서버가 주소를 지운다.
+          사장님이 모르고 넘어가지 않게 **미리** 알린다 — 조용히 바꾸지 않는다. */}
+      {it.provider === "x" && (
+        <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+          X 에 올릴 때는 글 속 <b>인터넷 주소가 빠집니다.</b> (X 정책상 링크가 있으면 비용이 크게 올라요)
+        </p>
+      )}
       {expired && (
         <p className="mt-2 t-caption font-semibold text-danger">연결이 풀렸어요. [연결 끊기] 뒤 다시 연결해 주세요.</p>
       )}

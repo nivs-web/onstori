@@ -5,6 +5,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { ERROR_SAY, PROVIDER_NAME, PROVIDERS, getAdapter } from "@/lib/sns";
 import * as db from "@/lib/sns/db";
+import { captionFor, hasUrl } from "@/lib/sns/no-url";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -54,8 +55,18 @@ export async function POST(req: Request) {
   const caption = ((row?.question as string) || (row?.title as string) || "").slice(0, 2000);
   const publicUrl = post.public_key ? storage.publicUrl(post.public_key) : "";
 
+  /* ★★ 이어 하기에서도 똑같이 막는다. 시작 때만 막으면 폴링으로 우회된다 —
+     돈이 걸린 자리는 **모든 문에** 같은 자물쇠를 단다. */
+  const safeCaption = captionFor(provider, caption);
+  const safeTitle = captionFor(provider, title);
+  if (provider === "x" && (hasUrl(safeCaption) || hasUrl(safeTitle))) {
+    console.error(JSON.stringify({ evt: "sns_x_url_blocked", entryId, via: "poll" }));
+    await db.updatePost(post.id, { status: "failed", error_kind: "REJECTED", error_detail: "X: URL in caption" });
+    return NextResponse.json({ state: "failed", msg: "X 에 보낼 글에서 주소를 다 지우지 못했어요.", kind: "REJECTED" });
+  }
+
   const out = await getAdapter(provider).upload({
-    siteId, entryId, publicUrl, sourceKey: videoKey, title, caption,
+    siteId, entryId, publicUrl, sourceKey: videoKey, title: safeTitle, caption: safeCaption,
     containerId: post.container_id,      // ★ 있으면 ①을 건너뛴다
   });
 

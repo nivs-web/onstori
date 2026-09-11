@@ -71,6 +71,12 @@ export type UploadInput = {
   /** 비공개 원본 키 — **유튜브가 파일을 직접 보낼 때** 쓴다 */
   sourceKey: string;
   title: string;
+  /**
+   * ★★ **X(트위터)로 보낼 때는 반드시 `captionFor()` 를 거친 값이어야 한다.**
+   *   X 는 글에 링크가 있으면 요금이 **13배** 뛴다($0.015 → $0.200).
+   *   원본 글은 녹화 화면이 보낸 값이라 폰에서 조작될 수 있다 — 서버가 지워야 한다.
+   *   `lib/sns/no-url.ts` 참조. 이 자리를 그냥 넘기지 마라.
+   */
   caption: string;
   /** 이어 하기 — 인스타 ②단계에서 끊겼을 때 그 컨테이너를 다시 쓴다 */
   containerId?: string | null;

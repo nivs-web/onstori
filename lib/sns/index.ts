@@ -37,6 +37,9 @@ const ADAPTERS: Record<SnsProvider, SnsAdapter> = {
   tiktok: notReady("tiktok", LATER),
   facebook: notReady("facebook", LATER),
   threads: notReady("threads", LATER),
+  /* ⚠⚠ X 를 실제로 만들 때 **반드시** 읽어라: 글에 링크가 들어가면 요금이 13배다.
+     `lib/sns/no-url.ts` 의 `captionFor()` 를 거친 글만 보내야 하고, 라우트 두 곳
+     (publish · publish/poll)이 이미 그렇게 하고 있다. 새 경로를 만들면 거기도 똑같이 걸어라. */
   x: notReady("x", LATER),
 };
 

@@ -7,6 +7,7 @@ import { trialInfo } from "@/lib/trial";
 import { ERROR_SAY, PROVIDER_NAME, PROVIDERS, getAdapter, type SnsProvider } from "@/lib/sns";
 import * as db from "@/lib/sns/db";
 import { checkForInstagram } from "@/lib/sns/mp4";
+import { captionFor, hasUrl } from "@/lib/sns/no-url";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -98,11 +99,24 @@ export async function POST(req: Request) {
       publicUrl = storage.publicUrl(pk);
     }
 
+
+    /* ★★ 돈이 걸린 자리 — X 는 글에 링크가 있으면 요금이 **13배** 뛴다($0.015 → $0.200).
+       글의 원본(story_entries.question)은 **녹화 화면이 보낸 값**이라 폰에서 조작될 수 있다.
+       그래서 화면이 아니라 **서버가, 보내기 직전에** 지운다. */
+    const safeCaption = captionFor(provider, caption);
+    const safeTitle = captionFor(provider, title);
+    /* ★ 마지막 확인 — 지웠는데도 남아 있으면 **보내지 않는다.**
+       13배 요금을 무는 것보다 안 보내고 이유를 말하는 편이 낫다. */
+    if (provider === "x" && (hasUrl(safeCaption) || hasUrl(safeTitle))) {
+      console.error(JSON.stringify({ evt: "sns_x_url_blocked", entryId }));
+      return say("failed", "X 에 보낼 글에서 주소를 다 지우지 못했어요. 글에서 링크를 빼고 다시 시도해 주세요.", { kind: "REJECTED" });
+    }
+
     const post = await db.createPost({ siteId, entryId, provider, publicKey });
     if (!post) return say("failed", "기록을 만들지 못했어요. 잠시 후 다시 시도해 주세요.", { kind: "TRANSIENT" });
 
     await db.updatePost(post.id, { status: "uploading", attempts: (post.attempts ?? 0) + 1 });
-    const out = await a.upload({ siteId, entryId, publicUrl, sourceKey: videoKey, title, caption });
+    const out = await a.upload({ siteId, entryId, publicUrl, sourceKey: videoKey, title: safeTitle, caption: safeCaption });
 
     if (out.state === "published") {
       await db.updatePost(post.id, {
