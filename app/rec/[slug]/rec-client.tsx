@@ -305,8 +305,11 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       ⚠ 처음 오신 사장님에게 길이 둘이면 «어느 걸 눌러야 하지»에서 멈춘다 —
         되는 길 하나만 보여 주고, 막혔을 때 다른 길을 준다(2026-09-11 회장님 지시 3). */
   const [camFailed, setCamFailed] = useState(false);
-  /** 앞면(user) / 뒷면(environment) 카메라. 다시 켤 때도 고르신 쪽을 그대로 쓴다 */
-  const [facing, setFacing] = useState<"user" | "environment">("user");
+  /** 앞면(user) / 뒷면(environment) 카메라. 다시 켤 때도 고르신 쪽을 그대로 쓴다.
+   *  ★ 기본은 **뒷면**이다(2026-09-11). 얼굴이 화면에 뜨는 것이 사장님이 말문을 닫는
+   *    가장 큰 벽이고, 현장을 비추며 말하는 쪽이 손님에게도 더 좋은 영상이 된다(회장님 지시 5).
+   *    앞면으로 찍고 싶으시면 켜기 전 화면에서 한 번 누르시면 된다. */
+  const [facing, setFacing] = useState<"user" | "environment">("environment");
   /** 이 폰에 달린 카메라 목록. **deviceId 로 바꾼다** — `facingMode` 요청은 안드로이드에서
       무시되는 기기가 흔하다(2026-09-11 회장님 실측). 권한을 받은 뒤에만 이름·id 가 채워진다 */
   const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
@@ -316,6 +319,11 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
   /** 이 폰에서는 전환이 **구조적으로 안 되는** 것으로 판명됐다 → 버튼을 감춘다.
       ⚠ 「권한 거부」는 여기 넣지 않는다. 그건 다시 누르면 되는 일이다 */
   const [switchDead, setSwitchDead] = useState("");
+  /** 카메라 권한 상태. 팝업이 뜰지 **미리** 알아 사장님께 미리 말해 준다 */
+  const [perm, setPerm] = useState("");
+  /** 무슨 일이 있었는지 한 줄 — 회장님이 화면에서 읽어 그대로 알려 주실 수 있게 남긴다.
+      ⚠ Vercel 런타임 기록을 이 컴퓨터에서 못 읽는다. 그래서 **화면에도** 남긴다. */
+  const [diag, setDiag] = useState("");
   /** 어느 길로 찍었나 — 브라우저 녹화 / 폰 기본 카메라 */
   const [source, setSource] = useState<"browser" | "camera">("browser");
   /** 표지 사진 — 못 만들어도 업로드는 막지 않는다(회장님 지시 5). 다만 사장님이 알 수 있게 한다 */
@@ -343,6 +351,10 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
 
   useEffect(() => () => { stopStream(); }, []);
   useEffect(() => { if (liveRef.current && streamRef.current) liveRef.current.srcObject = streamRef.current; }, [screen]);
+  /* ★ 「어느 쪽으로 찍을까요?」 화면에 들어오면 **권한 상태를 미리 읽는다.**
+     그래야 「곧 물어봅니다」인지 「이미 허용돼 있어요」인지 **맞는 말**을 할 수 있다.
+     ⚠ 권한창을 띄우지 않는 조회다 — 읽기만 한다. */
+  useEffect(() => { if (screen === "mode") void readPerm(); }, [screen]);
 
   const questionText = q?.text ?? custom.trim();
 
@@ -351,26 +363,82 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     streamRef.current = null;
   }
 
-  async function setup() {
-    setErr(""); setBadWhy("");
+  /** 카메라 권한이 지금 어떤 상태인가 — 'granted'(항상 허용) · 'prompt'(물어봄) · 'denied'(막힘).
+   *  ★ 이걸 읽으면 **팝업이 뜰지 미리 알 수 있다.** 안드로이드 크롬에서 동작하는 것을 실측했다. */
+  async function readPerm(): Promise<string> {
+    try {
+      const p = await navigator.permissions.query({ name: "camera" as PermissionName });
+      setPerm(p.state); return p.state;
+    } catch { setPerm(""); return ""; }
+  }
+
+  /**
+   * 카메라 켜기. ★ 2026-09-11 — **어느 쪽 카메라로 켤지를 인자로 받는다.**
+   *
+   * ★★ 왜 바꿨나: 전에는 «앞면으로 켠 뒤 전환 버튼으로 바꾸는» 구조였다. 그런데 전환은
+   *   **두 번째 getUserMedia** 라서 권한을 다시 묻고, 회장님 폰에서 그 두 번째가 계속 거절됐다
+   *   (완전히 같은 요청인데 어떤 때는 실패하고 어떤 때는 성공 — 우리 값이 아니라 권한 쪽 널뛰기).
+   *   **켜기 전에 고르면 getUserMedia 가 한 번뿐이다.** 허용을 한 번만 누르면 끝난다.
+   *
+   * ⚠ `ideal` 은 무시돼도 «성공»한다 — 뒷면을 골랐는데 앞면이 켜져도 모른다.
+   *   그래서 폰에서는 `exact` 로 못 박고, 그 쪽 카메라가 없을 때만(OverconstrainedError) `ideal` 로 물러선다.
+   *   권한 거절이 아니라 «없다»는 뜻이라 이 되물림에는 팝업이 다시 뜨지 않는다.
+   */
+  async function setup(want?: "user" | "environment") {
+    setErr(""); setBadWhy(""); setDiag("");
     /* ★ 카메라를 켜기 «전에» 먼저 본다 — 권한창을 띄우지 않는 공짜 검사다.
        여기서 걸리면 사장님이 네 걸음을 걷고 막히는 일이 없다(회장님 지시 3). */
     const b = canRecordHere(mode);
     if (b) { setBlock(b); setCamFailed(true); setScreen("error"); return; }
     setBlock(null);
+
+    const side = want ?? facing;
+    const phone = device === "android" || device === "ios";
+    const before = await readPerm();
+    const vc = (kind: "exact" | "ideal"): MediaStreamConstraints => ({
+      video: {
+        facingMode: kind === "exact" ? { exact: side } : { ideal: side },
+        width: { ideal: 1280 }, height: { ideal: 720 },
+      },
+      audio: true,
+    });
+
+    let stream: MediaStream | null = null;
+    let name = "";
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(mode === "video" ? { video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true } : { audio: true });
+      stream = await navigator.mediaDevices.getUserMedia(
+        mode === "audio" ? { audio: true } : vc(phone ? "exact" : "ideal"));
+    } catch (e) {
+      name = (e as DOMException)?.name ?? "unknown";
+      if (mode === "video" && phone && name === "OverconstrainedError") {
+        try { stream = await navigator.mediaDevices.getUserMedia(vc("ideal")); name = ""; }
+        catch (e2) { name = (e2 as DOMException)?.name ?? name; }
+      }
+    }
+
+    if (stream) {
       streamRef.current = stream;
       setScreen("setup");
       /* ⚠ 카메라 개수는 **권한을 받은 뒤에야** 정확하다. 그전에 세면 목록에 이름이 없어
          한 대로 보이는 폰이 있다 — 그러면 전환 버튼이 영영 안 뜬다. */
       void countCameras(stream);
       /* 실제로 열린 카메라가 앞면인지 뒷면인지 **브라우저에게 물어서** 정한다.
-         우리가 «user 로 요청했으니 앞면일 것»이라고 단정하지 않는다 — 거울 반전이 걸려 있다. */
-      setFacing(facingOf(stream.getVideoTracks()[0], undefined) === "environment" ? "environment" : "user");
-    } catch (e) {
+         우리가 «뒷면으로 요청했으니 뒷면일 것»이라고 단정하지 않는다 — 거울 반전이 걸려 있다. */
+      const got = facingOf(stream.getVideoTracks()[0], undefined);
+      setFacing(got === "unknown" ? side : got);
+      /* ⚠ 고른 쪽과 실제로 켜진 쪽이 다르면 **조용히 넘어가지 않는다**(회장님 지시 1). */
+      if (got !== "unknown" && got !== side) {
+        setErr(`이 폰은 화면에서 ${side === "environment" ? "뒷면" : "앞면"} 카메라를 고를 수 없었어요. 폰을 돌려 비추면서 찍으셔도 됩니다.`);
+        void tellServer("facing_ignored", `want=${side} got=${got} dev=${device}`);
+      }
+      void readPerm();
+      return;
+    }
+
+    {
       /* ⚠ 전에는 오류를 통째로 버리고 한 문구만 띄웠다. 원인이 다르면 할 일도 다르다. */
-      const name = (e as DOMException)?.name ?? "";
+      setDiag(`켜기 실패 · 오류 ${name} · 권한 ${before || "모름"} · 원한쪽 ${side} · ${device}`);
+      void tellServer("camera_open_failed", `${name} perm=${before} want=${side} inApp=${inApp} dev=${device}`);
       if (name === "NotReadableError" || name === "AbortError") {
         setErr("다른 앱이 카메라를 쓰고 있어요. 카메라 앱을 닫고 다시 눌러 주세요.");
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
@@ -379,13 +447,13 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         /* ★ 원인 설명을 앞에 두지 않는다(회장님 지시 2). 사장님은 「왜」가 아니라
            「다음에 뭘 누를지」가 궁금하다. 「인스타」는 뺐다 — 우리는 카톡·문자로만 보낸다. */
         setErr("오른쪽 위 ⋮ → 다른 브라우저로 열기 를 눌러 주세요. (크롬·사파리)");
+      } else if (before === "denied") {
+        /* ★ 「허용을 눌러 주세요」라고 해도 소용없는 상태다. 팝업 자체가 안 뜬다.
+           눌러야 할 곳을 정확히 알려 준다(회장님 지시 2 — 원인이 아니라 «다음에 뭘 누를지»). */
+        setErr("이 폰에서 카메라가 «차단»으로 저장돼 있어요. 주소창 왼쪽 자물쇠 🔒 → 권한 → 카메라 → 허용 으로 바꾼 뒤 다시 눌러 주세요.");
       } else {
         setErr("카메라·마이크를 쓰려면 '허용'을 눌러 주세요.");
       }
-      /* ★ 여기서 서버에 기록을 남긴다. 「카톡 인앱에서 카메라가 열리는가」는 저장소 안에서
-         알 수 없다 — 폰이 있어야 안다. 이제 **실패했을 때만** 진짜 답이 서버에 쌓인다.
-         짐작으로 경고를 띄우는 대신 사실을 모은다(2026-09-11 회장님 지시 2). */
-      void tellServer("camera_open_failed", `${name || "unknown"} inApp=${inApp} dev=${device}`);
       setCamFailed(true);
       setBlock("perm");
       setScreen("error");
@@ -445,9 +513,14 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     try { got = await openVideo(target.deviceId); }
     catch (e) { why = (e as DOMException)?.name || "unknown"; }
 
-    /* ② 「이미 쓰는 중」이면 옛 카메라를 놓고 한 번 더 — **폰 한 대가 카메라를 하나만
-       열 수 있는 기기가 흔하다.** 여기서 놓아도 ③의 되살리기가 있어서 안전하다. */
-    if (!got && (why === "NotReadableError" || why === "AbortError" || why === "TrackStartError")) {
+    /* ② ★ 2026-09-11 — **오류 종류를 가리지 않고** 옛 카메라를 놓고 한 번 더 한다.
+       전에는 「이미 쓰는 중」 계열일 때만 내려왔다. 그래서 회장님 폰의 `NotAllowedError` 는
+       ①에서 막히면 그걸로 끝이었고, 몇 번을 눌러도 **완전히 같은 요청**을 반복할 뿐이었다.
+       ⚠ **마이크 트랙은 놓지 않는다.** 소리 녹음이 살아 있으면 «촬영 중»이 끊기지 않아
+         브라우저가 잡아 둔 허락도 함께 풀리지 않는다. 카메라 자리만 비워 주는 것이다.
+       ⚠ 여기서 놓아도 ③의 되살리기가 있어서 화면이 죽지 않는다. */
+    const why1 = why;
+    if (!got) {
       oldVideo?.stop();
       try { got = await openVideo(target.deviceId); }
       catch (e) { why = (e as DOMException)?.name || why; }
@@ -467,18 +540,39 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
        (2026-09-11 회장님 지시). ②에서 옛 트랙을 놓았을 수 있다. */
     if (!oldVideo || oldVideo.readyState !== "live") {
       try { attach((await openVideo(camId)).getVideoTracks()[0]); }
-      catch { /* 이것마저 실패하면 아래 문구가 «다시 켜기»로 안내한다 */ }
+      catch {
+        /* ⚠ **되살리기를 «막힌 그 방식»으로 하면 같이 막힌다.** deviceId 요청이 거절당하는
+           폰이라면 되살리기도 deviceId 라서 똑같이 실패한다 — 실제로 그렇게 화면이 죽었다
+           (2026-09-11 흉내 시험에서 잡음). 마지막에는 **처음 켤 때와 똑같은 요청**으로 되돌린다.
+           그 요청은 이 폰에서 이미 성공이 확인된 모양이다. 마이크까지 새로 받는다. */
+        try {
+          const back = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: true,
+          });
+          streamRef.current = back;
+          if (liveRef.current) liveRef.current.srcObject = back;
+        } catch { /* 이것마저 실패하면 아래 문구가 [앞·뒤 다시 고르기]로 안내한다 */ }
+      }
     }
     const backOk = (streamRef.current?.getVideoTracks()[0]?.readyState ?? "") === "live";
 
+    const pnow = await readPerm();
     setErr(
       `${SWITCH_WHY[why] ?? "카메라를 바꾸지 못했어요"} (오류: ${why})` +
       (backOk ? " — 지금 카메라로 그대로 찍으셔도 됩니다." : " — 아래 [카메라 다시 켜기]를 눌러 주세요."),
     );
-    /* ★ 기기 문제로 확정된 것만 버튼을 감춘다. 「권한 거부」는 다시 누르면 되는 일이라 남긴다 */
-    if (why !== "NotAllowedError" && why !== "SecurityError") setSwitchDead(why);
+    /* ★ 회장님이 화면에서 읽어 그대로 알려 주실 수 있게 사실을 남긴다.
+       Vercel 런타임 기록을 이 컴퓨터에서 못 읽기 때문이다 — 화면이 유일한 창구다. */
+    setDiag(`전환 실패 · ①${why1 || "-"} ②${why} · 권한 ${pnow || "모름"} · 카메라 ${cams.length}대 · 되살림 ${backOk ? "성공" : "실패"}`);
+    /* ★ **두 순서를 다 해 보고도 막혔으면 버튼을 감춘다** — 오류 이름을 가리지 않는다
+       (2026-09-11 회장님 지시: 「정말 못 바꾸는 기기면 그 폰에서는 버튼을 숨겨라」).
+       ⚠ 갇히지 않는다 — 바로 아래 [앞·뒤 다시 고르기]가 «처음 켤 때와 똑같은 요청»으로
+         데려간다. 그 길은 이 폰에서 이미 성공이 확인된 경로다. */
+    setSwitchDead(why);
     /* ★ 실패를 서버에 남긴다 — 어떤 폰에서 안 되는지 저절로 쌓인다(회장님 지시) */
-    void tellServer("camera_switch_failed", `${why} cams=${cams.length} label=${(target.label || "no-label").slice(0, 40)} back=${backOk}`);
+    void tellServer("camera_switch_failed",
+      `try1=${why1} try2=${why} perm=${pnow} cams=${cams.length} label=${(target.label || "no-label").slice(0, 30)} back=${backOk} dev=${device}`);
     setSwitching(false);
   }
 
@@ -729,8 +823,38 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
               ))}
             </div>
             <ShootGuide compact />
-            <button type="button" onClick={setup} className="btn-lime mt-8 w-full !py-4 !t-body">카메라·마이크 켜기</button>
-            <p className="mt-3 text-center t-caption opacity-60">브라우저가 권한을 물으면 &lsquo;허용&rsquo;을 눌러 주세요</p>
+
+            {/* ★★ 2026-09-11 — **카메라를 켜기 «전»에 어느 쪽으로 찍을지 고른다.**
+                전에는 앞면으로 켠 뒤 [카메라 전환]으로 바꾸게 했는데, 전환은 두 번째 권한 요청이라
+                회장님 폰에서 계속 거절됐다. 켜기 전에 고르면 **허락을 한 번만 받으면 끝난다.**
+                ★ 기본을 «뒷면»으로 둔다 — 얼굴이 화면에 뜨는 것이 가장 큰 벽이고,
+                  현장을 비추며 말하는 쪽이 손님에게도 더 좋은 영상이 된다(회장님 지시 5). */}
+            {mode === "video" && (
+              <div className="mt-7">
+                <p className="t-small font-bold">어느 쪽으로 찍을까요?</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {([["environment", "매장·제품", "얼굴이 안 나와요"], ["user", "내 얼굴", "앞쪽 카메라"]] as const).map(([f, t, d]) => (
+                    <button key={f} type="button" onClick={() => setFacing(f)}
+                      className="rounded-2xl border p-3 text-left"
+                      style={{ borderColor: facing === f ? "var(--green-200)" : "var(--n-700)", background: facing === f ? "var(--n-800)" : "transparent" }}>
+                      <p className="t-small font-bold">{facing === f ? "● " : "○ "}{t}</p>
+                      <p className="mt-0.5 t-caption opacity-75">{d}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 t-caption leading-relaxed opacity-60">나중에 화면에서 바꾸실 수도 있어요. 여기서 고르시면 <b>허용을 한 번만</b> 누르시면 됩니다.</p>
+              </div>
+            )}
+
+            <button type="button" onClick={() => void setup(mode === "video" ? facing : undefined)} className="btn-lime mt-6 w-full !py-4 !t-body">카메라·마이크 켜기</button>
+            {/* ★ 팝업이 뜰지 **미리** 안다(permissions.query 실측 확인). 뜰 때만 말한다 */}
+            <p className="mt-3 text-center t-caption leading-relaxed opacity-60">
+              {perm === "denied"
+                ? "이 폰에서 카메라가 «차단»으로 저장돼 있어요. 주소창 왼쪽 자물쇠 🔒 → 권한 → 카메라 → 허용 으로 바꿔 주세요."
+                : perm === "granted"
+                  ? "카메라 사용이 이미 허용돼 있어요. 바로 켜집니다."
+                  : "곧 «카메라를 사용하려고 합니다»라고 물어요. [허용]을 눌러 주세요."}
+            </p>
             {/* ⚠ 이 화면에도 안내 자리를 둔다 — 폰 카메라로 찍고 돌아왔는데 아무 말이 없으면
                 사장님은 버튼이 고장 난 줄 안다(2026-09-10 반증 검사가 잡아냈다). */}
             {badWhy && <p className="mt-4 rounded-xl bg-white/10 p-3 t-small leading-relaxed">{badWhy}</p>}
@@ -765,10 +889,23 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             {err && (
               <div className="mt-3">
                 <p className="t-small font-semibold leading-relaxed" style={{ color: "var(--danger-soft)" }}>{err}</p>
-                {/* ★ 미리보기가 죽었을 때 빠져나갈 길. 이것이 없으면 검은 화면 앞에서 갇힌다 */}
-                <button type="button" onClick={setup} className="mt-2 rounded-full border border-white/40 px-4 py-2 t-caption font-bold">
-                  카메라 다시 켜기
-                </button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {/* ★★ 갇히지 않는 길 — **앞/뒤를 처음부터 다시 고르는 자리로 돌아간다.**
+                      전환(두 번째 권한 요청)이 막힌 폰이라도 이 길은 «처음 켤 때와 똑같은 요청»이라
+                      회장님 폰에서 이미 성공이 확인된 경로다. */}
+                  <button type="button" onClick={() => { stopStream(); setScreen("mode"); void readPerm(); }}
+                    className="btn-lime !px-4 !py-2 !t-caption">
+                    앞·뒤 다시 고르기
+                  </button>
+                  {/* 미리보기가 죽었을 때 그 자리에서 되살리는 길 */}
+                  <button type="button" onClick={() => void setup(facing)}
+                    className="rounded-full border border-white/40 px-4 py-2 t-caption font-bold">
+                    카메라 다시 켜기
+                  </button>
+                </div>
+                {/* ★ 무슨 일이 있었는지 사실 한 줄. 회장님이 이걸 그대로 읽어 주시면 원인이 좁혀진다.
+                    ⚠ Vercel 런타임 기록을 이 컴퓨터에서 못 본다 — 화면이 유일한 창구다. */}
+                {diag && <p className="mt-2 break-all t-micro opacity-60">{diag}</p>}
               </div>
             )}
             {/* ★ 「얼굴 안 나와도 된다」는 말만으로는 부족하다 — **어떻게** 안 나오게 하는지 방법을 준다 */}
