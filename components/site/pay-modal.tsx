@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { COPY, type TrialInfo } from "@/lib/trial";
 import { CHANNELS_LINE } from "@/config/channels";
+import { BIZ } from "@/config/company";
 
 /**
  * 정회원 결제 모달 — 토스페이먼츠 SDK v2 (기획1 /mainplan #membership).
@@ -90,6 +91,18 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
         )}
         {msg && <p className="mt-3 t-small text-danger">{msg}</p>}
         <p className="mt-3 t-caption" style={{ color: "var(--muted)" }}>토스페이먼츠 안전 결제 · 매달 자동 결제 · 언제든 해지 · 자료 전부 반출</p>
+        {/* ★ 2026-09-11 신설 — **여기가 계약이 맺어지는 화면인데 파는 사람이 누구인지 없었다.**
+            전자상거래법 제13조는 계약 체결 «전»에 판매자 신원과 거래조건을 알리라고 한다.
+            본사 푸터에는 있지만 이 모달은 /my 와 /{slug}/edit 에서 뜨고 **그 두 화면엔 푸터가 없다.**
+            ⚠ 값은 config/company.ts 하나에서만 온다. 여기에 숫자를 직접 타이핑하지 마라.
+            ⚠ 링크는 새 탭이다 — 같은 탭으로 나가면 결제 흐름이 끊긴다. */}
+        <p className="mt-2 t-micro leading-relaxed" style={{ color: "var(--muted)" }}>
+          판매자 {BIZ.name} · 대표 {BIZ.ceo} · 사업자등록번호 {BIZ.bizNo} · 통신판매업신고 {BIZ.mailOrderNo} · {BIZ.phone}
+          {" · "}
+          <a href="/terms" target="_blank" rel="noreferrer" className="underline">이용약관</a>
+          {" · "}
+          <a href="/privacy" target="_blank" rel="noreferrer" className="underline">개인정보처리방침</a>
+        </p>
         {onClose && <button type="button" onClick={onClose} className="mt-3 w-full py-2 t-small underline" style={{ color: "var(--muted)" }}>나중에</button>}
       </div>
     </div>

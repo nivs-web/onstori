@@ -58,7 +58,7 @@ P0~P1은 선검증과 병행. **P2/P3 진입 전 선판매 테스트(인테리�
 - [x] Supabase 프로젝트 생성 — ref: `wpsrfjqfbhmeriscdacu` (무료 티어)
 - [x] .env.local 구성 + Vercel 환경변수(URL·anon key, Production) 등록 완료
 - [x] supabase link + db push 완료 (core 마이그레이션 원격 적용)
-- [ ] 토스페이먼츠 가맹 신청 — 보류: 통신판매업 신고 후 진행 (P5 전까지만 완료하면 됨)
+- [ ] 토스페이먼츠 가맹 신청 — **보류 해제(2026-09-11).** 심사가 보는 통신판매업 번호(제2026-다산-0825호)가 나왔다
 
 ## 할일 (사장님 담당)
 

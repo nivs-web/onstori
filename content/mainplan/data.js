@@ -48,7 +48,7 @@ window.MAINPLAN = {
 <tr><td>10</td><td>말 → 글 가공(1인칭 다듬기·3인칭 소개·캡션 6종) + 이미지뱅크 스토리 카드(@vercel/og)</td><td>중</td><td><span class="tag todo">클코팀장 (STEP 5)</span></td></tr>
 <tr><td>11</td><td>발행 연동 — 인스타/쓰레드(Meta Graph, 앱 리뷰 20일) · 유튜브(videos.insert) · X(유료만) · 네이버(복붙 안내)</td><td>대</td><td><span class="tag todo">클코팀장 (STEP 6~7)</span></td></tr>
 <tr><td>12</td><td>이미지뱅크 어드민 생성기(키워드+숫자+버튼, 1,000×2K + 13,000×1K, 별점 자동)</td><td>중</td><td><span class="tag todo">클코팀장 (STEP 1)</span></td></tr>
-<tr><td>13</td><td>토스페이먼츠 가맹 · 사업자등록 · 통신판매업 (사람)</td><td>—</td><td><span class="tag wip">회장님</span></td></tr>
+<tr><td>13</td><td>토스페이먼츠 가맹 · 사업자등록 · 통신판매업 (사람)</td><td>통신판매업 제2026-다산-0825호 (09-11 발급)</td><td><span class="tag wip">회장님 — 토스 가맹만 남음</span></td></tr>
 <tr><td>14</td><td>Meta 앱 리뷰 · 비즈니스 인증 · 유튜브 API 감사 신청 (사람, 20일)</td><td>—</td><td><span class="tag wip">회장님</span></td></tr></table>
 
 <h3>어디서부터 — 합리적 순서와 이유</h3>
