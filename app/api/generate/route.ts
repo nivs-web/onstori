@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { uniqueSlug } from "@/lib/slug";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
@@ -19,7 +20,9 @@ const Input = z.object({
      ⚠ 옛 가입 화면은 이 값을 안 보낸다. 그래서 optional 이다 — 필수로 막으면
        열려 있는 옛 화면에서 만들던 사장님이 그 자리에서 실패한다. 화면이 필수로 받는다. */
   email: z.string().max(120).email("메일 주소를 정확히 입력해 주세요").optional(),
-  slug: z.string().regex(/^[a-z0-9-]{3,30}$/),
+  /* ★ 2026-09-12 — **선택값이 됐다.** 가입 화면에서 「홈페이지 주소」 칸을 뺐다(이탈 1위).
+     안 오면 서버가 상호·업종에서 짓는다. 옛 화면이 열려 있어도 보내면 그대로 존중한다. */
+  slug: z.string().regex(/^[a-z0-9-]{3,30}$/).optional(),
   mood: z.enum(["clean", "warm", "premium", "lively"]).default("clean"),
   address: z.string().max(120).optional(),
   whyStarted: z.string().max(300).optional(),
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const limit = await checkRateLimit("gen", ip, GENERATE_LIMITS);
   if (!limit.ok) {
-    console.warn(JSON.stringify({ evt: "generate_rate_limited", ip, rule: limit.rule.label, slug: input.slug }));
+    console.warn(JSON.stringify({ evt: "generate_rate_limited", ip, rule: limit.rule.label, slug: input.slug ?? "(auto)" }));
     return NextResponse.json(
       { error: "잠시 후 다시 시도해주세요. 짧은 시간에 너무 많이 만들었어요." },
       { status: 429, headers: { "Retry-After": String(limit.rule.window) } },
@@ -63,13 +66,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "지금은 홈페이지를 만들 수 없어요. 잠시 후 다시 시도해 주세요." }, { status: 503 });
   }
 
-  // 슬러그 최종 검증 (서버가 최후의 방어선)
-  const [{ data: reserved }, { data: taken }] = await Promise.all([
-    sb.from("reserved_slugs").select("slug").eq("slug", input.slug).maybeSingle(),
-    sb.from("sites").select("slug").eq("slug", input.slug).maybeSingle(),
-  ]);
-  if (reserved || taken) {
-    return NextResponse.json({ error: "사용할 수 없는 주소예요" }, { status: 409 });
+  /* 슬러그 — 화면이 보냈으면 검증하고, 안 보냈으면 **서버가 짓는다.**
+     ⚠ 검사 함수를 하나로 묶어 두 길이 **같은 기준**을 쓰게 한다. */
+  const isTaken = async (s: string) => {
+    const [{ data: r }, { data: t }] = await Promise.all([
+      sb.from("reserved_slugs").select("slug").eq("slug", s).maybeSingle(),
+      sb.from("sites").select("slug").eq("slug", s).maybeSingle(),
+    ]);
+    return !!r || !!t;
+  };
+
+  let slug = input.slug;
+  if (slug) {
+    if (await isTaken(slug)) {
+      return NextResponse.json({ error: "사용할 수 없는 주소예요" }, { status: 409 });
+    }
+  } else {
+    slug = await uniqueSlug(input.businessName, input.industryId ?? null, isTaken);
   }
 
   const user = await getSessionUser(); // 로그인 상태면 처음부터 계정 귀속 (anon claim 불필요)
@@ -94,7 +107,7 @@ export async function POST(req: Request) {
     const { data: site, error } = await sb
       .from("sites")
       .insert({
-        slug: input.slug,
+        slug,
         owner_id: user?.id ?? null,
         anon_id: user ? null : input.anonId ?? null,
         business_name: input.businessName,
@@ -137,10 +150,10 @@ export async function POST(req: Request) {
       funnel: { created_at: new Date().toISOString() },
     });
 
-    console.log(JSON.stringify({ evt: "generate_ok", slug: input.slug, industry: industry.id, method: inferred.method, ms: Date.now() - started }));
-    return NextResponse.json({ url: `https://onstori.com/${input.slug}`, slug: input.slug });
+    console.log(JSON.stringify({ evt: "generate_ok", slug, industry: industry.id, method: inferred.method, ms: Date.now() - started }));
+    return NextResponse.json({ url: `https://onstori.com/${slug}`, slug });
   } catch (e) {
-    console.error(JSON.stringify({ evt: "generate_fail", slug: input.slug, ms: Date.now() - started, err: String(e).slice(0, 300) }));
+    console.error(JSON.stringify({ evt: "generate_fail", slug, ms: Date.now() - started, err: String(e).slice(0, 300) }));
     return NextResponse.json({ error: "생성에 실패했어요. 잠시 후 다시 시도해주세요." }, { status: 500 });
   }
 }

@@ -70,8 +70,19 @@ export function PayModal({ slug, trial, onClose }: { slug: string; trial?: Trial
               : "홈페이지를 계속 유지하려면 정회원 전환이 필요해요."}
         </p>
         <ul className="mt-4 grid gap-1.5 t-small">
-          {["홈페이지 유지 · 검색 등록", "매주 질문 문자 + 60초 녹화 링크", "자막 영상 (쇼츠·릴스 규격)", "다듬은 글 3종 + 사진 카드", CHANNELS_LINE, "견적·문의 알림"].map((t) => (
-            <li key={t} className="flex gap-2"><span style={{ color: "var(--green)" }}>✓</span>{t}</li>
+          {/* ★ 2026-09-12 — **되는 것(✓)과 준비 중(⏳)을 갈라서** 적는다. 홈 가격 카드와 같은 목록이다.
+              전에는 「자막 영상」·「다듬은 글 3종 + 사진 카드」를 ✓ 로 적었는데 **둘 다 없다.**
+              ⚠ 여기는 카드를 등록하는 화면이다. 돈을 내는 자리에서 없는 것을 약속하면 안 된다. */}
+          {([
+            ["✓", "onstori.com/상호 홈페이지 유지 · 검색 등록"],
+            ["✓", "매주 질문 문자 + 60초 녹화 링크"],
+            ["✓", "인스타그램에 함께 올리기"],
+            ["⏳", "유튜브 · 틱톡 · 쓰레드 · X · 페이스북 — 준비 중"],
+            ["✓", "견적·문의 알림 (이메일)"],
+          ] as const).map(([mark, t]) => (
+            <li key={t} className="flex gap-2">
+              <span style={{ color: mark === "✓" ? "var(--green)" : "var(--muted)" }}>{mark}</span>{t}
+            </li>
           ))}
         </ul>
         {notReady ? (

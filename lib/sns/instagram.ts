@@ -19,14 +19,20 @@ import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInpu
  *   특히 ①API 버전 ②`media_type` 값 ③`status_code` 의 값 집합 ④필요한 권한(scope) 목록.
  */
 
-/* ⚠ 확인 필요 — 김팀장 조사와 대조할 것 */
-const GRAPH = "https://graph.facebook.com/v21.0";
-const OAUTH_DIALOG = "https://www.facebook.com/v21.0/dialog/oauth";
-/** ⚠ 확인 필요 — 릴스 게시에 실제로 요구되는 권한 목록 */
-const SCOPES = ["instagram_basic", "instagram_content_publish", "pages_show_list", "business_management"];
+/* ★★ 2026-09-12 회장님 지시 — **「인스타 로그인」 길로 바꿨다.**
+   전에는 페이스북 로그인(www.facebook.com/dialog/oauth + pages_show_list)이라
+   사장님이 **페이스북 페이지를 먼저 만들어야** 연결이 됐다. 동네 사장님 대부분은 페이지가 없다.
+   가입 이탈이 가장 큰 자리였다.
+   ⚠ 페이스북 게시는 **나중에 따로** 붙인다. 지금 묶지 않는다 —
+     묶으면 인스타만 쓰려는 사장님까지 페이스북을 만들어야 한다. */
+const GRAPH = "https://graph.instagram.com/v21.0";
+const OAUTH_DIALOG = "https://www.instagram.com/oauth/authorize";
+const TOKEN_URL = "https://api.instagram.com/oauth/access_token";
+/** ⚠ 확인 필요 — 인스타 로그인 방식의 권한 이름. 심사 전에 대조할 것 */
+const SCOPES = ["instagram_business_basic", "instagram_business_content_publish"];
 
-const appId = () => process.env.META_APP_ID ?? "";
-const appSecret = () => process.env.META_APP_SECRET ?? "";
+const appId = () => process.env.INSTAGRAM_APP_ID ?? process.env.META_APP_ID ?? "";
+const appSecret = () => process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP_SECRET ?? "";
 
 /** 인스타가 그쪽에서 처리를 끝냈나 — ⚠ 값 집합 확인 필요 */
 type ContainerStatus = "IN_PROGRESS" | "FINISHED" | "ERROR" | "PUBLISHED" | "EXPIRED";
@@ -36,7 +42,7 @@ export const instagram: SnsAdapter = {
 
   async isAvailable(): Promise<Availability> {
     if (!appId() || !appSecret()) {
-      return { ok: false, why: "인스타그램 연결 열쇠가 아직 등록되지 않았어요. (META_APP_ID·META_APP_SECRET)" };
+      return { ok: false, why: "인스타그램 연결 열쇠가 아직 등록되지 않았어요. (INSTAGRAM_APP_ID·INSTAGRAM_APP_SECRET)" };
     }
     return { ok: true };
   },
@@ -61,42 +67,54 @@ export const instagram: SnsAdapter = {
       return { stage: "redirect" as const, authUrl: u.toString() };
     }
 
-    /* 돌아왔다 — 코드를 토큰으로 바꾼다 */
+    /* 돌아왔다 — 코드를 토큰으로 바꾼다.
+       ⚠ 인스타 로그인은 **POST 폼**으로 주고받는다(페이스북 로그인의 GET 방식과 다르다). */
     try {
-      const t = new URL(`${GRAPH}/oauth/access_token`);
-      t.searchParams.set("client_id", appId());
-      t.searchParams.set("client_secret", appSecret());
-      t.searchParams.set("redirect_uri", redirectUri);
-      t.searchParams.set("code", code);
-      const tok = (await callJson(t.toString(), { method: "GET" }, "ig:token")) as {
-        access_token?: string; expires_in?: number;
-      };
+      const form = new URLSearchParams({
+        client_id: appId(), client_secret: appSecret(),
+        grant_type: "authorization_code", redirect_uri: redirectUri, code,
+      });
+      const tok = (await callJson(TOKEN_URL, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: form.toString(),
+      }, "ig:token")) as { access_token?: string; user_id?: string | number; permissions?: string; expires_in?: number };
       if (!tok.access_token) {
         return { stage: "failed" as const, kind: "TRANSIENT" as ErrorKind, detail: "토큰을 받지 못했어요." };
       }
 
-      /* ⚠ 확인 필요 — 페이지→인스타 프로페셔널 계정을 찾아오는 정확한 경로.
-         지금은 «내 페이지 목록 → 연결된 instagram_business_account» 순서로 적었다. */
-      let accountId: string | null = null;
+      /* ★ 인스타 로그인은 **페이스북 페이지를 거치지 않는다.** 내 계정을 바로 묻는다.
+         ⚠ 확인 필요 — 필드 이름(user_id·username·account_type)은 심사 전에 대조할 것. */
+      let accountId: string | null = tok.user_id ? String(tok.user_id) : null;
       let accountName: string | null = null;
+      let accountType: string | null = null;
       try {
-        const pages = (await callJson(
-          `${GRAPH}/me/accounts?fields=instagram_business_account{id,username}&access_token=${encodeURIComponent(tok.access_token)}`,
-          { method: "GET" }, "ig:pages",
-        )) as { data?: { instagram_business_account?: { id?: string; username?: string } }[] };
-        const hit = pages.data?.find((p) => p.instagram_business_account?.id);
-        accountId = hit?.instagram_business_account?.id ?? null;
-        accountName = hit?.instagram_business_account?.username ?? null;
-      } catch { /* 아래에서 «프로페셔널 계정이 아니다»로 안내한다 */ }
+        const me = (await callJson(
+          `${GRAPH}/me?fields=id,username,account_type&access_token=${encodeURIComponent(tok.access_token)}`,
+          { method: "GET" }, "ig:me",
+        )) as { id?: string; username?: string; account_type?: string };
+        accountId = me.id ?? accountId;
+        accountName = me.username ?? null;
+        accountType = me.account_type ?? null;
+      } catch { /* 아래에서 안내한다 */ }
 
       if (!accountId) {
         /* ★ 조용히 실패하지 않는다. 무엇을 해야 하는지 말한다 */
         return {
           stage: "failed" as const, kind: "REJECTED" as ErrorKind,
-          detail: "인스타그램 «프로페셔널(비즈니스) 계정»이 페이스북 페이지에 연결돼 있어야 해요.",
+          detail: "인스타그램 계정을 확인하지 못했어요. 다시 한 번 시도해 주세요.",
+        };
+      }
+      /* ⚠ 개인 계정으로는 외부에서 올릴 수 없다 — 그건 인스타 정책이라 우리가 못 바꾼다.
+         다만 **페이스북 페이지는 더 이상 필요 없다.** 안내 문구도 그렇게 바뀐다. */
+      if (accountType && !/business|creator|media_creator/i.test(accountType)) {
+        return {
+          stage: "failed" as const, kind: "REJECTED" as ErrorKind,
+          detail: "인스타그램을 «프로페셔널 계정»(비즈니스 또는 크리에이터)으로 바꿔 주세요.",
         };
       }
 
+      /* ⚠ 인스타 로그인의 첫 토큰은 **짧은 수명**이다(1시간 안팎). 장기 토큰으로 바꾸는 절차가
+         따로 있는데 그 경로는 **확인 필요**다. 지금은 받은 값이 있으면 그대로 적고, 없으면 비워 둔다 —
+         만료되면 화면이 「연결이 풀렸어요」로 안내하고 다시 연결하면 된다(조용히 죽지 않는다). */
       const expiresAt = tok.expires_in ? new Date(Date.now() + tok.expires_in * 1000).toISOString() : null;
       const saved = await db.saveConnection({
         siteId, provider: "instagram",

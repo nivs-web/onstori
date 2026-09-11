@@ -166,9 +166,9 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   /* ★ 두 갈래를 **early return 위에** 그린다. 목록을 불러오는 동안에도
        [SNS 연결]로 넘어갈 수 있어야 한다 — 영상이 없어도 연결은 먼저 해 둘 수 있다. */
   const tabs = (
-    /* ⚠ `data-tour` 를 붙이지 않았다. 불변 규칙 3 은 앵커 이름을 `config/tours.ts` 에
-       등록된 것만 쓰라고 한다. 「SNS 연결」로 데려가는 힌트가 필요해지면 그때 먼저 등록한다. */
-    <div className="flex gap-2">
+    /* ★ 2026-09-12 — `panel-video` 를 `config/tours.ts` 에 **먼저 등록하고** 여기 붙였다.
+       완성도 「첫 영상 찍기」 힌트가 이 자리로 데려온다(규칙 3·12). */
+    <div className="flex gap-2" data-tour="panel-video">
       {([["list", "내 영상"], ["sns", "SNS 연결"]] as const).map(([id, label]) => (
         <button key={id} type="button" onClick={() => setView(id)}
           className={`rounded-full px-4 py-2 t-caption font-semibold ${

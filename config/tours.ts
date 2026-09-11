@@ -63,6 +63,9 @@ export const ACTIVE_ANCHORS = [
   ...new Set([
     ...TOURS.filter((t) => !t.pendingPhase).flatMap((t) => t.steps.map((s) => s.anchor)),
     "sec-hero", "panel-photos", "set-contact", "story-new", "sec-form", "btn-publish", "panel-widgets",
+    /* 2026-09-12 — 완성도 「첫 영상」이 데려갈 자리. **앵커를 먼저 등록하고** 화면에 붙였다
+       (규칙 3·12 — 앵커가 없는데 힌트만 살아 있으면 눌러도 아무 일이 안 일어난다). */
+    "panel-video",
     // 2026-09-10 — 로고 칸이 「디자인」 메뉴에 생겼다. FUTURE_ANCHORS 에서 옮겨 왔다
     "panel-brand",
   ]),

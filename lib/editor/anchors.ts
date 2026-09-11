@@ -37,6 +37,7 @@ export const ANCHOR_MENU: Record<string, EditorMenuId> = {
   "panel-widgets": "link",
   "panel-inbox": "inbox",
   "story-new": "story",
+  "panel-video": "video",
 };
 
 /** 이 앵커를 보려면 어느 메뉴로 가야 하나. 껍데기에 늘 있는 앵커면 null */

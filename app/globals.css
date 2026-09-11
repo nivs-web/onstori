@@ -584,7 +584,11 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
    ★ 기본값은 **손가락 쪽**이다. 모르는 기기에는 누구에게나 참인 말을 보여 준다. */
 .say-hover { display: none; }
 .say-touch { display: inline; }
-@media (hover: hover) and (pointer: fine) {
+/* ★ 2026-09-12 — **폭 조건을 함께 건다.** 「마우스가 있다」 판정만 믿었더니 박팀장 기기에서
+   옛 문구가 그대로 보였다(데스크톱 모드 태블릿 등은 hover:hover 로 보고한다).
+   회장님 처음 지시가 「폭에 따라」였던 것도 이 때문이다 — 둘 다 참일 때만 마우스 문구를 쓴다.
+   ⚠ 틀릴 때 안전한 쪽: 손가락 문구는 마우스 사용자에게도 참이지만, 그 반대는 거짓말이 된다. */
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) {
   .say-hover { display: inline; }
   .say-touch { display: none; }
 }

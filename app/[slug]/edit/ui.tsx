@@ -19,6 +19,7 @@ import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
 import { VideosPanel } from "./videos-panel";
+import { WeeklyPanel } from "./weekly-panel";
 import { LogoutButton } from "@/app/my/ui";
 import { EditorShell } from "./shell";
 import { DEFAULT_EDITOR_MENU, isEditorMenu, type EditorMenuId } from "@/config/editor-menu";
@@ -552,7 +553,16 @@ export function EditUi({ slug }: { slug: string }) {
           onDetach={() => { setDoc({ ...doc, sections: doc.sections.filter((s) => s.type !== "video") }); setDirty(true); flash("홈페이지에서 내렸어요 (영상은 지워지지 않았어요)"); }}
         />
       ) : menu === "link" ? (
-        <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
+        <>
+          <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
+          {/* ★★ 2026-09-12 — 「주 1회 촬영 알림」(회장님 지시 8). 「연결」 메뉴에 둔다 —
+              전화·카톡 버튼과 같은 «어디로 연락이 오가나»의 자리라 결이 맞는다.
+              ⚠ 이 설정을 크론(/api/cron/weekly)이 매시 정각에 읽는다. */}
+          <div className="mt-8 border-t border-n-200 pt-6">
+            <h3 className="t-small font-bold">주 1회 촬영 알림</h3>
+            <div className="mt-3"><WeeklyPanel slug={slug} /></div>
+          </div>
+        </>
       ) : inboxDone ? (
         <InboxTab slug={slug} anonId={anon()} initial={inbox} onNewCount={setNewCount} />
       ) : (

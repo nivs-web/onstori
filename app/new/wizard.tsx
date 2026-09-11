@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { INDUSTRY_GROUPS, findSubIndustry, type SubIndustry } from "@/config/industry-picker";
@@ -30,10 +30,30 @@ function anonId(): string {
   } catch { return ""; }
 }
 
-/** 상호명 → 영문 슬러그 초안 (한글은 못 옮기므로 비워두고 사장님이 짓는다) */
-function slugSuggest(name: string): string {
-  const s = name.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 30);
-  return s.length >= 3 ? s : "";
+/**
+ * 「배지」 로고에서 글자가 테두리를 넘지 않게 크기를 정한다. (2026-09-12)
+ *
+ * ★ 버그: 알약 테두리 안쪽 폭이 **360px** 인데 글자 크기를 min(fs, 52) 로 못 박아 뒀다.
+ *   한글 6자면 52×6=312 로 아슬아슬하고, **8자면 416** 이라 테두리와 겹쳤다(박팀장 발견).
+ *
+ * ★ 한글은 한 글자가 대략 글자크기만큼(1em) 넓고, 영문·숫자는 그 절반쯤(0.55em)이다.
+ *   그 비율로 **실제 폭을 어림잡아** 크기를 맞춘다.
+ * ★ 그래도 너무 작아지면(28px 미만) **두 줄로 나눈다** — 읽을 수 없는 로고는 로고가 아니다.
+ */
+function fitBadge(name: string, maxW = 360, maxSize = 52): { size: number; lines: string[] } {
+  const emWidth = (t: string) =>
+    [...t].reduce((w, ch) => w + (/[ㄱ-힝一-鿿぀-ヿ]/.test(ch) ? 1 : 0.55), 0);
+
+  const one = emWidth(name) || 1;
+  const size = Math.min(maxSize, maxW / one);
+  if (size >= 28) return { size: Math.floor(size), lines: [name] };
+
+  /* 두 줄 — 띄어쓰기가 있으면 거기서, 없으면 가운데서 자른다 */
+  const sp = name.lastIndexOf(" ", Math.ceil(name.length / 2));
+  const cut = sp > 0 ? sp : Math.ceil(name.length / 2);
+  const lines = [name.slice(0, cut).trim(), name.slice(sp > 0 ? cut + 1 : cut).trim()].filter(Boolean);
+  const widest = Math.max(...lines.map(emWidth), 1);
+  return { size: Math.floor(Math.min(maxSize, maxW / widest)), lines };
 }
 
 /** 자동 로고 4안 — 상호명 워드마크 SVG. 즉시·무료. (기획1 #onboarding: AI 그림 로고는 후순위) */
@@ -49,8 +69,24 @@ function wordmarks(name: string, accent: string): { id: string; label: string; s
     { id: "serif", label: "세리프", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><text x="256" y="276" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="${fs}" fill="${accent}">${esc}</text><rect x="196" y="316" width="120" height="6" fill="${accent}"/></svg>` },
     { id: "sans", label: "굵은 고딕", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="64" fill="${accent}"/><text x="256" y="278" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${fs}" fill="#FFFFFF" letter-spacing="-2">${esc}</text></svg>` },
     { id: "mono", label: "모노그램", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><circle cx="256" cy="216" r="120" fill="${accent}"/><text x="256" y="262" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="120" fill="#FFFFFF">${initial}</text><text x="256" y="420" text-anchor="middle" font-family='${sans}' font-weight="700" font-size="40" fill="#1B2C2C">${esc}</text></svg>` },
-    { id: "badge", label: "배지", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><rect x="56" y="176" width="400" height="160" rx="80" fill="none" stroke="${accent}" stroke-width="10"/><text x="256" y="272" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${Math.min(fs, 52)}" fill="${accent}">${esc}</text><text x="256" y="400" text-anchor="middle" font-family='${sans}' font-size="24" fill="#5F6B69" letter-spacing="6">SINCE ${new Date().getFullYear()}</text></svg>` },
+    /* ★ 2026-09-12 — 글자 크기를 **테두리 안쪽 폭에 맞춰 계산한다.** 전에는 min(fs,52) 로 못 박혀
+       8자 이상 상호에서 글자가 테두리를 뚫고 나갔다(박팀장 발견). 너무 작아지면 두 줄로 간다. */
+    badge(esc, accent, sans),
   ];
+}
+
+/** 「배지」 한 장 — 글자 수에 따라 크기가 줄고, 필요하면 두 줄이 된다 */
+function badge(esc: string, accent: string, sans: string): { id: string; label: string; svg: string } {
+  const { size, lines } = fitBadge(esc);
+  /* 한 줄이면 가운데(272), 두 줄이면 위아래로 나눈다 — 알약 세로 가운데가 256 이다 */
+  const ys = lines.length === 1 ? [272] : [256 - size * 0.15, 256 + size * 1.0];
+  const text = lines
+    .map((ln, i) => `<text x="256" y="${Math.round(ys[i])}" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${size}" fill="${accent}">${ln}</text>`)
+    .join("");
+  return {
+    id: "badge", label: "배지",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><rect x="56" y="176" width="400" height="160" rx="80" fill="none" stroke="${accent}" stroke-width="10"/>${text}<text x="256" y="400" text-anchor="middle" font-family='${sans}' font-size="24" fill="#5F6B69" letter-spacing="6">SINCE ${new Date().getFullYear()}</text></svg>`,
+  };
 }
 
 const svgUrl = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -79,8 +115,6 @@ export function Wizard() {
   /** ★ 문의 알림이 가는 주소. 비면 문의가 와도 사장님이 모른다(2026-09-11 회장님 결정) */
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugMsg, setSlugMsg] = useState<{ ok: boolean; msg: string } | null>(null);
   const [why, setWhy] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState("");
@@ -99,7 +133,6 @@ export function Wizard() {
   const [alreadyHasSite, setAlreadyHasSite] = useState(false);
   const [result, setResult] = useState<{ url: string; slug: string } | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accentHex = ACCENTS.find((a) => a.id === accent)?.hex ?? ACCENTS[0].hex;
   const marks = useMemo(() => wordmarks(name || "온스토리", accentHex), [name, accentHex]);
@@ -109,18 +142,6 @@ export function Wizard() {
     fetch("/api/place-search?q=").then(readJson).then((d) => setPlaceOn(!!d.available)).catch(() => setPlaceOn(false));
     Promise.resolve().then(() => sbBrowser().auth.getUser()).then(({ data }) => setSignedIn(!!data.user)).catch(() => setSignedIn(false));
   }, []);
-
-  /* 슬러그 실시간 검사 */
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      if (!slug) { setSlugMsg(null); return; }
-      try {
-        const d = await readJson(await fetch(`/api/slug-check?slug=${encodeURIComponent(slug)}`));
-        setSlugMsg(d.available ? { ok: true, msg: "사용 가능한 주소예요" } : { ok: false, msg: String(d.reason ?? "") });
-      } catch { setSlugMsg(null); }
-    }, 400);
-  }, [slug]);
 
   async function searchPlace() {
     setPlaceBusy(true);
@@ -156,7 +177,7 @@ export function Wizard() {
      정규식으로 조이면 멀쩡한 회사 메일이 막히는 일이 더 잦다. */
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   const emailErr = email.trim() && !emailOk ? "메일 주소를 정확히 입력해 주세요 — 예: example@gmail.com" : "";
-  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk && !!slug && !!slugMsg?.ok;
+  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk;
 
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
@@ -172,7 +193,7 @@ export function Wizard() {
       const theme = themeFor(tone, accent);
       const aid = anonId();
       const body = {
-        businessName: name.trim(), oneLiner: oneLiner.trim(), phone: phone.trim(), email: email.trim(), slug,
+        businessName: name.trim(), oneLiner: oneLiner.trim(), phone: phone.trim(), email: email.trim(),
         mood: theme.palette, accent: theme.accent,
         industryId: sub?.industryId, industryLabel: sub?.label,
         address: address.trim() || undefined, whyStarted: why.trim() || undefined, anonId: aid || undefined,
@@ -394,7 +415,7 @@ export function Wizard() {
             })}
           </div>
           {sub && <p className="mt-4 t-small" style={{ color: "var(--muted)" }}>선택: <b style={{ color: "var(--forest)" }}>{sub.label}</b></p>}
-          {nav({ next: () => { if (!slug) setSlug(slugSuggest(name)); setStep(2); }, canNext: can2 })}
+          {nav({ next: () => setStep(2), canNext: can2 })}
         </section>
       )}
 
@@ -426,12 +447,12 @@ export function Wizard() {
             </div>
             <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>{logoFile ? "올린 로고를 써요" : logoAuto ? `자동 로고 · ${marks.find((m) => m.id === logoAuto)?.label}` : "로고 없이 시작해도 돼요"}</p>
           </Field>
-          <Field label="홈페이지 주소" hint={slugMsg ? slugMsg.msg : "영문 소문자·숫자·하이픈 3~30자"} hintColor={slugMsg ? (slugMsg.ok ? "text-green-700" : "text-danger") : undefined}>
-            <div className="flex items-center gap-2">
-              <span className="whitespace-nowrap t-small" style={{ color: "var(--muted)" }}>onstori.com/</span>
-              <input className="field flex-1" value={slug} maxLength={30} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="mystore" />
-            </div>
-          </Field>
+          {/* ★★ 2026-09-12 — 「홈페이지 주소」 칸을 **없앴다.** 가입 이탈 1위였다(회장님).
+              한글 상호면 자동 초안이 빈칸이고, 한글을 치면 글자가 안 찍히는데 **이유를 안 알려줬다.**
+              사장님은 「고장났나」 하고 나간다.
+              ★ 이제 **서버가 상호·업종에서 짓고, 겹치면 뒤에 숫자를 붙인다**(lib/slug.ts).
+              ⚠ 주소를 나중에 바꾸는 길은 편집화면에 남길 자리다 — 이미 발행된 주소가 깨지므로
+                되돌리기(리다이렉트)까지 같이 만들어야 한다. 지금은 손대지 않는다. */}
           <Field label="전화번호 (필수)" hint={phoneErr} hintColor={phoneErr ? "text-danger" : undefined}>
             <input
               className="field"

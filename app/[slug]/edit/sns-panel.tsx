@@ -163,10 +163,14 @@ export function SnsPanel({ slug, selected, onSelected }: {
           <ol className="mt-2 list-decimal space-y-1 pl-5 t-caption leading-relaxed text-[var(--text-soft)]">
             <li>인스타그램 앱 → 오른쪽 아래 내 사진 → 오른쪽 위 ☰ → <b>설정</b></li>
             <li><b>계정 유형 및 도구</b> → <b>프로페셔널 계정으로 전환</b></li>
-            <li>업종을 고르고 <b>비즈니스</b>를 선택합니다</li>
-            <li>페이스북 <b>페이지</b>와 연결합니다 — 이 연결이 있어야 온스토리가 올릴 수 있어요</li>
+            <li>업종을 고르고 <b>비즈니스</b> 또는 <b>크리에이터</b>를 선택합니다</li>
           </ol>
-          <p className="mt-2 t-caption text-[var(--text-soft)]">개인 계정으로는 외부에서 올리는 것이 막혀 있어요. 인스타그램 정책입니다.</p>
+          {/* ★ 2026-09-12 — 「페이스북 페이지와 연결」 단계를 **지웠다.**
+              인스타 로그인 길로 바꿔서 **페이스북 페이지가 더 이상 필요 없다**(회장님 지시 4).
+              동네 사장님 대부분은 페이지가 없고, 그게 가입 이탈 1위였다. */}
+          <p className="mt-2 t-caption text-[var(--text-soft)]">
+            <b>페이스북 페이지는 없어도 됩니다.</b> 개인 계정으로는 외부에서 올리는 것이 막혀 있어요 — 인스타그램 정책입니다.
+          </p>
           <button type="button" onClick={() => setHowTo(false)} className="mt-3 rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">닫기</button>
         </section>
       )}

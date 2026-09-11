@@ -58,3 +58,10 @@ hero-wave*.log
 
 # 사업 설계도 대시보드 — prebuild 가 저장소 문서에서 매번 생성 (scripts/build-plandept.ts)
 content/onstoriplandept/
+
+.vercel
+.env*
+
+# Vercel CLI 가 남기는 배포 목록 덤프 (679KB). 저장소에 들어갈 것이 아니다.
+# ⚠ 이것이 있으면 scripts/verify.mjs 가 그 안의 옛 요금 숫자를 잡아 실패한다.
+deployments.json

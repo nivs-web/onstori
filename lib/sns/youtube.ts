@@ -85,7 +85,9 @@ export const youtube: SnsAdapter = {
     const gate = await readGate();
     if (gate === "off") {
       /* ★ 「준비 중」이라고 **정확히** 말한다. 고장난 것처럼 보이지 않게 */
-      return { ok: false, why: "유튜브는 아직 준비 중이에요. 심사가 끝나면 열립니다." };
+      /* ⚠ 「심사」는 금지어다(2026-09-12 회장님). 사장님에게 우리 사정을 말할 이유가 없고,
+         「심사」는 «떨어질 수도 있다»로 읽힌다. 약속은 우리가 지는 쪽으로 적는다. */
+      return { ok: false, why: "유튜브는 준비 중입니다. 준비되는 대로 열어 드리고 알려드리겠습니다." };
     }
     if (!clientId() || !clientSecret()) {
       return { ok: false, why: "유튜브 연결 열쇠가 아직 등록되지 않았어요. (GOOGLE_OAUTH_CLIENT_ID·SECRET)" };

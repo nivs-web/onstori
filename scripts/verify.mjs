@@ -27,6 +27,10 @@ function checkPrices() {
       if (!EXT.has(path.extname(e.name))) continue;
       const p = path.join(dir, e.name).replace(/\\/g, "/").replace(/^\.\//, "");
       if (p === "lib/trial.ts") continue;                        // 유일한 출처
+      /* ⚠ 도구가 남긴 임시 파일은 저장소 코드가 아니다. 2026-09-12 에 Vercel CLI 가
+         `deployments.json`(679KB, 배포 목록 덤프)을 남겨 이 검사가 옛 요금 숫자를 잡고 실패했다.
+         파일을 지우지 않고 검사에서 뺀다 — 회장님이 쓰시려고 뽑아 두신 것일 수 있다. */
+      if (p === "deployments.json" || p === ".vercel") continue;
       if (/20\d\d-\d\d-\d\d/.test(e.name)) continue;             // 날짜 박힌 역사 기록
       if (p === "docs/DECISIONS.md" || p.startsWith("docs/design/")) continue;
       let s; try { s = fs.readFileSync(p, "utf8"); } catch { continue; }
