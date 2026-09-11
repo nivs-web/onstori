@@ -55,15 +55,35 @@ export function nowInSeoul(d = new Date()): { weekday: number; hour: number; ymd
 
 /**
  * 지금 이 사장님에게 보낼 때인가.
- * ★ 「요일·시가 맞고」 + 「이번 주에 아직 안 보냈고」 둘 다여야 한다.
- * ⚠ 크론이 겹쳐 돌거나 재시도하면 같은 주에 두 번 간다. 그 두 번째를 여기서 막는다.
+ *
+ * ★★ 2026-09-12 재설계 — 「지금이 딱 그 시각인가」가 아니라 **「그 시각이 지났는가」**로 본다.
+ *
+ * ⚠ 왜 바꿨나: 처음엔 «요일·시가 정확히 맞을 때»만 보내게 했다. 그러려면 크론이
+ *   **매시 정각**에 돌아야 하는데, Vercel **Hobby 요금제는 크론이 하루 1회뿐**이고
+ *   매시 표현식(`0 * * * *`)은 **배포 자체를 실패시킨다**
+ *   (「Hobby accounts are limited to daily Cron Jobs」 — 2026-09-12 문서 확인).
+ *   실제로 그 한 줄 때문에 배포가 통째로 막혔다.
+ *
+ * ★ 그래서 **크론이 자주 돌든 하루 한 번 돌든 똑같이 동작하게** 만들었다:
+ *   · 매시로 돌면 → 고르신 시각 그 시간에 나간다 (정확)
+ *   · 하루 한 번 돌면 → 고르신 시각이 지난 뒤 **첫 발송 시간**에 나간다 (조금 늦지만 간다)
+ *   어느 쪽이든 **주 1회**는 지켜지고, 요금제가 바뀌어도 코드를 안 고쳐도 된다.
+ *
+ * ⚠ 두 번 보내는 것은 `lastSentAt` 이 막는다. 크론이 겹쳐 돌거나 재시도해도 안전하다.
  */
 export function shouldSend(w: Weekly | undefined, at = new Date()): boolean {
   if (!w?.on) return false;
+
+  /* 이번 주 「그 슬롯」이 언제였나 — 한국 시각 기준으로 계산한다 */
   const now = nowInSeoul(at);
-  if (w.weekday !== now.weekday || w.hour !== now.hour) return false;
+  const minutesNow = now.weekday * 1440 + now.hour * 60;
+  const minutesSlot = w.weekday * 1440 + w.hour * 60;
+  /* 아직 이번 주 그 시각이 안 됐다 */
+  if (minutesNow < minutesSlot) return false;
+
   if (!w.lastSentAt) return true;
-  /* 6일 안에 보낸 적이 있으면 건너뛴다 — 「같은 주」를 날짜 계산 없이 안전하게 본다 */
+  /* 6일 안에 보낸 적이 있으면 건너뛴다 — 「같은 주」를 날짜 계산 없이 안전하게 본다.
+     ⚠ 정확히 7일로 잡으면 크론이 1분 늦게 도는 주에 한 주를 통째로 거른다. */
   const since = at.getTime() - new Date(w.lastSentAt).getTime();
   return since > 6 * 86400_000;
 }

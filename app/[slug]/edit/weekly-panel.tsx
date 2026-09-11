@@ -117,12 +117,18 @@ export function WeeklyPanel({ slug }: { slug: string }) {
                 </button>
               ))}
             </div>
+            {/* ⚠ 시각은 «그 무렵»이다. 자동 발송이 하루 한 번 도는 구간이 있어서
+                고르신 시각이 지난 뒤 가장 가까운 발송 시간에 나간다. 정확한 척하지 않는다. */}
             <select className="field mt-2" value={w.hour} onChange={(e) => set({ hour: Number(e.target.value) })}>
               {Array.from({ length: 24 }, (_, h) => (
                 <option key={h} value={h}>{h < 12 ? `오전 ${h === 0 ? 12 : h}시` : `오후 ${h === 12 ? 12 : h - 12}시`}</option>
               ))}
             </select>
           </div>
+
+          <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+            고르신 요일에 보내 드려요. 시각은 <b>그 무렵</b>이고, 조금 늦어질 수 있어요.
+          </p>
         </>
       )}
 
