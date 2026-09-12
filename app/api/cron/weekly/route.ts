@@ -3,7 +3,10 @@ import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw, notifyChannels } from "@/lib/notify";
 import { storyLinkUrl } from "@/lib/story-link";
 import { ALIMTALK_QUESTIONS } from "@/config/questions";
-import { readWeekly, shouldSend, deadlineText, hasBannedPhrase } from "@/lib/weekly";
+import {
+  readWeekly, shouldSend, deadlineText, hasBannedPhrase, withOptOut, pickOnePerPhone,
+  type Weekly,
+} from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
 import { refreshInstagramTokens, refreshTiktokTokens, finishStuckPosts, checkPublishedAlive } from "@/lib/sns/maintenance";
 
@@ -26,6 +29,13 @@ export const maxDuration = 60;
  *   ⚠ 보내기 **전에** 찍지 않고 **보낸 뒤에** 찍는다 — 먼저 찍으면 발송이 실패했을 때
  *     그 주를 통째로 건너뛴다.
  *
+ * ★★ **한 번호에는 한 통만** (2026-09-12 지시 A2). 한 분이 사이트를 둘 가진 경우가 실제로 있어
+ *   그대로 두면 같은 번호로 같은 날 두 통이 갔다. 그래서 보내기 **전에** 후보를 모아
+ *   `pickOnePerPhone` 으로 한 곳만 남긴다. 고르는 규칙과 이유는 그 함수 주석에 있다.
+ *
+ * ★★ **첫 문자에는 거부 안내 한 줄**이 붙는다 (2026-09-12 회장님 결정 C안 · 지시 A1).
+ *   동의 기록(`consents`)이 없는 기존 사장님들께 가는 첫 통이라, 끄는 길을 그 자리에서 드린다.
+ *
  * ⚠ 알림톡은 아직 심사 전이라 **채널을 kakao 로 고른 사장님에게도 지금은 문자로 간다.**
  *   화면이 그 사실을 그대로 말한다(lib/weekly.ts KAKAO_READY).
  */
@@ -37,12 +47,12 @@ export async function GET(req: Request) {
   }
 
   const sb = sbAdmin();
-  const out = { looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0 };
+  const out = { looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0, samePhone: 0 };
 
   /* 살아 있는 사이트만 본다 — 정지된 곳에 촬영을 독려하면 화만 난다 */
   const { data: sites, error } = await sb
     .from("sites")
-    .select("id, slug, business_name, settings, status, trial_ends_at, suspended_at")
+    .select("id, slug, business_name, settings, status, trial_ends_at, suspended_at, updated_at")
     .in("status", ["trial", "active"]);
   if (error) {
     console.error(JSON.stringify({ evt: "weekly_query_failed", err: error.message.slice(0, 160) }));
@@ -51,6 +61,15 @@ export async function GET(req: Request) {
 
   const canSms = notifyChannels().sms;
   const now = new Date();
+
+  /* ════ ① 보낼 때가 된 곳만 먼저 «모은다» ════
+     ⚠ 바로 보내면 안 된다. 같은 번호를 걸러내려면 **전체 후보를 다 본 뒤에** 골라야 한다. */
+  type Cand = {
+    id: string; slug: string; businessName: string;
+    settings: Record<string, unknown>; w: Weekly;
+    phone: string; status: string | null; updatedAt: string | null;
+  };
+  const cands: Cand[] = [];
 
   for (const s of sites ?? []) {
     out.looked++;
@@ -65,7 +84,28 @@ export async function GET(req: Request) {
     const phone = (w?.phone?.trim() || (settings.phone as string) || "").trim();
     if (!phone || !canSms) { out.noPhone++; continue; }
 
-    const link = storyLinkUrl(s.slug as string, "https://onstori.com");
+    cands.push({
+      id: s.id as string,
+      slug: s.slug as string,
+      businessName: s.business_name as string,
+      settings, w: w as Weekly, phone,
+      status: (s.status as string) ?? null,
+      updatedAt: (s.updated_at as string) ?? null,
+    });
+  }
+
+  /* ════ ② 같은 번호는 한 곳만 ════
+     ⚠ 조용히 버리지 않는다 — 어느 사이트를 어느 사이트 때문에 건너뛰었는지 로그에 남긴다.
+       나중에 「왜 이 사이트만 문자가 안 오냐」는 물음에 답할 수 있어야 한다. */
+  const { chosen, dropped } = pickOnePerPhone(cands);
+  out.samePhone = dropped.length;
+  for (const d of dropped) {
+    console.log(JSON.stringify({ evt: "weekly_same_phone_skipped", slug: d.slug, inFavorOf: d.inFavorOf }));
+  }
+
+  /* ════ ③ 보낸다 ════ */
+  for (const c of chosen) {
+    const link = storyLinkUrl(c.slug, "https://onstori.com");
     /* ★★ 알림톡에 실을 수 있는 질문만 고른다 (2026-09-12 지시 D5).
        「~해 주세요」로 끝나는 명령문 8개는 광고성으로 읽혀 **반려 사유**가 된다.
        ⚠ 문자와 알림톡이 **같은 문장**을 쓰게 둔다 — 두 벌을 만들면 한쪽만 고쳐진다. */
@@ -74,24 +114,26 @@ export async function GET(req: Request) {
     /* ★★ 「60초만 말씀해 주세요」를 **뺐다.** 행동을 시키는 문장이 알림톡 반려 사유다.
        무엇을 하라는 말은 **링크 너머 녹화 화면**이 한다 — 거기서 하면 문제가 없다.
        ★ 대신 «언제까지»를 넣는다. 유효기간이 있어야 「배송물」로 읽힌다(김팀장 조사). */
-    const text = `[온스토리] ${s.business_name} 사장님, 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`;
+    const body = `[온스토리] ${c.businessName} 사장님, 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`;
+    /* ★ 첫 통이면 거부 안내를 붙인다 (C안). `lastSentAt` 이 비었다 = 처음 가는 문자다. */
+    const text = withOptOut(body, !c.w.lastSentAt);
 
     /* ★ 보내기 «전»에 스스로 검사한다 — 반려 사유가 될 말이 섞이면 안 보낸다.
        ⚠ 조용히 안 보내지 않는다. 로그에 어느 말이 걸렸는지 적는다. */
     const banned = hasBannedPhrase(text);
     if (banned) {
-      console.error(JSON.stringify({ evt: "weekly_banned_phrase", slug: s.slug, banned }));
+      console.error(JSON.stringify({ evt: "weekly_banned_phrase", slug: c.slug, banned }));
       out.failed++; continue;
     }
 
-    const ok = await sendSmsRaw(phone, text);
+    const ok = await sendSmsRaw(c.phone, text);
     if (!ok) { out.failed++; continue; }
     out.sent++;
 
     /* ★ 보낸 뒤에 찍는다. 먼저 찍으면 발송 실패 시 그 주를 통째로 건너뛴다. */
     await sb.from("sites")
-      .update({ settings: { ...settings, weekly: { ...(w ?? {}), lastSentAt: new Date().toISOString() } } })
-      .eq("id", s.id);
+      .update({ settings: { ...c.settings, weekly: { ...c.w, lastSentAt: new Date().toISOString() } } })
+      .eq("id", c.id);
   }
 
   console.log(JSON.stringify({ evt: "weekly_done", ...out }));

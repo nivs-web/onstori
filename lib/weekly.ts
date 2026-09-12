@@ -174,3 +174,91 @@ export function readWeekly(settings: Record<string, unknown> | null | undefined)
     lastSentAt: typeof raw.lastSentAt === "string" ? raw.lastSentAt : undefined,
   };
 }
+
+/* ════════════ C안 — 첫 문자에 거부 안내 (2026-09-12 회장님 결정 A1) ════════════ */
+
+/**
+ * ★★ 왜 있나: 기존 15곳 중 **알림 수신에 명시적으로 동의한 곳이 한 곳도 없다**
+ *   (`consents` 표가 0줄이다 — 오늘 만든 동의 절차 «이전»에 가입한 분들이라 그렇다).
+ *   회장님 결정은 **C안** — 「그대로 켜되, **거부할 길을 첫 문자 그 자리에서** 드린다」.
+ *
+ * ⚠ **문자에는 굵게가 없다.** 그래서 한 줄을 통째로 `【】` 로 감싼다 — 이것이 문자에서의 굵게다.
+ * ⚠ 「~해 주세요」류를 일부러 뺐다. `BANNED_IN_NOTIFY` 에 걸리면 **발송 자체가 막힌다**
+ *   (`hasBannedPhrase` 가 보내기 전에 검사한다).
+ * ⚠ 경로는 화면과 **글자 그대로** 맞춰야 한다 — 편집화면 「연결」 탭 > 「주 1회 촬영 알림」 >
+ *   [받지 않기] (app/[slug]/edit/ui.tsx · weekly-panel.tsx). 화면 글자가 바뀌면 여기도 바꿔라.
+ */
+export const OPT_OUT_LINE = "【받지 않으시려면】 홈페이지 관리 > 연결 > 주 1회 촬영 알림 > 받지 않기";
+
+/**
+ * **첫 문자에만** 붙인다 — `lastSentAt` 이 비어 있으면 이 사장님께 «처음» 가는 문자다.
+ *
+ * ⚠ 매주 붙이지 않는 이유: 회장님 지시가 「첫 문자에」였고, 매주 붙으면 본문이 길어져
+ *   정작 이번 주 질문이 안 읽힌다. 끄는 길은 편집화면에 **늘** 열려 있다.
+ */
+export function withOptOut(text: string, isFirstEver: boolean): string {
+  return isFirstEver ? `${text}\n${OPT_OUT_LINE}` : text;
+}
+
+/* ════════ 같은 번호로 두 번 가지 않게 (2026-09-12 회장님 지시 A2) ════════ */
+
+/**
+ * 번호 비교용 열쇠. 하이픈·공백·`+82` 표기가 달라도 **같은 번호면 같은 열쇠**가 나온다.
+ * ⚠ 표기를 그대로 비교하면 `010-1111-2222` 와 `01011112222` 를 다른 사람으로 본다.
+ */
+export function phoneKey(phone: string): string {
+  const d = (phone ?? "").replace(/\D/g, "");
+  return d.startsWith("82") ? `0${d.slice(2)}` : d;
+}
+
+export type PhoneCandidate = {
+  phone: string;
+  slug: string;
+  status?: string | null;
+  updatedAt?: string | null;
+};
+
+/**
+ * ★★ **한 번호에는 한 주에 한 통만.**
+ *
+ * ⚠ 왜 필요한가: 한 분이 사이트를 둘 이상 가진 경우가 실제로 있다(2026-09-12 확인 —
+ *   「안녕월드」와 「욕실 인테리어 전문가」가 같은 번호다). 그대로 두면 **같은 번호로 같은 날
+ *   두 통**이 간다. 받는 쪽에서는 그것이 스팸의 첫인상이고, 통신사 필터에도 그렇게 읽힌다.
+ *
+ * ★ 어느 사이트 것으로 보낼지 — **고르는 규칙과 그 이유**:
+ *   1. **`active` 가 `trial` 을 이긴다** — 돈이 오가기 시작한 곳이 사장님의 «진짜 가게»다.
+ *   2. **최근에 손댄 곳**(`updated_at` 최신) — 사장님의 눈이 지금 가 있는 곳이다.
+ *      덤으로 «안정»도 얻는다: 보내고 나면 그 사이트의 `settings.lastSentAt` 이 찍혀
+ *      `updated_at` 이 다시 최신이 되므로, **다음 주에도 같은 곳이 뽑힌다.**
+ *      매주 다른 사이트 이름으로 문자가 가면 그것이야말로 사장님을 헷갈리게 한다.
+ *   3. 그래도 같으면 **slug 사전순** — 뽑기가 실행마다 흔들리지 않게 하는 마지막 못이다.
+ *
+ * ⚠ 이 함수는 **보낼 때가 된 후보만** 받아야 한다. 아직 때가 아닌 사이트까지 넣어 놓고
+ *   그중 하나를 뽑으면, 뽑힌 쪽이 건너뛰어져 그 번호에는 **아무것도 안 간다.**
+ */
+export function pickOnePerPhone<T extends PhoneCandidate>(
+  cands: T[],
+): { chosen: T[]; dropped: Array<{ slug: string; inFavorOf: string }> } {
+  const groups = new Map<string, T[]>();
+  for (const c of cands) {
+    const k = phoneKey(c.phone);
+    const g = groups.get(k);
+    if (g) g.push(c); else groups.set(k, [c]);
+  }
+
+  const chosen: T[] = [];
+  const dropped: Array<{ slug: string; inFavorOf: string }> = [];
+  for (const g of groups.values()) {
+    const sorted = [...g].sort((a, b) => {
+      const rank = (s?: string | null) => (s === "active" ? 0 : 1);
+      if (rank(a.status) !== rank(b.status)) return rank(a.status) - rank(b.status);
+      const at = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+      const bt = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+      if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return bt - at;
+      return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
+    });
+    chosen.push(sorted[0]);
+    for (const rest of sorted.slice(1)) dropped.push({ slug: rest.slug, inFavorOf: sorted[0].slug });
+  }
+  return { chosen, dropped };
+}

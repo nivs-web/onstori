@@ -1,4 +1,4 @@
-import { shouldSend, nowInSeoul, type Weekly } from "../lib/weekly";
+import { shouldSend, nowInSeoul, withOptOut, OPT_OUT_LINE, phoneKey, pickOnePerPhone, hasBannedPhrase, type Weekly } from "../lib/weekly";
 
 /** 주 1회 알림 판정 검사 — 실패하면 종료코드 1 (2026-09-12) */
 const KST = (iso: string) => new Date(iso);   // iso 에 +09:00 을 직접 적는다
@@ -65,6 +65,50 @@ t("15시로 읽는다", n.hour === 15, true);
 const utc = nowInSeoul(new Date("2026-09-15T22:00:00Z")); // = 한국 16일 07시(수)
 t("UTC 22시 → 한국 수요일", utc.weekday === 3, true);
 t("UTC 22시 → 한국 07시", utc.hour === 7, true);
+
+console.log("\n── ★ A1 첫 문자 거부 안내 (2026-09-12 회장님 결정 C안) ──");
+t("첫 통이면 거부 안내가 붙는다", withOptOut("본문", true).includes(OPT_OUT_LINE), true);
+t("두 번째부터는 안 붙는다", withOptOut("본문", false).includes(OPT_OUT_LINE), false);
+t("본문은 그대로 살아 있다", withOptOut("본문", true).startsWith("본문\n"), true);
+/* ★★ 이 검사가 없으면 «보내기 전 검사»에 걸려 첫 문자가 통째로 안 나간다 — 조용히. */
+t("★ 거부 안내가 금지어 검사를 통과한다", hasBannedPhrase(OPT_OUT_LINE) === null, true);
+const sampleFirst = withOptOut(
+  `[온스토리] 바른전기 사장님, 이번 주 질문이 도착했어요.\n"오늘 가장 기억에 남는 일은 무엇이었나요?"\n9월 18일 (금)까지 열어 보실 수 있어요.\nhttps://onstori.com/s/abc`,
+  true,
+);
+t("★ 실제 첫 문자 전문이 금지어 검사를 통과한다", hasBannedPhrase(sampleFirst) === null, true);
+
+console.log("\n── ★ A2 같은 번호로 두 번 가지 않기 (2026-09-12 지시) ──");
+t("하이픈이 있든 없든 같은 번호", phoneKey("010-1111-2222") === phoneKey("01011112222"), true);
+t("+82 표기도 같은 번호", phoneKey("+82 10-1111-2222") === phoneKey("010-1111-2222"), true);
+t("다른 번호는 다르다", phoneKey("010-1111-2222") === phoneKey("010-1111-3333"), false);
+
+/* 실제로 겹친 두 곳을 그대로 본떴다 — 안녕월드 · 욕실 인테리어 전문가 (같은 번호) */
+const dup = pickOnePerPhone([
+  { phone: "010-1111-7025", slug: "annongworld", status: "trial", updatedAt: "2026-09-10T00:00:00Z" },
+  { phone: "01011117025",   slug: "interior2",   status: "trial", updatedAt: "2026-09-12T00:00:00Z" },
+]);
+t("같은 번호면 한 통만 간다", dup.chosen.length === 1, true);
+t("최근에 손댄 곳이 뽑힌다", dup.chosen[0].slug === "interior2", true);
+t("버린 쪽을 조용히 버리지 않는다", dup.dropped[0]?.slug === "annongworld" && dup.dropped[0]?.inFavorOf === "interior2", true);
+
+const paid = pickOnePerPhone([
+  { phone: "010-1111-7025", slug: "trial-one", status: "trial",  updatedAt: "2026-09-12T00:00:00Z" },
+  { phone: "010-1111-7025", slug: "paid-one",  status: "active", updatedAt: "2026-09-01T00:00:00Z" },
+]);
+t("★ 돈 내는 곳(active)이 최신보다 앞선다", paid.chosen[0].slug === "paid-one", true);
+
+const tie = pickOnePerPhone([
+  { phone: "010-1111-7025", slug: "bbb", status: "trial", updatedAt: "2026-09-12T00:00:00Z" },
+  { phone: "010-1111-7025", slug: "aaa", status: "trial", updatedAt: "2026-09-12T00:00:00Z" },
+]);
+t("완전 동점이면 slug 사전순 — 실행마다 흔들리지 않는다", tie.chosen[0].slug === "aaa", true);
+
+const apart = pickOnePerPhone([
+  { phone: "010-1111-1111", slug: "one", status: "trial", updatedAt: null },
+  { phone: "010-2222-2222", slug: "two", status: "trial", updatedAt: null },
+]);
+t("번호가 다르면 둘 다 간다", apart.chosen.length === 2 && apart.dropped.length === 0, true);
 
 /* ⚠ 개수를 손으로 적지 않는다 — 검사를 늘려 놓고 숫자를 안 고치면 그 숫자가 거짓말한다.
    실제로 2026-09-12 에 그랬다(9건을 더했는데 「15건」이라고 찍혔다). */
