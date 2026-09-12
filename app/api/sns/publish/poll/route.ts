@@ -86,6 +86,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ state: "processing", msg: `${name} 이 영상을 받는 중이에요.` });
   }
   await db.updatePost(post.id, { status: "failed", error_kind: out.kind, error_detail: out.detail.slice(0, 300) });
-  console.error(JSON.stringify({ evt: "sns_publish_failed", provider, entryId, kind: out.kind, via: "poll" }));
-  return NextResponse.json({ state: "failed", msg: ERROR_SAY[out.kind], kind: out.kind });
+  console.error(JSON.stringify({ evt: "sns_publish_failed", provider, entryId, kind: out.kind, detail: out.detail.slice(0, 300), via: "poll" }));
+  /* ★ 시작 라우트와 **같은 규칙** — 그쪽이 준 말을 함께 보낸다(2026-09-12 지시 3).
+     한쪽만 고치면 「이어 가다 실패한 경우」에만 또 깜깜해진다. */
+  return NextResponse.json({ state: "failed", msg: ERROR_SAY[out.kind], kind: out.kind, detail: out.detail.slice(0, 300) });
 }

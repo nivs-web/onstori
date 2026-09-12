@@ -92,18 +92,61 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
      ★ 인스타는 한 번에 안 끝난다. `processing` 이면 **1분에 한 번, 최대 5분** 이어 간다
        (회장님 지시 4). 기다림을 서버에 맡기면 시간 초과로 끊기고, 그 끊김이 곧
        «같은 영상 두 번 올리기»가 된다. 그래서 화면이 기다린다. */
-  type PubRow = { provider: string; name: string; state: string; msg: string; url?: string | null; kind?: string };
+  type PubRow = {
+    provider: string; name: string; state: string; msg: string;
+    url?: string | null; kind?: string;
+    /** ★ 그쪽이 준 원문 — 첫 실제 게시에서 「왜 거절당했는지」를 봐야 한다 (2026-09-12 지시 3) */
+    detail?: string;
+    /** 인스타 규격 실측 — null 은 «못 잰 것»이지 0 이 아니다 */
+    spec?: { bytes: number | null; width: number | null; moovFirst: boolean | null; container?: string | null } | null;
+  };
   const [pub, setPub] = useState<Record<string, PubRow[]>>({});
   const [pubBusy, setPubBusy] = useState<string | null>(null);
+  /** 사장님이 직접 쓴 글. 비어 있으면 서버가 질문·제목을 쓴다 */
+  const [cap, setCap] = useState<Record<string, string>>({});
+  /** 인스타가 «지금 올릴 수 있는» 상태인가 — SNS 연결 탭에 들어가지 않아도 알아야 한다 */
+  const [igReady, setIgReady] = useState<{ ok: boolean; why: string } | null>(null);
 
-  async function publish(entryId: string) {
+  /* ★ 연결 현황을 여기서도 한 번 읽는다 (2026-09-12).
+     전에는 [SNS 연결] 탭에서 체크를 해야만 올리기 버튼이 나왔다 — 다섯 걸음이었고,
+     새로고침하면 체크가 풀려 처음부터 다시였다. 인스타는 **한 걸음**으로 올릴 수 있어야 한다. */
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        let anonId = "";
+        try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
+        const r = await fetch("/api/sns/status", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, anonId }),
+        });
+        if (!r.ok) { if (alive) setIgReady({ ok: false, why: "" }); return; }
+        type Row = { provider: string; available: { ok: boolean; why?: string }; connection: { status: string; disclaimerAgreedAt: string | null } | null };
+        const d = (await r.json()) as { items?: Row[] };
+        const ig = d.items?.find((x) => x.provider === "instagram");
+        if (!alive) return;
+        if (!ig) { setIgReady({ ok: false, why: "" }); return; }
+        if (!ig.available.ok) { setIgReady({ ok: false, why: ig.available.why ?? "" }); return; }
+        if (!ig.connection || ig.connection.status !== "active") {
+          setIgReady({ ok: false, why: "[SNS 연결] 에서 인스타그램을 먼저 연결해 주세요." }); return;
+        }
+        if (!ig.connection.disclaimerAgreedAt) {
+          setIgReady({ ok: false, why: "[SNS 연결] 에서 [올려도 좋아요]를 먼저 눌러 주세요." }); return;
+        }
+        setIgReady({ ok: true, why: "" });
+      } catch { if (alive) setIgReady({ ok: false, why: "" }); }
+    })();
+    return () => { alive = false; };
+  }, [slug]);
+
+  async function publish(entryId: string, providers: string[] = snsPicked) {
     setPubBusy(entryId);
     try {
       let anonId = "";
       try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
       const r = await fetch("/api/sns/publish", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId, entryId, providers: snsPicked }),
+        body: JSON.stringify({ slug, anonId, entryId, providers, caption: cap[entryId]?.trim() || undefined }),
       });
       const d = (await r.json().catch(() => ({}))) as { results?: PubRow[]; error?: string };
       if (!r.ok) {
@@ -128,11 +171,13 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slug, anonId, entryId, provider }),
         });
-        const d = (await r.json().catch(() => ({}))) as { state?: string; msg?: string; url?: string | null };
+        const d = (await r.json().catch(() => ({}))) as { state?: string; msg?: string; url?: string | null; detail?: string };
         if (!r.ok || !d.state) continue;
         setPub((p) => ({
           ...p,
-          [entryId]: (p[entryId] ?? []).map((x) => x.provider === provider ? { ...x, state: d.state!, msg: d.msg ?? x.msg, url: d.url ?? x.url } : x),
+          [entryId]: (p[entryId] ?? []).map((x) => x.provider === provider
+            ? { ...x, state: d.state!, msg: d.msg ?? x.msg, url: d.url ?? x.url, detail: d.detail ?? x.detail }
+            : x),
         }));
         if (d.state === "published" || d.state === "failed") return;
       } catch { /* 다음 차례에 다시 */ }
@@ -274,6 +319,40 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                   )}
                 </div>
 
+                {/* ★★ 인스타그램 한 걸음 올리기 (2026-09-12 회장님 지시).
+                    메타 심사는 «성공한 호출 1회»가 있어야 시작되고, 그 기록이 잡히는 데 **이틀**이 걸린다.
+                    그래서 이 길은 최대한 짧아야 한다 — [SNS 연결] 탭을 거치지 않는다.
+                    ⚠ 못 올리는 상태면 **버튼을 두지 않고 이유를 쓴다.** 눌러도 아무 일이 안 나는
+                      버튼이 가장 나쁘다. */}
+                {igReady && (
+                  igReady.ok ? (
+                    <div className="rounded-xl border border-green-700 p-3">
+                      <p className="t-caption font-semibold">인스타그램에 올리기</p>
+                      <label className="mt-2 block">
+                        <span className="t-caption text-[var(--text-soft)]">글 (비워 두면 질문·제목이 들어가요)</span>
+                        <textarea
+                          className="mt-1 w-full rounded-lg border border-n-300 p-2 t-caption"
+                          rows={3}
+                          value={cap[it.id] ?? it.question ?? it.title ?? ""}
+                          onChange={(e) => setCap((p) => ({ ...p, [it.id]: e.target.value }))}
+                          placeholder="손님에게 하고 싶은 말을 적어 주세요"
+                        />
+                      </label>
+                      <TextMeter text={cap[it.id] ?? it.question ?? it.title ?? ""} providers={["instagram"]} className="mt-1" />
+                      <button type="button" disabled={pubBusy === it.id}
+                        onClick={() => void publish(it.id, ["instagram"])}
+                        className="mt-2 rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
+                        {pubBusy === it.id ? "올리는 중…" : "인스타에 올리기"}
+                      </button>
+                      <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">
+                        인스타가 영상을 받는 데 <b>최대 5분</b>이 걸려요. 이 화면을 열어 두시면 알아서 마무리돼요.
+                      </p>
+                    </div>
+                  ) : igReady.why ? (
+                    <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">{igReady.why}</p>
+                  ) : null
+                )}
+
                 {/* ★ SNS 올리기 — [SNS 연결]에서 고른 곳에만 올린다.
                     ⚠ 고른 곳이 없으면 이 칸 자체가 안 보인다. 눌러도 아무 일이 안 나는
                       버튼을 두지 않는다. */}
@@ -293,15 +372,41 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                       className="mt-2 rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
                       {pubBusy === it.id ? "올리는 중…" : "고른 곳에 올리기"}
                     </button>
-                    {(pub[it.id] ?? []).map((r) => (
-                      <p key={r.provider} className={`mt-1.5 t-caption leading-relaxed ${
-                        r.state === "failed" ? "font-semibold text-danger" : "text-[var(--text-soft)]"}`}>
-                        {r.name} · {r.msg}
-                        {r.url && <> · <a href={r.url} target="_blank" rel="noreferrer" className="underline">보기</a></>}
-                      </p>
-                    ))}
                   </div>
                 )}
+
+                {/* ★★ 올리기 결과 — **카드 하나에 한 곳**. (2026-09-12)
+                    전에는 이 줄이 「고른 곳에 올리기」 상자 «안»에 있었다. 그래서 새로 만든
+                    [인스타에 올리기] 로 올리면 **결과가 아무 데도 안 보였다.** 밖으로 뺐다. */}
+                {(pub[it.id] ?? []).map((r) => (
+                  <div key={r.provider} className={`rounded-xl p-3 t-caption leading-relaxed ${
+                    r.state === "failed" ? "bg-danger-soft font-semibold text-danger"
+                    : r.state === "published" ? "bg-n-50 font-semibold text-green-700"
+                    : "bg-n-50 text-[var(--text-soft)]"}`}>
+                    <p>
+                      {r.state === "published" ? `${r.name} 에 올라갔어요.` : `${r.name} · ${r.msg}`}
+                      {r.url && <> <a href={r.url} target="_blank" rel="noreferrer" className="underline">[보기]</a></>}
+                    </p>
+                    {/* ★ 실패했을 때만 «그쪽이 준 말»을 함께 보여 준다.
+                        사장님에게는 위 한 줄이면 되지만, **무엇을 고쳐야 하는지**는 이 원문에만 있다. */}
+                    {r.state === "failed" && (r.detail || r.spec) && (
+                      <details className="mt-1.5">
+                        <summary className="cursor-pointer font-normal">자세한 이유 보기</summary>
+                        {r.detail && (
+                          <p className="mt-1 break-all font-normal" style={{ fontFamily: "var(--font-mono, monospace)" }}>{r.detail}</p>
+                        )}
+                        {r.spec && (
+                          <p className="mt-1 font-normal">
+                            잰 값 — 형식 {r.spec.container ?? "못 잼"}
+                            {" · "}크기 {r.spec.bytes === null ? "못 잼" : `${Math.round(r.spec.bytes / 1048576)}MB`}
+                            {" · "}가로 {r.spec.width === null ? "못 잼" : `${r.spec.width}px`}
+                            {" · "}파일 구조 {r.spec.moovFirst === null ? "못 잼" : r.spec.moovFirst ? "정상" : "뒤집힘"}
+                          </p>
+                        )}
+                      </details>
+                    )}
+                  </div>
+                ))}
               </section>
             );
           })}

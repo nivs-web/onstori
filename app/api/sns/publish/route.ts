@@ -17,6 +17,9 @@ const Input = z.object({
   anonId: z.string().max(64).optional(),
   entryId: z.string().uuid(),
   providers: z.array(z.enum(PROVIDERS)).min(1).max(6),
+  /* ★ 사장님이 직접 쓴 글 (2026-09-12). 안 보내면 예전처럼 질문·제목을 쓴다.
+     ⚠ 서버가 다시 자르고, X 는 서버가 링크를 지운다 — 화면 값을 그대로 믿지 않는다. */
+  caption: z.string().max(2200).optional(),
 });
 
 /**
@@ -35,7 +38,7 @@ const Input = z.object({
 export async function POST(req: Request) {
   const parsed = Input.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
-  const { slug, anonId, entryId, providers } = parsed.data;
+  const { slug, anonId, entryId, providers, caption: typed } = parsed.data;
 
   const r = await loadOwnedSite(slug, anonId);
   if ("error" in r) {
@@ -53,7 +56,8 @@ export async function POST(req: Request) {
   if (!videoKey) return NextResponse.json({ error: "그 영상을 찾지 못했어요. 목록을 새로 고쳐 주세요" }, { status: 404 });
 
   const title = ((row?.question as string) || (row?.title as string) || "사장님 이야기").slice(0, 100);
-  const caption = ((row?.question as string) || (row?.title as string) || "").slice(0, 2000);
+  /* ★ 사장님이 쓴 글이 있으면 그것을 쓴다. 없으면 예전처럼 질문·제목. (2026-09-12) */
+  const caption = (typed?.trim() || (row?.question as string) || (row?.title as string) || "").slice(0, 2200);
 
   const results = await Promise.all(providers.map((p) => one(p)));
   return NextResponse.json({ results });
@@ -84,9 +88,14 @@ export async function POST(req: Request) {
     /* 인스타만: 규격 검사 → 공개 복사 */
     let publicUrl = "";
     let publicKey: string | null = null;
+    let igSpec: { bytes: number | null; width: number | null; moovFirst: boolean | null; container: string | null } | null = null;
     if (provider === "instagram") {
       const chk = await checkForInstagram(videoKey);
-      if (!chk.ok) return say("failed", chk.why, { kind: "REJECTED" });
+      /* ★★ 잰 값을 **성공해도 함께 돌려준다** (2026-09-12 지시 3).
+         첫 실제 게시에서 「왜 거절당했는지」를 사람이 눈으로 대조해야 한다.
+         `null` 은 «못 잰 것»이지 «0» 이 아니다 — 화면이 그렇게 말한다. */
+      const spec = { bytes: chk.bytes, width: chk.width, moovFirst: chk.moovFirst, container: chk.container };
+      if (!chk.ok) return say("failed", chk.why, { kind: "REJECTED", detail: `규격 검사: ${JSON.stringify(spec)}`, spec });
       const pk = storage.publicVideoKeyOf(videoKey);
       if (!pk) return say("failed", "영상 주소가 이상해요. 다시 찍어 주세요.", { kind: "REJECTED" });
       try {
@@ -97,6 +106,10 @@ export async function POST(req: Request) {
       }
       publicKey = pk;
       publicUrl = storage.publicUrl(pk);
+      /* ★ 인스타가 «가져갈» 주소를 로그에 남긴다. 그쪽이 못 가져가면 이 주소를
+         브라우저로 직접 열어 보는 것이 첫 확인이다. */
+      console.log(JSON.stringify({ evt: "sns_public_ready", provider, entryId, publicUrl, spec }));
+      igSpec = spec;
     }
 
 
@@ -124,14 +137,17 @@ export async function POST(req: Request) {
         published_at: new Date().toISOString(), error_kind: null, error_detail: null,
       });
       console.log(JSON.stringify({ evt: "sns_published", provider, entryId }));
-      return say("published", `${name} 에 올렸어요.`, { url: out.remoteUrl });
+      return say("published", `${name} 에 올렸어요.`, { url: out.remoteUrl, spec: igSpec });
     }
     if (out.state === "processing") {
       await db.updatePost(post.id, { status: "processing", container_id: out.containerId });
-      return say("processing", `${name} 이 영상을 받는 중이에요. 잠시만요…`);
+      return say("processing", `${name} 이 영상을 받는 중이에요. 잠시만요…`, { spec: igSpec });
     }
     await db.updatePost(post.id, { status: "failed", error_kind: out.kind, error_detail: out.detail.slice(0, 300) });
-    console.error(JSON.stringify({ evt: "sns_publish_failed", provider, entryId, kind: out.kind }));
-    return say("failed", ERROR_SAY[out.kind], { kind: out.kind });
+    console.error(JSON.stringify({ evt: "sns_publish_failed", provider, entryId, kind: out.kind, detail: out.detail.slice(0, 300) }));
+    /* ★★ **그쪽이 준 말을 그대로 함께 보낸다** (2026-09-12 지시 3).
+       전에는 네 문장 중 하나(「지금은 안 되네요」)만 갔다. 그러면 회장님이 무엇을 고쳐야 할지 모른다.
+       ⚠ 원문은 개발자용이라 화면이 **접어서** 보여 준다 — 사장님에게는 친절한 문장이 먼저다. */
+    return say("failed", ERROR_SAY[out.kind], { kind: out.kind, detail: out.detail.slice(0, 300), spec: igSpec });
   }
 }

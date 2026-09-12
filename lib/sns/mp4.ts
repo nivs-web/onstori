@@ -1,4 +1,5 @@
 import * as storage from "@/lib/storage";
+import { sniff, type Container } from "@/lib/media-sniff";
 
 /**
  * 올리기 전 **영상 규격 검사**. (2026-09-11)
@@ -65,12 +66,15 @@ export type VideoCheck = {
   bytes: number | null;
   width: number | null;
   moovFirst: boolean | null;
+  /** 진짜 파일 형식 (2026-09-12). 못 재면 null */
+  container: Container | null;
 };
 
 export async function checkForInstagram(key: string): Promise<VideoCheck> {
   let bytes: number | null = null;
   let width: number | null = null;
   let moovFirst: boolean | null = null;
+  let container: Container | null = null;
 
   /* 크기 — 서명 주소에 HEAD 를 던져 Content-Length 를 읽는다 */
   try {
@@ -83,6 +87,7 @@ export async function checkForInstagram(key: string): Promise<VideoCheck> {
   /* 박스 순서와 가로폭 */
   try {
     const head = await storage.readHead("private", key, SCAN);
+    container = sniff(head).container;
     const boxes = topBoxes(head);
     const iMoov = boxes.findIndex((x) => x.type === "moov");
     const iMdat = boxes.findIndex((x) => x.type === "mdat");
@@ -94,14 +99,30 @@ export async function checkForInstagram(key: string): Promise<VideoCheck> {
     }
   } catch { /* 못 재면 null */ }
 
+  const out = { bytes, width, moovFirst, container };
+
+  /* ★★ **형식을 «맨 먼저» 본다** (2026-09-12).
+     ⚠ 이걸 안 보면 무슨 일이 벌어지나: 녹화기가 안드로이드·크롬에서 만드는 파일은 **webm** 인데,
+       `copyToPublic` 이 그걸 `video-….mp4` 라는 이름에 `video/mp4` 딱지를 붙여 공개 창고에 복사한다.
+       인스타는 그 주소를 가져가 열어 보고 «mp4 가 아니다»를 알아채고 거절한다 —
+       그때 오는 말은 사장님이 무엇을 고쳐야 하는지 알려 주지 않는다.
+       **한도 1개도 이미 써 버린 뒤**다. 그래서 보내기 전에 여기서 막는다.
+     ★ 2026-09-12 실측: 지금 저장소에 쌓인 녹화 11건이 **전부 webm** 이다. */
+  if (container === "webm" || container === "ogg") {
+    return { ok: false, ...out, why: "이 영상은 인스타그램이 받지 않는 형식(webm)이에요. 아이폰 사파리로 찍으면 인스타가 받는 형식(mp4)으로 저장됩니다." };
+  }
+  if (container === "quicktime") {
+    return { ok: false, ...out, why: "폰 기본 카메라로 찍은 영상(mov)이라 인스타그램이 받지 않아요. 녹화 화면에서 바로 찍어 주세요." };
+  }
+
   if (bytes !== null && bytes > MAX_BYTES) {
-    return { ok: false, why: `영상이 너무 커요 (${Math.round(bytes / 1048576)}MB). 인스타그램은 300MB까지만 받아요.`, bytes, width, moovFirst };
+    return { ok: false, ...out, why: `영상이 너무 커요 (${Math.round(bytes / 1048576)}MB). 인스타그램은 300MB까지만 받아요.` };
   }
   if (width !== null && width > MAX_WIDTH) {
-    return { ok: false, why: `영상 가로가 너무 넓어요 (${width}px). 인스타그램은 1920px까지만 받아요.`, bytes, width, moovFirst };
+    return { ok: false, ...out, why: `영상 가로가 너무 넓어요 (${width}px). 인스타그램은 1920px까지만 받아요.` };
   }
   if (moovFirst === false) {
-    return { ok: false, why: "영상 파일 구조가 인스타그램이 받는 모양이 아니에요. 다시 찍어 주세요.", bytes, width, moovFirst };
+    return { ok: false, ...out, why: "영상 파일 구조가 인스타그램이 받는 모양이 아니에요. 다시 찍어 주세요." };
   }
-  return { ok: true, why: "", bytes, width, moovFirst };
+  return { ok: true, why: "", ...out };
 }
