@@ -63,7 +63,18 @@ console.log("\n── ★ 저장 자체를 막는다 (2026-09-13 지시 2) ─�
    화면에 «정식 공개»라고 적힌 채 아무도 못 올리는 이상한 상태가 남고,
    그것을 본 사람이 «감사 표시를 확인 없이 켜는» 사고를 낸다. */
 t("on + 감사 없음 → 저장 거절", canSaveGate(readGateValue({ mode: "on" })).ok, false);
-t("on + 감사 통과 → 저장된다", canSaveGate(readGateValue({ mode: "on", auditPassed: true })).ok, true);
+/* ★★★ **문은 한 번에 하나씩만 열린다.** 감사 통과가 «이미 저장돼 있어야» on 이 저장된다.
+   전에는 이 규칙이 주석에만 있고 코드에 없어서, 한 번의 저장으로 두 문이 동시에 열렸다. */
+const SAVED_AUDIT = readGateValue({ mode: "review", allowSites: [OURS], auditPassed: true });
+t("★★ 감사를 «지금 처음» 켜면서 동시에 on 으로는 못 간다",
+  canSaveGate(readGateValue({ mode: "on", auditPassed: true }), readGateValue({ mode: "review" })).ok, false);
+t("감사가 «이미 저장돼» 있으면 on 이 저장된다",
+  canSaveGate(readGateValue({ mode: "on", auditPassed: true }), SAVED_AUDIT).ok, true);
+/* ★ 닫는 쪽은 언제나 통과한다 — 끄려다 못 끄면 문이 열린 채 남는다 */
+t("★ off 는 이전 값이 무엇이든 저장된다",
+  canSaveGate(readGateValue({ mode: "off" }), SAVED_AUDIT).ok, true);
+t("★ 감사 없이 off 로 내리는 것도 막지 않는다",
+  canSaveGate(readGateValue({ mode: "off" }), readGateValue({ mode: "on", auditPassed: true })).ok, true);
 t("off 는 언제나 저장된다", canSaveGate(readGateValue({ mode: "off" })).ok, true);
 /* ★ review 는 «비공개로만» 올리므로 이 위험과 무관하다 (2026-09-13 김팀장 확인) */
 t("review 는 감사 없이도 저장된다 — 비공개라 안전하다",

@@ -1,4 +1,4 @@
-import { shouldSend, nowInSeoul, withOptOut, OPT_OUT_LINE, phoneKey, pickOnePerPhone, hasBannedPhrase, type Weekly } from "../lib/weekly";
+import { shouldSend, nowInSeoul, withOptOut, OPT_OUT_LINE, phoneKey, pickOnePerPhone, hasBannedPhrase, safeBusinessName, sentThisWeekToPhone, type Weekly } from "../lib/weekly";
 
 /** 주 1회 알림 판정 검사 — 실패하면 종료코드 1 (2026-09-12) */
 const KST = (iso: string) => new Date(iso);   // iso 에 +09:00 을 직접 적는다
@@ -109,6 +109,26 @@ const apart = pickOnePerPhone([
   { phone: "010-2222-2222", slug: "two", status: "trial", updatedAt: null },
 ]);
 t("번호가 다르면 둘 다 간다", apart.chosen.length === 2 && apart.dropped.length === 0, true);
+
+console.log("\n── ★ 상호를 문자에 그대로 싣지 않는다 (2026-09-13 점검) ──");
+/* ⚠ 상호는 사장님이 언제든 바꾸는 값이다. 우리 발신번호로 그대로 나가면 사칭 문자가 된다 */
+t("보통 상호는 그대로", safeBusinessName("바른전기"), "바른전기");
+t("★ 줄바꿈으로 새 문장을 못 만든다", safeBusinessName("홍길동\n[은행] 계좌 정지"), "홍길동 [은행] 계좌 정지");
+t("★ 링크는 지운다", safeBusinessName("착한가게 http://evil.example/x"), "착한가게");
+t("★ 주소처럼 보이는 것도 지운다", safeBusinessName("착한가게 evil.shop/go"), "착한가게");
+t("20자로 자른다", [...safeBusinessName("가".repeat(50))].length, 20);
+t("글자가 안 남으면 «사장님»", safeBusinessName("   \n  "), "사장님");
+t("제어문자도 공백으로", safeBusinessName("가\u0000나"), "가 나");
+
+console.log("\n── ★ 같은 번호에 «한 주» 두 통이 안 가게 (2026-09-13 점검) ──");
+/* ⚠ pickOnePerPhone 은 «같은 실행»에서만 막는다. 요일이 다른 두 사이트는 그 함수를 빠져나간다 */
+const MON = "2026-09-14T09:00:00+09:00";
+t("형제가 이번 주에 보냈으면 건너뛴다",
+  sentThisWeekToPhone([{ lastSentAt: "2026-09-15T09:00:00+09:00" }], KST("2026-09-17T09:00:00+09:00")), true);
+t("지난주 것이면 보낸다",
+  sentThisWeekToPhone([{ lastSentAt: "2026-09-08T09:00:00+09:00" }], KST("2026-09-17T09:00:00+09:00")), false);
+t("형제가 없으면 보낸다", sentThisWeekToPhone([], KST(MON)), false);
+t("기록이 없는 형제는 막지 않는다", sentThisWeekToPhone([{}, {}], KST(MON)), false);
 
 /* ⚠ 개수를 손으로 적지 않는다 — 검사를 늘려 놓고 숫자를 안 고치면 그 숫자가 거짓말한다.
    실제로 2026-09-12 에 그랬다(9건을 더했는데 「15건」이라고 찍혔다). */

@@ -8,6 +8,7 @@ import { ERROR_SAY, PROVIDER_NAME, PROVIDERS, getAdapter, type SnsProvider } fro
 import * as db from "@/lib/sns/db";
 import { checkForInstagram } from "@/lib/sns/mp4";
 import { captionFor, hasUrl } from "@/lib/sns/no-url";
+import { TEXT_LIMITS } from "@/lib/sns/limits";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -99,9 +100,16 @@ export async function POST(req: Request) {
    *   「오늘 가장 기억에 남는 일은 무엇이었나요?」가 **그대로** 올라갔다 — 사장님이 쓴 글이 아니다.
    * ★ 이제 질문문은 **맨 마지막 폴백**이다. 그 앞에 사장님이 검토 화면에서 고쳐 둔 글이 온다.
    */
-  const caption = (
-    typed?.trim() || (row?.caption as string)?.trim() || (row?.title as string) || (row?.question as string) || ""
-  ).slice(0, 2200);
+  /* ★★ **화면이 «보냈다»면 그 값이 이긴다 — 빈 글이어도.** (2026-09-13 점검)
+     ⚠ 전에는 `typed?.trim() || …` 라 빈 글이 «안 보낸 것»과 구분되지 않아 폴백을 탔다.
+       검토 화면이 「이대로 올라갑니다」로 보여 준 것과 실제로 올라가는 글이 달라지는 자리였다. */
+  const chosen = typed !== undefined
+    ? typed.trim()
+    : ((row?.caption as string)?.trim() || (row?.title as string) || (row?.question as string) || "");
+  /* ⚠ 상한을 손으로 적지 않는다 — `lib/sns/limits.ts` 가 단일 출처다. 보내는 곳 중 가장 넉넉한
+     값으로 자르고, 곳마다의 상한은 화면(TextMeter)이 미리 말해 준다. */
+  const roomiest = Math.max(...providers.map((p) => TEXT_LIMITS[p]?.chars ?? 0), 0) || 2200;
+  const caption = chosen.slice(0, roomiest);
 
   const results = await Promise.all(providers.map((p) => one(p)));
   return NextResponse.json({ results });

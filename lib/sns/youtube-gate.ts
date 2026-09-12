@@ -72,12 +72,32 @@ export function readGateValue(value: unknown): Gate {
  * ⚠ 문은 **한 번에 하나씩만** 열린다 — 먼저 «감사 통과»를 켜고 저장한 다음,
  *   그러고 나서 «정식 공개»를 고른다. 한 번에 둘 다 켜는 길을 남기지 않는다.
  */
-export function canSaveGate(next: Gate): { ok: true } | { ok: false; why: string } {
-  if (next.mode === "on" && !next.auditPassed) {
-    return {
-      ok: false,
-      why: "「정식 공개」는 감사 통과 표시를 먼저 켜야 저장됩니다. 구글에서 «통과» 메일을 받으셨나요? 신청서를 «낸 것»만으로는 켜면 안 됩니다 — 그 사이 올라간 영상은 영구히 비공개로 잠기고 되살릴 수 없어요.",
-    };
+export function canSaveGate(next: Gate, prev: Gate = GATE_DEFAULT): { ok: true } | { ok: false; why: string } {
+  /* ★★★ **닫는 쪽은 언제나 통과시킨다.** (2026-09-13 점검에서 잡힌 것)
+     전에는 «감사 표시를 끄는 요청»이 아래 규칙에 걸려 409 로 거절됐다. 그러면
+     「잘못 켰다」를 깨닫고 끄려는 순간 **문이 열린 채로 남는다** — 이 파일의 대원칙
+     (「애매하면 닫는다」)과 정반대다. 그래서 닫는 요청은 **먼저** 통과시킨다. */
+  if (next.mode === "off") return { ok: true };
+
+  if (next.mode === "on") {
+    if (!next.auditPassed) {
+      return {
+        ok: false,
+        why: "「정식 공개」는 감사 통과 표시를 먼저 켜야 저장됩니다. 구글에서 «통과» 메일을 받으셨나요? 신청서를 «낸 것»만으로는 켜면 안 됩니다 — 그 사이 올라간 영상은 영구히 비공개로 잠기고 되살릴 수 없어요.",
+      };
+    }
+    /* ★★★ **문은 한 번에 하나씩만 열린다.** (2026-09-13 점검에서 잡힌 것)
+       전에는 이 규칙이 **주석에만 있고 코드에 없었다.** 그래서
+       «mode:on + auditPassed:true» **한 번의 저장**으로 두 문이 동시에 열렸다 —
+       그 한 번이 바로 「일단 신청서는 냈으니 켜자」의 한 번이다.
+       이제는 감사 통과를 **먼저 따로 저장**해야 하고, 그 저장이 «진짜 통과 메일을
+       받았나»를 한 번 더 묻는 순간이 된다. */
+    if (!prev.auditPassed) {
+      return {
+        ok: false,
+        why: "감사 통과 표시를 **먼저 저장**해 주세요. 그러고 나서 「정식 공개」로 바꿉니다. 한 번에 둘 다 여는 길을 일부러 막아 두었어요 — 되돌릴 수 없는 문이라 한 번 더 확인받습니다.",
+      };
+    }
   }
   return { ok: true };
 }

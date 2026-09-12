@@ -262,3 +262,51 @@ export function pickOnePerPhone<T extends PhoneCandidate>(
   }
   return { chosen, dropped };
 }
+
+
+/* ════════ 문자에 «사장님이 적은 글자»가 실릴 때 (2026-09-13 점검에서 잡힌 것) ════════ */
+
+/**
+ * ★★★ **상호를 그대로 문자에 싣지 않는다.**
+ *
+ * ⚠ 왜: 상호는 사장님이 편집화면에서 **언제든 바꿀 수 있는 값**이고 검사는 「1~40자」뿐이다.
+ *   그래서 줄바꿈·링크·아무 문장이나 들어간다. 그것이 **우리 회사 이름과 등록된 발신번호로**
+ *   나가면, 사칭 문자의 책임도 차단도 전부 우리에게 온다.
+ *   (예: 상호를 「홍길동(줄바꿈)[○○은행] 계좌가 정지되었습니다 http://…」로 바꾸는 것)
+ *
+ * ★ 그래서 세 가지를 한다:
+ *   ① 줄바꿈·제어문자를 **공백으로** 바꾼다 — 문장을 새로 시작하지 못하게
+ *   ② 주소처럼 보이는 것을 **지운다** — 링크가 가장 위험하다
+ *   ③ **20자로 자른다** — 긴 문장을 상호 자리에 밀어 넣지 못하게
+ *
+ * ⚠ 글자가 하나도 안 남으면 「사장님」으로 부른다. 빈 이름으로 말을 거는 것보다 낫다.
+ */
+export function safeBusinessName(raw: string): string {
+  let t = (raw ?? "")
+    .replace(/[\r\n\t\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029]/g, " ")
+    .replace(/(https?:\/\/|www\.)\S*/gi, " ")
+    .replace(/\b[\w.-]+\.(com|net|kr|co|io|me|org|link|shop)\b\S*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  t = [...t].slice(0, 20).join("").trim();
+  return t || "사장님";
+}
+
+/**
+ * ★★ **같은 번호에 한 주 두 통이 가지 않게** — 「한 번의 실행 안」을 넘어서.
+ *
+ * ⚠ `pickOnePerPhone` 은 **같은 실행에서 동시에 후보가 된 경우**만 막는다. 그런데
+ *   한 분이 사이트를 둘 갖고 **요일을 다르게** 골랐다면(월·목) 두 실행 모두 후보가 하나씩이라
+ *   그 함수가 아무것도 못 막는다. 그러면 그 주에 두 통이 간다.
+ *
+ * ★ 그래서 「이 **번호**로 이번 주에 이미 보냈나」를 따로 본다.
+ *   형제 사이트들의 `lastSentAt` 중 하나라도 이번 주 안이면 보내지 않는다.
+ */
+export function sentThisWeekToPhone(siblings: { lastSentAt?: string }[], at = new Date()): boolean {
+  const start = weekStartMs(at);
+  return siblings.some((w) => {
+    if (!w.lastSentAt) return false;
+    const t = new Date(w.lastSentAt).getTime();
+    return Number.isFinite(t) && t >= start;
+  });
+}

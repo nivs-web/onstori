@@ -41,7 +41,15 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   const [question, setQuestion] = useState("");
   const [fixed, setFixed] = useState<string[]>([]);
   const [auto, setAuto] = useState<string[]>([]);
-  const [autoOff, setAutoOff] = useState<string[]>([]);
+  /**
+   * ★★★ 자동 태그는 **기본 꺼짐**이다. (2026-09-13 점검에서 잡힌 것)
+   *
+   * ⚠ 전에는 기본이 켜짐이라, 사장님이 «끄지 않으면» 우리가 만든 태그가 그대로 올라갔다.
+   *   설계서는 「자동으로 몰래 붙이지 마십시오 — 사장님 계정에 사장님이 안 쓴 말이 올라가는
+   *   일입니다」라고 못박았고, 틱톡 심사 요건(올리기 전에 사장님이 고칠 수 있어야 한다)과도
+   *   이어지는 대목이다. 그래서 **누르면 붙는 것**으로 바꿨다.
+   */
+  const [autoPicked, setAutoPicked] = useState<string[]>([]);
   const [mine, setMine] = useState<string[]>([]);
   const [typing, setTyping] = useState("");
   /**
@@ -56,6 +64,8 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   const [editTags, setEditTags] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
   const [saved, setSaved] = useState("");
+  /** ⚠ 누른 «즉시» 잠근다 — 두 번 누르면 같은 영상이 두 번 올라간다(되돌릴 수 없다) */
+  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setErr("");
@@ -92,7 +102,7 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   /* 처음에는 «올릴 수 있는 곳»이 다 골라져 있다. 이펙트가 아니라 **계산**이라 연쇄 렌더가 없다 */
   const chosen: SnsProvider[] = picked ?? ready.filter((x) => x.ok).map((x) => x.provider);
 
-  const autoOn = auto.filter((t) => !autoOff.includes(t));
+  const autoOn = auto.filter((t) => autoPicked.includes(t));
   const tags = normalizeTags([...fixed, ...autoOn, ...mine], 60);
   const limit = strictest(chosen.length ? chosen : (["instagram"] as SnsProvider[]));
   /* ★★ 이것이 **실제로 올라가는 글**이다. 미리보기가 곧 결과여야 한다 */
@@ -121,6 +131,8 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   }
 
   async function go() {
+    if (sending) return;
+    setSending(true);
     /* ★ 올리기 «전»에 글을 저장해 둔다. 실패해도 **막지 않는다** —
        글은 올릴 때 함께 보내므로 이번 등록은 그대로 된다. */
     try {
@@ -201,16 +213,16 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
             {auto.length > 0 && (
               <>
                 <p className="mt-3 t-caption text-[var(--text-soft)]">
-                  자동 (가게 주소·업종·상호에서 가져왔어요 — 빼셔도 됩니다)
+                  자동 (가게 주소·업종·상호에서 가져왔어요 — <b>누르면 붙습니다</b>)
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {auto.map((t) => {
-                    const off = autoOff.includes(t);
+                    const on = autoPicked.includes(t);
                     return (
                       <button key={t} type="button"
-                        onClick={() => setAutoOff((o) => (off ? o.filter((x) => x !== t) : [...o, t]))}
-                        className={`rounded-full px-3 py-1 t-caption ${off ? "border border-n-300 text-[var(--text-soft)] line-through" : "bg-n-100 font-semibold"}`}>
-                        {t}
+                        onClick={() => setAutoPicked((o) => (on ? o.filter((x) => x !== t) : [...o, t]))}
+                        className={`rounded-full px-3 py-1 t-caption ${on ? "bg-n-100 font-semibold" : "border border-n-300 text-[var(--text-soft)]"}`}>
+                        {on ? t : `+ ${t}`}
                       </button>
                     );
                   })}
@@ -278,15 +290,21 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
           <p className="mt-4 t-caption text-[var(--text-soft)]">⚠ {SNS_EDIT_NOTICE}</p>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={busy || chosen.length === 0} onClick={() => void go()}
+            <button type="button"
+              disabled={busy || sending || chosen.length === 0 || !finalText.trim()}
+              onClick={() => void go()}
               className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
-              {busy ? "올리는 중…" : `${chosen.length}곳에 올리기`}
+              {busy || sending ? "올리는 중…" : `${chosen.length}곳에 올리기`}
             </button>
             <button type="button" onClick={onCancel}
               className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">취소</button>
           </div>
           {chosen.length === 0 && (
             <p className="mt-2 t-caption text-[var(--text-soft)]">올릴 곳을 한 군데 이상 골라 주세요.</p>
+          )}
+          {/* ★ 빈 글로는 못 올린다. 전에는 올라갔고, 그때 서버가 «질문 문장»을 대신 채웠다 */}
+          {chosen.length > 0 && !finalText.trim() && (
+            <p className="mt-2 t-caption font-semibold text-danger">올릴 글이 없어요. 손님에게 하고 싶은 말을 적어 주세요.</p>
           )}
           {saved && <p className="mt-2 t-caption font-semibold text-green-700">{saved}</p>}
           {err && <p className="mt-2 t-caption font-semibold text-danger">{err}</p>}

@@ -5,6 +5,7 @@ import { storyLinkUrl } from "@/lib/story-link";
 import { ALIMTALK_QUESTIONS } from "@/config/questions";
 import {
   readWeekly, shouldSend, deadlineText, hasBannedPhrase, withOptOut, pickOnePerPhone,
+  phoneKey, safeBusinessName, sentThisWeekToPhone,
   type Weekly,
 } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
@@ -47,7 +48,10 @@ export async function GET(req: Request) {
   }
 
   const sb = sbAdmin();
-  const out = { looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0, samePhone: 0 };
+  const out = {
+    looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0,
+    samePhone: 0, sameWeekPhone: 0, stampFailed: 0,
+  };
 
   /* 살아 있는 사이트만 본다 — 정지된 곳에 촬영을 독려하면 화만 난다 */
   const { data: sites, error } = await sb
@@ -103,8 +107,33 @@ export async function GET(req: Request) {
     console.log(JSON.stringify({ evt: "weekly_same_phone_skipped", slug: d.slug, inFavorOf: d.inFavorOf }));
   }
 
+  /* ════ ②-2 «번호별» 이번 주 발송 기록 ════ (2026-09-13 점검에서 잡힌 것)
+     ⚠ 위의 `pickOnePerPhone` 은 **같은 실행에서 동시에 후보가 된 경우**만 막는다.
+       한 분이 사이트를 둘 갖고 **요일을 다르게** 골랐다면 두 실행 모두 후보가 하나씩이라
+       그 함수가 아무것도 못 막고, 그 주에 두 통이 간다.
+     ★ 그래서 «살아 있는 전체 사이트»에서 같은 번호를 쓰는 형제를 모아, 그중 하나라도
+       이번 주에 보냈으면 건너뛴다. 그리고 보낸 뒤에는 **형제 전부에** 시각을 찍는다. */
+  const byPhone = new Map<string, { id: string; settings: Record<string, unknown>; w: Weekly }[]>();
+  for (const s of sites ?? []) {
+    const settings = (s.settings as Record<string, unknown>) ?? {};
+    const w = readWeekly(settings);
+    const phone = (w?.phone?.trim() || (settings.phone as string) || "").trim();
+    if (!phone) continue;
+    const k = phoneKey(phone);
+    const list = byPhone.get(k) ?? [];
+    list.push({ id: s.id as string, settings, w: (w ?? {}) as Weekly });
+    byPhone.set(k, list);
+  }
+
   /* ════ ③ 보낸다 ════ */
   for (const c of chosen) {
+    const siblings = byPhone.get(phoneKey(c.phone)) ?? [];
+    if (sentThisWeekToPhone(siblings.map((x) => x.w), now)) {
+      out.sameWeekPhone++;
+      console.log(JSON.stringify({ evt: "weekly_phone_already_sent_this_week", slug: c.slug }));
+      continue;
+    }
+
     const link = storyLinkUrl(c.slug, "https://onstori.com");
     /* ★★ 알림톡에 실을 수 있는 질문만 고른다 (2026-09-12 지시 D5).
        「~해 주세요」로 끝나는 명령문 8개는 광고성으로 읽혀 **반려 사유**가 된다.
@@ -114,26 +143,50 @@ export async function GET(req: Request) {
     /* ★★ 「60초만 말씀해 주세요」를 **뺐다.** 행동을 시키는 문장이 알림톡 반려 사유다.
        무엇을 하라는 말은 **링크 너머 녹화 화면**이 한다 — 거기서 하면 문제가 없다.
        ★ 대신 «언제까지»를 넣는다. 유효기간이 있어야 「배송물」로 읽힌다(김팀장 조사). */
-    const body = `[온스토리] ${c.businessName} 사장님, 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`;
+    /* ★★ 상호를 **소독해서** 싣는다 (2026-09-13). 사장님이 바꿀 수 있는 값이 우리 발신번호로
+       그대로 나가면 사칭 문자가 된다 — `safeBusinessName` 주석 참고. */
+    const name = safeBusinessName(c.businessName);
+    const body = `[온스토리] ${name} 사장님, 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`;
     /* ★ 첫 통이면 거부 안내를 붙인다 (C안). `lastSentAt` 이 비었다 = 처음 가는 문자다. */
     const text = withOptOut(body, !c.w.lastSentAt);
 
     /* ★ 보내기 «전»에 스스로 검사한다 — 반려 사유가 될 말이 섞이면 안 보낸다.
-       ⚠ 조용히 안 보내지 않는다. 로그에 어느 말이 걸렸는지 적는다. */
-    const banned = hasBannedPhrase(text);
+       ⚠⚠ **상호는 검사 대상에서 뺀다** (2026-09-13 점검). 전에는 상호가 섞인 본문 전체를 봤는데,
+         그러면 「○○이벤트」·「무료견적○○」 같은 **흔한 상호를 가진 사장님이 영영 못 받는다.**
+         돈 내고 산 기능이 그분에게만 조용히 안 되는 것이 더 나쁘다.
+       ⚠ 대신 상호에 그런 말이 있으면 **로그로 남긴다** — 알림톡을 열 때 사람이 봐야 한다. */
+    const ours = withOptOut(
+      `[온스토리] 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`,
+      !c.w.lastSentAt,
+    );
+    const banned = hasBannedPhrase(ours);
     if (banned) {
       console.error(JSON.stringify({ evt: "weekly_banned_phrase", slug: c.slug, banned }));
       out.failed++; continue;
     }
+    const inName = hasBannedPhrase(name);
+    if (inName) console.warn(JSON.stringify({ evt: "weekly_name_has_banned", slug: c.slug, word: inName }));
 
     const ok = await sendSmsRaw(c.phone, text);
     if (!ok) { out.failed++; continue; }
     out.sent++;
 
-    /* ★ 보낸 뒤에 찍는다. 먼저 찍으면 발송 실패 시 그 주를 통째로 건너뛴다. */
-    await sb.from("sites")
-      .update({ settings: { ...c.settings, weekly: { ...c.w, lastSentAt: new Date().toISOString() } } })
-      .eq("id", c.id);
+    /* ★ 보낸 뒤에 찍는다. 먼저 찍으면 발송 실패 시 그 주를 통째로 건너뛴다.
+       ★★ **같은 번호를 쓰는 형제 사이트에도 함께 찍는다** (2026-09-13) —
+         안 찍으면 요일이 다른 형제가 이번 주에 한 통 더 보낸다.
+       ⚠ 저장 결과를 **버리지 않는다.** 못 찍으면 다음 날 크론이 또 보낸다 —
+         「같은 주에 두 번 가지 않는다」는 약속이 조용히 깨지는 자리다. */
+    const stamp = new Date().toISOString();
+    const targets = siblings.length ? siblings : [{ id: c.id, settings: c.settings, w: c.w }];
+    for (const t of targets) {
+      const { error: upErr } = await sb.from("sites")
+        .update({ settings: { ...t.settings, weekly: { ...t.w, lastSentAt: stamp } } })
+        .eq("id", t.id);
+      if (upErr) {
+        out.stampFailed++;
+        console.error(JSON.stringify({ evt: "weekly_stamp_failed", id: t.id, err: upErr.message.slice(0, 160) }));
+      } else t.w.lastSentAt = stamp;     // 같은 실행 안에서도 다시 안 보내게
+    }
   }
 
   console.log(JSON.stringify({ evt: "weekly_done", ...out }));

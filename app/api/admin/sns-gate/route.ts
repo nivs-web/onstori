@@ -102,10 +102,20 @@ export async function POST(req: Request) {
     auditPassed: v.auditPassed ?? before.auditPassed,
   };
 
+  /* ★★★ **끄는 쪽으로는 항상 기운다.** (2026-09-13 점검)
+     「감사 통과 표시가 잘못됐다」를 깨닫고 끄려는 순간, 모드가 아직 on 이면
+     **문이 열린 채로 남는다.** 그래서 감사 표시를 내리면 모드도 함께 «준비 중»으로 내린다.
+     ⚠ 이 자동 내림을 빼지 마라 — 빼면 「끄려다 못 끄는」 몇 분이 생기고,
+       그 몇 분에 올라간 영상은 되살릴 수 없다. */
+  if (before.auditPassed && next.auditPassed === false && next.mode === "on") {
+    next.mode = "off";
+    console.warn(JSON.stringify({ evt: "yt_gate_forced_off", why: "감사 통과 표시를 내려서 문도 함께 닫았다" }));
+  }
+
   /* ★★★ **코드로 막는다** (2026-09-13 회장님 지시 2).
      ⚠ 조건을 여기 다시 적지 않는다 — `canSaveGate()` 한 곳에 있고, 검사도 그것을 잰다
      (scripts/youtube-gate-test.ts). 두 곳에 적으면 언젠가 한쪽만 고쳐진다. */
-  const savable = canSaveGate(readGateValue(next));
+  const savable = canSaveGate(readGateValue(next), before);
   if (!savable.ok) {
     console.warn(JSON.stringify({ evt: "yt_gate_save_blocked", mode: next.mode, audit: next.auditPassed }));
     return NextResponse.json({ error: savable.why, needAudit: true }, { status: 409 });

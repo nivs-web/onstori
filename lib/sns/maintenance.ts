@@ -241,6 +241,23 @@ export async function finishStuckPosts(now = Date.now()): Promise<FinishOut> {
 
   for (const p of stuck) {
     out.looked++;
+
+    /* ★★★ **유튜브는 크론이 이어서 올리지 않는다.** (2026-09-13 점검에서 잡힌 것)
+       아래의 「①단계를 다시 하지 않는다」는 **인스타 이야기**다 — 인스타는 컨테이너 id 가
+       있어 이어 갈 수 있지만, 유튜브는 `containerId` 를 아예 쓰지 않고 부를 때마다
+       **새 영상을 올린다.** 그대로 두면 첫 시도가 그쪽에서는 성공했는데 응답만 끊긴 흔한
+       경우에 **같은 영상이 두 개** 쌓인다.
+       ⚠ 감사 통과 «전»이면 그 둘이 **전부 영구 비공개**다 — 사장님이 버리는 60초가 두 배가 된다.
+       ★ 그래서 실패로 닫고 사장님께 돌려준다. 다시 올릴지는 사장님이 정한다. */
+    if (p.provider === "youtube") {
+      await db.updatePost(p.id, {
+        status: "failed", error_kind: "TRANSIENT",
+        error_detail: "올리는 도중 끊겨서 멈췄어요. 다시 올려 주세요.",
+      });
+      out.failed++;
+      console.log(JSON.stringify({ evt: "yt_stuck_closed", postId: p.id }));
+      continue;
+    }
     const provider = p.provider as Parameters<typeof getAdapter>[0];
     const entryId = p.entry_id;
 

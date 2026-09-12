@@ -69,8 +69,16 @@ export function YoutubeGate() {
     return () => window.clearTimeout(t);
   }, [load]);
 
-  /* ★ 감사 통과를 안 켜면 「정식 공개」를 **고를 수 없다.** 고를 수 있게 두면 반드시 눌린다 */
-  const canPickOn = audit;
+  /**
+   * ★★★ 「정식 공개」를 고를 수 있는 조건은 **«저장된» 감사 통과**다 — 화면에서 방금 체크한 것이 아니다.
+   *   (2026-09-13 점검에서 잡힌 것)
+   *
+   * ⚠ 전에는 방금 체크한 값(audit)을 봤다. 그러면 체크를 켜는 순간 라디오가 풀려
+   *   **한 번의 저장으로 두 문이 동시에 열렸다.** 서버도 그것을 막지 않고 있었다.
+   * ★ 이제 순서가 강제된다: ①감사 통과를 켜고 **저장** → ②그러고 나서 「정식 공개」.
+   *   그 «저장 한 번»이 「진짜 통과 메일을 받았나」를 다시 묻는 자리다.
+   */
+  const canPickOn = g?.auditPassed === true;
   const changed = !!g && (mode !== g.mode || audit !== g.auditPassed || slugs.trim() !== (g.allowSlugs ?? []).join(" "));
 
   async function save() {
@@ -174,7 +182,9 @@ export function YoutubeGate() {
                 <span className="t-caption font-semibold">{m.label}</span>
                 <span className="block t-caption leading-relaxed text-[var(--text-soft)]">
                   {m.hint}
-                  {locked && <> <b>— 위의 「감사를 통과했습니다」를 먼저 켜 주세요.</b></>}
+                  {locked && (
+                    <> <b>— 위의 「감사를 통과했습니다」를 켜고 <u>먼저 저장</u>해 주세요. 한 번에 둘 다 열지 않습니다.</b></>
+                  )}
                 </span>
               </span>
             </label>

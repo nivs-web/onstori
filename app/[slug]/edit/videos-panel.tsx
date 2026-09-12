@@ -292,7 +292,16 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
       try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
       const r = await fetch("/api/sns/publish", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId, entryId, providers: send, caption: captionOverride?.trim() || cap[entryId]?.trim() || undefined, tiktok }),
+        /* ★★★ **검토 화면이 준 값은 «비어 있어도» 그대로 싣는다.** (2026-09-13 점검에서 잡힌 것)
+           ⚠ 전에는 `captionOverride?.trim() || cap[...]` 이라 **빈 글이 «안 보낸 것»으로** 취급돼,
+             간단등록 칸에 남아 있던 옛 글이나 서버의 질문 문장이 대신 올라갔다.
+             화면은 「(아직 아무것도 없어요)」라고 말한 뒤 다른 글을 올린 셈이다 — 이 화면이
+             생긴 이유(질문 문장이 그대로 올라간 사고) 자체를 되살리는 자리였다. */
+        body: JSON.stringify({
+          slug, anonId, entryId, providers: send,
+          caption: captionOverride ?? (cap[entryId]?.trim() || undefined),
+          tiktok,
+        }),
       });
       const d = (await r.json().catch(() => ({}))) as { results?: PubRow[]; error?: string };
       if (!r.ok) {

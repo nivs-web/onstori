@@ -66,11 +66,17 @@ export function WeeklyPanel({ slug }: { slug: string }) {
         주 1회는 최소 등록 권장 사양입니다. 매일 5회 이상 글 등록을 하시면 보다 뛰어난 마케팅 효과를 보실 수 있습니다.
       </p>
 
-      {/* 받을까 말까 — 거부도 떳떳한 선택지로 둔다 */}
+      {/* 받을까 말까 — 거부도 떳떳한 선택지로 둔다.
+          ★★★ **누르는 즉시 저장한다.** (2026-09-13 점검에서 잡힌 것)
+          ⚠ 전에는 화면 안에서만 바뀌고 아래 [저장]을 눌러야 꺼졌다. 그런데 버튼이 초록으로
+            바뀌니 **스위치처럼 보였고**, 사장님은 분명히 껐다고 믿은 채 다음 주에 또 문자를 받았다.
+          ★★ 이 기능은 «묻지 않고 보내는» 기본값이라(가입 3단계 안내), **끄는 길이 확실히
+            듣는 것**이 그 기본값의 유일한 근거다. 여기가 헐거우면 전체가 광고 무단 발송이 된다. */}
       <div className="flex flex-wrap gap-2">
         {([[true, "알림 받기"], [false, "받지 않기"]] as const).map(([v, label]) => (
-          <button key={label} type="button" onClick={() => set({ on: v })}
-            className={`rounded-full px-4 py-2 t-caption font-semibold ${w.on === v ? "bg-green-700 text-white" : "border border-n-300"}`}>
+          <button key={label} type="button" disabled={busy}
+            onClick={() => { const next = { ...w, on: v }; setW(next); void save(next); }}
+            className={`rounded-full px-4 py-2 t-caption font-semibold disabled:opacity-40 ${w.on === v ? "bg-green-700 text-white" : "border border-n-300"}`}>
             {label}
           </button>
         ))}
