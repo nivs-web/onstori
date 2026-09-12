@@ -19,7 +19,8 @@ type Conn = {
 };
 type Item = {
   provider: string; name: string;
-  available: { ok: true } | { ok: false; why: string };
+  /* ★ ok 인데도 «알아야 하는 것»이 있을 수 있다 — notice (lib/sns/types.ts Availability 와 같은 모양) */
+  available: { ok: true; notice?: string } | { ok: false; why: string };
   connection: Conn | null;
   quota: { remaining: number; limit: number; windowSec: number };
 };
@@ -234,6 +235,12 @@ function Row({ it, busy, err, selected, onToggle, onCall, onHowTo }: {
       {/* ★ 못 쓰는 이유를 **그 자리에** 쓴다 */}
       {!it.available.ok && (
         <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">{it.available.why}</p>
+      )}
+      {/* ★★ 쓸 수는 있지만 **미리 알아야 하는 것** (2026-09-12 지시 B3).
+          유튜브 준비 기간의 「비공개로 올라갑니다」가 여기다. 못 쓰는 것이 아니므로
+          체크는 눌리고, 대신 글자를 **경고 색**으로 둔다 — 회색이면 안 읽힌다. */}
+      {it.available.ok && it.available.notice && (
+        <p className="mt-2 t-caption leading-relaxed font-semibold text-danger">{it.available.notice}</p>
       )}
       {/* ★ X 는 글에 링크가 들어가면 요금이 13배라 서버가 주소를 지운다.
           사장님이 모르고 넘어가지 않게 **미리** 알린다 — 조용히 바꾸지 않는다. */}

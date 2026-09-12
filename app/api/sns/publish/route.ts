@@ -108,6 +108,20 @@ export async function POST(req: Request) {
       return say("failed", ERROR_SAY.QUOTA_EXCEEDED, { kind: "QUOTA_EXCEEDED" });
     }
 
+    /**
+     * ★★ **한도를 쓴 뒤에 실패하면 «사장님 몫»을 돌려준다.** (2026-09-12 지시 B4)
+     *
+     * ⚠ 왜: 한도는 올리기 «전»에 소모된다(써 보고 나서 세면 두 번 올라간다).
+     *   그런데 유튜브는 사장님당 **하루 1건**이라, 아래 어느 길로든 한 번 실패하면
+     *   **올리지도 못한 채 그날이 끝난다.** 인스타(5건)에서는 안 보이던 문제다.
+     * ★ 앱 전체 몫은 돌려주지 않는다 — 그쪽 할당량은 호출이 나간 순간 진짜로 줄었다
+     *   (`db.refundQuota` 가 scope:'site' 만 되돌린다).
+     */
+    const failBack = async (msg: string, extra: Record<string, unknown> = {}) => {
+      await db.refundQuota(provider, siteId);
+      return say("failed", msg, extra);
+    };
+
     /* ★ 인스타·틱톡: 규격 검사 → 공개 복사.
        둘 다 «우리가 준 공개 주소를 그쪽이 가져가는» 방식이다(PULL_FROM_URL).
        ⚠ 유튜브는 파일을 직접 보내므로 복사하지 않는다 — 쓸데없이 공개로 내보내지 않는다.
@@ -123,14 +137,14 @@ export async function POST(req: Request) {
          첫 실제 게시에서 「왜 거절당했는지」를 사람이 눈으로 대조해야 한다.
          `null` 은 «못 잰 것»이지 «0» 이 아니다 — 화면이 그렇게 말한다. */
       const spec = { bytes: chk.bytes, width: chk.width, moovFirst: chk.moovFirst, container: chk.container };
-      if (!chk.ok) return say("failed", chk.why, { kind: "REJECTED", detail: `규격 검사: ${JSON.stringify(spec)}`, spec });
+      if (!chk.ok) return failBack(chk.why, { kind: "REJECTED", detail: `규격 검사: ${JSON.stringify(spec)}`, spec });
       const pk = storage.publicVideoKeyOf(videoKey);
-      if (!pk) return say("failed", "영상 주소가 이상해요. 다시 찍어 주세요.", { kind: "REJECTED" });
+      if (!pk) return failBack("영상 주소가 이상해요. 다시 찍어 주세요.", { kind: "REJECTED" });
       try {
         await storage.copyToPublic(videoKey, pk, "video/mp4");
       } catch (e) {
         console.error(JSON.stringify({ evt: "sns_copy_failed", provider, err: String(e).slice(0, 160) }));
-        return say("failed", `영상을 ${name} 이 가져갈 수 있는 자리로 옮기지 못했어요.`, { kind: "TRANSIENT" });
+        return failBack(`영상을 ${name} 이 가져갈 수 있는 자리로 옮기지 못했어요.`, { kind: "TRANSIENT" });
       }
       publicKey = pk;
       publicUrl = storage.publicUrl(pk);
@@ -150,11 +164,11 @@ export async function POST(req: Request) {
        13배 요금을 무는 것보다 안 보내고 이유를 말하는 편이 낫다. */
     if (provider === "x" && (hasUrl(safeCaption) || hasUrl(safeTitle))) {
       console.error(JSON.stringify({ evt: "sns_x_url_blocked", entryId }));
-      return say("failed", "X 에 보낼 글에서 주소를 다 지우지 못했어요. 글에서 링크를 빼고 다시 시도해 주세요.", { kind: "REJECTED" });
+      return failBack("X 에 보낼 글에서 주소를 다 지우지 못했어요. 글에서 링크를 빼고 다시 시도해 주세요.", { kind: "REJECTED" });
     }
 
     const post = await db.createPost({ siteId, entryId, provider, publicKey });
-    if (!post) return say("failed", "기록을 만들지 못했어요. 잠시 후 다시 시도해 주세요.", { kind: "TRANSIENT" });
+    if (!post) return failBack("기록을 만들지 못했어요. 잠시 후 다시 시도해 주세요.", { kind: "TRANSIENT" });
 
     await db.updatePost(post.id, { status: "uploading", attempts: (post.attempts ?? 0) + 1 });
     const out = await a.upload({
@@ -169,7 +183,11 @@ export async function POST(req: Request) {
         published_at: new Date().toISOString(), error_kind: null, error_detail: null,
       });
       console.log(JSON.stringify({ evt: "sns_published", provider, entryId }));
-      return say("published", `${name} 에 올렸어요.`, { url: out.remoteUrl, spec: igSpec });
+      /* ★★ **그쪽이 우리 요청과 «다르게» 처리했으면 그것까지 말한다.** (2026-09-12)
+         유튜브는 심사 전 영상을 비공개로 잠근다 — 「올렸어요」로 끝내면 사장님은
+         자기 유튜브에서 영상을 못 찾고 우리에게 전화한다. 불변 규칙 12. */
+      const msg = out.note ? `${name} 에 올렸어요. ${out.note}` : `${name} 에 올렸어요.`;
+      return say("published", msg, { url: out.remoteUrl, spec: igSpec, note: out.note });
     }
     if (out.state === "processing") {
       await db.updatePost(post.id, { status: "processing", container_id: out.containerId });
@@ -180,6 +198,6 @@ export async function POST(req: Request) {
     /* ★★ **그쪽이 준 말을 그대로 함께 보낸다** (2026-09-12 지시 3).
        전에는 네 문장 중 하나(「지금은 안 되네요」)만 갔다. 그러면 회장님이 무엇을 고쳐야 할지 모른다.
        ⚠ 원문은 개발자용이라 화면이 **접어서** 보여 준다 — 사장님에게는 친절한 문장이 먼저다. */
-    return say("failed", ERROR_SAY[out.kind], { kind: out.kind, detail: out.detail.slice(0, 300), spec: igSpec });
+    return failBack(ERROR_SAY[out.kind], { kind: out.kind, detail: out.detail.slice(0, 300), spec: igSpec });
   }
 }

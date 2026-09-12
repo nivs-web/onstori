@@ -45,7 +45,13 @@ export const ERROR_SAY: Record<ErrorKind, string> = {
      (app/[slug]/edit/sns-panel.tsx). 없는 버튼을 가리키면 사장님이 화면에서 헤맨다 — 불변 규칙 12. */
   AUTH_EXPIRED: "연결이 풀렸어요. [다시 연결하기]를 눌러 주세요.",
   REJECTED: "그쪽에서 이 영상을 받지 않았어요. 다른 영상으로 시도해 주세요.",
-  QUOTA_EXCEEDED: "오늘 올릴 수 있는 개수를 다 썼어요. 내일 다시 시도해 주세요.",
+  /* ★★ 「내일」이라고 말하면 **거짓말이 된다.** (2026-09-12 지시 B4 에서 발견)
+     한도 창은 `rate_limit_hit` 이 「UTC 자정 기준 86400초」로 끊는다 —
+     **한국 시각 오전 9시**마다 리셋된다. 새벽 1시에 막힌 사장님은 「내일」이 아니라
+     **여덟 시간 뒤**에 열리고, 오전 10시에 막힌 분은 «내일 9시»다.
+     불변 규칙 12 — 판정하는 값과 화면이 말하는 값이 같아야 한다.
+     ⚠ 창을 «한국 자정»으로 옮기는 것은 회장님 확인 대기 항목이다. 그때 이 문장도 함께 고친다. */
+  QUOTA_EXCEEDED: "오늘 올릴 수 있는 개수를 다 썼어요. 매일 오전 9시(한국 시각)에 다시 열립니다.",
 };
 
 /**
@@ -101,7 +107,15 @@ export type UploadInput = {
  *   그때 받은 containerId 를 sns_posts 에 적어 두고 다시 부르면 ①을 건너뛴다.
  */
 export type UploadOutcome =
-  | { state: "published"; remotePostId: string; remoteUrl: string | null }
+  /**
+   * 올라갔다.
+   * ★ note — **그쪽이 우리 요청과 다르게 처리했을 때** 사장님에게 그대로 전할 한 문장.
+   *   (2026-09-12) 유튜브는 심사 전 프로젝트가 보낸 영상을 «공개»로 보내도 **비공개로 잠근다.**
+   *   그때 화면이 「올렸어요」라고만 하면 사장님은 유튜브에서 자기 영상을 못 찾는다.
+   * ⚠ 실패가 아니다 — 올라가긴 갔다. 그래서 published 안에 둔다.
+   * ⚠ 선택 항목이다. 다른 어댑터는 이 칸을 채우지 않아도 된다.
+   */
+  | { state: "published"; remotePostId: string; remoteUrl: string | null; note?: string }
   | { state: "processing"; containerId: string }
   | { state: "failed"; kind: ErrorKind; detail: string };
 
@@ -154,7 +168,14 @@ export type ExtraField = {
 };
 
 /** 이 SNS 를 지금 쓸 수 있나 — 못 쓰면 **왜인지** 같이 준다(조용히 실패 금지) */
-export type Availability = { ok: true } | { ok: false; why: string };
+/**
+ * ⑧ 지금 쓸 수 있나.
+ *
+ * ★ `notice` — **쓸 수는 있지만 사장님이 «미리» 알아야 하는 것.** (2026-09-12 지시 B3)
+ *   유튜브가 준비 기간(review)일 때 「올리면 비공개로 올라간다」가 여기로 온다.
+ *   ⚠ `why`(못 쓰는 이유)와 **다른 칸이다.** 섞으면 화면이 「못 쓴다」로 그린다.
+ */
+export type Availability = { ok: true; notice?: string } | { ok: false; why: string };
 
 /** ★ 겉모양 8개. 회장님 지시 2 의 목록 그대로다. */
 export type SnsAdapter = {

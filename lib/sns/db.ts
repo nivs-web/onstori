@@ -1,5 +1,6 @@
 import { sbAdmin } from "@/lib/db-admin";
 import type { Connection, ErrorKind, Quota, SnsProvider } from "./types";
+import { APP_DAILY_UPLOADS, PER_SITE_DAILY_UPLOADS } from "./limits";
 
 /**
  * SNS 표를 다루는 **유일한 자리**. (2026-09-11)
@@ -252,39 +253,100 @@ export async function listPostsForEntry(siteId: string, entryId: string): Promis
 /* ─────────────── 하루 한도 ─────────────── */
 
 /**
+ * 한도 규칙 하나. `scope` 가 중요하다 — **되돌릴 수 있는 것과 없는 것이 갈린다.**
+ *
+ * · `site` — 우리가 사장님께 스스로 건 약속. 올리기가 실패했으면 **되돌려도 된다.**
+ * · `app`  — 그쪽(유튜브)의 진짜 할당량을 흉내 낸 것. **호출이 이미 나갔으면 되돌리면 안 된다.**
+ *   되돌리면 우리 숫자만 줄고 그쪽 숫자는 그대로라, 결국 그쪽에서 거절당한다.
+ */
+export type QuotaRule = {
+  scope: "site" | "app";
+  key: (siteId: string) => string;
+  window: number;
+  max: number;
+};
+
+/**
  * ★ 한도는 **이미 있는 `rate_limit_hit` 을 쓴다.** 새로 만들지 않는다(회장님 지시 6).
  *   열쇠 모양도 지시문 그대로다: `ig:{site_id}` · `yt:{site_id}` · `yt:app`
  *
  * ⚠ `checkRateLimit()`(lib/rate-limit.ts)을 거치지 않는다. 그 함수는 열쇠를
  *   `scope:label:ip` 로 조립해서 지시문의 모양과 달라진다. 여기선 RPC 를 직접 부른다.
+ *
+ * ★ 숫자는 여기 적지 않는다 — `lib/sns/limits.ts` 가 **단일 출처**다 (2026-09-12 지시 B4).
+ *   전에는 `max: 100` 이 이 파일에 손으로 박혀 있어, 증액 승인이 나면 코드를 고쳐야 했다.
  */
-export const SNS_LIMITS: Record<string, { key: (siteId: string) => string; window: number; max: number }[]> = {
-  instagram: [{ key: (s) => `ig:${s}`, window: 86400, max: 5 }],
+export const SNS_LIMITS: Record<string, QuotaRule[]> = {
+  instagram: [{ scope: "site", key: (s) => `ig:${s}`, window: 86400, max: PER_SITE_DAILY_UPLOADS.instagram ?? 5 }],
   /* ★ 틱톡 (2026-09-12). 인스타와 같은 하루 5개로 맞춘다.
-     ⚠ 없으면 `readQuota` 가 `{remaining:0, limit:0}` 을 돌려줘 화면이 **「오늘 0개 더 올릴 수 있어요」**
-       라고 거짓말한다 — 실제로는 한도가 없는데 못 올리는 것처럼 보인다.
-     ⚠ 심사 전(unaudited) 앱은 틱톡 쪽 한도가 따로 더 빡빡하다. 그건 그쪽이 거절로 알려 준다. */
-  tiktok: [{ key: (s) => `tt:${s}`, window: 86400, max: 5 }],
+     ⚠ 없으면 `readQuota` 가 `{remaining:0, limit:0}` 을 돌려줘 화면이 **「오늘 0개」**라고 거짓말한다.
+     ⚠ 심사 전 앱은 틱톡 쪽 한도가 따로 더 빡빡하다. 그건 그쪽이 거절로 알려 준다. */
+  tiktok: [{ scope: "site", key: (s) => `tt:${s}`, window: 86400, max: PER_SITE_DAILY_UPLOADS.tiktok ?? 5 }],
   youtube: [
-    { key: (s) => `yt:${s}`, window: 86400, max: 1 },
-    { key: () => "yt:app", window: 86400, max: 100 },   // 앱 전체 한도
+    { scope: "site", key: (s) => `yt:${s}`, window: 86400, max: PER_SITE_DAILY_UPLOADS.youtube ?? 1 },
+    { scope: "app", key: () => "yt:app", window: 86400, max: APP_DAILY_UPLOADS.youtube ?? 100 },
   ],
 };
 
-/** ★ 실제로 **쓴다**(카운트를 올린다). 올리기 직전에 한 번만 부른다 */
+/** 이 규칙의 «지금 창». `rate_limit_hit` 과 **똑같은 공식**이어야 한다 — 어긋나면 딴 칸을 읽는다 */
+const bucketOf = (r: QuotaRule) => new Date(Math.floor(Date.now() / 1000 / r.window) * r.window * 1000).toISOString();
+
+/** 이 규칙을 지금까지 몇 번 썼나. 못 읽었으면 `null` — **0 이 아니다** */
+async function usedCount(r: QuotaRule, siteId: string): Promise<number | null> {
+  try {
+    const { data, error } = await sbAdmin().from("rate_limits").select("count")
+      .eq("key", r.key(siteId)).eq("window_start", bucketOf(r)).maybeSingle();
+    if (error) return null;
+    return (data as { count?: number } | null)?.count ?? 0;
+  } catch { return null; }
+}
+
+/**
+ * ★★ 실제로 **쓴다**(카운트를 올린다). 올리기 직전에 한 번만 부른다.
+ *
+ * ★★ 2026-09-12 — **두 단계로 고쳤다 (지시 B4).** 왜 고쳤나:
+ *
+ *   전에는 규칙을 순서대로 돌며 그 자리에서 바로 카운트를 올렸다. 유튜브는 규칙이 둘이고
+ *   **사장님당 하루 1건**이라, 앱 전체 100건이 차 있는 날에는 이런 일이 벌어졌다:
+ *     ① `yt:{siteId}` 를 올린다 → 사장님의 **오늘 단 하나**가 소모된다
+ *     ② `yt:app` 에서 막힌다 → false 를 돌려준다
+ *     ③ 사장님은 **올리지도 못했는데** 내일까지 다시 못 올린다
+ *   인스타(하루 5건)에서는 티가 안 나던 문제가 유튜브에서만 치명적으로 드러났다.
+ *
+ * ★ 지금은 **①전부 본 뒤 ②전부 쓴다.** 한 줄이라도 이미 차 있으면 **아무것도 쓰지 않는다.**
+ * ⚠ ①과 ② 사이의 짧은 틈에 남이 끼어들 수 있다(경합). 그때는 ②에서 막히고,
+ *   **이미 올린 것을 되돌린다** — 그래야 사장님의 하나가 날아가지 않는다.
+ * ⚠ 카운터가 죽었으면(`error`) 통과시킨다. 정상 사장님을 DB 사정으로 막지 않는다.
+ */
 export async function consumeQuota(provider: SnsProvider, siteId: string): Promise<boolean> {
   const rules = SNS_LIMITS[provider];
-  if (!rules) return true;
+  if (!rules?.length) return true;
   const sb = sbAdmin();
+
+  /* ① 먼저 전부 본다 — 한 줄이라도 찼으면 아무것도 쓰지 않고 돌아간다 */
+  for (const r of rules) {
+    const used = await usedCount(r, siteId);
+    if (used !== null && used >= r.max) {
+      console.log(JSON.stringify({ evt: "sns_quota_full", provider, scope: r.scope, used, max: r.max }));
+      return false;
+    }
+  }
+
+  /* ② 통과했으면 전부 쓴다. 도중에 막히면 이미 쓴 것을 되돌린다 */
+  const spent: QuotaRule[] = [];
   for (const r of rules) {
     try {
       const { data, error } = await sb.rpc("rate_limit_hit", { p_key: r.key(siteId), p_window: r.window, p_max: r.max });
       if (error) {
-        /* 카운터가 죽었다고 정상 사장님을 막지 않는다 — lib/rate-limit.ts 와 같은 판단 */
         console.warn(JSON.stringify({ evt: "sns_quota_error", provider, err: error.message.slice(0, 120) }));
-        continue;
+        continue;                                   // 카운터가 죽었다 — 되돌릴 것도 없다
       }
-      if (data === false) return false;
+      if (data === false) {                          // 경합에 졌다
+        await giveBack(spent, siteId);
+        console.log(JSON.stringify({ evt: "sns_quota_race", provider, scope: r.scope, gaveBack: spent.length }));
+        return false;
+      }
+      spent.push(r);
     } catch (e) {
       console.warn(JSON.stringify({ evt: "sns_quota_error", provider, err: String(e).slice(0, 120) }));
     }
@@ -293,24 +355,54 @@ export async function consumeQuota(provider: SnsProvider, siteId: string): Promi
 }
 
 /**
+ * 쓴 것을 하나 되돌린다.
+ *
+ * ⚠ 읽고-빼고-쓰기라 완벽하지 않다(그 사이에 남이 올리면 한 건이 어긋난다).
+ *   그래도 그냥 두는 것보다 낫다 — 어긋나는 쪽이 **사장님에게 관대한 쪽**이고,
+ *   앱 전체 카운터는 애초에 되돌리지 않기 때문이다.
+ * ⚠ SQL 함수를 새로 만들면 정확해지지만 마이그레이션이 필요하고, 그건 회장님 손을 타야 한다.
+ */
+async function giveBack(rules: QuotaRule[], siteId: string): Promise<void> {
+  const sb = sbAdmin();
+  for (const r of rules) {
+    const used = await usedCount(r, siteId);
+    if (used === null || used <= 0) continue;
+    try {
+      await sb.from("rate_limits").update({ count: used - 1 })
+        .eq("key", r.key(siteId)).eq("window_start", bucketOf(r));
+    } catch { /* 못 되돌렸으면 그냥 둔다 — 사장님이 하루 손해를 보지만 숫자가 틀어지진 않는다 */ }
+  }
+}
+
+/**
+ * ★★ **올리기가 실패했을 때 사장님 몫만 돌려준다.** (2026-09-12 지시 B4)
+ *
+ * ⚠ 왜 필요한가: 한도는 `upload()` **전에** 소모된다(써 보고 나서 세면 두 번 올라간다).
+ *   그런데 유튜브는 사장님당 **하루 1건**이라, 잠깐 끊긴 것(TRANSIENT) 한 번에
+ *   **그날이 끝나 버린다.** 인스타(5건)에서는 안 보이던 문제다.
+ *
+ * ★★ **`app` 규칙은 돌려주지 않는다.** 그쪽 할당량은 호출이 나간 순간 진짜로 줄었다.
+ *   우리 숫자만 되돌리면 우리는 계속 보내는데 그쪽이 거절한다 — 더 나쁜 상태가 된다.
+ */
+export async function refundQuota(provider: SnsProvider, siteId: string): Promise<void> {
+  const rules = (SNS_LIMITS[provider] ?? []).filter((r) => r.scope === "site");
+  if (!rules.length) return;
+  await giveBack(rules, siteId);
+  console.log(JSON.stringify({ evt: "sns_quota_refunded", provider, rules: rules.length }));
+}
+
+/**
  * ★★ 남은 개수를 **세기만 한다.**
  * ⚠ `rate_limit_hit` 을 부르면 **한 개를 써 버린다.** 화면에 「남은 개수」를 보여 주려고
  *   부르면 볼 때마다 한도가 줄어든다. 그래서 `rate_limits` 표를 직접 읽는다.
- *   버킷 계산은 그 함수와 똑같이 «창 길이로 내림»이다.
+ * ⚠ 못 읽은 것(`null`)은 **0 으로 세지 않는다** — 「다 썼다」는 거짓말이 되기 때문이다.
  */
 export async function readQuota(provider: SnsProvider, siteId: string): Promise<Quota> {
   const rules = SNS_LIMITS[provider];
   if (!rules?.length) return { remaining: 0, limit: 0, windowSec: 86400 };
-  const sb = sbAdmin();
   let worst: Quota | null = null;
   for (const r of rules) {
-    const bucket = new Date(Math.floor(Date.now() / 1000 / r.window) * r.window * 1000).toISOString();
-    let used = 0;
-    try {
-      const { data } = await sb.from("rate_limits").select("count")
-        .eq("key", r.key(siteId)).eq("window_start", bucket).maybeSingle();
-      used = (data as { count?: number } | null)?.count ?? 0;
-    } catch { used = 0; }
+    const used = await usedCount(r, siteId) ?? 0;
     const q: Quota = { remaining: Math.max(0, r.max - used), limit: r.max, windowSec: r.window };
     if (!worst || q.remaining < worst.remaining) worst = q;   // 가장 빡빡한 규칙이 진짜 남은 개수
   }
