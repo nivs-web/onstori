@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw, notifyChannels } from "@/lib/notify";
 import { storyLinkUrl } from "@/lib/story-link";
-import { pickQuestions } from "@/config/questions";
-import { readWeekly, shouldSend } from "@/lib/weekly";
+import { ALIMTALK_QUESTIONS } from "@/config/questions";
+import { readWeekly, shouldSend, deadlineText, hasBannedPhrase } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
 import { refreshInstagramTokens, refreshTiktokTokens, finishStuckPosts, checkPublishedAlive } from "@/lib/sns/maintenance";
 
@@ -11,16 +11,18 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * 주 1회 촬영 알림 — **매시 정각**에 돌며 「지금이 그 사장님의 요일·시간인가」를 본다. (2026-09-12)
+ * 주 1회 촬영 알림 — **하루 한 번**(한국 09:00 · `vercel.json` 의 `0 0 * * *`) 돈다. (2026-09-12 개정)
  *
  * ★★ 왜 따로 만드나: `expire` 에 얹지 않는다(회장님 지시). 성격이 다르고,
  *   한쪽이 죽으면 둘 다 멈춘다. 만료 처리와 촬영 독려는 같이 죽으면 안 되는 일이다.
  *
- * ★★ 왜 매시 정각인가: 사장님이 **시간을 직접 고른다.** 분 단위로 받으면 크론을 분마다
- *   돌려야 하고 비용·복잡도가 확 오른다. 1시간 단위면 하루 24번으로 충분하다.
+ * ★★ ⚠ **옛 주석은 「매시 정각에 돈다」였다 — 사실이 아니었다.** Vercel 무료는 크론이
+ *   하루 1회뿐이고, 그 착각 위에 판정을 짜서 결함 둘이 생겼다(고른 요일보다 하루 늦게 가고,
+ *   토요일 늦은 시각을 고른 분께는 영영 안 갔다). 지금 판정은 **「오늘이 그 요일인가」**다 —
+ *   자세한 것은 `lib/weekly.ts` 의 `shouldSend` 주석에 있다.
  *
- * ★★★ **같은 주에 두 번 가지 않는다.** `settings.weekly.lastSentAt` 을 보고 6일이 안 지났으면
- *   건너뛴다. 크론이 겹쳐 돌거나 재시도하면 두 번 가는데, 사장님에게는 그게 스팸이다.
+ * ★★★ **같은 주에 두 번 가지 않는다.** `settings.weekly.lastSentAt` 이 **이번 주**(일요일 00:00 KST)
+ *   안이면 건너뛴다. 크론이 겹쳐 돌거나 재시도해도 안전하다.
  *   ⚠ 보내기 **전에** 찍지 않고 **보낸 뒤에** 찍는다 — 먼저 찍으면 발송이 실패했을 때
  *     그 주를 통째로 건너뛴다.
  *
@@ -64,8 +66,23 @@ export async function GET(req: Request) {
     if (!phone || !canSms) { out.noPhone++; continue; }
 
     const link = storyLinkUrl(s.slug as string, "https://onstori.com");
-    const q = pickQuestions(1)[0];
-    const text = `[온스토리] ${s.business_name} 사장님, 이번 주 질문이에요.\n"${q.text}"\n아래 링크를 브라우저에서 열고 60초만 말씀해 주세요.\n${link}`;
+    /* ★★ 알림톡에 실을 수 있는 질문만 고른다 (2026-09-12 지시 D5).
+       「~해 주세요」로 끝나는 명령문 8개는 광고성으로 읽혀 **반려 사유**가 된다.
+       ⚠ 문자와 알림톡이 **같은 문장**을 쓰게 둔다 — 두 벌을 만들면 한쪽만 고쳐진다. */
+    const askable = ALIMTALK_QUESTIONS;
+    const q = askable[Math.floor(Math.random() * askable.length)];
+    /* ★★ 「60초만 말씀해 주세요」를 **뺐다.** 행동을 시키는 문장이 알림톡 반려 사유다.
+       무엇을 하라는 말은 **링크 너머 녹화 화면**이 한다 — 거기서 하면 문제가 없다.
+       ★ 대신 «언제까지»를 넣는다. 유효기간이 있어야 「배송물」로 읽힌다(김팀장 조사). */
+    const text = `[온스토리] ${s.business_name} 사장님, 이번 주 질문이 도착했어요.\n"${q.text}"\n${deadlineText(now)}까지 열어 보실 수 있어요.\n${link}`;
+
+    /* ★ 보내기 «전»에 스스로 검사한다 — 반려 사유가 될 말이 섞이면 안 보낸다.
+       ⚠ 조용히 안 보내지 않는다. 로그에 어느 말이 걸렸는지 적는다. */
+    const banned = hasBannedPhrase(text);
+    if (banned) {
+      console.error(JSON.stringify({ evt: "weekly_banned_phrase", slug: s.slug, banned }));
+      out.failed++; continue;
+    }
 
     const ok = await sendSmsRaw(phone, text);
     if (!ok) { out.failed++; continue; }

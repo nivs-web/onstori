@@ -14,6 +14,24 @@ import type { SnsProvider } from "./types";
  *   화면·서버 어디에도 숫자를 다시 타이핑하지 마라.
  */
 
+/**
+ * ★ 영상 길이 상한(초). 상무님 규격서 v5 의 핵심 값이다.
+ *
+ * ★★ **페이스북 90초가 넷 중 가장 짧다.** 그래서 **60초가 «지켜야 하는 선»**이 됐다.
+ *   영상 길이를 늘리는 결정은 **SNS 하나를 버리는 결정**이다 — 늘리자는 말이 나오면 이 표를 먼저 봐라.
+ * ⚠ 모르는 것은 `null` 이다. **0 이 아니다** — 0 은 「못 올린다」가 돼 버린다.
+ * ⚠ 틱톡은 계정마다 다르다. `creator_info` 가 주는 `max_video_post_duration_sec` 가 진짜 값이고,
+ *   여기 값은 «물어보기 전»의 보수적인 짐작이 아니라 **모른다(null)** 로 둔다.
+ */
+export const MAX_DURATION_SEC: Record<SnsProvider, number | null> = {
+  instagram: 900,
+  facebook: 90,          // ← 넷 중 가장 짧다
+  threads: null,         // ⚠ 확인 필요
+  tiktok: null,          // 계정마다 다르다 — creator_info 로 받는다
+  youtube: null,         // ⚠ 확인 필요
+  x: null,               // ⚠ 확인 필요
+};
+
 export type TextLimit = {
   /** 글자 수 상한 */
   chars: number;
@@ -89,4 +107,16 @@ export function overs(count: TextCount, limit: TextLimit): string[] {
     out.push(`@ 를 ${count.mentions - limit.mentions}개 줄여 주세요 (${limit.mentions}개까지)`);
   }
   return out;
+}
+
+/**
+ * ⑨ 어댑터의 `getLimits()` 가 그대로 돌려주는 값. (상무님 규격서 v5)
+ * ★ 어댑터마다 숫자를 다시 적지 않는다 — 위 두 표가 단일 출처다.
+ */
+export function limitsOf(p: SnsProvider): { maxDurationSec: number | null; maxCaptionChars: number; maxHashtags: number | null } {
+  return {
+    maxDurationSec: MAX_DURATION_SEC[p],
+    maxCaptionChars: TEXT_LIMITS[p].chars,
+    maxHashtags: TEXT_LIMITS[p].hashtags,
+  };
 }

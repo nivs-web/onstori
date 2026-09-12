@@ -14,7 +14,10 @@ import { sbAdmin } from "@/lib/db-admin";
 /** 어느 판본에 동의했는가 — 화면(`/terms`·`/privacy`)이 이 값을 함께 쓴다 */
 export const LEGAL_VERSION = {
   terms: "2026-09-06",
-  privacy: "2026-09-06",
+  /* 2026-09-12 개정 — §17 「SNS 연결과 게시」 신설, §6·§7 표에 유튜브·인스타·틱톡 추가.
+     ⚠ 방침을 고치면 **이 날짜를 반드시 함께 올린다.** 화면의 「시행일」과 동의 기록의
+       `doc_version` 이 이 한 값을 같이 읽는다 — 안 올리면 「무엇에 동의했는지」가 어긋난다. */
+  privacy: "2026-09-12",
 } as const;
 
 export const CONSENT_KINDS = ["terms", "privacy", "marketing"] as const;

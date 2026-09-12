@@ -108,6 +108,45 @@ export type UploadOutcome =
 /** 오늘 몇 개나 더 올릴 수 있나 */
 export type Quota = { remaining: number; limit: number; windowSec: number };
 
+/**
+ * ⑨ 이 SNS 의 한도. (상무님 규격서 v5 · 2026-09-12 반영)
+ *
+ * ★★ `maxDurationSec` 이 v5 의 핵심이다. 페이스북이 **90초**라 넷 중 가장 짧고,
+ *   그래서 **60초가 «지켜야 하는 선»**이 됐다.
+ *   ★ **영상 길이를 늘리는 결정은 SNS 하나를 버리는 결정이다.** 길이를 바꾸자는 말이 나오면 이 값을 먼저 봐라.
+ * ⚠ 모르는 것은 `null` 이다. **0 이 아니다** — 0 은 「못 올린다」는 뜻이 돼 버린다.
+ */
+export type Limits = {
+  maxDurationSec: number | null;
+  maxCaptionChars: number;
+  maxHashtags: number | null;
+};
+
+/**
+ * ⑩ 이 SNS 가 **더 받아야 하는 항목**. (상무님 규격서 v5 · 2026-09-12 반영)
+ *
+ * ★★ 화면은 이 목록을 «읽어서» 시트를 그린다 — **화면 코드에 SNS 이름이 없어야 한다.**
+ *   그래야 나중에 다른 SNS 가 비슷한 요구를 해도 시트 코드를 안 고친다(규격서 §2 규칙 1).
+ * ★ 지금 빈 목록이 아닌 것은 **틱톡 하나뿐**이다.
+ */
+export type ExtraField = {
+  /** 저장·전송에 쓰는 열쇠 */
+  key: string;
+  /** 사장님에게 보이는 이름 */
+  label: string;
+  kind: "text" | "choice" | "check";
+  /** kind==="choice" 일 때의 보기. 값은 **그쪽이 준 것만** 쓴다 — 우리가 지어내지 않는다 */
+  options?: { value: string; label: string }[];
+  required: boolean;
+  /**
+   * ★★ **기본값을 둘 수 있는가.** 틱톡의 공개범위·댓글은 **false** 다 —
+   *   심사가 「사장님이 매번 스스로 골랐는가」를 보기 때문에, 미리 골라 두면 안 된다.
+   */
+  canPrefill: boolean;
+  /** canPrefill 이 true 일 때만 쓰는 미리 채울 값 */
+  prefill?: string;
+};
+
 /** 이 SNS 를 지금 쓸 수 있나 — 못 쓰면 **왜인지** 같이 준다(조용히 실패 금지) */
 export type Availability = { ok: true } | { ok: false; why: string };
 
@@ -142,4 +181,17 @@ export type SnsAdapter = {
 
   /** ⑧ 지금 쓸 수 있나 (키가 있나 · 게이트가 열렸나) */
   isAvailable(): Promise<Availability>;
+
+  /**
+   * ⑨ 이 SNS 의 한도 (상무님 규격서 v5).
+   * ★ 인스타 해시태그 30개를 화면이 «묻지 않고 알 수 있게» 하는 자리다.
+   */
+  getLimits(): Limits;
+
+  /**
+   * ⑩ 더 받아야 하는 항목 (상무님 규격서 v5). 없으면 **빈 배열**.
+   * ⚠ `siteId` 를 받는 이유: 틱톡은 **계정마다 고를 수 있는 공개범위가 다르다.**
+   *   그쪽에 물어봐야 알 수 있어서 비동기다.
+   */
+  extraOptions(siteId: string): Promise<ExtraField[]>;
 };

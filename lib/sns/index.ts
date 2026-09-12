@@ -1,4 +1,5 @@
 import * as db from "./db";
+import { limitsOf } from "./limits";
 import { instagram } from "./instagram";
 import { youtube } from "./youtube";
 import { tiktok } from "./tiktok";
@@ -27,6 +28,9 @@ function notReady(provider: SnsProvider, why: string): SnsAdapter {
     translateError: () => "TRANSIENT",               // ★ 모르면 TRANSIENT
     isDuplicate: (siteId, entryId) => db.isDuplicate(siteId, entryId, provider),
     getQuota: async () => ({ remaining: 0, limit: 0, windowSec: 86400 }),
+    /* ⑨⑩ — 아직 안 연 SNS 도 겉모양은 갖춘다. 화면이 «어댑터마다 다른 코드»를 쓰지 않게 한다 */
+    getLimits: () => limitsOf(provider),
+    extraOptions: async () => [],
   };
 }
 

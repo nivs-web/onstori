@@ -1,4 +1,5 @@
 import * as db from "./db";
+import { limitsOf } from "./limits";
 import { SnsHttpError, brief, callJson, kindFromStatus } from "./http";
 import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
 
@@ -241,6 +242,10 @@ export const instagram: SnsAdapter = {
     }
     return "TRANSIENT";   // ★ 모르는 것은 전부 여기
   },
+
+  getLimits: () => limitsOf("instagram"),
+  /* ⑩ 인스타는 더 받을 것이 없다 — **빈 배열**이면 화면이 시트를 안 그린다 */
+  extraOptions: async () => [],
 
   isDuplicate: (siteId, entryId) => db.isDuplicate(siteId, entryId, "instagram"),
   getQuota: (siteId): Promise<Quota> => db.readQuota("instagram", siteId),

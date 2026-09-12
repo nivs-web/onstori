@@ -137,6 +137,24 @@ export const QUESTIONS: Question[] = [
 ];
 
 /** 무작위 n개 — 카테고리가 겹치지 않게 먼저 뽑고 모자라면 채운다. exclude = 이미 답한 id */
+/**
+ * ★★ **알림톡에 실어도 되는 질문**만 고른다. (2026-09-12 회장님 지시 D5)
+ *
+ * ⚠ 카카오 알림톡은 **정보성 메시지**여야 한다. 「~해 주세요」로 끝나는 **명령·권유문**은
+ *   광고성으로 읽힐 여지가 있어 반려 사유가 된다. 그래서 **물음표로 끝나는 것만** 쓴다.
+ *
+ * ★ 실측(2026-09-12): 질문 100개 중 **8개**가 「?」로 안 끝난다
+ *   (「…말해 주세요.」 7개 · 「…들려주세요.」 1개). 그 여덟은 알림톡에서 빠지고
+ *   **문자·화면에서는 그대로 쓴다** — 거기서는 문제가 없다.
+ *
+ * ⚠ 질문을 새로 더할 때: 알림톡에도 쓰려면 **물음표로 끝나게** 쓴다.
+ *   이 함수는 «걸러 주는» 것이지 «고쳐 주는» 것이 아니다.
+ */
+export const isAskable = (q: Question): boolean => q.text.trim().endsWith("?");
+
+/** 알림톡용 질문 은행 — 위 규칙을 통과한 것만 */
+export const ALIMTALK_QUESTIONS: Question[] = QUESTIONS.filter(isAskable);
+
 export function pickQuestions(n = 4, exclude: string[] = [], seed?: number): Question[] {
   const rnd = seed === undefined ? Math.random : mulberry32(seed);
   const pool = QUESTIONS.filter((q) => !exclude.includes(q.id));

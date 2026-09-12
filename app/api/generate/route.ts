@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
 import { hasRequired, recordConsents } from "@/lib/consents";
+import { WEEKLY_DEFAULT } from "@/lib/weekly";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
@@ -134,6 +135,11 @@ export async function POST(req: Request) {
           phone: input.phone, address: input.address ?? null, oneLiner: input.oneLiner,
           industryLabel: input.industryLabel ?? null,
           ...(input.email ? { notify: { email: input.email } } : {}),
+          /* ★★ 주 1회 촬영 알림을 **가입 때 심는다** (2026-09-12 회장님 지시 D1).
+             ⚠ 안 심으면 `readWeekly` 가 undefined 를 돌려주고 크론이 그 사장님을 **영영 건너뛴다.**
+               「기본값이 있으니 되겠지」가 아니다 — 기본값은 **적혀 있어야** 읽힌다.
+             ★ 값의 단일 출처는 `lib/weekly.ts` 의 `WEEKLY_DEFAULT` 다. 숫자를 여기 적지 마라. */
+          weekly: { ...WEEKLY_DEFAULT },
         },
         draft: doc,
         published: doc,

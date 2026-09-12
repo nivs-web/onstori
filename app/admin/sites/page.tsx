@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
+import { DeleteSite } from "./delete-ui";
 
 export const metadata = { title: "사이트 관리", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function SitesAdmin() {
       <div className="table-scroll card mt-6">
         <table className="w-full min-w-[640px] t-small">
           <thead className="bg-n-50 t-caption text-[var(--text-soft)]">
-            <tr>{["주소", "상호", "업종", "템플릿", "상태", "체험 만료", "생성일"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr>
+            <tr>{["주소", "상호", "업종", "템플릿", "상태", "체험 만료", "생성일", "지우기"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr>
           </thead>
           <tbody>
             {(rows ?? []).map((s) => (
@@ -31,6 +32,8 @@ export default async function SitesAdmin() {
                 <td className="px-3 py-2">{s.status}</td>
                 <td className="px-3 py-2 t-caption">{s.trial_ends_at?.slice(0, 10) ?? "—"}</td>
                 <td className="px-3 py-2 t-caption">{s.created_at?.slice(0, 10)}</td>
+                {/* ★ 운영자 전용 — 사장님 화면에는 없다. 서버가 다시 인증을 확인한다 */}
+                <td className="px-3 py-2"><DeleteSite slug={s.slug as string} businessName={(s.business_name as string) ?? ""} /></td>
               </tr>
             ))}
           </tbody>

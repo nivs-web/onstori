@@ -1,6 +1,7 @@
 import * as db from "./db";
+import { limitsOf } from "./limits";
 import { SnsHttpError, brief, callJson, kindFromStatus } from "./http";
-import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
+import type { Availability, Connection, ErrorKind, ExtraField, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
 
 /**
  * 틱톡 어댑터 — Direct Post (2026-09-12 회장님 지시)
@@ -33,6 +34,14 @@ const SCOPES = ["user.info.basic", "video.publish", "video.upload"];
 
 const clientKey = () => process.env.TIKTOK_CLIENT_KEY?.trim() ?? "";
 const clientSecret = () => process.env.TIKTOK_CLIENT_SECRET?.trim() ?? "";
+
+/** 틱톡 값 → 사람 말. **틱톡이 준 값만** 쓰되 읽을 수 있게만 바꾼다. 없는 값은 그대로 보여 준다 */
+export const PRIVACY_LABEL: Record<string, string> = {
+  PUBLIC_TO_EVERYONE: "모두에게 공개",
+  MUTUAL_FOLLOW_FRIENDS: "서로 팔로우한 친구만",
+  FOLLOWER_OF_CREATOR: "내 팔로워만",
+  SELF_ONLY: "나만 보기",
+};
 
 /** 틱톡이 주는 공개범위 값 — 이 목록은 계정마다 다르다. **우리가 지어내지 않는다** */
 export type PrivacyLevel = string;
@@ -236,6 +245,43 @@ export const tiktok: SnsAdapter = {
       return kindFromStatus(e.status);
     }
     return "TRANSIENT";   // ★ 모르면 TRANSIENT
+  },
+
+  /** ⑨ 한도. ★ 길이는 **계정마다 다르다** — `extraOptions` 가 그쪽에 물어 실제 값을 얹는다 */
+  getLimits: () => limitsOf("tiktok"),
+
+  /**
+   * ⑩ ★★ **넷 중 유일하게 «빈 배열이 아닌» 어댑터.** (상무님 규격서 v5 ⑩)
+   *
+   * 화면은 이 목록을 **읽어서** 시트를 그린다 — 화면 코드에 「틱톡」이라는 말이 없어야 한다.
+   * 그래야 나중에 다른 SNS 가 비슷한 요구를 해도 시트 코드를 안 고친다.
+   *
+   * ★★ 공개범위·댓글의 `canPrefill` 이 **false** 인 것이 핵심이다.
+   *   틱톡 심사는 「사장님이 **매번 스스로** 골랐는가」를 본다. 미리 골라 두면 그것으로 떨어진다.
+   * ⚠ 보기 목록은 **그쪽(`creator_info`)이 준 것만** 쓴다. 우리가 지어내지 않는다.
+   * ⚠ 못 물어보면 **빈 배열**을 돌려준다 — 「기본값으로 올려 버리기」보다 「시트를 안 그리기」가 안전하다.
+   */
+  async extraOptions(siteId: string): Promise<ExtraField[]> {
+    const r = await creatorOptions(siteId);
+    if (!r.ok) return [];
+    const o = r.options;
+    return [
+      { key: "title", label: "제목", kind: "text", required: true, canPrefill: true },
+      {
+        key: "privacyLevel", label: "누가 볼 수 있나요", kind: "choice", required: true,
+        canPrefill: false,                       // ★ 미리 고르면 안 된다
+        options: o.privacyOptions.map((v) => ({ value: v, label: PRIVACY_LABEL[v] ?? v })),
+      },
+      ...(o.commentDisabled ? [] : [{
+        key: "disableComment", label: "댓글 막기", kind: "check" as const, required: false, canPrefill: false,
+      }]),
+      ...(o.duetDisabled ? [] : [{
+        key: "disableDuet", label: "듀엣 막기", kind: "check" as const, required: false, canPrefill: false,
+      }]),
+      ...(o.stitchDisabled ? [] : [{
+        key: "disableStitch", label: "이어찍기 막기", kind: "check" as const, required: false, canPrefill: false,
+      }]),
+    ];
   },
 
   isDuplicate: (siteId, entryId) => db.isDuplicate(siteId, entryId, "tiktok"),

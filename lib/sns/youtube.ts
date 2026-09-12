@@ -1,6 +1,7 @@
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import * as db from "./db";
+import { limitsOf } from "./limits";
 import { SnsHttpError, brief, callJson, kindFromStatus } from "./http";
 import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
 
@@ -185,6 +186,9 @@ export const youtube: SnsAdapter = {
     }
     return "TRANSIENT";   // ★ 모르는 것은 전부 여기
   },
+
+  getLimits: () => limitsOf("youtube"),
+  extraOptions: async () => [],
 
   isDuplicate: (siteId, entryId) => db.isDuplicate(siteId, entryId, "youtube"),
   getQuota: (siteId): Promise<Quota> => db.readQuota("youtube", siteId),
