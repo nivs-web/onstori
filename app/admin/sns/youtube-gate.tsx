@@ -83,8 +83,14 @@ export function YoutubeGate() {
           allowSlugs: slugs.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean),
         }),
       });
-      const d = (await r.json().catch(() => ({}))) as Gate & { error?: string };
-      if (!r.ok) { setErr(d.error ?? `저장하지 못했어요 (${r.status})`); return; }
+      const d = (await r.json().catch(() => ({}))) as Gate & { error?: string; needAudit?: boolean };
+      if (!r.ok) {
+        /* ⚠ 서버가 「감사 표시가 먼저」라며 거절한 것이다. 화면도 그 자리로 되돌린다 —
+           「저장했다」처럼 보이게 두면 다음에 또 같은 실수를 한다. */
+        if (d.needAudit) { setMode(g?.mode ?? "off"); setConfirming(false); }
+        setErr(d.error ?? `저장하지 못했어요 (${r.status})`);
+        return;
+      }
       setG(d); setMode(d.mode); setAudit(d.auditPassed); setSlugs((d.allowSlugs ?? []).join(" "));
       setConfirming(false);
       setMsg(d.unknown?.length ? `저장했어요. ⚠ 못 찾은 주소: ${d.unknown.join(", ")}` : "저장했어요.");
@@ -110,8 +116,16 @@ export function YoutubeGate() {
         <p className="t-caption font-bold text-danger">읽고 바꿔 주세요 — 되돌릴 수 없습니다</p>
         <p className="mt-1.5 t-caption leading-relaxed">
           유튜브 <b>감사(심사)를 통과하기 전</b>에 올린 영상은 유튜브가 <b>비공개로 잠급니다.</b>
-          {" "}그리고 <b>그 잠김은 풀 수 없습니다</b> — 나중에 감사를 통과해도 이미 잠긴 영상은 그대로예요.
-          {" "}사장님 채널에 <b>죽은 영상</b>이 쌓이고, 지우고 다시 올리는 수밖에 없습니다.
+          {" "}그리고 <b>항소할 수 없습니다.</b> 유튜브 스튜디오에서도 못 바꿔요.
+          {" "}나중에 감사를 통과해도 <b>이미 잠긴 영상은 그대로</b>입니다 —
+          {" "}사장님이 <b>다시 찍어 다시 올리는 수밖에</b> 없습니다.
+        </p>
+        {/* ★★ 가장 흔한 사고가 여기서 난다 — 「일단 냈으니 켜자」 */}
+        <p className="mt-2 t-caption leading-relaxed font-semibold text-danger">
+          ⚠ 신청서를 <b>「냈다」</b>와 <b>「통과했다」</b>는 다릅니다. 구글에서 <b>통과 메일</b>을 받으신 뒤에만 켜 주세요.
+        </p>
+        <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+          (2026-09-13 구글 공식 확인 · support.google.com/youtube/answer/7300965)
         </p>
       </div>
 

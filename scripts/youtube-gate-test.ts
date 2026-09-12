@@ -6,7 +6,7 @@
  *   감사 통과 «전»에 올린 영상은 유튜브가 비공개로 잠그고, **그 잠김은 항소할 수 없다.**
  *   그러니 이 검사가 초록이 아니면 **유튜브를 열면 안 된다.**
  */
-import { canUpload, readGateValue, GATE_DEFAULT } from "../lib/sns/youtube-gate";
+import { canUpload, canSaveGate, readGateValue, GATE_DEFAULT } from "../lib/sns/youtube-gate";
 
 let bad = 0, done = 0;
 const t = (name: string, got: unknown, want: unknown) => {
@@ -57,6 +57,20 @@ t("허용 목록에 있어도 막는다 (감사가 먼저다)",
 const onAudited = readGateValue({ mode: "on", auditPassed: true });
 t("감사 통과 표시가 있으면 공개로 올린다", canUpload(onAudited, BOSS), { ok: true, privacy: "public" });
 t("그때는 허용 목록이 없어도 모두에게 열린다", canUpload(onAudited, "아무나").ok, true);
+
+console.log("\n── ★ 저장 자체를 막는다 (2026-09-13 지시 2) ──");
+/* ⚠ 「정식 공개」인데 감사 표시가 없으면 **저장도 안 된다.** 업로드만 막으면
+   화면에 «정식 공개»라고 적힌 채 아무도 못 올리는 이상한 상태가 남고,
+   그것을 본 사람이 «감사 표시를 확인 없이 켜는» 사고를 낸다. */
+t("on + 감사 없음 → 저장 거절", canSaveGate(readGateValue({ mode: "on" })).ok, false);
+t("on + 감사 통과 → 저장된다", canSaveGate(readGateValue({ mode: "on", auditPassed: true })).ok, true);
+t("off 는 언제나 저장된다", canSaveGate(readGateValue({ mode: "off" })).ok, true);
+/* ★ review 는 «비공개로만» 올리므로 이 위험과 무관하다 (2026-09-13 김팀장 확인) */
+t("review 는 감사 없이도 저장된다 — 비공개라 안전하다",
+  canSaveGate(readGateValue({ mode: "review", allowSites: [OURS] })).ok, true);
+/* ★ 거절 문구가 「냈다 ≠ 통과했다」를 말해야 한다 — 그 착각이 사고의 8할이다 */
+const no = canSaveGate(readGateValue({ mode: "on" }));
+t("거절 문구가 «낸 것»과 «통과»를 구분해 말한다", !no.ok && no.why.includes("낸 것"), true);
 
 console.log("\n── ★ 열리는 길은 «딱 두 갈래»뿐이다 ──");
 /* 어떤 값 조합에서도 ok:true 가 나오는 경우를 전부 세어 본다. 늘어나면 검사가 잡는다 */

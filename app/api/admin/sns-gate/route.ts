@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
-import { readGateValue, canUpload } from "@/lib/sns/youtube-gate";
+import { readGateValue, canUpload, canSaveGate } from "@/lib/sns/youtube-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +10,22 @@ export const dynamic = "force-dynamic";
  * 유튜브 문 — 운영자만 돌리는 손잡이. (2026-09-11 · **2026-09-12 상무님 지적으로 다시 씀**)
  *
  * ★★★ **이 손잡이는 되돌릴 수 없는 일을 연다.**
- *   감사(audit) 통과 «전»에 올린 영상은 유튜브가 비공개로 잠그고,
- *   **그 잠김은 항소할 수 없다.** 나중에 감사를 통과해도 이미 잠긴 것은 안 풀린다.
- *   그래서 여기서 하는 일은 「켜고 끄기」가 아니라 **「사장님 영상을 죽일 권한을 주는 것」**이다.
+ *
+ * ⚠⚠⚠ **감사 통과 메일을 받기 전에는 gate 를 'on' 으로 바꾸지 마라.**
+ *   그 사이 올라간 영상은 **영구히 비공개로 잠기고 되살릴 방법이 없다.**
+ *   **항소도 안 되고 유튜브 스튜디오에서도 못 바꾼다.** (2026-09-13 구글 공식 확인)
+ *
+ *   · https://support.google.com/youtube/answer/7300965
+ *     "you will not be able to appeal" · "You'll need to re-upload the video…"
+ *   · https://developers.google.com/youtube/v3/revision_history (2020-07-28)
+ *     "…will be restricted to private viewing mode."
+ *
+ * ⚠⚠ **「신청서를 냈다」와 「통과했다」는 다르다.** 낸 것만으로는 아무것도 안 바뀐다.
+ *   그래서 `auditPassed` 를 따로 두고, **그 값이 없으면 'on' 자체를 저장하지 못하게** 막는다.
+ *
+ * ★ 덧붙임(2026-09-13 김팀장): 이 «감사»는 우리가 준비 중인 **할당량 증액 신청서와 같은 서식**이다
+ *   ("Audit and Quota Extension Form"). 즉 그 신청서는 「하루 500건으로 늘리는 선택」이 아니라
+ *   **「영상을 공개로 올릴 수 있게 만드는 필수 절차」**다. 늦을수록 그 사이 올린 영상이 버려진다.
  *
  * ★ 표를 새로 만들지 않는다 — `app_settings` 의 key='sns:youtube' 한 줄이다.
  *   **줄이 없으면 닫힘**으로 읽는다(lib/sns/youtube-gate.ts 의 readGateValue).
@@ -88,6 +101,15 @@ export async function POST(req: Request) {
     allowSites,
     auditPassed: v.auditPassed ?? before.auditPassed,
   };
+
+  /* ★★★ **코드로 막는다** (2026-09-13 회장님 지시 2).
+     ⚠ 조건을 여기 다시 적지 않는다 — `canSaveGate()` 한 곳에 있고, 검사도 그것을 잰다
+     (scripts/youtube-gate-test.ts). 두 곳에 적으면 언젠가 한쪽만 고쳐진다. */
+  const savable = canSaveGate(readGateValue(next));
+  if (!savable.ok) {
+    console.warn(JSON.stringify({ evt: "yt_gate_save_blocked", mode: next.mode, audit: next.auditPassed }));
+    return NextResponse.json({ error: savable.why, needAudit: true }, { status: 409 });
+  }
 
   const { error } = await sbAdmin().from("app_settings").upsert({
     key: "sns:youtube", value: next, updated_at: new Date().toISOString(),

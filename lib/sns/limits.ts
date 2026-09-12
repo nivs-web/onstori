@@ -147,6 +147,13 @@ export function limitsOf(p: SnsProvider): { maxDurationSec: number | null; maxCa
  * ⚠ **리셋 시각이 우리와 다르다.** 유튜브는 «태평양 시간 자정»에 리셋하고, 우리 카운터는
  *   «UTC 자정(= 한국 오전 9시)»에 리셋한다. 어긋나므로 우리 숫자는 **넉넉히 잡는 쪽**이 안전하다.
  *   증액(500건) 승인이 나면 이 값만 바꾼다.
+ *
+ * ★★ **그 «증액 신청서»가 곧 «감사(audit)»다.** (2026-09-13 김팀장 확인)
+ *   같은 서식이다 — "Audit and Quota Extension Form".
+ *   그래서 그것은 「하루 500건으로 늘리는 선택」이 **아니라**
+ *   **「영상을 공개로 올릴 수 있게 만드는 필수 절차」**다.
+ *   통과 전에는 올린 영상이 전부 비공개로 잠기고 **되살릴 수 없다**
+ *   (자세한 것은 lib/sns/youtube-gate.ts 머리말).
  */
 export const APP_DAILY_UPLOADS: Partial<Record<SnsProvider, number>> = {
   youtube: 100,

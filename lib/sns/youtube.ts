@@ -80,6 +80,12 @@ const cut = (s: string, n: number) => [...(s ?? "")].slice(0, n).join("");
  * 게이트 읽기 — **줄이 없으면 닫힘.**
  * ⚠ 표가 아직 없을 수도 있다(db push 전). 그때도 닫힌 것으로 본다 — 열린 쪽으로 기울지 않는다.
  * ★ 「누가 올릴 수 있나」의 판정은 `lib/sns/youtube-gate.ts` 가 한다. 거기 주석에 «왜»가 다 있다.
+ *
+ * ⚠⚠⚠ **감사 통과 메일을 받기 전에는 gate 를 'on' 으로 바꾸지 마라.**
+ *   그 사이 올라간 영상은 **영구히 비공개로 잠기고 되살릴 방법이 없다.**
+ *   **항소도 안 되고 유튜브 스튜디오에서도 못 바꾼다.** (2026-09-13 구글 공식 확인 —
+ *   support.google.com/youtube/answer/7300965 · developers.google.com/youtube/v3/revision_history)
+ *   ⚠ 「신청서를 냈다」와 「통과했다」는 **다르다.**
  */
 async function readGate(): Promise<Gate> {
   try {
@@ -283,8 +289,14 @@ export const youtube: SnsAdapter = {
          * ★★★ ⚠ **이 값은 «요청»일 뿐이다. 유튜브가 무시할 수 있다.**
          *
          *   전에는 `gate === "on" ? "public" : "private"` 이라고만 적혀 있었다. 그 줄은 **거짓말이었다** —
-         *   감사(audit) 안 받은 프로젝트가 보낸 `public` 은 유튜브가 **비공개로 되돌리고**,
-         *   ★ **그렇게 잠긴 영상은 항소할 수 없다.** 감사를 나중에 통과해도 **안 풀린다.**
+         *   감사(audit) 안 받은 프로젝트가 보낸 `public` 은 유튜브가 **비공개로 되돌린다.**
+         *   원문: "All videos uploaded via the videos.insert endpoint from unverified API projects
+         *   created after 28 July 2020 will be restricted to private viewing mode."
+         *   (developers.google.com/youtube/v3/revision_history · 2020-07-28)
+         *
+         *   ★ **그렇게 잠긴 영상은 항소할 수 없다** — "you will not be able to appeal"
+         *   (support.google.com/youtube/answer/7300965). 감사를 나중에 통과해도 **안 풀리고**,
+         *   공식 답은 **"re-upload"** 뿐이다. 즉 사장님이 다시 찍어 다시 올려야 한다.
          *
          *   그래서 지금은 이 줄 «앞»에서 `canUpload()` 가 막는다 — 감사 통과 표시가 없으면
          *   애초에 여기까지 오지 못한다. 이 값은 그 판정이 정해 준 것을 그대로 옮길 뿐이다.

@@ -3,13 +3,23 @@
  *
  * ★★★ **왜 이 파일이 따로 있나 — 되돌릴 수 없는 일이 걸려 있다.**
  *
- *   유튜브 공식 문서 두 줄을 **합치면** 이렇게 된다:
- *     ① 「감사(audit) 안 받은 프로젝트가 `videos.insert` 로 올린 영상은 **비공개로 제한된다**」
- *     ② 「그렇게 잠긴 영상은 **항소할 수 없다**」
+ *   ════ 구글 공식 문서 **원문** (2026-09-13 김팀장 확인) ════
+ *
+ *   출처 ①  https://support.google.com/youtube/answer/7300965
+ *     "For videos that have been locked as private due to upload via an unverified API service,
+ *      you will not be able to appeal."
+ *     "You'll need to re-upload the video via a verified API service or via the YouTube app/site."
+ *
+ *   출처 ②  https://developers.google.com/youtube/v3/revision_history  (2020-07-28 항목)
+ *     "All videos uploaded via the videos.insert endpoint from unverified API projects created
+ *      after 28 July 2020 will be restricted to private viewing mode."
+ *     "To lift this restriction, each project must undergo an audit…"
  *
  *   ⇒ **감사 통과 «전»에 사장님이 올리면, 그 영상은 영영 죽은 채로 채널에 쌓인다.**
- *     나중에 감사를 통과해도 **이미 잠긴 것은 안 풀린다.** 지우고 다시 올리는 수밖에 없는데,
- *     그건 사장님이 찍은 60초를 우리가 버리게 만드는 일이다.
+ *     · **항소가 안 된다** — "you will not be able to appeal" 은 달리 읽을 여지가 없다
+ *     · 감사를 나중에 통과해도 **이미 잠긴 것은 안 풀린다.** 「자동으로 풀린다」는 문장이
+ *       공식 문서 어디에도 없고, 대신 **"re-upload"** 하라고만 적혀 있다
+ *     · 즉 사장님이 **다시 찍어 다시 올려야** 한다. 우리가 그 60초를 버리게 만드는 것이다
  *
  *   ★ 그래서 이 파일의 규칙은 하나다 — **「확실히 안전할 때만 연다.」**
  *     애매하면 닫는다. 값이 없으면 닫는다. 표가 없어도 닫는다.
@@ -49,6 +59,27 @@ export function readGateValue(value: unknown): Gate {
     : [];
   /* ⚠ `true` 하나만 통과시킨다. "true"·1·"yes" 는 **안 켠다** — 실수로 켜지는 길을 막는다 */
   return { mode, allowSites, auditPassed: v.auditPassed === true };
+}
+
+/**
+ * ★★★ **이 설정을 «저장해도» 되나.** (2026-09-13 회장님 지시 2 — 「코드로도 막아라」)
+ *
+ * `canUpload()` 가 이미 업로드를 막는다. 그런데 그것만으로는
+ * **화면에 「정식 공개」라고 적혀 있는데 아무도 못 올리는** 이상한 상태가 남는다.
+ * 그 상태를 본 사람은 「고장났다」고 생각하고, 그다음에 하는 일이
+ * «감사 표시를 확인 없이 켜는 것»이다. 그래서 **애초에 저장되지 않게** 막는다.
+ *
+ * ⚠ 문은 **한 번에 하나씩만** 열린다 — 먼저 «감사 통과»를 켜고 저장한 다음,
+ *   그러고 나서 «정식 공개»를 고른다. 한 번에 둘 다 켜는 길을 남기지 않는다.
+ */
+export function canSaveGate(next: Gate): { ok: true } | { ok: false; why: string } {
+  if (next.mode === "on" && !next.auditPassed) {
+    return {
+      ok: false,
+      why: "「정식 공개」는 감사 통과 표시를 먼저 켜야 저장됩니다. 구글에서 «통과» 메일을 받으셨나요? 신청서를 «낸 것»만으로는 켜면 안 됩니다 — 그 사이 올라간 영상은 영구히 비공개로 잠기고 되살릴 수 없어요.",
+    };
+  }
+  return { ok: true };
 }
 
 export type UploadVerdict =
@@ -92,7 +123,11 @@ export function canUpload(gate: Gate, siteId: string): UploadVerdict {
   /* mode === "on" */
   if (!gate.auditPassed) {
     /* ★★ 여기가 상무님이 찾은 자리다. 게이트만 켜고 감사 표시를 안 켜면,
-       올라간 영상이 **전부 영영 비공개로 잠긴다.** 그래서 막는다. */
+       올라간 영상이 **전부 영영 비공개로 잠긴다.** 그래서 막는다.
+
+       ⚠⚠ **「제출했다」와 「통과했다」는 다르다.** (2026-09-13 김팀장 확인)
+         신청서를 낸 것만으로는 아무것도 바뀌지 않는다. **통과 메일**을 받아야 한다.
+         급한 마음에 「일단 냈으니 켜자」가 바로 이 사고를 부른다 — 그래서 값을 따로 둔다. */
     return {
       ok: false,
       why: "유튜브는 준비 중입니다. 준비되는 대로 열어 드리고 알려드리겠습니다.",
