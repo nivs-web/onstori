@@ -21,9 +21,26 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { SiteDoc, type SiteDocT } from "../lib/schema";
+import { BIZ } from "../config/company";
 
 const SLUG = "sample-interior"; // "sample" 은 reserved_slugs 에 등록돼 있어 못 쓴다
-const PHONE = "050-6493-4537";
+/**
+ * ★★ **손님에게 보이는 번호는 «가짜»여야 한다.** (2026-09-12 상무님 지적)
+ *
+ * ⚠ 전에는 여기에 **온스토리 본사 번호**가 박혀 있었다. 그런데 이 사이트는 첫 화면의
+ *   대표 예시라 **제일 많이 보이는 번호**다 — 손님이 그 번호로 전화하면 우리 고객센터로 온다.
+ *   가게에 거는 줄 알고 건 전화라 서로 헛걸음이고, 우리가 그 가게인 것처럼 보이기도 한다.
+ * ★ 저장소의 다른 시연 자료(seeds/*.json)가 이미 010-0000-0000 을 쓴다. 같은 번호로 맞춘다 —
+ *   한눈에 «예시»로 읽히고, 실제로 아무에게도 안 걸린다.
+ */
+const SHOWN_PHONE = "010-0000-0000";
+
+/**
+ * 문의가 들어왔을 때 **우리가 받을** 번호. 이건 본사 번호가 맞다 —
+ * 이 사이트의 주인이 우리라서, 문의를 받을 사람도 우리다.
+ * ⚠ 번호를 여기 다시 타이핑하지 않는다. config/company.ts 의 BIZ 가 단일 출처다.
+ */
+const NOTIFY_PHONE = BIZ.phone;
 
 const B = "https://wpsrfjqfbhmeriscdacu.supabase.co/storage/v1/object/public/bank/interior";
 const IMG = {
@@ -107,14 +124,14 @@ const doc: SiteDocT = SiteDoc.parse({
       type: "quoteForm",
       title: "견적 문의",
       sub: "사진을 함께 올려 주시면 더 정확하게 봐 드릴 수 있습니다. (샘플 사이트지만 문의는 실제로 접수됩니다)",
-      phone: PHONE,
+      phone: SHOWN_PHONE,
       allowPhotos: true,
     },
     {
       type: "map",
       title: "오시는 길",
       address: "경기도 남양주시",
-      phone: PHONE,
+      phone: SHOWN_PHONE,
       note: "샘플 예시 사이트라 실제 매장 주소는 아닙니다.",
     },
   ],
@@ -142,10 +159,10 @@ async function main() {
     anon_id: null, // 둘 다 null → 운영자만 편집 가능 (lib/site-owner.ts)
     theme: doc.theme,
     settings: {
-      phone: PHONE,
+      phone: SHOWN_PHONE,
       address: "경기도 남양주시",
       oneLiner: "남양주 아파트 올수리 · 온스토리 샘플 사이트",
-      notify: { phone: PHONE, email: "" }, // 문의 접수 시 이 번호로 문자
+      notify: { phone: NOTIFY_PHONE, email: "" }, // 문의 접수 시 이 번호로 문자
     },
     inferred: { method: "manual", industryId: "interior", confidence: 1, copyModel: "none(수기 작성)" },
     draft: doc,

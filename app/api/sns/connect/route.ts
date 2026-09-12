@@ -16,7 +16,8 @@ export async function POST(req: Request) {
   const { siteId, slug, provider } = g.v;
 
   const a = getAdapter(provider);
-  const av = await a.isAvailable();
+  /* ⚠ siteId 를 넘긴다 — 유튜브는 «누구인가»에 따라 열고 닫는다(lib/sns/youtube-gate.ts) */
+  const av = await a.isAvailable(siteId);
   if (!av.ok) return NextResponse.json({ error: av.why }, { status: 409 });
 
   const out = await a.connect({ siteId, redirectUri: redirectUriFor(req, provider) });

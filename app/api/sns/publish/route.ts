@@ -111,7 +111,8 @@ export async function POST(req: Request) {
     const a = getAdapter(provider);
     const say = (state: string, msg: string, extra: Record<string, unknown> = {}) => ({ provider, name, state, msg, ...extra });
 
-    const av = await a.isAvailable();
+    /* ⚠ siteId 를 넘긴다 — 유튜브는 감사 통과 전에 «허용된 사이트»만 올릴 수 있다 */
+    const av = await a.isAvailable(siteId);
     if (!av.ok) return say("skipped", av.why);
 
     const conn = await a.isConnected(siteId);

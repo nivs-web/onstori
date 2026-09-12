@@ -206,8 +206,14 @@ export type SnsAdapter = {
   /** ⑦ 남은 한도 */
   getQuota(siteId: string): Promise<Quota>;
 
-  /** ⑧ 지금 쓸 수 있나 (키가 있나 · 게이트가 열렸나) */
-  isAvailable(): Promise<Availability>;
+  /**
+   * ⑧ 지금 쓸 수 있나 (키가 있나 · 게이트가 열렸나).
+   *
+   * ★★ `siteId` 는 **선택**이다. 대부분의 SNS 는 안 본다 — 열렸으면 모두에게 열린 것이다.
+   *   ⚠ 유튜브만 다르다. 감사 통과 전에는 **온스토리 자체 계정만** 올릴 수 있고, 그 판정에
+   *     «누구인가»가 필요하다. 안 넘기면 유튜브는 **닫힌 쪽으로** 답한다(안전한 기본값).
+   */
+  isAvailable(siteId?: string): Promise<Availability>;
 
   /**
    * ⑨ 이 SNS 의 한도 (상무님 규격서 v5).

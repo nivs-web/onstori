@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     ORDERED.map(async (p) => {
       const a = getAdapter(p);
       const [available, connection, quota] = await Promise.all([
-        a.isAvailable(),
+        a.isAvailable(siteId),
         a.isConnected(siteId).catch(() => null),
         a.getQuota(siteId).catch(() => ({ remaining: 0, limit: 0, windowSec: 86400 })),
       ]);

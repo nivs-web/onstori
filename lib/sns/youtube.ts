@@ -2,6 +2,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import * as db from "./db";
 import { limitsOf, TEXT_LIMITS, YOUTUBE_SPEC } from "./limits";
+import { canUpload, readGateValue, type Gate } from "./youtube-gate";
 import { SnsHttpError, brief, callJson, kindFromStatus } from "./http";
 import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
 
@@ -62,9 +63,6 @@ const REVOKE = "https://oauth2.googleapis.com/revoke";
  */
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
 
-/** 심사 전에는 비공개로 올린다. ★ 어차피 그쪽이 강제로 비공개로 만든다 — 우리가 먼저 말하는 것뿐이다 */
-const PRIVACY_BEFORE_REVIEW = "private";
-
 const clientId = () => process.env.GOOGLE_OAUTH_CLIENT_ID ?? "";
 const clientSecret = () => process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "";
 
@@ -78,18 +76,16 @@ const MAX_BYTES = 300 * 1024 * 1024;
 /** 글자 수를 코드포인트로 자른다 — `slice` 는 이모지 하나를 둘로 쪼갠다 */
 const cut = (s: string, n: number) => [...(s ?? "")].slice(0, n).join("");
 
-type Gate = "off" | "review" | "on";
-
 /**
- * 게이트 읽기 — **줄이 없으면 off.**
- * ⚠ 표가 아직 없을 수도 있다(db push 전). 그때도 off 로 본다 — 열려 있는 쪽으로 기울지 않는다.
+ * 게이트 읽기 — **줄이 없으면 닫힘.**
+ * ⚠ 표가 아직 없을 수도 있다(db push 전). 그때도 닫힌 것으로 본다 — 열린 쪽으로 기울지 않는다.
+ * ★ 「누가 올릴 수 있나」의 판정은 `lib/sns/youtube-gate.ts` 가 한다. 거기 주석에 «왜»가 다 있다.
  */
 async function readGate(): Promise<Gate> {
   try {
     const { data } = await sbAdmin().from("app_settings").select("value").eq("key", "sns:youtube").maybeSingle();
-    const m = (data as { value?: { mode?: string } } | null)?.value?.mode;
-    return m === "on" || m === "review" ? m : "off";
-  } catch { return "off"; }
+    return readGateValue((data as { value?: unknown } | null)?.value);
+  } catch { return readGateValue(null); }
 }
 
 /** 토큰이 만료됐으면 새로 받는다. 못 받으면 null */
@@ -122,27 +118,27 @@ async function freshToken(siteId: string): Promise<string | null> {
 export const youtube: SnsAdapter = {
   provider: "youtube",
 
-  async isAvailable(): Promise<Availability> {
-    const gate = await readGate();
-    if (gate === "off") {
-      /* ★ 「준비 중」이라고 **정확히** 말한다. 고장난 것처럼 보이지 않게 */
-      /* ⚠ 「심사」는 금지어다(2026-09-12 회장님). 사장님에게 우리 사정을 말할 이유가 없고,
-         「심사」는 «떨어질 수도 있다»로 읽힌다. 약속은 우리가 지는 쪽으로 적는다. */
-      return { ok: false, why: "유튜브는 준비 중입니다. 준비되는 대로 열어 드리고 알려드리겠습니다." };
-    }
+  /**
+   * ⚠⚠ `siteId` 를 **안 넘기면 닫힌 쪽으로 답한다.** 감사 통과 전에는 «누구인가»를 모르고
+   *   열어 주면 안 되기 때문이다 — 그 한 번이 사장님 영상을 **영영** 죽인다(되돌릴 수 없다).
+   * ★ 사장님에게는 「준비 중」만 보인다. 운영자용 진짜 이유는 **로그**에 남긴다 —
+   *   조용히 막으면 나중에 「왜 안 열리지」를 아무도 못 푼다.
+   */
+  async isAvailable(siteId?: string): Promise<Availability> {
     if (!clientId() || !clientSecret()) {
       return { ok: false, why: "유튜브 연결 열쇠가 아직 등록되지 않았어요. (GOOGLE_OAUTH_CLIENT_ID·SECRET)" };
     }
-    /* ★★ 준비 기간(review)에는 **쓸 수 있지만 영상이 비공개로 올라간다.** (2026-09-12 지시 B3)
-       올린 «뒤»에만 말하면 늦다 — 사장님은 이미 손님에게 「유튜브에 올렸어요」라고 했을 수 있다.
-       ⚠ 「심사」는 금지어다(회장님). 「준비 기간」으로 말한다. */
-    if (gate === "review") {
-      return {
-        ok: true,
-        notice: "지금은 준비 기간이라 올린 영상이 «비공개»로 올라가요. 사장님 유튜브에서는 보이지만 손님에게는 아직 안 보입니다.",
-      };
+    const gate = await readGate();
+    const verdict = canUpload(gate, siteId ?? "");
+    if (!verdict.ok) {
+      if (verdict.operator) {
+        console.warn(JSON.stringify({
+          evt: "yt_blocked", mode: gate.mode, audit: gate.auditPassed, why: verdict.operator,
+        }));
+      }
+      return { ok: false, why: verdict.why };
     }
-    return { ok: true };
+    return verdict.note ? { ok: true, notice: verdict.note } : { ok: true };
   },
 
   async isConnected(siteId: string): Promise<Connection | null> {
@@ -150,7 +146,7 @@ export const youtube: SnsAdapter = {
   },
 
   async connect({ siteId, redirectUri, code }) {
-    const av = await this.isAvailable();
+    const av = await this.isAvailable(siteId);
     if (!av.ok) return { stage: "failed" as const, kind: "REJECTED" as ErrorKind, detail: av.why };
 
     if (!code) {
@@ -243,8 +239,19 @@ export const youtube: SnsAdapter = {
   getQuota: (siteId): Promise<Quota> => db.readQuota("youtube", siteId),
 
   async upload(input: UploadInput): Promise<UploadOutcome> {
+    /* ★★★ **여기가 되돌릴 수 없는 자리다.** (2026-09-12 상무님 지적)
+       감사 통과 전에 올린 영상은 유튜브가 **비공개로 잠그고, 그 잠김은 항소할 수 없다.**
+       그래서 「올려도 되나」를 매번 다시 묻는다 — 화면이 열려 있다고 믿지 않는다. */
     const gate = await readGate();
-    if (gate === "off") return { state: "failed", kind: "REJECTED", detail: "유튜브는 아직 준비 중이에요." };
+    const verdict = canUpload(gate, input.siteId);
+    if (!verdict.ok) {
+      if (verdict.operator) {
+        console.warn(JSON.stringify({
+          evt: "yt_upload_blocked", mode: gate.mode, audit: gate.auditPassed, why: verdict.operator,
+        }));
+      }
+      return { state: "failed", kind: "REJECTED", detail: verdict.why };
+    }
 
     const token = await freshToken(input.siteId);
     if (!token) {
@@ -272,9 +279,22 @@ export const youtube: SnsAdapter = {
           title: cut(input.title, YOUTUBE_SPEC.maxTitleChars),
           description: cut(input.caption, TEXT_LIMITS.youtube.chars),
         },
-        status: { privacyStatus: gate === "on" ? "public" : PRIVACY_BEFORE_REVIEW, selfDeclaredMadeForKids: false },
+        /**
+         * ★★★ ⚠ **이 값은 «요청»일 뿐이다. 유튜브가 무시할 수 있다.**
+         *
+         *   전에는 `gate === "on" ? "public" : "private"` 이라고만 적혀 있었다. 그 줄은 **거짓말이었다** —
+         *   감사(audit) 안 받은 프로젝트가 보낸 `public` 은 유튜브가 **비공개로 되돌리고**,
+         *   ★ **그렇게 잠긴 영상은 항소할 수 없다.** 감사를 나중에 통과해도 **안 풀린다.**
+         *
+         *   그래서 지금은 이 줄 «앞»에서 `canUpload()` 가 막는다 — 감사 통과 표시가 없으면
+         *   애초에 여기까지 오지 못한다. 이 값은 그 판정이 정해 준 것을 그대로 옮길 뿐이다.
+         */
+        status: { privacyStatus: verdict.privacy, selfDeclaredMadeForKids: false },
       };
-      const initUrl = `${UPLOAD}?uploadType=resumable&part=snippet,status&notifySubscribers=${gate === "on"}`;
+      /* ⚠ 비공개로 올리는 동안 구독자 알림을 쏘면 «아무도 볼 수 없는 영상»의 알림만 간다.
+         공개로 올릴 때만 켠다 — 사장님 채널의 사장님 영상이니 그때는 알림이 이득이다. */
+      const notify = verdict.privacy === "public";
+      const initUrl = `${UPLOAD}?uploadType=resumable&part=snippet,status&notifySubscribers=${notify}`;
       const init = await fetch(initUrl, {
         method: "POST",
         headers: {
@@ -300,11 +320,15 @@ export const youtube: SnsAdapter = {
          되읽지 않으면 화면이 「올렸어요」라고만 말하고, 사장님은 유튜브에서 자기 영상을
          못 찾아 우리에게 전화한다. 「왜 안 보이나」에 답할 수 있어야 한다. */
       const privacy = put.video.status?.privacyStatus ?? null;
-      const lockedDespitePublic = privacy === "private" && gate === "on";
+      /* ★ 공개로 «요청»했는데 비공개로 돌아왔다 = 유튜브가 잠근 것이다. 있어서는 안 될 일이지만,
+         일어났다면 **크게 남긴다** — 그 영상은 되살릴 수 없기 때문이다. */
+      const lockedDespitePublic = privacy === "private" && verdict.privacy === "public";
+      /* ⚠ 「확인이 끝나면 공개로 바뀝니다」라고 **말하지 않는다 — 거짓말이다.**
+         한 번 잠긴 영상은 감사를 통과해도 안 풀린다. 다시 올리는 수밖에 없다. */
       const note = privacy === "private"
         ? (lockedDespitePublic
-          ? "유튜브가 이 영상을 «비공개»로 올렸어요. 유튜브 쪽 확인이 끝나면 공개로 바뀝니다."
-          : "지금은 준비 기간이라 «비공개»로 올라갔어요. 사장님 유튜브에서는 보이지만 손님에게는 아직 안 보입니다.")
+          ? "유튜브가 이 영상을 «비공개»로 잠갔어요. 이 영상은 공개로 바꿀 수 없습니다 — 준비가 끝난 뒤 다시 올려 주세요."
+          : verdict.note ?? "«비공개»로 올라갔어요.")
         : undefined;
       if (lockedDespitePublic) {
         console.warn(JSON.stringify({ evt: "yt_locked_private", videoId: put.video.id }));

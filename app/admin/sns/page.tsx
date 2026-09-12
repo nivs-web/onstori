@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { AdminLogin } from "../ui";
 import { SnsUsage } from "./ui";
+import { YoutubeGate } from "./youtube-gate";
 
 export const metadata = { title: "SNS 발행 현황", robots: { index: false, follow: false } };
 
@@ -19,6 +20,8 @@ export default async function SnsAdmin() {
         우리가 <b>보낸 횟수</b>를 셉니다. 그쪽 청구서와 1:1 이 아닐 수 있어요 — 재시도·실패분이 다릅니다.
       </p>
       <SnsUsage />
+      {/* ★★ 유튜브 문 — 되돌릴 수 없는 일을 여는 손잡이라 여기에 둔다 (2026-09-12 지시 2) */}
+      <YoutubeGate />
     </main>
   );
 }
