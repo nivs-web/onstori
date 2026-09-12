@@ -124,10 +124,12 @@ export function Wizard() {
   const [accent, setAccent] = useState(ACCENTS[0].id);
 
   /* ★ 가입 동의 (2026-09-12 회장님 지시 2). 손님은 체크박스로 보호받는데 사장님은
-     하나도 없었다. 필수 둘·선택 하나로 **반드시 나눠 둔다** — 선택을 필수처럼 묶으면 법 위반이다. */
+     하나도 없었다.
+     ★ 2026-09-13 — **선택(광고) 칸을 없앴다.** 할인·행사 문자를 보내지 않기로 했기 때문이다.
+       안 보낼 것을 물어 두면 그 칸이 「언젠가 보내겠다」는 약속이 된다.
+       남는 것은 **필수 둘뿐**이고, 둘 다 눌러야 [홈페이지 만들기] 가 눌린다. */
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
-  const [agreeMarketing, setAgreeMarketing] = useState(false);
   // 5
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [progress, setProgress] = useState(0);
@@ -203,8 +205,10 @@ export function Wizard() {
         mood: theme.palette, accent: theme.accent,
         industryId: sub?.industryId, industryLabel: sub?.label,
         address: address.trim() || undefined, whyStarted: why.trim() || undefined, anonId: aid || undefined,
-        /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신) */
-        consents: { terms: agreeTerms, privacy: agreePrivacy, marketing: agreeMarketing },
+        /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신)
+           ⚠ `marketing: false` 를 **일부러 보낸다.** 묻지 않았으니 「동의 못 받았다」가 사실이고,
+             그 사실이 기록에 남아야 나중에 「동의받았다」고 오해할 여지가 없다(2026-09-13). */
+        consents: { terms: agreeTerms, privacy: agreePrivacy, marketing: false },
       };
       const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await readJson(r);
@@ -477,15 +481,16 @@ export function Wizard() {
             <p id="phone-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
               고객의 문의를 받을 수 있는 실제 사장님의 정확한 전화번호를 입력해주세요.
             </p>
-            {/* ★★★ 「주 1회 촬영 질문」은 **광고가 아니라 우리가 판 상품**이다 (2026-09-12 상무님 지적).
+            {/* ★★★ 「주 1회 질문」은 **광고가 아니라 우리가 판 상품**이다 (2026-09-12 상무님 지적).
                 ⚠ 전에는 이것이 4단계의 «선택 체크박스»에 광고와 한 칸으로 묶여 있었다. 그러면
                   체크를 안 한 사장님이 **돈을 내고도 상품을 못 받는** 상태가 된다.
                 ★ 그래서 여기서는 **묻지 않고 알린다.** 「받겠습니까」가 아니라 「보내 드립니다」다.
                 ★ 대신 **끄는 길을 같은 줄에서** 말한다 — 알리기만 하고 끌 길이 없으면 그것이 광고다.
-                  (끄는 곳: 편집화면 「연결」 탭 · 첫 문자의 【받지 않으시려면】 줄) */}
+                  (끄는 곳: 편집화면 「연결」 탭 · 첫 문자의 【받지 않으시려면】 줄)
+                ⚠ 문구는 **2026-09-13 회장님 확정본**이다. 고치려면 허락을 먼저 받아라. */}
             <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
-              이 번호로 <b>주 1회 촬영 질문</b>을 보내 드려요. 온스토리의 핵심 기능입니다 —
-              언제든 편집화면에서 끄실 수 있어요.
+              이 번호로 매주 한 번 <b>「이번 주 질문」</b>을 보내 드려요.
+              링크를 누르고 60초만 말씀하시면 됩니다. 언제든 끄실 수 있어요.
             </p>
           </Field>
           {/* ★ 2026-09-11 신설 — **문의 알림이 이 주소로 간다.** 비면 문의가 와도 사장님이 모른다.
@@ -557,8 +562,8 @@ export function Wizard() {
             })}
           </div>
           {/* ★★ 가입 동의 — 만들기 «직전»이 마지막 문이다 (2026-09-12 회장님 지시 2).
-              · 필수 둘은 안 누르면 [홈페이지 만들기] 가 눌리지 않는다
-              · 알림 수신은 **선택**이다. 안 눌러도 가입은 그대로 된다
+              · **필수 둘뿐**이다. 안 누르면 [홈페이지 만들기] 가 눌리지 않는다
+              · 선택(광고) 칸은 **없앴다** (2026-09-13) — 아래 주석 참고
               · 문서는 **새 창**으로 연다 — 여기서 나가면 적어 둔 것이 다 날아간다 */}
           <div className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--line)", background: "var(--n-0)" }}>
             <Consent
@@ -569,14 +574,12 @@ export function Wizard() {
               checked={agreePrivacy} onChange={setAgreePrivacy} required
               label={<><Doc href="/privacy">개인정보 수집·이용</Doc>에 동의합니다</>}
             />
-            {/* ★★ 여기는 **광고만** 남긴다 (2026-09-12 회장님 승인).
-                ⚠ 전에는 「촬영 알림·안내」라고 적혀 있어 **상품과 광고가 한 칸**이었다.
-                  주 1회 촬영 질문은 3단계에서 «안내»로 옮겼다. */}
-            <Consent
-              checked={agreeMarketing} onChange={setAgreeMarketing}
-              label={<>할인·행사 소식을 문자로 받겠습니다</>}
-              hint="안 하셔도 가입돼요. 주 1회 촬영 질문과 손님 문의 알림은 이것과 상관없이 갑니다."
-            />
+            {/* ★★★ **광고 체크박스를 아예 두지 않는다.** (2026-09-13 회장님 확정)
+                · 할인·행사 문자는 **보내지 않는다** — 스팸으로 읽혀 이미지를 해친다
+                · 안 보낼 것을 물어 두면 그 칸 자체가 「언젠가 보내겠다」는 약속이 된다
+                · 주 1회 질문은 **상품**이라 3단계에서 «안내»로 말한다(묻지 않는다)
+                ⚠ 남는 것은 **필수 둘뿐**이다. 여기에 선택 칸을 다시 만들지 마라 —
+                  만들려면 「무엇을 보낼 것인가」가 먼저 정해져야 한다. */}
           </div>
 
           {nav({
