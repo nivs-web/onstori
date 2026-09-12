@@ -8,6 +8,7 @@ import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
+import { WEEKLY_NOTICE } from "@/lib/weekly";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
 import { sbBrowser } from "@/lib/supabase/browser";
@@ -491,8 +492,7 @@ export function Wizard() {
                   (끄는 곳: 편집화면 「연결」 탭 · 첫 문자의 【받지 않으시려면】 줄)
                 ⚠ 문구는 **2026-09-13 회장님 확정본**이다. 고치려면 허락을 먼저 받아라. */}
             <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
-              이 번호로 매주 한 번 <b>「이번 주 질문」</b>을 보내 드려요.
-              링크를 누르고 60초만 말씀하시면 됩니다. 언제든 끄실 수 있어요.
+              {WEEKLY_NOTICE.lead}<b>{WEEKLY_NOTICE.strong}</b>{WEEKLY_NOTICE.tail}
             </p>
           </Field>
           {/* ★ 2026-09-11 신설 — **문의 알림이 이 주소로 간다.** 비면 문의가 와도 사장님이 모른다.
