@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CHANNELS_LINE_MARKED, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
+import { COPY } from "@/lib/trial";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { RecMockup, SpeechToStory } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "작동방식 — 온스토리", desc
 /** 작동방식 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md) */
 export default function HowItWorks() {
   const steps = [
-    ["홈페이지가 먼저 생깁니다", "오늘 · 3분", "상호명과 업종만 고르면 온스토리가 문구·사진·구조를 채워 onstori.com/name 을 만듭니다. 30일 동안 전 기능 무료."],
+    ["홈페이지가 먼저 생깁니다", "오늘 · 3분", "상호명과 업종만 고르면 온스토리가 문구·사진·구조를 채워 onstori.com/name 을 만듭니다. ${COPY.trialShort}."],
     ["매주 질문이 문자로 옵니다", "주 1회 (원하면 매일)", "\"이 일을 시작한 이유는요?\" 같은 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
     ["링크를 누르고 60초 말합니다", "60초", "브라우저가 열리고 3·2·1 뒤 녹화. 얼굴이 싫으면 '음성만'. 다시 찍기는 무제한."],
     ["온스토리가 영상·글·사진 카드를 만듭니다", "30분", "무음 컷 · 한글 자막 · 쇼츠·릴스 규격 · 원문/1인칭/3인칭 글 · 캡션 6종 · 사진 카드."],

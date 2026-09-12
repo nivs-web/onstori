@@ -8,6 +8,8 @@ import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
+/* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
+import { josa } from "@/lib/sns/status-say";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
 
@@ -439,7 +441,7 @@ export function Wizard() {
             <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>사장님 말투 그대로. 문구는 온스토리가 다듬어요.</p>
           </div>
           <Field label="하는 일 한 줄">
-            <input className="field" value={oneLiner} maxLength={120} onChange={(e) => setOneLiner(e.target.value)} placeholder={`예: ${sub?.label ?? "인테리어"}를 해요. 작은 현장도 갑니다.`} />
+            <input className="field" value={oneLiner} maxLength={120} onChange={(e) => setOneLiner(e.target.value)} placeholder={(() => { const t = sub?.label ?? "인테리어"; return `예: ${t}${josa(t, "을/를")} 해요. 작은 현장도 갑니다.`; })()} />
           </Field>
           <Field label="로고" hint="직접 올리거나(정사각 512×512 이상 · PNG/JPG/SVG · 2MB), 온스토리가 만든 4안 중 고르세요. 나중에 바꿀 수 있어요.">
             <div className="grid grid-cols-5 gap-2">

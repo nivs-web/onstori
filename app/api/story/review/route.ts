@@ -25,6 +25,13 @@ const Save = z.object({
   caption: z.string().max(5000).optional(),
   /** 가게 고정 해시태그 — 최대 5개(회장님 지시). 넘으면 서버가 자른다 */
   fixedTags: z.array(z.string().max(60)).max(30).optional(),
+  /**
+   * ★ 영어 해시태그 (2026-09-13 회장님 결정 4) — **가게 설정**이다.
+   * ⚠ 영상마다 고르게 하면 아무도 안 쓴다. 한 번 켜면 유지된다.
+   * ⚠ 우리가 «번역»하지 않는다 — 사장님이 적은 글자만 쓴다(없는 말을 지어내지 않는다).
+   */
+  enOn: z.boolean().optional(),
+  enTags: z.array(z.string().max(60)).max(30).optional(),
 });
 
 export async function POST(req: Request) {
@@ -42,6 +49,9 @@ export async function POST(req: Request) {
   const siteId = r.site.id as string;
   const settings = (r.site.settings as Record<string, unknown>) ?? {};
   const fixed = normalizeTags((settings.hashtags as string[]) ?? [], MAX_FIXED_TAGS);
+  const en = (settings.hashtagsEn as { on?: boolean; tags?: string[] } | undefined) ?? {};
+  const enOn = en.on === true;
+  const enTags = normalizeTags(en.tags ?? [], MAX_FIXED_TAGS);
 
   /* ★ 자동 태그는 **가게 정보에서 그대로 뽑는다.** 지어내지 않는다(lib/hashtags.ts 참고).
      주소는 발행본(published)에 있으면 그것을, 없으면 작업본(draft)에서 찾는다 —
@@ -74,7 +84,7 @@ export async function POST(req: Request) {
         question = (data?.question as string) || (data?.title as string) || "";
       }
     }
-    return NextResponse.json({ caption, question, fixed, auto, captionColumnMissing, maxFixed: MAX_FIXED_TAGS });
+    return NextResponse.json({ caption, question, fixed, auto, enOn, enTags, captionColumnMissing, maxFixed: MAX_FIXED_TAGS });
   }
 
   const parsed = Save.safeParse(body);
@@ -95,19 +105,27 @@ export async function POST(req: Request) {
   }
 
   let savedTags = fixed;
-  if (v.fixedTags) {
-    savedTags = normalizeTags(v.fixedTags, MAX_FIXED_TAGS);
+  let savedEnOn = enOn;
+  let savedEnTags = enTags;
+  if (v.fixedTags || v.enTags || v.enOn !== undefined) {
+    if (v.fixedTags) savedTags = normalizeTags(v.fixedTags, MAX_FIXED_TAGS);
+    if (v.enTags) savedEnTags = normalizeTags(v.enTags, MAX_FIXED_TAGS);
+    if (v.enOn !== undefined) savedEnOn = v.enOn;
     /* ⚠ `settings` 는 **통째로 덮어쓴다.** 방금 읽은 값에 얹어야 `weekly`·`phone` 이 안 날아간다 */
     const { error } = await sbAdmin().from("sites")
-      .update({ settings: { ...settings, hashtags: savedTags } }).eq("id", siteId);
+      .update({ settings: { ...settings, hashtags: savedTags, hashtagsEn: { on: savedEnOn, tags: savedEnTags } } })
+      .eq("id", siteId);
     if (error) {
       console.error(JSON.stringify({ evt: "hashtags_save_failed", err: error.message.slice(0, 160) }));
       return NextResponse.json({ error: "고정 해시태그를 저장하지 못했어요." }, { status: 500 });
     }
   }
 
-  console.log(JSON.stringify({ evt: "story_review_saved", savedCaption, tags: savedTags.length }));
-  return NextResponse.json({ ok: true, caption: v.caption ?? "", fixed: savedTags, auto, savedCaption, captionColumnMissing });
+  console.log(JSON.stringify({ evt: "story_review_saved", savedCaption, tags: savedTags.length, enOn: savedEnOn }));
+  return NextResponse.json({
+    ok: true, caption: v.caption ?? "", fixed: savedTags, auto,
+    enOn: savedEnOn, enTags: savedEnTags, savedCaption, captionColumnMissing,
+  });
 }
 
 /** 사이트 문서에서 주소 한 줄을 찾는다 — 「오시는 길」 섹션이 가진 값이다 */

@@ -5,6 +5,7 @@ import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/component
 import { BIZ } from "@/config/company";
 import { COPY } from "@/lib/trial";
 import { CHANNELS_LINE_MARKED, LIVE_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
+import { TRIAL_DAYS } from "@/lib/trial";
 
 export const metadata: Metadata = { title: "온스토리", description: "홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 온스토리를 만든 이유." };
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "온스토리", description: "홈페�
 /** 11행 비교표 — 2026-09-06 /compare 페이지에서 옮겨 왔다. 타사 화면·문구 복제 없음, 기능 개념만 비교. */
 const COMPARE_ROWS = [
   ["만드는 데 걸리는 시간", "2~6주, 미팅 3~5회", "3분 (상호명·업종·색만)"],
-  ["비용", "제작 50~300만원 + 유지비", `30일 무료 → ${COPY.priceLine}`],
+  ["비용", "제작 50~300만원 + 유지비", `${TRIAL_DAYS}일 무료 → ${COPY.priceLine}`],
   ["만든 뒤", "끝. 수정은 건당 비용", "매주 질문 → 새 이야기가 쌓임"],
   ["사장님이 할 일", "원고·사진 준비, 검수, 수정 요청", "문자 링크 누르고 60초 말하기"],
   ["글쓰기", "사장님 또는 외주 작가", "없음 — 말하면 글이 됨"],
@@ -50,7 +51,7 @@ export default function OurStory() {
     ["없는 사실을 만들지 않는다.", "연차·건수·후기·별점을 지어내지 않는다."],
     ["사장님이 찍은 것이 우선이다.", "AI 사진은 빈자리를 채울 뿐이다."],
     ["전부 사장님 것이다.", KEEP_AFTER_CANCEL],
-    ["가격은 처음부터 공개한다.", `30일 무료, 이후 ${COPY.priceLine}. 언제든 해지.`],
+    ["가격은 처음부터 공개한다.", `${TRIAL_DAYS}일 무료, 이후 ${COPY.priceLine}. 언제든 해지.`],
   ];
   return (
     <main className="min-h-svh surface-0">
@@ -188,7 +189,7 @@ export default function OurStory() {
           <div className="surface-900 text-center" style={{ marginTop: "var(--s-6)", borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}>
             <p className="t-h2">제작업체는 홈페이지를 줍니다.<br />온스토리는 손님을 부릅니다.</p>
             <div style={{ marginTop: "var(--s-5)" }}>
-              <Link href="/new" className="btn btn-primary">30일 무료로 시작</Link>
+              <Link href="/new" className="btn btn-primary">{TRIAL_DAYS}일 무료로 시작</Link>
             </div>
           </div>
         </div>

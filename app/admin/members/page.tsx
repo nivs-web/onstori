@@ -2,7 +2,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
-import { trialInfo } from "@/lib/trial";
+import { trialInfo, TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS } from "@/lib/trial";
 import { MembersTable, type MemberRow } from "./table";
 
 export const dynamic = "force-dynamic";
@@ -103,7 +103,7 @@ export default async function MembersPage() {
       <MembersTable rows={list} />
 
       <p className="mt-4 t-caption text-[var(--text-soft)]">
-        무료 30일 → 정지(비공개, 자료 보관) → 정지 후 60일 자동 삭제. 판정 기준은 lib/trial.ts 하나입니다.
+        무료 {TRIAL_DAYS}일 → 정지(비공개, 자료 보관) → 정지 후 {DELETE_AFTER_SUSPEND_DAYS}일 자동 삭제. 판정 기준은 lib/trial.ts 하나입니다.
         정지·삭제·구독 청구는 매일 03:00 크론(/api/cron/expire)이 처리합니다.
         메모·블랙리스트는 운영자만 보며 사장님 화면으로 나가지 않습니다.
       </p>

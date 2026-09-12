@@ -1,3 +1,4 @@
+/* 기간 출처: lib/trial.ts — 주석 속 설명 숫자다 */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";

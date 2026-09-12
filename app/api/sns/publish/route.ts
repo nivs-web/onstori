@@ -9,6 +9,7 @@ import * as db from "@/lib/sns/db";
 import { checkForInstagram } from "@/lib/sns/mp4";
 import { captionFor, hasUrl } from "@/lib/sns/no-url";
 import { TEXT_LIMITS } from "@/lib/sns/limits";
+import { josa } from "@/lib/sns/status-say";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -174,7 +175,7 @@ export async function POST(req: Request) {
         await storage.copyToPublic(videoKey, pk, "video/mp4");
       } catch (e) {
         console.error(JSON.stringify({ evt: "sns_copy_failed", provider, err: String(e).slice(0, 160) }));
-        return failBack(`영상을 ${name} 이 가져갈 수 있는 자리로 옮기지 못했어요.`, { kind: "TRANSIENT" });
+        return failBack(`영상을 ${name}${josa(name, "이/가")} 가져갈 수 있는 자리로 옮기지 못했어요.`, { kind: "TRANSIENT" });
       }
       publicKey = pk;
       publicUrl = storage.publicUrl(pk);
@@ -221,7 +222,7 @@ export async function POST(req: Request) {
     }
     if (out.state === "processing") {
       await db.updatePost(post.id, { status: "processing", container_id: out.containerId });
-      return say("processing", `${name} 이 영상을 받는 중이에요. 잠시만요…`, { spec: igSpec });
+      return say("processing", `${name}${josa(name, "이/가")} 영상을 받는 중이에요. 잠시만요…`, { spec: igSpec });
     }
     await db.updatePost(post.id, { status: "failed", error_kind: out.kind, error_detail: out.detail.slice(0, 300) });
     console.error(JSON.stringify({ evt: "sns_publish_failed", provider, entryId, kind: out.kind, detail: out.detail.slice(0, 300) }));

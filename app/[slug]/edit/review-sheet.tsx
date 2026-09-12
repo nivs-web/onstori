@@ -61,6 +61,15 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   const [maxFixed, setMaxFixed] = useState(5);
   /** ⚠ 마이그레이션 전이면 «글 저장»만 안 된다. 올리기는 그대로 된다 — 사실대로 말한다 */
   const [cantSave, setCantSave] = useState(false);
+  /**
+   * ★ 영어 해시태그 (2026-09-13 회장님 결정 4) — **가게 설정**이고 **기본 꺼짐**이다.
+   * ⚠ 영상마다 고르게 하면 아무도 안 쓴다. 한 번 켜면 유지된다.
+   * ⚠ 우리가 번역해 주지 않는다 — 사장님이 적은 글자만 쓴다(없는 말을 지어내지 않는다).
+   */
+  const [enOn, setEnOn] = useState(false);
+  const [enTags, setEnTags] = useState<string[]>([]);
+  const [enDraft, setEnDraft] = useState("");
+  const [editEn, setEditEn] = useState(false);
   const [editTags, setEditTags] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
   const [saved, setSaved] = useState("");
@@ -76,6 +85,7 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
       });
       const d = (await r.json().catch(() => ({}))) as {
         caption?: string; question?: string; fixed?: string[]; auto?: string[];
+        enOn?: boolean; enTags?: string[];
         captionColumnMissing?: boolean; maxFixed?: number; error?: string;
       };
       if (!r.ok) { setErr(d.error ?? `불러오지 못했어요 (${r.status})`); return; }
@@ -87,6 +97,8 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
       setFixed(d.fixed ?? []);
       setAuto(d.auto ?? []);
       setMaxFixed(d.maxFixed ?? 5);
+      setEnOn(d.enOn === true);
+      setEnTags(d.enTags ?? []);
       setCantSave(!!d.captionColumnMissing);
     } catch { setErr("연결이 끊겼어요. 잠시 후 다시 시도해 주세요."); }
     finally { setLoading(false); }
@@ -103,7 +115,8 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
   const chosen: SnsProvider[] = picked ?? ready.filter((x) => x.ok).map((x) => x.provider);
 
   const autoOn = auto.filter((t) => autoPicked.includes(t));
-  const tags = normalizeTags([...fixed, ...autoOn, ...mine], 60);
+  /* ★ 켜져 있을 때만 영어 태그가 붙는다. 꺼져 있으면 한 글자도 안 나간다 */
+  const tags = normalizeTags([...fixed, ...autoOn, ...(enOn ? enTags : []), ...mine], 60);
   const limit = strictest(chosen.length ? chosen : (["instagram"] as SnsProvider[]));
   /* ★★ 이것이 **실제로 올라가는 글**이다. 미리보기가 곧 결과여야 한다 */
   const finalText = composeCaption(body, tags, limit?.hashtags ?? null);
@@ -113,6 +126,22 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
     if (!t) { setTyping(""); return; }
     setMine((m) => (m.some((x) => x.toLowerCase() === t.toLowerCase()) ? m : [...m, t]));
     setTyping("");
+  }
+
+  /** 영어 태그 저장 — 켬/끔과 글자를 함께 보낸다 */
+  async function saveEn(nextOn: boolean, nextTags: string[]) {
+    try {
+      const r = await fetch("/api/story/review", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, enOn: nextOn, enTags: nextTags }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { enOn?: boolean; enTags?: string[]; error?: string };
+      if (!r.ok) { setErr(d.error ?? "저장하지 못했어요."); return; }
+      setEnOn(d.enOn === true);
+      setEnTags(d.enTags ?? nextTags);
+      setEditEn(false);
+      setSaved("영어 해시태그 설정을 저장했어요.");
+    } catch { setErr("연결이 끊겼어요. 잠시 후 다시 시도해 주세요."); }
   }
 
   async function saveFixedTags() {
@@ -229,6 +258,46 @@ export function ReviewSheet({ slug, anonId, entryId, ready, busy, onCancel, onSu
                 </div>
               </>
             )}
+
+            {/* ★★ 영어 해시태그 — **가게 설정**이라 여기서 한 번 켜면 유지된다 (2026-09-13 결정 4).
+                ⚠ 기본은 꺼짐이다. 켜지 않으면 한 글자도 안 나간다.
+                ⚠ 우리가 번역하지 않는다 — 사장님이 적은 글자만 쓴다. 없는 말을 지어내지 않는다. */}
+            <label className="mt-3 flex items-start gap-2">
+              <input type="checkbox" checked={enOn}
+                onChange={(e) => { const v = e.target.checked; setEnOn(v); void saveEn(v, enTags); }}
+                className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <span className="t-caption font-semibold">영어 해시태그도 넣기</span>
+                <span className="block t-caption leading-relaxed text-[var(--text-soft)]">
+                  한 번 켜 두시면 계속 붙습니다. 영어 태그는 <b>사장님이 적으신 것만</b> 씁니다.
+                </span>
+              </span>
+            </label>
+
+            {enOn && (editEn ? (
+              <div className="mt-2">
+                <input
+                  value={enDraft} onChange={(e) => setEnDraft(e.target.value)}
+                  placeholder="띄어쓰기로 여러 개 (예: interior remodeling)"
+                  className="w-full rounded-lg border border-n-300 px-3 py-2 t-caption"
+                />
+                <div className="mt-2 flex gap-2">
+                  <button type="button"
+                    onClick={() => void saveEn(true, enDraft.split(/[\s,]+/).filter(Boolean))}
+                    className="rounded-full bg-n-100 px-3 py-1.5 t-caption font-semibold">저장</button>
+                  <button type="button" onClick={() => setEditEn(false)}
+                    className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">취소</button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {enTags.length === 0 && <span className="t-caption text-[var(--text-soft)]">(아직 없어요)</span>}
+                {enTags.map((t) => <Chip key={t} text={t} />)}
+                <button type="button"
+                  onClick={() => { setEnDraft(enTags.join(" ")); setEditEn(true); }}
+                  className="rounded-full border border-n-300 px-3 py-1 t-caption font-semibold">고치기</button>
+              </div>
+            ))}
 
             <p className="mt-3 t-caption text-[var(--text-soft)]">직접 (이번 영상에만)</p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">

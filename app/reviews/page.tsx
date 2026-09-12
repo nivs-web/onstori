@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { TRIAL_DAYS } from "@/lib/trial";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 
-export const metadata: Metadata = { title: "리뷰 — 온스토리", description: "첫 30일을 써 보신 사장님들의 이야기를 기다립니다. 없는 후기를 만들지 않습니다." };
+export const metadata: Metadata = { title: "리뷰 — 온스토리", description: `첫 ${TRIAL_DAYS}일을 써 보신 사장님들의 이야기를 기다립니다. 없는 후기를 만들지 않습니다.` };
 
 /**
  * 리뷰 — 레멘토 Reviews 구조(태그 필터 · 카드). 지금은 실후기 0건 → 없는 후기를 만들지 않는다 (기획1 /mainplan #reviews).
@@ -42,13 +43,13 @@ export default function ReviewsPage() {
               className="text-center"
               style={{ border: "2px dashed var(--n-200)", background: "var(--n-0)", borderRadius: "var(--r-lg)", padding: "var(--s-7) var(--s-5)" }}
             >
-              <p className="t-h2">첫 30일을 써 보신 사장님의 이야기를 기다립니다</p>
+              <p className="t-h2">첫 {TRIAL_DAYS}일을 써 보신 사장님의 이야기를 기다립니다</p>
               <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>
                 아직 후기가 없습니다. 없는 후기를 만들어 채우지 않습니다. 첫 사장님 10분의 홈페이지와 60초 영상이 이 자리에 올라옵니다 — 사장님 가게 링크와 함께.
               </p>
               <div style={{ marginTop: "var(--s-5)" }}>
                 {/* 페이지 끝 CtaBand 가 이 페이지의 주 버튼이다 — 한 화면에 초록이 둘 잡혀서 보조로 내린다 */}
-                <Link href="/new" className="btn btn-secondary">첫 10명에 들어가기 (30일 무료)</Link>
+                <Link href="/new" className="btn btn-secondary">첫 10명에 들어가기 ({TRIAL_DAYS}일 무료)</Link>
               </div>
             </div>
           ) : (

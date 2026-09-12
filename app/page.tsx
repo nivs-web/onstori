@@ -1,3 +1,4 @@
+/* 기간 출처: lib/trial.ts — 아래 주석 속 「30일」은 «적지 마라»는 경고문이다 */
 import Link from "next/link";
 import { Portfolio, loadShowcase } from "@/components/portfolio";
 import { PromoBar, SiteHeader, SiteFooter } from "@/components/site/chrome";
@@ -7,7 +8,7 @@ import { FAQ_FEATURED } from "@/config/faq";
 import { sectionVisibility } from "@/lib/page-sections";
 import { BIZ } from "@/config/company";
 import { CHANNELS_PITCH, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
-import { COPY, BILLING_INTERVAL } from "@/lib/trial";
+import { COPY, BILLING_INTERVAL, TRIAL_DAYS } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
 import { MarkStack, MarkSearch, MarkVoice } from "@/components/site/marks";
 
@@ -73,7 +74,8 @@ export default async function Home() {
             <dl className="grid grid-cols-3 text-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "28rem" }}>
               {/* ★ 「6곳」이라고만 적으면 거짓말이다 — 지금 나가는 곳은 둘뿐이다 (2026-09-13 박팀장 지적).
                   숫자는 «지금 되는 것»을 적고, 나머지 이야기는 아래 카드가 «준비 중»으로 말한다. */}
-              {[["3분", "제작 시간"], [`${LIVE_COUNT}곳`, "지금 퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
+              {/* ⚠ 「30일」을 글자로 적지 않는다 — 기간의 단일 출처는 lib/trial.ts 다(불변 규칙 9) */}
+              {[["3분", "제작 시간"], [`${LIVE_COUNT}곳`, "지금 퍼지는 채널"], [`${TRIAL_DAYS}일`, "전 기능 무료"]].map(([v, k]) => (
                 <div key={k} className="card" style={{ padding: "var(--s-3) var(--s-2)" }}>
                   <dd className="t-h3" style={{ color: "var(--green-700)" }}>{v}</dd>
                   <dt className="t-caption">{k}</dt>
@@ -254,7 +256,7 @@ export default async function Home() {
                 <span className="t-h3" style={{ fontWeight: "var(--w-semi)" }}> ({BILLING_INTERVAL} 구독 요금제)</span>
               </h2>
               <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>
-                30일 동안 전 기능 무료로 써 보시고, 마음에 드시면 {COPY.priceLine}로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
+                {TRIAL_DAYS}일 동안 전 기능 무료로 써 보시고, 마음에 드시면 {COPY.priceLine}로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
               </p>
               {/* ★★ 2026-09-11 회장님 확정 — **지금 되는 것(✓)과 준비 중(⏳)을 갈라서** 적는다.
                   전에는 여섯 줄을 전부 ✓ 로 적어 «자막 영상»·«유튜브 발행»처럼 **아직 없는 것까지
@@ -274,7 +276,7 @@ export default async function Home() {
                 ))}
               </ul>
               <div className="flex flex-wrap items-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
-                <Link href="/new" className="btn btn-primary">30일 무료로 시작</Link>
+                <Link href="/new" className="btn btn-primary">{TRIAL_DAYS}일 무료로 시작</Link>
                 <span className="t-body" style={{ color: "var(--n-300)" }}>매달 자동 결제 · 언제든 해지</span>
               </div>
             </div>
@@ -373,7 +375,7 @@ export default async function Home() {
             ))}
           </div>
           <p className="t-caption font-bold" style={{ marginTop: "var(--s-7)", color: "var(--green-700)", letterSpacing: "var(--tracking-kicker)" }}>
-            이런 사장님께 (아직 후기가 아닙니다 — 첫 30일을 써 보신 사장님의 이야기를 기다립니다)
+            이런 사장님께 (아직 후기가 아닙니다 — 첫 {TRIAL_DAYS}일을 써 보신 사장님의 이야기를 기다립니다)
           </p>
           <div className="grid sm:grid-cols-3" style={{ marginTop: "var(--s-4)", gap: "var(--s-4)" }}>
             {[
@@ -464,7 +466,7 @@ export default async function Home() {
         <div className="wrap text-center">
           <h2 className="t-h2" style={{ textWrap: "balance" }}>따로 견적 없이, 처음부터 공개합니다</h2>
           <ol className="mx-auto grid text-left sm:grid-cols-3" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "48rem" }}>
-            {[["오늘", "3분 만에 홈페이지. 30일 전 기능 무료."], ["30일 뒤", "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["언제든", "결제하시면 바로 다시 공개됩니다."]].map(([t, d]) => (
+            {[["오늘", `3분 만에 홈페이지. ${COPY.trialShort}.`], [`${TRIAL_DAYS}일 뒤`, "미결제 시 홈페이지 정지(비공개). 자료는 그대로 보관."], ["언제든", "결제하시면 바로 다시 공개됩니다."]].map(([t, d]) => (
               <li key={t} style={{ background: "var(--n-800)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
                 <p className="t-caption font-bold" style={{ color: "var(--green-200)", letterSpacing: "var(--tracking-kicker)" }}>{t}</p>
                 <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>{d}</p>

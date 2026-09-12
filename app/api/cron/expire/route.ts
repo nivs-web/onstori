@@ -1,9 +1,11 @@
+/* 기간 출처: lib/trial.ts — 아래 주석의 날짜 숫자는 «설명»이고 판정은 전부 상수를 쓴다 */
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
 import {
-  TRIAL_DAYS, DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS, COPY,
+  DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS, COPY,
+  TRIAL_NOTICE_DAYS, TRIAL_NOTICE_WINDOW_DAYS,
   DELETE_NOTICE_DAYS, MEMBERSHIP_PRICE, MEMBERSHIP_NAME,
 } from "@/lib/trial";
 import { charge } from "@/lib/toss";
@@ -51,10 +53,12 @@ export async function GET(req: Request) {
     .select("slug, business_name, settings, trial_ends_at")
     .eq("status", "trial")
     .gte("trial_ends_at", new Date(now).toISOString())
-    .lte("trial_ends_at", new Date(now + 3.5 * day).toISOString());
+    /* ⚠ 창도 숫자를 적지 않는다 — lib/trial.ts 가 내려 준다 (2026-09-13) */
+    .lte("trial_ends_at", new Date(now + TRIAL_NOTICE_WINDOW_DAYS * day).toISOString());
   for (const s of soon ?? []) {
     const left = Math.ceil((new Date(s.trial_ends_at).getTime() - now) / day);
-    if (left !== 3 && left !== 1) continue;
+    /* ★ 「3일 전·1일 전」을 여기 적지 않는다. 바꾸려면 lib/trial.ts 의 TRIAL_NOTICE_DAYS 만 고친다 */
+    if (!(TRIAL_NOTICE_DAYS as readonly number[]).includes(left)) continue;
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
     if (await sendSmsRaw(phone, nudgeText(left, s.slug))) out.nudged++;
@@ -69,6 +73,37 @@ export async function GET(req: Request) {
     .lt("trial_ends_at", new Date(now).toISOString())
     .select("slug");
   out.suspended = exp?.length ?? 0;
+
+  /**
+   * ★★★ **2-2) 해지한 사장님 — 돈 낸 기간이 지나면 정지한다.** (2026-09-13 회장님 결정 1)
+   *
+   * ⚠ 이것이 없어서 **해지해도 홈페이지가 영원히 공짜로 공개**됐다.
+   *   해지 창구는 `billing.status` 만 'canceled' 로 바꾸고 `sites.status` 는 'active' 그대로 둔다.
+   *   그런데 위 2)의 정지는 `status='trial'` 인 사이트만 보고, 아래 6)의 청구는
+   *   `billing.status='active'` 만 본다 — **해지한 행은 둘 다에 안 걸린다.**
+   *   결과: 청구는 안 되는데 사이트는 계속 손님에게 보인다.
+   *   이용약관 제11조가 「그 뒤 홈페이지는 비공개로 바뀐다」고 **약속한 동작**이기도 하다.
+   *
+   * ★ 「돈 낸 기간까지는 쓰신다」를 지킨다 — `next_charge_at`(다음 결제일)이 지난 뒤에만 내린다.
+   * ⚠ `suspended_at` 을 함께 찍어야 5)의 삭제 기한(정지 + N일)을 정확히 셀 수 있다.
+   */
+  const { data: canceled } = await sb
+    .from("billing")
+    .select("site_id, next_charge_at")
+    .eq("status", "canceled")
+    .lt("next_charge_at", new Date(now).toISOString());
+  const dueIds = (canceled ?? []).map((b) => b.site_id as string);
+  if (dueIds.length) {
+    const { data: downed } = await sb
+      .from("sites")
+      .update({ status: "expired", suspended_at: new Date(now).toISOString() })
+      .in("id", dueIds)
+      .neq("status", "expired")            // 이미 내려간 것은 다시 안 찍는다(삭제 기한이 밀린다)
+      .select("slug");
+    const n = downed?.length ?? 0;
+    out.suspended += n;
+    if (n) console.log(JSON.stringify({ evt: "canceled_sites_suspended", n, slugs: (downed ?? []).map((s) => s.slug) }));
+  }
 
   // 3) 손님 문의 파기 — 개인정보보호법 제21조(보유기간 경과 시 지체 없이 파기)
   //    두 기준 중 **먼저 오는 때**에 지운다:

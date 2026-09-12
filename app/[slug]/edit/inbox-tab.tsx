@@ -1,3 +1,4 @@
+/* 기간 출처: lib/trial.ts — 문의 보관 안내는 방침 문서가 진실이고 여기는 요약이다 */
 "use client";
 
 import { useRef, useState } from "react";

@@ -45,6 +45,41 @@ function checkPrices() {
   walk(".");
   return found;
 }
+/**
+ * ★★ **기간 검사** (2026-09-13 추가).
+ *
+ * ⚠ 왜 필요했나: 규칙 9 는 「기간·금액 둘 다 lib/trial.ts 가 단일 출처」라고 못 박았는데
+ *   이 파일은 **금액만** 보고 있었다. 그 사이 「30일」이 손님 화면 열 곳 넘게 글자로 박혔고,
+ *   검사는 그때도 «0건 통과»를 찍었다. **검사가 조용하면 사람은 지켜지고 있다고 믿는다.**
+ *
+ * ⚠ 오탐이 많은 검사다 — 「인스타 60일 토큰」·「최근 30일 매출」처럼 요금과 무관한 30·60 이
+ *   많다. 그래서 그런 파일은 아래에서 건너뛴다. 건너뛰는 목록을 늘릴 때는
+ *   **왜 요금과 무관한지**를 한 줄로 적어라.
+ */
+function checkPeriods() {
+  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public", "docs"]);
+  const EXT = new Set([".ts", ".tsx"]);
+  /* 요금 정책에 쓰이는 숫자만 — 14(옛 값) · 30(무료) · 60(삭제 유예) · 90(총 수명) */
+  const RE = /(?:^|[^0-9])(14|30|60|90)\s*일/g;
+  const found = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) { if (!SKIP_DIR.has(e.name)) walk(path.join(dir, e.name)); continue; }
+      if (!EXT.has(path.extname(e.name))) continue;
+      const p = path.join(dir, e.name).replace(/\\/g, "/").replace(/^\.\//, "");
+      if (p === "lib/trial.ts") continue;                        // 유일한 출처
+      /* 요금과 무관한 30·60 이 나오는 곳 — 토큰 수명 · 스팸 차단 · 매출 집계 · 저장소 수명 */
+      if (/^lib\/sns\/|^lib\/storage\.ts$|^app\/api\/cron\/weekly\/|^app\/api\/inquiry\/|^app\/admin\/page\.tsx$|^scripts\//.test(p)) continue;
+      let s; try { s = fs.readFileSync(p, "utf8"); } catch { continue; }
+      if (s.includes("기간 출처: lib/trial.ts")) continue;        // 일부러 적은 자리
+      const m = s.match(RE);
+      if (m) found.push({ p, n: m.length, 예: [...new Set(m.map((x) => x.trim()))].slice(0, 3).join(", ") });
+    }
+  };
+  walk(".");
+  return found;
+}
+
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
 const WIDTHS = [
@@ -209,6 +244,20 @@ const CHECK = () => {
     process.exitCode = 2;
   } else {
     console.log("\n💰 하드코딩 금액 0건 — 요금 숫자는 lib/trial.ts 에만 있다 ✅");
+  }
+
+  // ── 하드코딩 «기간» 검사 (2026-09-13 추가 — 전에는 금액만 봤다) ──
+  const 기간 = checkPeriods();
+  if (기간.length) {
+    console.log("\n" + "⚠".repeat(30));
+    console.log(`⚠ 하드코딩 기간 — ${기간.length}개 파일에 무료·삭제 기간 숫자가 직접 적혀 있다.`);
+    console.log("   TRIAL_DAYS·DELETE_AFTER_SUSPEND_DAYS 를 import 해서 써라(CLAUDE.md 규칙 9).");
+    console.log("   요금과 무관한 숫자라면 파일 안에 「기간 출처: lib/trial.ts」 한 줄을 붙이면 빠진다.");
+    for (const f of 기간) console.log(`   📅 ${f.p} — ${f.n}곳 (${f.예})`);
+    console.log("⚠".repeat(30));
+    process.exitCode = 2;
+  } else {
+    console.log("📅 하드코딩 기간 0건 — 무료·삭제 기간은 lib/trial.ts 에만 있다 ✅");
   }
 
   const 총칸 = urls.length * WIDTHS.length;

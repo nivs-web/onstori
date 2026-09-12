@@ -197,7 +197,8 @@ export const OPT_OUT_LINE = "【받지 않으시려면】 홈페이지 관리 > 
  *   정작 이번 주 질문이 안 읽힌다. 끄는 길은 편집화면에 **늘** 열려 있다.
  */
 export function withOptOut(text: string, isFirstEver: boolean): string {
-  return isFirstEver ? `${text}\n${OPT_OUT_LINE}` : text;
+  /* ★ 첫 통에는 두 줄을 함께 붙인다 — 주인에게는 «끄는 화면», 남의 번호를 받은 사람에게는 «답장» */
+  return isFirstEver ? [text, OPT_OUT_LINE, STOP_LINE].join("\n") : text;
 }
 
 /* ════════ 같은 번호로 두 번 가지 않게 (2026-09-12 회장님 지시 A2) ════════ */
@@ -309,4 +310,34 @@ export function sentThisWeekToPhone(siblings: { lastSentAt?: string }[], at = ne
     const t = new Date(w.lastSentAt).getTime();
     return Number.isFinite(t) && t >= start;
   });
+}
+
+/* ════════ 「이 번호가 아니면 STOP」 (2026-09-13 회장님 결정 2) ════════ */
+
+/**
+ * ★★★ **남의 번호를 받은 사람에게 주는 유일한 출구.**
+ *
+ * ⚠ 왜 필요한가: 사장님이 번호를 잘못 적으면 **모르는 사람**에게 매주 문자가 간다.
+ *   그런데 위의 【받지 않으시려면】 안내가 데려가는 편집화면은 **주인만** 들어간다 —
+ *   받은 사람은 **끌 방법이 아예 없다.** 그래서 답장 한 글자로 끄는 길을 둔다.
+ *
+ * ⚠ 번호 본인확인(인증번호)은 **지금 넣지 않는다**(회장님 결정 2). 김팀장이 방법을 조사한다.
+ *   그때까지 이 한 줄이 그 자리를 대신한다.
+ *
+ * ⚠⚠ **이 문장은 «받는 창구»가 살아 있을 때만 진실이다.**
+ *   `app/api/sms/inbound/route.ts` 가 그 창구이고, 솔라피 쪽에서 **수신(인바운드) 설정**을
+ *   우리 주소로 걸어 줘야 답장이 도착한다. 설정 전에는 이 약속이 **빈말**이 된다.
+ */
+export const STOP_LINE = "이 번호가 아니면 STOP 이라고 답해 주세요.";
+
+/**
+ * 받은 답장이 «그만 보내라»인가.
+ *
+ * ⚠ 넉넉하게 읽는다 — 대소문자·앞뒤 공백·「수신거부」 같은 우리말도 받는다.
+ *   사람은 시키는 대로 정확히 쓰지 않는다. **끄는 쪽은 관대해야** 한다.
+ * ⚠ 「STOP 이 뭐예요?」처럼 **문장 속에 섞인** 것은 안 끈다 — 물어본 것을 끄면 안 된다.
+ */
+export function isStopWord(text: string): boolean {
+  const t = (text ?? "").trim().toLowerCase().replace(/[.!?·,]/g, "");
+  return ["stop", "그만", "수신거부", "거부", "해지", "중지", "노", "no"].includes(t);
 }

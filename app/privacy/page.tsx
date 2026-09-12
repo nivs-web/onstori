@@ -1,8 +1,9 @@
+/* 기간 출처: lib/trial.ts — 아래 「시행 30일 전」은 **방침 변경 예고 기간**이라 요금 기간과 무관하다 */
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
 import { BIZ } from "@/config/company";
-import { TRIAL_DAYS, LEGAL } from "@/lib/trial";
+import { TRIAL_DAYS, LEGAL, DELETE_AFTER_SUSPEND_DAYS, DELETE_NOTICE_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS } from "@/lib/trial";
 import { LEGAL_VERSION } from "@/lib/consents";
 
 export const metadata: Metadata = {
@@ -150,10 +151,10 @@ export default function PrivacyPage() {
             head={["무엇", "언제까지"]}
             rows={[
               ["사장님 회원 정보 · 홈페이지 내용", "구독 중에는 계속 보관 · 회원 탈퇴 또는 삭제 요청 시 파기"],
-              ["미결제로 정지된 홈페이지 자료", "정지일로부터 60일 뒤 자동 파기 (삭제 30일 전·7일 전 문자로 예고)"],
-              ["정지된 사이트에 남은 손님 문의", "정지일로부터 60일 뒤 파기"],
+              ["미결제로 정지된 홈페이지 자료", `정지일로부터 ${DELETE_AFTER_SUSPEND_DAYS}일 뒤 자동 파기 (삭제 ${DELETE_NOTICE_DAYS[0]}일 전·${DELETE_NOTICE_DAYS[1]}일 전 문자로 예고)`],
+              ["정지된 사이트에 남은 손님 문의", `정지일로부터 ${INQUIRY_RETENTION_DAYS}일 뒤 파기`],
               ["오래 안 쓰신 계정", "마지막 접속일로부터 3년이 지나면 자동 파기"],
-              ["손님이 남긴 문의 (이름·연락처·내용·사진)", "접수일로부터 1년 (사이트가 정지되면 정지일로부터 60일) — 먼저 오는 때"],
+              ["손님이 남긴 문의 (이름·연락처·내용·사진)", `접수일로부터 ${INQUIRY_MAX_AGE_DAYS / 365}년 (사이트가 정지되면 정지일로부터 ${INQUIRY_RETENTION_DAYS}일) — 먼저 오는 때`],
               ["계약 또는 청약철회 등에 관한 기록", "5년 (전자상거래법)"],
               ["대금 결제 및 재화 등의 공급에 관한 기록", "5년 (전자상거래법)"],
               ["소비자의 불만 또는 분쟁 처리에 관한 기록", "3년 (전자상거래법)"],
@@ -166,7 +167,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             {LEGAL.lifecycle}
-            <br />손님이 남긴 견적 문의(이름·연락처·내용·사진)는 <b>정지일로부터 60일</b>이 지나면 파기합니다 —
+            <br />손님이 남긴 견적 문의(이름·연락처·내용·사진)는 <b>정지일로부터 {INQUIRY_RETENTION_DAYS}일</b>이 지나면 파기합니다 —
             손님의 개인정보라 사장님 자료보다 짧게 갖고 있습니다.
           </p>
           <p>

@@ -1,3 +1,4 @@
+/* 기간 출처: lib/trial.ts — 아래 「30일」은 **SNS 발송 건수 집계 창**이라 요금 기간과 무관하다 */
 "use client";
 
 import { useEffect, useState } from "react";
