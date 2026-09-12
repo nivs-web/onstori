@@ -33,6 +33,8 @@ export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[
     map: "오시는 길", quoteForm: "견적 문의", video: "영상",
   };
   const seen = new Set<string>();
+  /** 이미 쓴 «이름» — 앵커가 달라도 이름이 같으면 손님이 구분을 못 한다 */
+  const usedLabels = new Set<string>();
   const out: { href: string; label: string }[] = [];
   for (const s of doc.sections) {
     const id = ANCHOR_OF[s.type];
@@ -42,8 +44,24 @@ export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[
        화면과 차례의 판정을 같은 것으로 맞춘다(불변 규칙 12 의 정신). */
     if (s.type === "video" && !s.url?.trim()) continue;
     seen.add(id);
+    /**
+     * ★★ **이름이 겹치면 «기본 이름»으로 돌린다.** (2026-09-13 박팀장 발견)
+     *
+     * ⚠ 전에는 **앵커만** 중복 검사하고 이름은 안 봤다. 그런데 섹션 제목 중 하나는
+     *   AI 가 지은 것(`about`)이고 하나는 우리가 박은 것(`gallery` = 「작업 사진」)이라
+     *   **우연히 같은 글자**가 될 수 있다. 실제로 `/interior2` 의 차례에 「작업 사진」이
+     *   **두 번** 나왔고, 손님은 둘 중 무엇이 무엇인지 알 수 없었다.
+     * ★ 겹치면 그 섹션의 **기본 이름**을 쓴다(about → 「소개」). 그래도 겹치면 그대로 둔다 —
+     *   이름을 지어내는 것보다 겹치는 편이 낫다(없는 말을 만들지 않는다).
+     */
     const title = "title" in s && typeof s.title === "string" ? s.title.trim() : "";
-    out.push({ href: `#${id}`, label: title || fallback[s.type] || id });
+    let label = title || fallback[s.type] || id;
+    if (usedLabels.has(label)) {
+      const alt = fallback[s.type] || id;
+      if (!usedLabels.has(alt)) label = alt;
+    }
+    usedLabels.add(label);
+    out.push({ href: `#${id}`, label });
   }
   return out;
 }

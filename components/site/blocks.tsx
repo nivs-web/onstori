@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { FaqItem } from "@/config/faq";
-import { CHANNELS, CHANNEL_COUNT, LIVE_COUNT, CHANNELS_LINE_MARKED } from "@/config/channels";
+import { CHANNELS, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
 
 
 /* 본사 페이지 공용 블록 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md). */

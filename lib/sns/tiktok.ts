@@ -28,6 +28,11 @@ import type { Availability, Connection, ErrorKind, ExtraField, Quota, SnsAdapter
 const API = "https://open.tiktokapis.com/v2";
 const OAUTH_DIALOG = "https://www.tiktok.com/v2/auth/authorize/";
 const TOKEN_URL = `${API}/oauth/token/`;
+/**
+ * ★ 연결 끊기를 **틱톡에도 알린다.** (2026-09-13 김팀장 지적)
+ *   https://developers.tiktok.com/doc/oauth-user-access-token-management (Revoke access)
+ */
+const REVOKE_URL = `${API}/oauth/revoke/`;
 
 /** 심사에 신청한 그대로. 늘리지 마라 — 안 쓰는 권한을 달라고 하면 심사에서 떨어진다 */
 const SCOPES = ["user.info.basic", "video.publish", "video.upload"];
@@ -243,7 +248,34 @@ export const tiktok: SnsAdapter = {
   },
 
   /** ★ 토큰을 실제로 지운다 — 인스타·유튜브와 같은 규칙 */
+  /**
+   * ★★ 연결 끊기 — **그쪽에도 알린다.** (2026-09-13 김팀장 지적)
+   *
+   * ⚠ 전에는 **우리 표에서 줄만 지웠다.** 그러면 틱톡 쪽에는 «온스토리가 여전히 연결돼 있다»로
+   *   남는다. 사장님이 끊었다고 믿는데 그쪽 설정에는 우리 앱이 그대로 보인다 —
+   *   유튜브는 이미 제대로 하고 있어서(lib/sns/youtube.ts) 두 SNS 가 서로 다르게 굴었다.
+   *
+   * ★ 순서는 유튜브와 똑같이 맞춘다: ①그쪽에 폐기를 알리고 ②우리 표에서 지운다.
+   *   ⚠ ①이 실패해도 ②는 **반드시** 한다 — 우리 손에 토큰이 남는 것이 더 나쁘다.
+   */
   async disconnect(siteId: string) {
+    const tk = await db.readTokens(siteId, "tiktok");
+    const token = tk?.refreshToken || tk?.accessToken;
+    if (token && clientKey() && clientSecret()) {
+      try {
+        await fetch(REVOKE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_key: clientKey(), client_secret: clientSecret(), token,
+          }).toString(),
+          cache: "no-store",
+        });
+      } catch (e) {
+        /* 그래도 아래에서 우리 쪽은 지운다 */
+        console.warn(JSON.stringify({ evt: "tt_revoke_failed", err: String(e).slice(0, 160) }));
+      }
+    }
     const ok = await db.deleteConnection(siteId, "tiktok");
     return ok ? { ok: true } : { ok: false, detail: "연결을 끊지 못했어요. 잠시 후 다시 시도해 주세요." };
   },

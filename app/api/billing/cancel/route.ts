@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
+import { purgeSnsForSite } from "@/lib/sns/maintenance";
 
 /**
  * 구독 해지 — 2026-09-06.
@@ -67,6 +68,15 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error(JSON.stringify({ evt: "cancel_weekly_off_error", err: String(e).slice(0, 160) }));
   }
+
+  /**
+   * ★★ **해지하면 SNS 열쇠도 우리 손에서 없앤다.** (2026-09-13 지시 E2)
+   * ⚠ 그만 쓰시는 분의 인스타·틱톡·유튜브에 글을 올릴 수 있는 열쇠를 계속 쥐고 있으면 안 된다.
+   *   유튜브 약관은 「동의 철회 시 즉시 폐기」를 명시적으로 요구한다.
+   * ⚠ 실패해도 해지 자체는 되돌리지 않는다 — 로그로 남겨 사람이 챙긴다.
+   */
+  try { await purgeSnsForSite(owned.site.id as string, "구독 해지"); }
+  catch (e) { console.error(JSON.stringify({ evt: "cancel_sns_purge_error", err: String(e).slice(0, 160) })); }
 
   console.log(JSON.stringify({ evt: "subscription_canceled", slug: owned.site.slug, paidUntil: bill.next_charge_at }));
   // 이미 낸 달은 끝까지 쓰신다 — 화면이 이 날짜를 그대로 보여준다

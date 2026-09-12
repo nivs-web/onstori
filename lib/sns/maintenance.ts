@@ -330,3 +330,46 @@ export async function finishStuckPosts(now = Date.now()): Promise<FinishOut> {
   }
   return out;
 }
+
+
+/* ════════ 해지·정지 때 SNS 토큰 파기 (2026-09-13 김팀장 지적 · 지시 E2) ════════ */
+
+export type PurgeOut = { looked: number; revoked: number; failed: number };
+
+/**
+ * ★★★ **그만 쓰시는 사장님의 SNS 열쇠를 우리 손에서 없앤다.**
+ *
+ * ⚠ 왜 필요한가: 해지하거나 정지돼도 `sns_connections` 의 토큰이 **그대로 남아 있었다.**
+ *   그 토큰으로는 그 사장님의 인스타·틱톡·유튜브에 **글을 올릴 수 있다.** 서비스를 그만둔
+ *   분의 계정 열쇠를 우리가 계속 쥐고 있는 것이다 — 사고가 나면 변명할 말이 없다.
+ *
+ * ★ 유튜브 약관은 이것을 **명시적으로 요구**한다 —
+ *   「동의가 철회되면 즉시 프로그램으로 폐기하고, **7일 안에** 저장한 자료를 지운다」
+ *   (developers.google.com/youtube/terms/developer-policies · Revocation).
+ *
+ * ★ 어댑터의 `disconnect()` 를 그대로 쓴다. 그 안에 «그쪽에 폐기를 알리는» 절차가 이미 있고
+ *   (유튜브·틱톡), 우리 표에서 지우는 것도 거기서 한다. **두 벌을 만들지 않는다.**
+ * ⚠ 한 곳이 실패해도 나머지는 계속 지운다 — 하나 때문에 전부 남으면 안 된다.
+ */
+export async function purgeSnsForSite(siteId: string, why: string): Promise<PurgeOut> {
+  const out: PurgeOut = { looked: 0, revoked: 0, failed: 0 };
+  const sb = sbAdmin();
+  const { data, error } = await sb.from("sns_connections").select("provider").eq("site_id", siteId);
+  if (error) {
+    console.error(JSON.stringify({ evt: "sns_purge_query_failed", err: error.message.slice(0, 160) }));
+    return out;
+  }
+  for (const row of data ?? []) {
+    out.looked++;
+    const provider = (row as { provider: string }).provider as Parameters<typeof getAdapter>[0];
+    try {
+      const r = await getAdapter(provider).disconnect(siteId);
+      if (r.ok) out.revoked++; else out.failed++;
+    } catch (e) {
+      out.failed++;
+      console.error(JSON.stringify({ evt: "sns_purge_failed", provider, err: String(e).slice(0, 160) }));
+    }
+  }
+  if (out.looked) console.log(JSON.stringify({ evt: "sns_purged", siteId, why, ...out }));
+  return out;
+}

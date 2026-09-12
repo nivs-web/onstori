@@ -32,7 +32,10 @@ function checkPrices() {
          파일을 지우지 않고 검사에서 뺀다 — 회장님이 쓰시려고 뽑아 두신 것일 수 있다. */
       if (p === "deployments.json" || p === ".vercel") continue;
       if (/20\d\d-\d\d-\d\d/.test(e.name)) continue;             // 날짜 박힌 역사 기록
+      /* ⚠ 기록 문서는 «옛 값이 무엇이었는지»를 적는 것이 일이다 (2026-09-13 추가).
+         거기서 옛 금액을 지우면 기록이 기록이 아니게 된다 — 이 검사의 목적과 반대다. */
       if (p === "docs/DECISIONS.md" || p.startsWith("docs/design/")) continue;
+      if (p === "docs/PROGRESS.md" || p.startsWith("docs/AI/")) continue;
       let s; try { s = fs.readFileSync(p, "utf8"); } catch { continue; }
       if (s.includes("작성 당시 값")) continue;                   // 역사 표시가 붙은 문서
       /* 예외 표시 — 우리 요금이 아니거나(손님 사이트 예시 가격),

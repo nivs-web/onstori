@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { COPY, type TrialInfo } from "@/lib/trial";
-import { CHANNELS_LINE } from "@/config/channels";
 import { BIZ } from "@/config/company";
 
 /**
