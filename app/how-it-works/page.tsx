@@ -5,7 +5,8 @@ import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/component
 import { RecMockup, SpeechToStory } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 
-export const metadata: Metadata = { title: "작동방식 — 온스토리", description: `문자 링크 하나로 매주 60초. 홈페이지·자막 영상·글·사진 카드가 되어 ${CHANNEL_COUNT}곳에 퍼집니다.` };
+/* ⚠ 검색 결과에 뜨는 줄이라 여기도 사실이어야 한다 — 자막 영상·글·사진 카드는 **아직 없다** (2026-09-13) */
+export const metadata: Metadata = { title: "작동방식 — 온스토리", description: `문자 링크 하나로 매주 60초. 홈페이지와 영상이 되어 ${LIVE_COUNT}곳에 퍼집니다. (나머지는 준비 중)` };
 
 /** 작동방식 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md) */
 export default function HowItWorks() {
