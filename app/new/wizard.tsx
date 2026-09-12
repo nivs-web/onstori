@@ -477,6 +477,16 @@ export function Wizard() {
             <p id="phone-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
               고객의 문의를 받을 수 있는 실제 사장님의 정확한 전화번호를 입력해주세요.
             </p>
+            {/* ★★★ 「주 1회 촬영 질문」은 **광고가 아니라 우리가 판 상품**이다 (2026-09-12 상무님 지적).
+                ⚠ 전에는 이것이 4단계의 «선택 체크박스»에 광고와 한 칸으로 묶여 있었다. 그러면
+                  체크를 안 한 사장님이 **돈을 내고도 상품을 못 받는** 상태가 된다.
+                ★ 그래서 여기서는 **묻지 않고 알린다.** 「받겠습니까」가 아니라 「보내 드립니다」다.
+                ★ 대신 **끄는 길을 같은 줄에서** 말한다 — 알리기만 하고 끌 길이 없으면 그것이 광고다.
+                  (끄는 곳: 편집화면 「연결」 탭 · 첫 문자의 【받지 않으시려면】 줄) */}
+            <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
+              이 번호로 <b>주 1회 촬영 질문</b>을 보내 드려요. 온스토리의 핵심 기능입니다 —
+              언제든 편집화면에서 끄실 수 있어요.
+            </p>
           </Field>
           {/* ★ 2026-09-11 신설 — **문의 알림이 이 주소로 간다.** 비면 문의가 와도 사장님이 모른다.
               ⚠ 표를 새로 만들지 않았다. `sites.settings` 가 jsonb 라 `settings.notify.email` 에 넣는다 —
@@ -559,10 +569,13 @@ export function Wizard() {
               checked={agreePrivacy} onChange={setAgreePrivacy} required
               label={<><Doc href="/privacy">개인정보 수집·이용</Doc>에 동의합니다</>}
             />
+            {/* ★★ 여기는 **광고만** 남긴다 (2026-09-12 회장님 승인).
+                ⚠ 전에는 「촬영 알림·안내」라고 적혀 있어 **상품과 광고가 한 칸**이었다.
+                  주 1회 촬영 질문은 3단계에서 «안내»로 옮겼다. */}
             <Consent
               checked={agreeMarketing} onChange={setAgreeMarketing}
-              label={<>촬영 알림·안내를 문자로 받겠습니다</>}
-              hint="안 하셔도 가입돼요. 손님 문의 알림은 이것과 상관없이 갑니다."
+              label={<>할인·행사 소식을 문자로 받겠습니다</>}
+              hint="안 하셔도 가입돼요. 주 1회 촬영 질문과 손님 문의 알림은 이것과 상관없이 갑니다."
             />
           </div>
 
