@@ -69,8 +69,27 @@ export async function POST(req: Request) {
     counts[t] = await countOf(t);
   }
 
+  /* ★★ 파일도 **센다** (2026-09-12 지시 E1 — 「무엇이 사라지는지 세어 보여 달라」).
+     ⚠ 표의 줄 수만 보여 주면 **사진·영상이 몇 장 사라지는지가 안 보인다.** 사장님 자료 중
+       제일 아까운 것이 그것이다. 세는 곳과 지우는 곳이 **같은 목록**을 쓰게 묶어 뒀다 —
+       따로 적으면 한쪽만 고쳐져 「0장이라더니 12장이 사라졌다」가 된다. */
+  const PREFIXES = [
+    ["media", `uploads/${slug}/`],
+    ["private", `inquiries/${site.id}/`],
+    ["private", `private/stories/${slug}/`],
+  ] as const;
+
   if (dryRun) {
-    return NextResponse.json({ dryRun: true, slug, businessName: expected, status: site.status, counts });
+    const files: Record<string, number> = {};
+    for (const [bucket, prefix] of PREFIXES) {
+      try { files[`${bucket}:${prefix}`] = (await storage.listPrefix(bucket, prefix)).length; }
+      catch (e) {
+        /* ⚠ 못 세었으면 **0 이 아니라 -1**. 0 이라고 적으면 「없다」는 거짓말이 된다 */
+        files[`${bucket}:${prefix}`] = -1;
+        console.error(JSON.stringify({ evt: "site_delete_count_files_failed", slug, prefix, err: String(e).slice(0, 160) }));
+      }
+    }
+    return NextResponse.json({ dryRun: true, slug, businessName: expected, status: site.status, counts, files });
   }
 
   /* ② 기록을 «먼저» 남긴다. 지운 뒤에 남기려다 실패하면 흔적 없는 삭제가 된다 */
@@ -87,11 +106,7 @@ export async function POST(req: Request) {
 
   /* ③ 파일 먼저 — 순서를 뒤집으면 경로를 잃어 파일만 남는 고아가 생긴다 */
   let filesPurged = 0;
-  for (const [bucket, prefix] of [
-    ["media", `uploads/${slug}/`],
-    ["private", `inquiries/${site.id}/`],
-    ["private", `private/stories/${slug}/`],
-  ] as const) {
+  for (const [bucket, prefix] of PREFIXES) {
     try { filesPurged += await storage.removePrefix(bucket, prefix); }
     catch (e) { console.error(JSON.stringify({ evt: "site_delete_files_failed", slug, prefix, err: String(e).slice(0, 160) })); }
   }
