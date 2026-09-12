@@ -76,7 +76,10 @@ async function getFromDb(slug: string, premade: PremadeMode = "hide"): Promise<S
   try {
     const { data: site } = await client
       .from("sites")
-      .select("id, slug, status, published, settings")
+      /* ★★★ owner_id·anon_id 를 «반드시» 함께 읽는다 (2026-09-13 사고로 배운 것).
+         ⚠ 이 둘이 없으면 isPremade 가 「주인이 아무도 없다」로 읽어 **모든 사이트를 견본으로**
+           판정한다. 실제로 그래서 손님 사이트가 통째로 404 가 됐다. 빼지 마라. */
+      .select("id, slug, status, published, settings, owner_id, anon_id")
       .eq("slug", slug)
       .maybeSingle();
     if (!site || !site.published) return null;
