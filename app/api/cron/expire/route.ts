@@ -1,6 +1,8 @@
 /* 기간 출처: lib/trial.ts — 아래 주석의 날짜 숫자는 «설명»이고 판정은 전부 상수를 쓴다 */
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
+import { isPremade, premadeReason } from "@/lib/premade";
+import { purgeSnsForSite } from "@/lib/sns/maintenance";
 import { sendSmsRaw } from "@/lib/notify";
 import * as storage from "@/lib/storage";
 import {
@@ -50,12 +52,18 @@ export async function GET(req: Request) {
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
     .from("sites")
-    .select("slug, business_name, settings, trial_ends_at")
+    /* ★ 주인 정보를 함께 읽는다 — 미리 만들어 둔 곳에는 안 보낸다 (2026-09-13) */
+    .select("slug, business_name, settings, trial_ends_at, owner_id, anon_id")
     .eq("status", "trial")
     .gte("trial_ends_at", new Date(now).toISOString())
     /* ⚠ 창도 숫자를 적지 않는다 — lib/trial.ts 가 내려 준다 (2026-09-13) */
     .lte("trial_ends_at", new Date(now + TRIAL_NOTICE_WINDOW_DAYS * day).toISOString());
   for (const s of soon ?? []) {
+    /* ★★ 미리 만들어 둔 곳에는 만료 안내도 안 보낸다 — 그 가게는 우리와 계약한 적이 없다 */
+    if (isPremade(s)) {
+      console.log(JSON.stringify({ evt: "expire_skip_premade", slug: s.slug, why: premadeReason(s) }));
+      continue;
+    }
     const left = Math.ceil((new Date(s.trial_ends_at).getTime() - now) / day);
     /* ★ 「3일 전·1일 전」을 여기 적지 않는다. 바꾸려면 lib/trial.ts 의 TRIAL_NOTICE_DAYS 만 고친다 */
     if (!(TRIAL_NOTICE_DAYS as readonly number[]).includes(left)) continue;
@@ -71,8 +79,16 @@ export async function GET(req: Request) {
     .update({ status: "expired", suspended_at: new Date(now).toISOString() })
     .eq("status", "trial")
     .lt("trial_ends_at", new Date(now).toISOString())
-    .select("slug");
+    .select("id, slug");
   out.suspended = exp?.length ?? 0;
+
+  /* ★★ 정지된 사이트의 SNS 열쇠도 없앤다 (2026-09-13 지시 E2).
+     ⚠ 정지는 「손님에게 안 보인다」인데, 그 상태에서도 우리는 그 사장님 계정에
+       글을 올릴 수 있는 열쇠를 쥐고 있었다. */
+  for (const s of exp ?? []) {
+    try { await purgeSnsForSite(s.id as string, "무료 종료로 정지"); }
+    catch (e) { console.error(JSON.stringify({ evt: "expire_sns_purge_error", slug: s.slug, err: String(e).slice(0, 160) })); }
+  }
 
   /**
    * ★★★ **2-2) 해지한 사장님 — 돈 낸 기간이 지나면 정지한다.** (2026-09-13 회장님 결정 1)

@@ -9,6 +9,7 @@ import {
   type Weekly,
 } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
+import { isPremade, premadeReason } from "@/lib/premade";
 import { refreshInstagramTokens, refreshTiktokTokens, finishStuckPosts, checkPublishedAlive } from "@/lib/sns/maintenance";
 
 export const dynamic = "force-dynamic";
@@ -50,13 +51,14 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const out = {
     looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0,
-    samePhone: 0, sameWeekPhone: 0, stampFailed: 0,
+    samePhone: 0, sameWeekPhone: 0, stampFailed: 0, skippedPremade: 0,
   };
 
   /* 살아 있는 사이트만 본다 — 정지된 곳에 촬영을 독려하면 화만 난다 */
   const { data: sites, error } = await sb
     .from("sites")
-    .select("id, slug, business_name, settings, status, trial_ends_at, suspended_at, updated_at")
+    /* ★ 주인 정보를 함께 읽는다 — 「미리 만들어 둔 곳인가」를 판정해야 한다 (2026-09-13) */
+    .select("id, slug, business_name, settings, status, trial_ends_at, suspended_at, updated_at, owner_id, anon_id")
     .in("status", ["trial", "active"]);
   if (error) {
     console.error(JSON.stringify({ evt: "weekly_query_failed", err: error.message.slice(0, 160) }));
@@ -77,6 +79,22 @@ export async function GET(req: Request) {
 
   for (const s of sites ?? []) {
     out.looked++;
+
+    /**
+     * ★★★ **미리 만들어 둔 홈페이지에는 한 통도 보내지 않는다.** (2026-09-13 상무님 지적)
+     *
+     * ⚠ 위저드가 네이버·카카오에서 **그 가게의 진짜 번호**를 불러와 넣는다. 그리고 주 1회는
+     *   켜진 채로 심긴다. 그런데 여기서 **「주인이 있는가」를 안 봤다** —
+     *   목요일에 만든 견본이 **다음 날 아침 9시**에 곧바로 대상이 됐다.
+     *   계약도 안 한 가게 사장님께 우리 이름으로 문자가 가는 길이었다.
+     * ★ 판정은 `lib/premade.ts` 한 곳에 있다. 만료 크론도 같은 것을 쓴다.
+     */
+    if (isPremade(s)) {
+      out.skippedPremade++;
+      console.log(JSON.stringify({ evt: "weekly_skip_premade", slug: s.slug, why: premadeReason(s) }));
+      continue;
+    }
+
     const settings = (s.settings as Record<string, unknown>) ?? {};
     const w = readWeekly(settings);
     if (!shouldSend(w, now)) continue;
@@ -115,6 +133,7 @@ export async function GET(req: Request) {
        이번 주에 보냈으면 건너뛴다. 그리고 보낸 뒤에는 **형제 전부에** 시각을 찍는다. */
   const byPhone = new Map<string, { id: string; settings: Record<string, unknown>; w: Weekly }[]>();
   for (const s of sites ?? []) {
+    if (isPremade(s)) continue;                     // ★ 형제 목록에도 넣지 않는다
     const settings = (s.settings as Record<string, unknown>) ?? {};
     const w = readWeekly(settings);
     const phone = (w?.phone?.trim() || (settings.phone as string) || "").trim();

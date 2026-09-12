@@ -14,6 +14,7 @@ import {
   readWeekly, shouldSend, deadlineText, hasBannedPhrase, withOptOut, pickOnePerPhone, phoneKey,
   type Weekly,
 } from "../lib/weekly";
+import { isPremade, premadeReason } from "../lib/premade";
 
 const env = Object.fromEntries(
   readFileSync(".env.local", "utf8").split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l))
@@ -43,7 +44,7 @@ async function main() {
   const at = process.argv[2] ? new Date(process.argv[2]) : new Date();
 
   const r = await fetch(
-    `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/sites?select=id,slug,business_name,settings,status,trial_ends_at,suspended_at,updated_at&status=in.(trial,active)`,
+    `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/sites?select=id,slug,business_name,settings,status,trial_ends_at,suspended_at,updated_at,owner_id,anon_id&status=in.(trial,active)`,
     { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
   );
   const sites = await r.json();
@@ -52,6 +53,8 @@ async function main() {
   const skipped: string[] = [];
 
   for (const s of sites) {
+    /* ★ 미리 만들어 둔 곳은 한 통도 안 나간다 (2026-09-13 지시 A) */
+    if (isPremade(s)) { skipped.push(`${s.slug} — 미리 만든 곳 (${premadeReason(s)})`); continue; }
     const settings = s.settings ?? {};
     const w = readWeekly(settings);
     if (!shouldSend(w, at)) { skipped.push(`${s.slug} — 때가 아님 (on=${w?.on} · 요일=${w?.weekday})`); continue; }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
 import { hasRequired, recordConsents } from "@/lib/consents";
+import { isAdmin } from "@/lib/admin-auth";
 import { WEEKLY_DEFAULT } from "@/lib/weekly";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
@@ -99,7 +100,16 @@ export async function POST(req: Request) {
   /* ★ 한 계정에 홈페이지 하나 (config/limits.ts SITES_PER_ACCOUNT).
      ⚠ AI 를 부르기 **전에** 막는다. 만들고 나서 막으면 돈만 나가고 버리게 된다.
      ⚠ 로그인 안 한 익명 생성은 막지 않는다 — 지금 온보딩이 그 순서라 막으면 가입이 끊긴다. */
-  if (user) {
+  /**
+   * ★★ **운영자는 «미리 만드는 사람»이다.** (2026-09-13 회장님 지시 B2)
+   *
+   * 회장님이 콜드콜용 견본을 여러 개 만들어 두셔야 하는데, 한 계정 1곳 제한에 막혀
+   * **두 번째부터 409** 가 났다. 운영자 쿠키가 있으면 그 제한을 건너뛴다.
+   * ⚠ 사장님은 **1곳 그대로**다 — 제한을 없애는 것이 아니라 운영자만 예외다.
+   */
+  const admin = await isAdmin();
+
+  if (user && !admin) {
     const { count: mine } = await sb
       .from("sites").select("id", { count: "exact", head: true })
       .eq("owner_id", user.id);
@@ -157,7 +167,18 @@ export async function POST(req: Request) {
                ①첫 문자의 【받지 않으시려면】 줄(lib/weekly.ts OPT_OUT_LINE)
                ②편집화면 「연결」 탭의 주 1회 촬영 알림 스위치.
                둘 중 하나라도 없어지면 이 기본값은 **광고 무단 발송**이 된다. 같이 지켜라. */
-          weekly: { ...WEEKLY_DEFAULT },
+          /**
+           * ★★★ **미리 만든 곳은 «꺼진 채»로 만든다.** (2026-09-13 상무님 지적 · 지시 A2)
+           *
+           * ⚠ 위저드가 네이버·카카오에서 **그 가게의 진짜 번호**를 불러와 위 `phone` 에 넣는다.
+           *   그 상태로 켜 두면 **계약도 안 한 가게 사장님께 다음 날 아침 9시에 문자**가 간다.
+           * ★ 운영자 쿠키로 만든 것 = 「미리 만든 견본」이다. 꺼 두고, 표시를 남긴다.
+           *   사장님이 가져가면(claim) 그때 표시를 떼고 켠다.
+           * ⚠ 표시(`premade`)가 진짜 자물쇠다 — 「주인이 아무도 없다」만으로는 못 막는다.
+           *   브라우저로 만들면 `anon_id` 가 붙기 때문이다(lib/premade.ts 주석 참고).
+           */
+          ...(admin ? { premade: true } : {}),
+          weekly: { ...WEEKLY_DEFAULT, ...(admin ? { on: false } : {}) },
         },
         draft: doc,
         published: doc,
