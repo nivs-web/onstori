@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
+import { ReviewSheet } from "./review-sheet";
 import { TextMeter } from "./text-meter";
 import type { SnsProvider } from "@/lib/sns/types";
 
@@ -72,7 +73,13 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   /** 영상 메뉴 안의 두 갈래 — 「내 영상」과 「SNS 연결」 */
   const [view, setView] = useState<"list" | "sns">("list");
   /** 올릴 곳으로 고른 SNS. ④ 올리기가 이 값을 쓴다 */
+  /** ⚠ 로그인 안 한 사장님의 소유 증명. 사생활 보호 모드에서는 읽기가 «던지므로» 감싼다 */
+  const anonId = (() => { try { return localStorage.getItem("onstori:anonId") ?? ""; } catch { return ""; } })();
   const [snsPicked, setSnsPicked] = useState<string[]>([]);
+  /** ★ 검토 화면이 쓸 «전체» 판정. igReady·ttReady 는 카드의 한 걸음 버튼용이라 따로 둔다 */
+  const [snsAll, setSnsAll] = useState<{ provider: SnsProvider; name: string; ok: boolean; why: string }[]>([]);
+  /** 지금 「다듬어서 등록」을 열어 둔 영상 (한 번에 하나만 연다) */
+  const [reviewFor, setReviewFor] = useState<string | null>(null);
 
   /** 지금 홈페이지에 걸려 있는 영상 주소 — doc 이 진실이다 */
   const attachedUrl = (() => {
@@ -188,7 +195,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
           body: JSON.stringify({ slug, anonId }),
         });
         if (!r.ok) { if (alive) setIgReady({ ok: false, why: "" }); return; }
-        type Row = { provider: string; available: { ok: boolean; why?: string }; connection: { status: string; disclaimerAgreedAt: string | null } | null };
+        type Row = { provider: string; name: string; available: { ok: boolean; why?: string }; connection: { status: string; disclaimerAgreedAt: string | null } | null };
         const d = (await r.json()) as { items?: Row[] };
         if (!alive) return;
         /* 인스타·틱톡을 **같은 규칙**으로 판정한다 — 한쪽만 고치면 다른 쪽이 조용히 어긋난다 */
@@ -206,6 +213,16 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         };
         setIgReady(verdict("instagram", "인스타그램"));
         setTtReady(verdict("tiktok", "틱톡"));
+        /* ★★ 검토 화면은 **모든 곳**을 보여 준다 — 못 고르는 곳도 «왜»와 함께 보여야
+           사장님이 「고장인가」 하지 않는다. 단 **틱톡은 뺀다**(아래 이유). */
+        setSnsAll(
+          (d.items ?? [])
+            .filter((x) => x.provider !== "tiktok")
+            .map((x) => {
+              const v = verdict(x.provider, x.name);
+              return { provider: x.provider as SnsProvider, name: x.name, ok: v.ok, why: v.why };
+            }),
+        );
       } catch { if (alive) { setIgReady({ ok: false, why: "" }); setTtReady({ ok: false, why: "" }); } }
     })();
     return () => { alive = false; };
@@ -213,7 +230,12 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
 
   type TtChoice = { title: string; privacyLevel: string; disableComment: boolean; disableDuet: boolean; disableStitch: boolean; brandOrganic: boolean; brandedContent: boolean };
 
-  async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice) {
+  /**
+   * @param captionOverride 검토 화면이 만든 «최종 글»(해시태그까지 붙은 것).
+   *   ⚠ `cap` 상태를 거치지 않고 곧바로 넘긴다 — setState 는 다음 렌더에나 반영돼서,
+   *     여기서 `cap[entryId]` 를 읽으면 **방금 고친 글이 아니라 이전 글**이 나간다.
+   */
+  async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice, captionOverride?: string) {
     /* ★★ **[간단 등록]에서는 틱톡을 뺀다** (2026-09-12 지시 8).
        틱톡은 올릴 때마다 공개범위를 직접 골라야 해서 «5초 흐름»에 들어갈 수 없다.
        ⚠ 조용히 빼지 않는다 — 아래 결과 줄에 왜 빠졌는지 적는다. 서버도 같은 규칙으로 막는다. */
@@ -229,7 +251,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
       try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
       const r = await fetch("/api/sns/publish", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId, entryId, providers: send, caption: cap[entryId]?.trim() || undefined, tiktok }),
+        body: JSON.stringify({ slug, anonId, entryId, providers: send, caption: captionOverride?.trim() || cap[entryId]?.trim() || undefined, tiktok }),
       });
       const d = (await r.json().catch(() => ({}))) as { results?: PubRow[]; error?: string };
       if (!r.ok) {
@@ -400,7 +422,27 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                       {busyId === it.id ? "거는 중…" : "홈페이지에 걸기"}
                     </button>
                   )}
+                  {/* ★★ 「다듬어서 등록」 (2026-09-12 지시 C2).
+                      ⚠ 한 걸음 [인스타그램에 올리기] 는 **그대로 둔다** — 메타 심사의
+                        「성공한 호출 1회」가 그 길로 나오기 때문이다. 이 버튼은 그 옆의 «다른 길»이다. */}
+                  <button type="button"
+                    onClick={() => setReviewFor((x) => (x === it.id ? null : it.id))}
+                    className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
+                    {reviewFor === it.id ? "덮기" : "다듬어서 등록"}
+                  </button>
                 </div>
+
+                {reviewFor === it.id && (
+                  <ReviewSheet
+                    slug={slug}
+                    anonId={anonId}
+                    entryId={it.id}
+                    ready={snsAll}
+                    busy={pubBusy === it.id}
+                    onCancel={() => setReviewFor(null)}
+                    onSubmit={(text, providers) => { void publish(it.id, providers, undefined, text); }}
+                  />
+                )}
 
                 {/* ★★ 인스타그램 한 걸음 올리기 (2026-09-12 회장님 지시).
                     메타 심사는 «성공한 호출 1회»가 있어야 시작되고, 그 기록이 잡히는 데 **이틀**이 걸린다.

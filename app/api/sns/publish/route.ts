@@ -73,14 +73,35 @@ export async function POST(req: Request) {
   }
   const siteId = r.site.id as string;
 
-  const { data: row } = await sbAdmin().from("story_entries")
-    .select("id, title, question, video_key").eq("id", entryId).eq("site_id", siteId).maybeSingle();
+  /* ⚠ `caption` 칸은 마이그레이션(20260912190000) 이후에 생긴다. 아직이면 이 select 가 통째로
+     실패해 **영상을 못 찾았다**가 된다 — 그래서 실패하면 옛 칸들로 한 번 더 묻는다.
+     ★ 마이그레이션이 적용되면 첫 번째가 성공하고 이 폴백은 그냥 안 쓰인다. */
+  type EntryRow = { title?: string; question?: string; video_key?: string; caption?: string };
+  let row: EntryRow | null = null;
+  {
+    const withCaption = await sbAdmin().from("story_entries")
+      .select("id, title, question, video_key, caption").eq("id", entryId).eq("site_id", siteId).maybeSingle();
+    if (withCaption.error) {
+      const old = await sbAdmin().from("story_entries")
+        .select("id, title, question, video_key").eq("id", entryId).eq("site_id", siteId).maybeSingle();
+      row = (old.data ?? null) as EntryRow | null;
+    } else row = (withCaption.data ?? null) as EntryRow | null;
+  }
   const videoKey = (row?.video_key as string) ?? "";
   if (!videoKey) return NextResponse.json({ error: "그 영상을 찾지 못했어요. 목록을 새로 고쳐 주세요" }, { status: 404 });
 
+  /* ★ 제목은 질문문이어도 괜찮다 — 영상 제목으로 읽힌다 */
   const title = ((row?.question as string) || (row?.title as string) || "사장님 이야기").slice(0, 100);
-  /* ★ 사장님이 쓴 글이 있으면 그것을 쓴다. 없으면 예전처럼 질문·제목. (2026-09-12) */
-  const caption = (typed?.trim() || (row?.question as string) || (row?.title as string) || "").slice(0, 2200);
+  /**
+   * ★★ 글(본문)의 순서 — **이번에 보낸 것 → 저장해 둔 것 → 제목 → 질문**. (2026-09-12 지시 C2)
+   *
+   * ⚠ 전에는 «질문 문장»이 제목보다 앞이었다. 그래서 인스타 본문에
+   *   「오늘 가장 기억에 남는 일은 무엇이었나요?」가 **그대로** 올라갔다 — 사장님이 쓴 글이 아니다.
+   * ★ 이제 질문문은 **맨 마지막 폴백**이다. 그 앞에 사장님이 검토 화면에서 고쳐 둔 글이 온다.
+   */
+  const caption = (
+    typed?.trim() || (row?.caption as string)?.trim() || (row?.title as string) || (row?.question as string) || ""
+  ).slice(0, 2200);
 
   const results = await Promise.all(providers.map((p) => one(p)));
   return NextResponse.json({ results });
