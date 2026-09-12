@@ -89,7 +89,7 @@ export function ClaimClient({
       )}
 
       <p className="mt-8 t-small opacity-60">
-        미리 보기: <a className="underline" href={`/${slug}`} target="_blank" rel="noreferrer">onstori.com/{slug}</a>
+        미리 보기: <a className="underline" href={`/g/${slug}`} target="_blank" rel="noreferrer">onstori.com/g/{slug}</a>
       </p>
     </main>
   );

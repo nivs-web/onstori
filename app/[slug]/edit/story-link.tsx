@@ -9,7 +9,7 @@ import { useState } from "react";
  */
 export function StoryLinkButton({ slug, phone }: { slug: string; phone: string }) {
   const [busy, setBusy] = useState(false);
-  const [res, setRes] = useState<{ sent: boolean; link: string; phone: string | null; question: string } | null>(null);
+  const [res, setRes] = useState<{ sent: boolean; link: string; phone: string | null; question: string; blocked: string | null } | null>(null);
   const [err, setErr] = useState("");
 
   async function go() {
@@ -18,9 +18,9 @@ export function StoryLinkButton({ slug, phone }: { slug: string; phone: string }
       let anonId: string | undefined;
       try { anonId = localStorage.getItem("onstori:anonId") ?? undefined; } catch {}
       const r = await fetch("/api/story/send-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, anonId }) });
-      const d = (await r.json()) as { error?: string; sent?: boolean; link?: string; phone?: string | null; question?: string };
+      const d = (await r.json()) as { error?: string; sent?: boolean; link?: string; phone?: string | null; question?: string; blocked?: string | null };
       if (!r.ok || !d.link) throw new Error(d.error ?? "링크를 만들지 못했어요");
-      setRes({ sent: !!d.sent, link: d.link, phone: d.phone ?? null, question: d.question ?? "" });
+      setRes({ sent: !!d.sent, link: d.link, phone: d.phone ?? null, question: d.question ?? "", blocked: d.blocked ?? null });
     } catch (e) { setErr(e instanceof Error ? e.message : "실패"); }
     setBusy(false);
   }
@@ -38,7 +38,7 @@ export function StoryLinkButton({ slug, phone }: { slug: string; phone: string }
       </div>
       {res && (
         <div className="mt-3 rounded-lg bg-white/10 p-3 t-caption leading-relaxed">
-          <p>{res.sent ? `문자를 보냈어요 (${res.phone}). 폰에서 링크를 브라우저로 열어 주세요.` : "지금 이 기기에서 바로 열 수도 있어요."}</p>
+          <p>{res.blocked ? res.blocked : res.sent ? `문자를 보냈어요 (${res.phone}). 폰에서 링크를 브라우저로 열어 주세요.` : "지금 이 기기에서 바로 열 수도 있어요."}</p>
           <p className="mt-1 opacity-80">오늘의 질문: {res.question}</p>
           <a href={res.link} target="_blank" rel="noopener" className="mt-2 inline-block rounded-full border border-white/40 px-3 py-1 font-bold">지금 열기 ↗</a>
         </div>

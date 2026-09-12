@@ -1,9 +1,11 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { SITES_PER_ACCOUNT } from "@/config/limits";
 import { sbAdmin } from "@/lib/db-admin";
 import { verifyHandover } from "@/lib/handover";
 import { getSessionUser } from "@/lib/supabase/server";
+import { TRIAL_DAYS } from "@/lib/trial";
 import { WEEKLY_DEFAULT } from "@/lib/weekly";
 
 /**
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
 
   const { data: site, error: readErr } = await sb
     .from("sites")
-    .select("id, slug, business_name, owner_id, settings")
+    .select("id, slug, business_name, owner_id, settings, status, trial_ends_at")
     .eq("slug", slug)
     .maybeSingle();
   if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 });
@@ -82,12 +84,52 @@ export async function POST(req: Request) {
    * ⚠ 첫 문자 끝에는 「이 번호가 아니면 STOP」 이 붙는다(lib/weekly.ts `withOptOut`).
    */
   const settings = { ...((site.settings as Record<string, unknown> | null) ?? {}) };
+
+  /* ① 견본 표시를 뗀다 — 이것이 안 떨어지면 알림이 한 통도 안 간다 */
   delete settings.premade;
+
+  /* ② 주 1회 알림을 새 사장님 기본값으로 (지금 기본은 «메일») */
   settings.weekly = { ...WEEKLY_DEFAULT };
+
+  /**
+   * ③ **`lastSentAt` 을 지운다.** (2026-09-13 상무님 지적 9)
+   * ⚠ 견본으로 있는 동안 시험 삼아 보낸 기록이 남아 있으면 새 사장님은 **첫 주를 통째로
+   *   건너뛴다**(「이번 주에 이미 보냄」으로 읽힌다). 넘겨받고 한 주를 조용히 굶는 것이 첫인상이 된다.
+   */
+  delete (settings.weekly as Record<string, unknown>).lastSentAt;
+
+  /**
+   * ④ **삭제 예고 기록을 비운다.** (상무님 지적 9)
+   * ⚠ 견본이 만료 근처까지 갔다가 예고를 받은 적이 있으면 그 표가 남는다. 남아 있으면
+   *   새 사장님께 **다시 예고하지 않는다** — 「예고 없이 지워졌다」가 되는 자리다.
+   */
+  delete settings.delete_notices;
+
+  /**
+   * ⑤ **번호는 «비공개»로 시작한다.** (2026-09-13 대표님 결정 3)
+   * ⚠ 그 번호는 우리가 네이버·카카오에서 불러온 값이다. 사장님이 「공개해도 좋다」고
+   *   하신 적이 없다. 켜는 것은 사장님 몫이다.
+   */
+  delete settings.phonePublic;
+
+  /**
+   * ⑥⑦ **무료 기간을 «오늘부터» 다시 센다.** (상무님 지적 9)
+   * ⚠ 견본은 만들어 둔 날부터 시간이 갔다. 그대로 넘기면 사장님이 받자마자 며칠이 깎여 있거나,
+   *   이미 만료돼 **정지된 홈페이지를 넘겨받는다.** `suspended_at` 도 함께 비운다.
+   * ★ 기간의 단일 출처는 `lib/trial.ts` 다 — 숫자를 여기 적지 않는다(불변 규칙 9).
+   */
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString();
 
   const { data: done, error: upErr } = await sb
     .from("sites")
-    .update({ owner_id: user.id, anon_id: null, settings })
+    .update({
+      owner_id: user.id,
+      anon_id: null,
+      settings,
+      status: "trial",
+      trial_ends_at: trialEndsAt,
+      suspended_at: null,
+    })
     .eq("id", site.id)
     .is("owner_id", null)     /* ★ 「한 번만」은 이 한 줄이 지킨다 — 빼지 마라 */
     .select("slug");
@@ -96,6 +138,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "방금 다른 분이 먼저 가져가셨어요." }, { status: 409 });
   }
 
-  console.log(JSON.stringify({ evt: "site_handover", slug, business: site.business_name }));
+  /* ★★ 방금까지 견본이라 `/{상호}` 가 **없는 곳**이었다(lib/sites.ts PremadeMode).
+     이제 사장님 것이 됐으니 곧바로 열어 준다 — 안 풀면 최대 60초 동안 404 다. */
+  try { revalidatePath(`/${slug}`); revalidatePath(`/g/${slug}`); } catch { /* 캐시 해제 실패가 넘겨주기를 무르게 하지 않는다 */ }
+
+  console.log(JSON.stringify({ evt: "site_handover", slug, business: site.business_name, trialEndsAt }));
   return NextResponse.json({ ok: true, slug });
 }

@@ -79,7 +79,23 @@ async function main() {
 
   for (const s of targets) {
     const settings = { ...(s.settings ?? {}) };
-    if (mode === "on") settings.premade = true; else delete settings.premade;
+    /**
+     * ★★ **자물쇠를 «둘» 건다.** (2026-09-13 회장님 지시)
+     *   ① `premade` 표시 — 크론이 건너뛴다
+     *   ② `weekly.on = false` — 표시를 실수로 떼도 문자가 안 나간다
+     * ⚠ 전에는 ①만 걸었다. 자물쇠 하나는 자물쇠가 아니다.
+     * ★ 사장님이 가져가시면(`api/auth/handover`) 둘 다 원래대로 돌아온다 —
+     *   표시를 떼고 주 1회를 기본값으로 켠다. 그러니 여기서 꺼도 잃는 것이 없다.
+     */
+    const weekly = { ...((settings.weekly as Record<string, unknown>) ?? {}) };
+    if (mode === "on") {
+      settings.premade = true;
+      weekly.on = false;
+    } else {
+      delete settings.premade;
+      weekly.on = true;
+    }
+    settings.weekly = weekly;
     const r = await fetch(`${url}/rest/v1/sites?id=eq.${s.id}`, {
       method: "PATCH", headers: { ...h, Prefer: "return=minimal" },
       body: JSON.stringify({ settings }),

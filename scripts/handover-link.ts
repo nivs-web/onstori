@@ -53,6 +53,8 @@ async function main() {
     if (row.owner_id) { console.log(`❌ ${slug} — 이미 주인이 계세요. 링크를 뽑지 않습니다`); continue; }
     console.log(`\n■ ${row.business_name ?? slug} (${slug})`);
     console.log(`  ${handoverUrl(slug)}`);
+    /* ★ 견본은 /g/ 에 있다 — 손님 주소(/{상호})로는 안 열린다(lib/sites.ts PremadeMode) */
+    console.log(`  미리 보기: https://onstori.com/g/${slug}`);
     console.log(`  ⚠ ${HANDOVER_DAYS}일간 유효 · 한 번 쓰이면 죽습니다 · 아는 사람이 주인이 됩니다`);
   }
   console.log("");

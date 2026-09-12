@@ -1,4 +1,5 @@
 import { NextResponse, after } from "next/server";
+import { isPremade, premadeReason } from "@/lib/premade";
 import { createHash, randomUUID } from "crypto";
 import sharp from "sharp";
 import { sbAdmin } from "@/lib/db-admin";
@@ -83,11 +84,25 @@ export async function POST(req: Request) {
   // ③ 사이트 조회 — 살아있는 사이트만 접수한다
   const { data: site } = await sb
     .from("sites")
-    .select("id, slug, business_name, settings, status")
+    /* ★ 주인 정보를 함께 읽는다 — 「미리 만들어 둔 곳인가」를 판정해야 한다 (2026-09-13 상무님 지적 8) */
+    .select("id, slug, business_name, settings, status, owner_id, anon_id")
     .eq("slug", slug)
     .in("status", ["trial", "active"])
     .maybeSingle();
   if (!site) return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+
+  /**
+   * ★★ **미리 만들어 둔 견본에는 문의를 받지 않는다.** (2026-09-13 상무님 지적 8)
+   *
+   * ⚠ 이 창구는 **화면과 무관하게 열려 있다.** 견적 문의 칸을 안 그린 홈페이지라도
+   *   주소만 알면 넣을 수 있다. 견본은 **주인이 없으므로** 접수돼도 아무도 못 본다 —
+   *   그런데 저장은 되고 사진까지 올라간다. 받아 둘 이유가 없는 자료다.
+   * ⚠ 손님에게는 «없는 곳»과 같은 404 를 준다. 어떤 곳이 견본인지 알려 주지 않는다.
+   */
+  if (isPremade(site)) {
+    console.log(JSON.stringify({ evt: "inquiry_skip_premade", slug: site.slug, why: premadeReason(site) }));
+    return NextResponse.json({ ok: false, error: "not-found" }, { status: 404 });
+  }
 
   // ④ 차단 번호 → 403, 10분 내 같은 번호 재접수 → 409
   const settings = ((site.settings as Settings) ?? {}) as Settings;
