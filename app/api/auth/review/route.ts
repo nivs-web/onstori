@@ -83,6 +83,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "로그인을 마치지 못했어요." }, { status: 500 });
     }
 
+    /**
+     * ★★★ **심사관에게 «볼 것»을 쥐여 준다.** (2026-09-13)
+     *
+     * ⚠ 여기까지 오면 세션은 열린다. 그런데 그 계정이 **가진 사이트가 하나도 없으면**
+     *   심사관은 로그인하자마자 «빈 화면»을 본다 — 연결도 업로드도 해 볼 수가 없다.
+     *   심사는 「이 앱이 정말 그 일을 하는가」를 보는 것이라, 빈 화면은 곧 반려다.
+     *
+     * ★ 그래서 심사용 사이트 하나를 이 계정에 붙인다. 조건을 좁게 건다:
+     *   ① `REVIEW_SITE` 가 **있어야** 한다 — 없으면 아무 일도 안 한다(열쇠 없으면 그 길도 없다)
+     *   ② 그 사이트의 주인이 **아직 없을 때만** 붙인다 — 남의 사이트를 빼앗지 않는다
+     *   ③ 이미 이 계정 것이면 그냥 둔다
+     *
+     * ⚠ 붙이기에 실패해도 **로그인은 막지 않는다.** 심사관이 못 들어오는 것이 더 나쁘다.
+     */
+    try {
+      const wanted = process.env.REVIEW_SITE?.trim();
+      const { data: who } = await sb.auth.getUser();
+      const uid = who?.user?.id;
+      if (wanted && uid) {
+        const { data: site } = await admin.from("sites")
+          .select("id, owner_id").eq("slug", wanted).maybeSingle();
+        if (site && !site.owner_id) {
+          const { error: claimErr } = await admin.from("sites")
+            .update({ owner_id: uid }).eq("id", site.id).is("owner_id", null);
+          console.log(JSON.stringify({
+            evt: claimErr ? "review_site_claim_failed" : "review_site_claimed",
+            slug: wanted, err: claimErr?.message?.slice(0, 120),
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn(JSON.stringify({ evt: "review_site_claim_error", err: String(e).slice(0, 160) }));
+    }
+
     console.log(JSON.stringify({ evt: "review_login_ok" }));
     return NextResponse.json({ ok: true });
   } catch (e) {
