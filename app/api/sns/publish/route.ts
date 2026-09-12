@@ -20,6 +20,15 @@ const Input = z.object({
   /* ★ 사장님이 직접 쓴 글 (2026-09-12). 안 보내면 예전처럼 질문·제목을 쓴다.
      ⚠ 서버가 다시 자르고, X 는 서버가 링크를 지운다 — 화면 값을 그대로 믿지 않는다. */
   caption: z.string().max(2200).optional(),
+  /* ★ 틱톡 전용 — 사장님이 매번 고른 값 (2026-09-12 지시 8).
+     ⚠ 다른 SNS 는 이 값을 보지 않는다. 안 보내도 그쪽은 그대로 돈다. */
+  tiktok: z.object({
+    title: z.string().max(2200).default(""),
+    privacyLevel: z.string().min(1).max(64),
+    disableComment: z.boolean().default(false),
+    disableDuet: z.boolean().default(false),
+    disableStitch: z.boolean().default(false),
+  }).optional(),
 });
 
 /**
@@ -38,7 +47,18 @@ const Input = z.object({
 export async function POST(req: Request) {
   const parsed = Input.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
-  const { slug, anonId, entryId, providers, caption: typed } = parsed.data;
+  const { slug, anonId, entryId, providers, caption: typed, tiktok: ttChoice } = parsed.data;
+
+  /* ★★ **[간단 등록]에서는 틱톡을 못 고른다** (2026-09-12 회장님 지시 8).
+     틱톡은 올릴 때마다 공개범위를 직접 골라야 해서(심사 요건) «5초 흐름»에 들어갈 수 없다.
+     화면도 막지만 **서버가 다시 막는다** — 화면 값을 믿지 않는다(불변 규칙 4의 정신).
+     ⚠ 조용히 빼지 않는다. 왜 안 되는지 말한다. */
+  if (providers.includes("tiktok") && !ttChoice) {
+    return NextResponse.json(
+      { error: "틱톡은 올릴 때마다 제목·공개범위를 직접 고르셔야 해요. 영상 카드의 [틱톡에 올리기]를 눌러 주세요." },
+      { status: 400 },
+    );
+  }
 
   const r = await loadOwnedSite(slug, anonId);
   if ("error" in r) {
@@ -85,11 +105,16 @@ export async function POST(req: Request) {
       return say("failed", ERROR_SAY.QUOTA_EXCEEDED, { kind: "QUOTA_EXCEEDED" });
     }
 
-    /* 인스타만: 규격 검사 → 공개 복사 */
+    /* ★ 인스타·틱톡: 규격 검사 → 공개 복사.
+       둘 다 «우리가 준 공개 주소를 그쪽이 가져가는» 방식이다(PULL_FROM_URL).
+       ⚠ 유튜브는 파일을 직접 보내므로 복사하지 않는다 — 쓸데없이 공개로 내보내지 않는다.
+       ⚠ 틱톡은 그 주소의 **도메인이 틱톡에 인증돼 있어야** 받는다. 안 돼 있으면
+         `url_ownership_unverified` 로 거절한다 — 화면의 [자세한 이유 보기]에 그대로 뜬다. */
+    const needsPublicUrl = provider === "instagram" || provider === "tiktok";
     let publicUrl = "";
     let publicKey: string | null = null;
     let igSpec: { bytes: number | null; width: number | null; moovFirst: boolean | null; container: string | null } | null = null;
-    if (provider === "instagram") {
+    if (needsPublicUrl) {
       const chk = await checkForInstagram(videoKey);
       /* ★★ 잰 값을 **성공해도 함께 돌려준다** (2026-09-12 지시 3).
          첫 실제 게시에서 「왜 거절당했는지」를 사람이 눈으로 대조해야 한다.
@@ -102,7 +127,7 @@ export async function POST(req: Request) {
         await storage.copyToPublic(videoKey, pk, "video/mp4");
       } catch (e) {
         console.error(JSON.stringify({ evt: "sns_copy_failed", provider, err: String(e).slice(0, 160) }));
-        return say("failed", "영상을 인스타그램이 가져갈 수 있는 자리로 옮기지 못했어요.", { kind: "TRANSIENT" });
+        return say("failed", `영상을 ${name} 이 가져갈 수 있는 자리로 옮기지 못했어요.`, { kind: "TRANSIENT" });
       }
       publicKey = pk;
       publicUrl = storage.publicUrl(pk);
@@ -129,7 +154,11 @@ export async function POST(req: Request) {
     if (!post) return say("failed", "기록을 만들지 못했어요. 잠시 후 다시 시도해 주세요.", { kind: "TRANSIENT" });
 
     await db.updatePost(post.id, { status: "uploading", attempts: (post.attempts ?? 0) + 1 });
-    const out = await a.upload({ siteId, entryId, publicUrl, sourceKey: videoKey, title: safeTitle, caption: safeCaption });
+    const out = await a.upload({
+      siteId, entryId, publicUrl, sourceKey: videoKey, title: safeTitle, caption: safeCaption,
+      /* ★ 그 SNS 에만 있는 것. 지금은 틱톡뿐이다 — 다른 어댑터는 이 칸을 보지 않는다 */
+      extra: provider === "tiktok" ? ttChoice : undefined,
+    });
 
     if (out.state === "published") {
       await db.updatePost(post.id, {

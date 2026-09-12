@@ -260,6 +260,11 @@ export async function listPostsForEntry(siteId: string, entryId: string): Promis
  */
 export const SNS_LIMITS: Record<string, { key: (siteId: string) => string; window: number; max: number }[]> = {
   instagram: [{ key: (s) => `ig:${s}`, window: 86400, max: 5 }],
+  /* ★ 틱톡 (2026-09-12). 인스타와 같은 하루 5개로 맞춘다.
+     ⚠ 없으면 `readQuota` 가 `{remaining:0, limit:0}` 을 돌려줘 화면이 **「오늘 0개 더 올릴 수 있어요」**
+       라고 거짓말한다 — 실제로는 한도가 없는데 못 올리는 것처럼 보인다.
+     ⚠ 심사 전(unaudited) 앱은 틱톡 쪽 한도가 따로 더 빡빡하다. 그건 그쪽이 거절로 알려 준다. */
+  tiktok: [{ key: (s) => `tt:${s}`, window: 86400, max: 5 }],
   youtube: [
     { key: (s) => `yt:${s}`, window: 86400, max: 1 },
     { key: () => "yt:app", window: 86400, max: 100 },   // 앱 전체 한도

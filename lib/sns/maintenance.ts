@@ -4,6 +4,7 @@ import * as db from "./db";
 import { getAdapter } from "./index";
 import { captionFor, hasUrl } from "./no-url";
 import { refreshLongLived, isPostAlive } from "./instagram";
+import { freshToken as ttFreshToken } from "./tiktok";
 
 /**
  * SNS 유지보수 — 사람이 화면을 보고 있지 않을 때 대신 손봐 주는 일들. (2026-09-12 회장님 지시 1·8)
@@ -108,6 +109,31 @@ export async function refreshInstagramTokens(now = Date.now()): Promise<RefreshO
       out.failed++;
       console.warn(JSON.stringify({ evt: "ig_token_refresh_retry", siteId: c.siteId, kind: r.kind, detail: r.detail.slice(0, 200) }));
     }
+  }
+  return out;
+}
+
+/* ─────────────── ①-b 틱톡 토큰 ─────────────── */
+
+/**
+ * 틱톡 접근 토큰을 밀어 둔다. (2026-09-12)
+ *
+ * ★★ **틱톡은 24시간짜리다**(인스타는 60일). 그래서 «가끔 갱신»으로는 못 버틴다.
+ *   진짜 방어는 **올리기 직전의 갱신**(`tiktok.freshToken`)이고, 이건 그 위의 보조다 —
+ *   갱신 토큰(365일)이 살아 있는지 매일 한 번 확인하는 셈이다.
+ *
+ * ⚠ 실패해도 `expired` 로 내리지 않는다. 올릴 때 다시 시도하면 되고,
+ *   거기서도 안 되면 그때 화면이 「다시 연결하기」를 보여 준다.
+ */
+export async function refreshTiktokTokens(): Promise<{ looked: number; ok: number; failed: number }> {
+  const out = { looked: 0, ok: 0, failed: 0 };
+  /* 만료가 «언제든» 가까운 것 — 24시간짜리라 사실상 전부다 */
+  const due = await db.listForRefresh("tiktok", new Date(Date.now() + 2 * DAY).toISOString());
+  for (const c of due) {
+    out.looked++;
+    const t = await ttFreshToken(c.siteId);
+    if (t) out.ok++;
+    else { out.failed++; console.warn(JSON.stringify({ evt: "tt_token_stale", siteId: c.siteId })); }
   }
   return out;
 }

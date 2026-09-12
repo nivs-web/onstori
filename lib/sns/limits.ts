@@ -27,6 +27,8 @@ export const TEXT_LIMITS: Record<SnsProvider, TextLimit> = {
   instagram: { chars: 2200, hashtags: 30, mentions: 20 },
   threads:   { chars: 500,  hashtags: 1,  mentions: null },
   facebook:  { chars: 5000, hashtags: null, mentions: null },
+  /* ⚠ 틱톡 제목 상한 2200자는 **첫 실제 게시로 대조해야 한다**(2026-09-12 추가).
+     길이·용량은 계정마다 다를 수 있어 `creator_info` 가 주는 `max_video_post_duration_sec` 를 함께 본다. */
   tiktok:    { chars: 2200, hashtags: null, mentions: null },
   youtube:   { chars: 5000, hashtags: 15, mentions: null },
   /* X 는 무료 등급 기준 280자다. 링크는 서버가 지운다(lib/sns/no-url.ts) */

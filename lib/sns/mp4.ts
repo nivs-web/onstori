@@ -86,10 +86,10 @@ export async function quickCheckForInstagram(key: string): Promise<{ ok: boolean
     const head = await storage.readHead("private", key, SNIFF_BYTES);
     const c = sniff(head).container;
     if (c === "webm" || c === "ogg") {
-      return { ok: false, why: "이 영상은 인스타그램이 받지 않는 형식이에요. 다시 찍어 주세요." };
+      return { ok: false, why: "이 영상은 SNS 가 받지 않는 형식이에요. 다시 찍어 주세요." };
     }
     if (c === "quicktime") {
-      return { ok: false, why: "폰 기본 카메라로 찍은 영상이라 인스타그램이 받지 않아요. 녹화 화면에서 바로 찍어 주세요." };
+      return { ok: false, why: "폰 기본 카메라로 찍은 영상(mov)이라 SNS 가 받지 않아요. 녹화 화면에서 바로 찍어 주세요." };
     }
   } catch { /* 못 재면 막지 않는다 */ }
 
@@ -98,7 +98,7 @@ export async function quickCheckForInstagram(key: string): Promise<{ ok: boolean
     const r = await fetch(url, { method: "HEAD", cache: "no-store" });
     const len = Number(r.headers.get("content-length") ?? 0);
     if (len > MAX_BYTES) {
-      return { ok: false, why: `영상이 너무 커요 (${Math.round(len / 1048576)}MB). 인스타그램은 300MB까지만 받아요.` };
+      return { ok: false, why: `영상이 너무 커요 (${Math.round(len / 1048576)}MB). 300MB까지만 올릴 수 있어요.` };
     }
   } catch { /* 못 재면 막지 않는다 */ }
 

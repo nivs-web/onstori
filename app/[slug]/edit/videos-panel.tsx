@@ -35,6 +35,15 @@ type Item = {
   posted?: { provider: string; status: string; url: string | null; publishedAt: string | null; deletedAt: string | null }[];
 };
 
+/** 틱톡 공개범위 값 → 사장님 말. **틱톡이 준 값만 쓰되 «읽을 수 있게»만 바꾼다.**
+    ⚠ 여기 없는 값이 오면 그 값을 그대로 보여 준다 — 우리가 지어내지 않는다. */
+const TT_PRIVACY_LABEL: Record<string, string> = {
+  PUBLIC_TO_EVERYONE: "모두에게 공개",
+  MUTUAL_FOLLOW_FRIENDS: "서로 팔로우한 친구만",
+  FOLLOWER_OF_CREATOR: "내 팔로워만",
+  SELF_ONLY: "나만 보기",
+};
+
 const PROVIDER_LABEL: Record<string, string> = {
   instagram: "인스타그램", youtube: "유튜브", tiktok: "틱톡",
   facebook: "페이스북", threads: "스레드", x: "X",
@@ -115,6 +124,48 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [cap, setCap] = useState<Record<string, string>>({});
   /** 인스타가 «지금 올릴 수 있는» 상태인가 — SNS 연결 탭에 들어가지 않아도 알아야 한다 */
   const [igReady, setIgReady] = useState<{ ok: boolean; why: string } | null>(null);
+  /** 틱톡도 같은 판정 — 다만 올리는 길은 «시트»를 거친다(심사 요건) */
+  const [ttReady, setTtReady] = useState<{ ok: boolean; why: string } | null>(null);
+
+  /* ★★ 틱톡 시트 — 사장님이 **매번** 제목·공개범위·댓글을 고른다 (2026-09-12 지시 8).
+     ⚠ 「지난번에는 이렇게 하셨어요」 같은 기본값 유도는 **심사 전에는 넣지 않는다**(회장님 지시).
+       틱톡은 「사장님이 매번 스스로 골랐는가」를 본다. */
+  type TtOptions = {
+    nickname: string; privacyOptions: string[];
+    commentDisabled: boolean; duetDisabled: boolean; stitchDisabled: boolean; maxSec: number | null;
+  };
+  const [ttSheet, setTtSheet] = useState<
+    | null
+    | { entryId: string; state: "loading" }
+    | { entryId: string; state: "error"; why: string }
+    | { entryId: string; state: "ready"; opt: TtOptions; privacy: string; title: string; noComment: boolean; noDuet: boolean; noStitch: boolean }
+  >(null);
+
+  async function openTiktokSheet(it: Item) {
+    setTtSheet({ entryId: it.id, state: "loading" });
+    try {
+      let anonId = "";
+      try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
+      const r = await fetch("/api/sns/tiktok/options", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, provider: "tiktok" }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { options?: TtOptions; error?: string };
+      if (!r.ok || !d.options) {
+        setTtSheet({ entryId: it.id, state: "error", why: d.error ?? `틱톡에 물어보지 못했어요 (${r.status})` });
+        return;
+      }
+      setTtSheet({
+        entryId: it.id, state: "ready", opt: d.options,
+        /* ★ 공개범위는 **미리 고르지 않는다.** 사장님이 직접 눌러야 한다 */
+        privacy: "",
+        title: it.question || it.title || "",
+        noComment: false, noDuet: false, noStitch: false,
+      });
+    } catch {
+      setTtSheet({ entryId: it.id, state: "error", why: "연결이 끊겼어요. 잠시 후 다시 시도해 주세요." });
+    }
+  }
 
   /* ★ 연결 현황을 여기서도 한 번 읽는다 (2026-09-12).
      전에는 [SNS 연결] 탭에서 체크를 해야만 올리기 버튼이 나왔다 — 다섯 걸음이었고,
@@ -132,30 +183,46 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         if (!r.ok) { if (alive) setIgReady({ ok: false, why: "" }); return; }
         type Row = { provider: string; available: { ok: boolean; why?: string }; connection: { status: string; disclaimerAgreedAt: string | null } | null };
         const d = (await r.json()) as { items?: Row[] };
-        const ig = d.items?.find((x) => x.provider === "instagram");
         if (!alive) return;
-        if (!ig) { setIgReady({ ok: false, why: "" }); return; }
-        if (!ig.available.ok) { setIgReady({ ok: false, why: ig.available.why ?? "" }); return; }
-        if (!ig.connection || ig.connection.status !== "active") {
-          setIgReady({ ok: false, why: "[SNS 연결] 에서 인스타그램을 먼저 연결해 주세요." }); return;
-        }
-        if (!ig.connection.disclaimerAgreedAt) {
-          setIgReady({ ok: false, why: "[SNS 연결] 에서 [올려도 좋아요]를 먼저 눌러 주세요." }); return;
-        }
-        setIgReady({ ok: true, why: "" });
-      } catch { if (alive) setIgReady({ ok: false, why: "" }); }
+        /* 인스타·틱톡을 **같은 규칙**으로 판정한다 — 한쪽만 고치면 다른 쪽이 조용히 어긋난다 */
+        const verdict = (p: string, label: string): { ok: boolean; why: string } => {
+          const row = d.items?.find((x) => x.provider === p);
+          if (!row) return { ok: false, why: "" };
+          if (!row.available.ok) return { ok: false, why: row.available.why ?? "" };
+          if (!row.connection || row.connection.status !== "active") {
+            return { ok: false, why: `[SNS 연결] 에서 ${label}을 먼저 연결해 주세요.` };
+          }
+          if (!row.connection.disclaimerAgreedAt) {
+            return { ok: false, why: "[SNS 연결] 에서 [올려도 좋아요]를 먼저 눌러 주세요." };
+          }
+          return { ok: true, why: "" };
+        };
+        setIgReady(verdict("instagram", "인스타그램"));
+        setTtReady(verdict("tiktok", "틱톡"));
+      } catch { if (alive) { setIgReady({ ok: false, why: "" }); setTtReady({ ok: false, why: "" }); } }
     })();
     return () => { alive = false; };
   }, [slug]);
 
-  async function publish(entryId: string, providers: string[] = snsPicked) {
+  type TtChoice = { title: string; privacyLevel: string; disableComment: boolean; disableDuet: boolean; disableStitch: boolean };
+
+  async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice) {
+    /* ★★ **[간단 등록]에서는 틱톡을 뺀다** (2026-09-12 지시 8).
+       틱톡은 올릴 때마다 공개범위를 직접 골라야 해서 «5초 흐름»에 들어갈 수 없다.
+       ⚠ 조용히 빼지 않는다 — 아래 결과 줄에 왜 빠졌는지 적는다. 서버도 같은 규칙으로 막는다. */
+    const skipTiktok = !tiktok && providers.includes("tiktok");
+    const send = skipTiktok ? providers.filter((p) => p !== "tiktok") : providers;
+    if (!send.length) {
+      setPub((p) => ({ ...p, [entryId]: [{ provider: "tiktok", name: "틱톡", state: "skipped", msg: "위 [틱톡에 올리기]를 눌러 제목·공개범위를 골라 주세요." }] }));
+      return;
+    }
     setPubBusy(entryId);
     try {
       let anonId = "";
       try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
       const r = await fetch("/api/sns/publish", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId, entryId, providers, caption: cap[entryId]?.trim() || undefined }),
+        body: JSON.stringify({ slug, anonId, entryId, providers: send, caption: cap[entryId]?.trim() || undefined, tiktok }),
       });
       const d = (await r.json().catch(() => ({}))) as { results?: PubRow[]; error?: string };
       if (!r.ok) {
@@ -393,6 +460,119 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     </div>
                   ) : igReady.why ? (
                     <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">{igReady.why}</p>
+                  ) : null
+                )}
+
+                {/* ★★ 틱톡 — **올릴 때마다 사장님이 직접 고른다** (2026-09-12 지시 8).
+                    틱톡 심사 요건이라 [간단 등록]에 넣을 수 없다. 서버도 같은 규칙으로 막는다. */}
+                {ttReady && !(it.posted ?? []).some((x) => x.provider === "tiktok" && x.status === "published") && (
+                  /* ★ 규격에 안 맞는 영상이면 틱톡 버튼도 두지 않는다 — 인스타와 같은 검사다
+                     (같은 파일이라 판정도 같다. 위 인스타 상자가 이미 이유를 적어 준다) */
+                  it.ig && !it.ig.ok ? null
+                  : ttReady.ok ? (
+                    ttSheet?.entryId === it.id ? (
+                      <div className="rounded-xl border border-green-700 p-3">
+                        <p className="t-caption font-semibold">틱톡에 올리기</p>
+
+                        {ttSheet.state === "loading" && (
+                          <p className="mt-2 t-caption text-[var(--text-soft)]">틱톡에 물어보는 중…</p>
+                        )}
+
+                        {ttSheet.state === "error" && (
+                          <>
+                            <p className="mt-2 t-caption font-semibold text-danger">{ttSheet.why}</p>
+                            <button type="button" onClick={() => void openTiktokSheet(it)}
+                              className="mt-2 rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">다시 시도</button>
+                          </>
+                        )}
+
+                        {ttSheet.state === "ready" && (
+                          <>
+                            {ttSheet.opt.nickname && (
+                              <p className="mt-1 t-caption text-[var(--text-soft)]">
+                                올라갈 계정: <b>{ttSheet.opt.nickname}</b>
+                              </p>
+                            )}
+
+                            <label className="mt-2 block">
+                              <span className="t-caption text-[var(--text-soft)]">제목</span>
+                              <textarea
+                                className="mt-1 w-full rounded-lg border border-n-300 p-2 t-caption" rows={3}
+                                value={ttSheet.title}
+                                onChange={(e) => setTtSheet({ ...ttSheet, title: e.target.value })}
+                                placeholder="손님에게 하고 싶은 말을 적어 주세요"
+                              />
+                            </label>
+                            <TextMeter text={ttSheet.title} providers={["tiktok"]} className="mt-1" />
+
+                            {/* ★ 공개범위 — **틱톡이 준 것만** 보여 준다. 우리가 지어내지 않는다.
+                                ★ 미리 골라 두지 않는다 — 사장님이 직접 눌러야 한다(심사 요건) */}
+                            <p className="mt-3 t-caption font-semibold">누가 볼 수 있나요?</p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {ttSheet.opt.privacyOptions.map((p) => (
+                                <button key={p} type="button"
+                                  onClick={() => setTtSheet({ ...ttSheet, privacy: p })}
+                                  className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${
+                                    ttSheet.privacy === p ? "bg-green-700 text-white" : "border border-n-300"}`}>
+                                  {TT_PRIVACY_LABEL[p] ?? p}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* ★ 틱톡이 «이 계정은 못 켠다»고 한 것은 아예 안 보여 준다 */}
+                            <div className="mt-3 space-y-1">
+                              {!ttSheet.opt.commentDisabled && (
+                                <label className="flex items-center gap-2 t-caption">
+                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noComment}
+                                    onChange={(e) => setTtSheet({ ...ttSheet, noComment: e.target.checked })} />
+                                  댓글 막기
+                                </label>
+                              )}
+                              {!ttSheet.opt.duetDisabled && (
+                                <label className="flex items-center gap-2 t-caption">
+                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noDuet}
+                                    onChange={(e) => setTtSheet({ ...ttSheet, noDuet: e.target.checked })} />
+                                  듀엣 막기
+                                </label>
+                              )}
+                              {!ttSheet.opt.stitchDisabled && (
+                                <label className="flex items-center gap-2 t-caption">
+                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noStitch}
+                                    onChange={(e) => setTtSheet({ ...ttSheet, noStitch: e.target.checked })} />
+                                  이어찍기 막기
+                                </label>
+                              )}
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button type="button"
+                                disabled={!ttSheet.privacy || pubBusy === it.id}
+                                onClick={() => void publish(it.id, ["tiktok"], {
+                                  title: ttSheet.title, privacyLevel: ttSheet.privacy,
+                                  disableComment: ttSheet.noComment, disableDuet: ttSheet.noDuet, disableStitch: ttSheet.noStitch,
+                                })}
+                                className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
+                                {pubBusy === it.id ? "올리는 중…" : "이 내용으로 틱톡에 올리기"}
+                              </button>
+                              <button type="button" onClick={() => setTtSheet(null)}
+                                className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">취소</button>
+                            </div>
+                            {!ttSheet.privacy && (
+                              <p className="mt-1.5 t-caption text-[var(--text-soft)]">
+                                <b>누가 볼 수 있는지</b>를 고르셔야 올릴 수 있어요.
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => void openTiktokSheet(it)}
+                        className="rounded-full border border-green-700 px-4 py-2 t-caption font-semibold text-green-700">
+                        틱톡에 올리기
+                      </button>
+                    )
+                  ) : ttReady.why ? (
+                    <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">{ttReady.why}</p>
                   ) : null
                 )}
 

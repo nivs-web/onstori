@@ -1,6 +1,7 @@
 import * as db from "./db";
 import { instagram } from "./instagram";
 import { youtube } from "./youtube";
+import { tiktok } from "./tiktok";
 import { PROVIDERS, type SnsAdapter, type SnsProvider } from "./types";
 
 /**
@@ -34,7 +35,7 @@ const LATER = "아직 준비 중이에요. 인스타그램부터 먼저 열고 �
 const ADAPTERS: Record<SnsProvider, SnsAdapter> = {
   instagram,
   youtube,
-  tiktok: notReady("tiktok", LATER),
+  tiktok,
   facebook: notReady("facebook", LATER),
   threads: notReady("threads", LATER),
   /* ⚠⚠ X 를 실제로 만들 때 **반드시** 읽어라: 글에 링크가 들어가면 요금이 13배다.
@@ -47,8 +48,9 @@ export function getAdapter(provider: SnsProvider): SnsAdapter {
   return ADAPTERS[provider];
 }
 
-/** 화면이 쓰는 순서 — 이번에 여는 둘을 앞에 둔다 */
-export const ORDERED: SnsProvider[] = ["instagram", "youtube", ...PROVIDERS.filter((p) => p !== "instagram" && p !== "youtube")];
+/* 화면이 쓰는 순서 — 실제로 연 것을 앞에 둔다 (2026-09-12 틱톡 추가) */
+const OPEN: SnsProvider[] = ["instagram", "tiktok", "youtube"];
+export const ORDERED: SnsProvider[] = [...OPEN, ...PROVIDERS.filter((p) => !OPEN.includes(p))];
 
 export { PROVIDERS };
 export * from "./types";
