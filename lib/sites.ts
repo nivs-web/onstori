@@ -1,6 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import { isPremade } from "./premade";
+import { forVisitors } from "./phone-privacy";
 import { SiteDoc, StoryEntry, type SiteDocT, type StoryEntryT } from "./schema";
 import { z } from "zod";
 
@@ -24,6 +26,18 @@ export type SiteData = {
   status: "trial" | "active";
   /** 온보딩 3단계 로고 URL (sites.settings.logo) — 섹션 스키마 밖. 없으면 undefined (2026-09-05) */
   logo?: string;
+  /**
+   * 사이트 설정 원본 — 구조화 데이터(lib/jsonld.ts)가 주소·한 줄 소개를 여기서 읽는다.
+   * ⚠ **화면에 그대로 뿌리지 마라.** 여기에는 전화번호·알림 설정 등 «손님에게 안 보일 것»이 섞여 있다.
+   *   손님 화면에 나가는 것은 `doc` 뿐이고, 그쪽 번호는 이미 지워져 있다(lib/phone-privacy.ts).
+   */
+  settings?: Record<string, unknown>;
+  /**
+   * ★ **온스토리가 만든 «예시» 홈페이지인가.** (2026-09-13 박팀장 지적 13)
+   *   화면 맨 위에 「예시입니다」를 띄운다 — 손님이 진짜 가게로 착각하면 안 된다.
+   *   불변 규칙 7 도 「샘플 사이트에 한해 예시 후기를 넣되 «예시» 표시를 단다」고 정한다.
+   */
+  sample?: boolean;
 };
 
 function sb() {
@@ -33,7 +47,30 @@ function sb() {
   return createClient(url, anon, { auth: { persistSession: false } });
 }
 
-async function getFromDb(slug: string): Promise<SiteData | null> {
+/**
+ * ★★ **미리 만들어 둔 견본을 어떻게 다룰까.** (2026-09-13 상무님 지적 7)
+ *
+ * · "hide"(기본) — 견본이면 **없는 것처럼** 다룬다. 손님 주소 `/{상호}` 가 쓴다.
+ * · "only"       — 견본**만** 보여 준다. 회장님이 영업에 쓰는 `/g/{상호}` 가 쓴다.
+ *
+ * ★★ **왜 `/{상호}` 페이지에 조건을 안 넣고 여기에 넣었나.**
+ *   그 페이지는 ISR 로 캐시되고(revalidate=60) 빌드 때 200곳을 미리 만들어 둔다
+ *   (`generateStaticParams`). 거기에 「요청마다 봐야 하는 조건」을 넣으면 **손님 사이트
+ *   200곳의 캐시가 통째로 무너진다** — 2026-09-07 실측에서 캐시가 빠지자 TTFB 가
+ *   0.73~1.19초로 뛰었다. 여기서 «자료를 읽을 때» 거르면 결과가 그대로 캐시되므로
+ *   빠르기를 잃지 않는다.
+ * ⚠ 대신 넘겨주는 순간 캐시를 풀어야 한다 — `app/api/auth/handover` 가 `revalidatePath` 한다.
+ */
+export type PremadeMode = "hide" | "only";
+
+/**
+ * ★ **예시 홈페이지 목록 — 단일 출처.** (2026-09-13 지시 13)
+ *   `seeds/*.json` 에서 오는 것은 전부 예시다. 그 밖에 DB 에 있는 예시는 여기 적는다.
+ * ⚠ 여기에 진짜 사장님 주소를 적지 마라 — 그분 홈페이지에 「예시」가 붙는다.
+ */
+export const SAMPLE_SLUGS = new Set(["sample-interior"]);
+
+async function getFromDb(slug: string, premade: PremadeMode = "hide"): Promise<SiteData | null> {
   const client = sb();
   if (!client) return null;
   try {
@@ -44,7 +81,16 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
       .maybeSingle();
     if (!site || !site.published) return null;
 
-    const doc = SiteDoc.parse(site.published); // 불량 데이터는 여기서 차단
+    /* ★ 견본인가 아닌가 — 부르는 쪽이 원한 것과 다르면 «없는 것»이다 */
+    if (isPremade(site) !== (premade === "only")) return null;
+
+    /**
+     * ★★ **전화번호는 기본이 비공개다.** (2026-09-13 대표님 결정 · lib/phone-privacy.ts)
+     *   여기가 «손님에게 나가는 유일한 문»이라, 여기서 한 번 지우면 화면 네 곳이 함께 사라진다.
+     * ⚠ 검사(parse)를 **지난 뒤에** 지운다 — 견적 문의의 번호 칸은 스키마상 필수라
+     *   먼저 비우면 홈페이지 전체가 안 열린다.
+     */
+    const doc = forVisitors(SiteDoc.parse(site.published), site.settings); // 불량 데이터는 parse 에서 차단
 
     const { data: rows } = await client
       .from("story_entries")
@@ -67,7 +113,12 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
 
     const status = site.status === "active" ? "active" : "trial";
     const logo = (site.settings as { logo?: unknown } | null)?.logo;
-    return { slug, doc, stories, status, logo: typeof logo === "string" && logo ? logo : undefined };
+    return {
+      slug, doc, stories, status,
+      logo: typeof logo === "string" && logo ? logo : undefined,
+      settings: (site.settings as Record<string, unknown> | null) ?? {},
+      sample: SAMPLE_SLUGS.has(slug),
+    };
   } catch {
     return null;
   }
@@ -78,15 +129,20 @@ async function getFromSeed(slug: string): Promise<SiteData | null> {
     const file = path.join(process.cwd(), "seeds", `${slug}.json`);
     const raw = await fs.readFile(file, "utf-8");
     const parsed = SeedFile.parse(JSON.parse(raw));
-    return { slug, ...parsed };
+    /* ⚠ 시드에는 settings 가 없다 → 비공개가 기본이라 번호가 안 나간다. 그게 맞다 */
+    /* ⚠ 시드에서 오는 것은 **전부 예시**다 — 쇼케이스·개발용이라 진짜 가게가 아니다 */
+    return { slug, ...parsed, doc: forVisitors(parsed.doc, null), sample: true };
   } catch {
     return null;
   }
 }
 
-export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
+export async function getSiteBySlug(slug: string, premade: PremadeMode = "hide"): Promise<SiteData | null> {
   if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null; // 라우팅 최종 방어선
-  return (await getFromDb(slug)) ?? (await getFromSeed(slug));
+  const fromDb = await getFromDb(slug, premade);
+  if (fromDb) return fromDb;
+  /* ⚠ 시드(쇼케이스)는 견본이 아니다 — `/g/` 로 들어온 요청에는 주지 않는다 */
+  return premade === "only" ? null : await getFromSeed(slug);
 }
 
 /**

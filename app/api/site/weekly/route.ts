@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
+import { revalidatePath } from "next/cache";
+import { isPhonePublic } from "@/lib/phone-privacy";
 import { readWeekly, WEEKLY_DEFAULT } from "@/lib/weekly";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,9 @@ const Input = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,30}$/),
   anonId: z.string().max(64).optional(),
   on: z.boolean(),
-  channel: z.enum(["kakao", "sms"]),
+  channel: z.enum(["email", "kakao", "sms"]),
+  /** 번호를 홈페이지에 공개할까 — 안 보내면 **건드리지 않는다**(지금 값을 지킨다) */
+  phonePublic: z.boolean().optional(),
   phone: z.string().max(20).optional(),
   weekday: z.number().int().min(0).max(6),
   hour: z.number().int().min(0).max(23),
@@ -40,6 +44,8 @@ export async function POST(req: Request) {
       weekly: current ?? { ...WEEKLY_DEFAULT },
       configured: !!current,
       sitePhone: (settings.phone as string) ?? "",
+      /* ★ 기본은 **비공개**다 — 값이 없으면 false (2026-09-13 대표님 결정 · lib/phone-privacy.ts) */
+      phonePublic: isPhonePublic(settings),
     });
   }
 
@@ -55,13 +61,28 @@ export async function POST(req: Request) {
     lastSentAt: current?.lastSentAt,
   };
 
+  /**
+   * ★★ **번호 공개 여부도 여기서 저장한다.** (2026-09-13 대표님 결정 3)
+   * ⚠ 값을 «안 보냈을 때»와 «false 로 보냈을 때»는 다르다. 안 보냈으면 지금 값을 지킨다 —
+   *   다른 설정을 만졌다가 번호가 조용히 공개로 바뀌면 안 된다.
+   * ⚠ 화면에서 켜자마자 손님 화면에 반영되려면 캐시를 풀어야 한다(아래 revalidatePath).
+   */
+  const nextSettings: Record<string, unknown> = { ...settings, weekly: next };
+  if (typeof v.phonePublic === "boolean") nextSettings.phonePublic = v.phonePublic;
+
   const { error } = await sbAdmin().from("sites")
-    .update({ settings: { ...settings, weekly: next } })
+    .update({ settings: nextSettings })
     .eq("id", r.site.id);
   if (error) {
     console.error(JSON.stringify({ evt: "weekly_save_failed", err: error.message.slice(0, 160) }));
     return NextResponse.json({ error: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." }, { status: 500 });
   }
-  console.log(JSON.stringify({ evt: "weekly_saved", on: v.on, channel: v.channel, weekday: v.weekday, hour: v.hour }));
-  return NextResponse.json({ weekly: next });
+  /* ★ 손님 사이트는 ISR 로 캐시된다(app/[slug]/page.tsx revalidate=60).
+       번호 공개를 껐는데 1분 동안 계속 보이면 「안 꺼지네」가 된다 — 곧바로 푼다. */
+  if (typeof v.phonePublic === "boolean") {
+    try { revalidatePath(`/${v.slug}`); } catch { /* 캐시 해제 실패가 저장을 무르게 하지 않는다 */ }
+  }
+
+  console.log(JSON.stringify({ evt: "weekly_saved", on: v.on, channel: v.channel, weekday: v.weekday, hour: v.hour, phonePublic: v.phonePublic }));
+  return NextResponse.json({ weekly: next, phonePublic: nextSettings.phonePublic === true });
 }

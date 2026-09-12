@@ -120,7 +120,8 @@ export default function QuoteForm({ s, slug }: Props) {
     }
   }
 
-  const tel = s.phone.replace(/[^0-9+]/g, "");
+  /* ⚠ 번호가 비공개면 빈 값으로 온다(lib/phone-privacy.ts). 그때는 전화 단추를 안 그린다 */
+  const tel = (s.phone ?? "").replace(/[^0-9+]/g, "");
   // 입력창은 공용 .field — 높이 48, focus 시 초록 2px + 바깥 4px 링 (docs/DESIGN.md)
   const field = "field";
   const fieldStyle = { borderColor: "var(--s-line)", background: "var(--s-bg)", color: "var(--s-ink)" };
@@ -253,13 +254,15 @@ export default function QuoteForm({ s, slug }: Props) {
       {/* ⚠ 주 버튼은 뷰포트당 1개 — 위 [보내기]가 이 화면의 주 버튼이다.
           아래 전화·카톡은 둘 다 테두리만 있는 보조 버튼으로 둔다. */}
       <div className="flex flex-wrap items-center justify-center" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
-        <a
-          href={`tel:${tel}`}
-          className="t-body inline-flex items-center justify-center font-semibold"
-          style={{ minHeight: "var(--control-h-sm)", paddingInline: "var(--s-6)", borderRadius: "var(--r-md)", border: "1px solid var(--s-accent)", color: "var(--s-accent)" }}
-        >
-          📞 {s.phone}
-        </a>
+        {tel && (
+          <a
+            href={`tel:${tel}`}
+            className="t-body inline-flex items-center justify-center font-semibold"
+            style={{ minHeight: "var(--control-h-sm)", paddingInline: "var(--s-6)", borderRadius: "var(--r-md)", border: "1px solid var(--s-accent)", color: "var(--s-accent)" }}
+          >
+            📞 {s.phone}
+          </a>
+        )}
         {s.kakaoUrl && (
           <a
             href={s.kakaoUrl}

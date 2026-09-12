@@ -9,7 +9,12 @@
  *   `settings.weekly` 한 칸이면 되고 마이그레이션이 필요 없다.
  */
 
-export type WeeklyChannel = "kakao" | "sms";
+/**
+ * ★ **"email" 이 기본이고 «항상» 간다.** "kakao"·"sms" 는 그 위에 **더하는** 것이다.
+ *   (2026-09-13 대표님 결정 6 — 문자 20원 · 카톡 13원 · 메일 거의 0원)
+ * ⚠ 「메일 대신 문자」가 아니다. 문자를 고르셔도 메일은 그대로 간다.
+ */
+export type WeeklyChannel = "email" | "kakao" | "sms";
 
 export type Weekly = {
   /** 거부하면 false. ⚠ «설정 안 함»(undefined)과 «거부»(false)는 다르다 —
@@ -29,7 +34,13 @@ export type Weekly = {
 export const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /** 기본값 — ★ 기본은 **카카오톡**이다(회장님: 폰에서 카톡 링크로 녹화가 잘 되는 것을 확인) */
-export const WEEKLY_DEFAULT: Weekly = { on: true, channel: "kakao", weekday: 2, hour: 10 };
+/**
+ * ★★ **기본은 이메일이다.** (2026-09-13 대표님 결정 6)
+ *   문자 20원 · 카톡 13원 · 메일 거의 0원. 사장님이 «원하실 때만» 문자·카톡을 켜신다.
+ * ⚠ **이메일은 무조건 간다** — 그래야 「매주 질문이 옵니다」가 거짓말이 아니다.
+ *   문자·카톡을 고르시면 메일과 **함께** 간다. 메일을 «대신» 하는 것이 아니다.
+ */
+export const WEEKLY_DEFAULT: Weekly = { on: true, channel: "email", weekday: 2, hour: 10 };
 
 /**
  * ⚠ 알림톡은 아직 심사 전이다. 그때까지는 **문자로 보낸다.**
@@ -167,7 +178,9 @@ export function readWeekly(settings: Record<string, unknown> | null | undefined)
   const hour = Number(raw.hour);
   return {
     on: raw.on !== false,
-    channel: raw.channel === "sms" ? "sms" : "kakao",
+    /* ⚠ 모르는 값이면 **이메일**로 내려앉는다 — 돈이 드는 쪽으로 기울면 안 된다.
+       ⚠ 예전에 저장된 "kakao"·"sms" 는 그대로 존중한다. 사장님이 고르신 값이다. */
+    channel: raw.channel === "sms" ? "sms" : raw.channel === "kakao" ? "kakao" : "email",
     phone: typeof raw.phone === "string" ? raw.phone : undefined,
     weekday: Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : WEEKLY_DEFAULT.weekday,
     hour: Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : WEEKLY_DEFAULT.hour,
@@ -202,10 +215,30 @@ export const OPT_OUT_LINE = "【받지 않으시려면】 홈페이지 관리 > 
  * ★ 세 토막으로 나눈 이유는 가운데를 **굵게** 보여 주기 위해서다 — 뜻은 한 문장이다.
  */
 export const WEEKLY_NOTICE = {
-  lead: "이 번호로 매주 한 번 ",
+  lead: "매주 한 번 ",
   strong: "「이번 주 질문」",
-  tail: "을 보내 드려요. 링크를 누르고 60초만 말씀하시면 됩니다. 언제든 끄실 수 있어요.",
+  tail: "을 메일로 보내 드려요. 링크를 누르고 60초만 말씀하시면 됩니다. 언제든 끄실 수 있어요.",
 } as const;
+
+/**
+ * ★★ **전화번호 칸 아래에 붙는 줄.** (2026-09-13 대표님 확정 문구 · 지시 5)
+ *
+ * ⚠ 사장님이 번호를 적으실 때 가장 걱정하시는 것이 「이게 홈페이지에 박히나」다.
+ *   박히면 크롤링당해 광고 전화가 온다. 그래서 **적기 전에** 안 박힌다고 말한다.
+ * ★ 글자는 대표님 확정본 그대로다. 바꾸려면 허락을 먼저 받아라.
+ */
+export const PHONE_PRIVATE_NOTICE = {
+  lead: "전화번호는 홈페이지에 ",
+  strong: "공개되지 않습니다.",
+  tail: " 공개를 원하시면 홈페이지 관리자에서 켜실 수 있어요.",
+} as const;
+
+/**
+ * ★★ **문자·카톡을 권하는 한 줄.** (2026-09-13 대표님 확정 문구 · 지시 6)
+ * ⚠ 「신청하시면」이다 — 기본이 꺼져 있다는 뜻이 문장에 들어 있어야 한다.
+ */
+export const WEEKLY_UPGRADE_NOTICE =
+  "주 1회 카톡이나 문자 알림을 신청하시면 꾸준히 영상을 올리시는 데 큰 도움이 됩니다";
 
 /**
  * **첫 문자에만** 붙인다 — `lastSentAt` 이 비어 있으면 이 사장님께 «처음» 가는 문자다.

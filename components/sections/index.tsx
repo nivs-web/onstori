@@ -82,6 +82,20 @@ function ctaHref(action: string, ctx: Ctx): string {
   return tel ? `tel:${tel}` : "#quote";
 }
 
+/**
+ * ★★★ **글자와 데려가는 곳을 맞춘다.** (불변 규칙 12 · 2026-09-13)
+ *
+ * ⚠ 전화번호가 **기본 비공개**가 되면서(대표님 결정 3) 「전화 문의」 단추가 번호 없이 남는다.
+ *   위 `ctaHref` 는 그때 문의 폼(`#quote`)으로 떨어뜨리는데, **글자는 그대로 「전화 문의」**였다.
+ *   손님이 전화가 걸릴 줄 알고 누르면 폼이 열린다 — 규칙 12 가 막으려는 바로 그 어긋남이다.
+ * ★ 그래서 전화가 «실제로 걸릴 때»만 전화라고 말한다.
+ */
+function ctaLabel(label: string, action: string, ctx: Ctx): string {
+  if (action === "quote") return label;
+  const { tel } = contactOf(ctx.doc);
+  return tel ? label : "문의하기";
+}
+
 /** next/image 가 쓸 수 있는 호스트인지 — next.config.ts 의 remotePatterns 와 같이 간다.
  *  옛 사이트의 낯선 호스트에 next/image 를 물리면 그 페이지가 통째로 500 이 된다. */
 const OPTIMIZABLE = /^https:\/\/(img\.onstori\.com|wpsrfjqfbhmeriscdacu\.supabase\.co)\//;
@@ -173,7 +187,7 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
               borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)",
             }}
           >
-            {s.cta.label}
+            {ctaLabel(s.cta.label, s.cta.action, ctx)}
           </a>
           {works > 0 && (
             <span className="t-small" style={{ color: "inherit" }}>

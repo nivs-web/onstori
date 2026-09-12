@@ -79,6 +79,30 @@ async function sendSms(to: string, text: string): Promise<void> {
   if (!res.ok) throw new Error(`solapi ${res.status} ${(await res.text()).slice(0, 200)}`);
 }
 
+/**
+ * **메일 1건** — 주 1회 질문 등 문의 외 용도. (2026-09-13 대표님 결정 6)
+ *
+ * ★ `sendSmsRaw` 와 **짝을 맞춘다**: 열쇠가 없으면 false, 실패해도 throw 하지 않는다.
+ *   크론 한복판에서 터지면 뒤에 있는 사장님들이 통째로 못 받는다.
+ * ★ 왜 이메일이 기본인가: 문자는 건당 20원, 카톡은 13원인데 **메일은 거의 0원**이다.
+ *   그리고 「매주 질문이 옵니다」가 거짓말이 되지 않으려면 **무조건 가는 길**이 하나는 있어야 한다.
+ */
+export async function sendEmailRaw(to: string, subject: string, text: string): Promise<boolean> {
+  if (!notifyChannels().email) return false;
+  try {
+    await sendEmail(to, subject, text);
+    return true;
+  } catch (e) {
+    console.error(JSON.stringify({ evt: "email_raw_failed", err: String(e).slice(0, 200) }));
+    return false;
+  }
+}
+
+/** 수신처를 크론에서도 쓴다 — 「메일 주소가 어디 있나」를 두 곳에 적지 않는다 */
+export async function notifyTargets(siteId: string): Promise<{ phone?: string; email?: string }> {
+  return resolveTargets(siteId);
+}
+
 async function sendEmail(to: string, subject: string, text: string): Promise<void> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

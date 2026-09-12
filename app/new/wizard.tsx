@@ -8,7 +8,7 @@ import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
-import { WEEKLY_NOTICE } from "@/lib/weekly";
+import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE } from "@/lib/weekly";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
 import { sbBrowser } from "@/lib/supabase/browser";
@@ -305,7 +305,9 @@ export function Wizard() {
             <div className="card text-left" style={{ marginTop: "var(--s-6)", padding: "var(--s-5)" }}>
               <p className="t-body font-semibold" style={{ color: "var(--n-900)" }}>{COPY.policy}</p>
               <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
-                {signedIn ? "지금 바로 전 기능을 쓰실 수 있어요. 첫 질문은 문자로 보내드릴게요." : "정회원 이용은 회원가입(카카오 또는 이메일)이 필요해요. 가입하면 이 홈페이지가 사장님 계정에 연결되고, 첫 질문이 문자로 갑니다."}
+                {/* ⚠ 2026-09-13 — 「문자로」를 «메일로»로 고쳤다. 대표님 결정으로 주 1회 알림의
+                    기본이 메일이 됐다. 고치지 않았으면 이 줄이 곧바로 거짓말이 됐다. */}
+                {signedIn ? "지금 바로 전 기능을 쓰실 수 있어요. 첫 질문은 메일로 보내드릴게요." : "정회원 이용은 회원가입(카카오 또는 이메일)이 필요해요. 가입하면 이 홈페이지가 사장님 계정에 연결되고, 첫 질문이 메일로 갑니다."}
               </p>
             </div>
             <a href={signedIn ? `/${result.slug}/edit` : `/login?next=${encodeURIComponent(`/${result.slug}/edit`)}`} className="btn btn-primary w-full" style={{ marginTop: "var(--s-5)" }}>
@@ -491,6 +493,15 @@ export function Wizard() {
                 ★ 대신 **끄는 길을 같은 줄에서** 말한다 — 알리기만 하고 끌 길이 없으면 그것이 광고다.
                   (끄는 곳: 편집화면 「연결」 탭 · 첫 문자의 【받지 않으시려면】 줄)
                 ⚠ 문구는 **2026-09-13 회장님 확정본**이다. 고치려면 허락을 먼저 받아라. */}
+            {/* ★★★ **번호가 홈페이지에 안 박힌다는 것을 «적기 전»에 말한다.**
+                (2026-09-13 대표님 결정 · 지시 5)
+                ⚠ 어느 사장님도 번호가 홈페이지에 박히는 것을 원하지 않는다. 박히면
+                  크롤링당해 광고 전화가 온다. 그래서 이 줄이 번호 칸 바로 아래에 있다.
+                ⚠ 문구의 출처는 `lib/weekly.ts` 한 곳이다 — 관리자 화면과 같은 말을 해야 한다. */}
+            <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
+              {PHONE_PRIVATE_NOTICE.lead}<b>{PHONE_PRIVATE_NOTICE.strong}</b>{PHONE_PRIVATE_NOTICE.tail}
+            </p>
+            {/* ★ 주 1회 질문은 **상품**이라 묻지 않고 알린다. 이제 기본은 «메일»이다 */}
             <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
               {WEEKLY_NOTICE.lead}<b>{WEEKLY_NOTICE.strong}</b>{WEEKLY_NOTICE.tail}
             </p>

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
-import { sendSmsRaw, notifyChannels } from "@/lib/notify";
+import { sendSmsRaw, sendEmailRaw, notifyTargets, notifyChannels } from "@/lib/notify";
 import { storyLinkUrl } from "@/lib/story-link";
 import { ALIMTALK_QUESTIONS } from "@/config/questions";
 import {
   readWeekly, shouldSend, deadlineText, hasBannedPhrase, withOptOut, pickOnePerPhone,
+  WEEKLY_UPGRADE_NOTICE,
   phoneKey, safeBusinessName, sentThisWeekToPhone,
   type Weekly,
 } from "@/lib/weekly";
@@ -50,8 +51,8 @@ export async function GET(req: Request) {
 
   const sb = sbAdmin();
   const out = {
-    looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noPhone: 0,
-    samePhone: 0, sameWeekPhone: 0, stampFailed: 0, skippedPremade: 0,
+    looked: 0, due: 0, sent: 0, failed: 0, skippedSuspended: 0, noTarget: 0,
+    byEmail: 0, bySms: 0, samePhone: 0, sameWeekPhone: 0, stampFailed: 0, skippedPremade: 0,
   };
 
   /* 살아 있는 사이트만 본다 — 정지된 곳에 촬영을 독려하면 화만 난다 */
@@ -73,7 +74,11 @@ export async function GET(req: Request) {
   type Cand = {
     id: string; slug: string; businessName: string;
     settings: Record<string, unknown>; w: Weekly;
-    phone: string; status: string | null; updatedAt: string | null;
+    /** 비어 있을 수 있다 — 메일만 받는 사장님은 번호가 필요 없다 */
+    phone: string;
+    /** 문자·카톡을 «따로» 신청하셨나. 기본(email)이면 false */
+    wantsSms: boolean;
+    status: string | null; updatedAt: string | null;
   };
   const cands: Cand[] = [];
 
@@ -103,14 +108,25 @@ export async function GET(req: Request) {
     /* 무료가 끝났는데 만료 크론이 아직 안 돈 사이트를 거른다 — raw status 만 보면 놓친다 */
     if (trialInfo(s).expired) { out.skippedSuspended++; continue; }
 
+    /**
+     * ★★★ **이메일은 무조건 간다. 문자·카톡은 «신청하신 분»만.** (2026-09-13 대표님 결정 6)
+     *
+     * ⚠ 전에는 **번호가 없으면 여기서 탈락**시켰다. 그러면 기본이 메일인 지금,
+     *   번호를 안 적으신 사장님은 「매주 질문이 옵니다」라고 해 놓고 **한 통도 못 받는다.**
+     *   번호는 이제 «문자를 신청하신 분»에게만 필요하다.
+     * ★ 실제로 보낼 주소는 아래에서 `notifyTargets` 로 찾는다 — 「메일 주소가 어디 있나」를
+     *   두 곳에 적지 않기 위해서다(lib/notify.ts 한 곳).
+     */
     const phone = (w?.phone?.trim() || (settings.phone as string) || "").trim();
-    if (!phone || !canSms) { out.noPhone++; continue; }
+    const wantsSms = (w as Weekly).channel !== "email";
 
     cands.push({
       id: s.id as string,
       slug: s.slug as string,
       businessName: s.business_name as string,
-      settings, w: w as Weekly, phone,
+      settings, w: w as Weekly,
+      phone: wantsSms && canSms ? phone : "",
+      wantsSms: wantsSms && canSms && !!phone,
       status: (s.status as string) ?? null,
       updatedAt: (s.updated_at as string) ?? null,
     });
@@ -119,7 +135,12 @@ export async function GET(req: Request) {
   /* ════ ② 같은 번호는 한 곳만 ════
      ⚠ 조용히 버리지 않는다 — 어느 사이트를 어느 사이트 때문에 건너뛰었는지 로그에 남긴다.
        나중에 「왜 이 사이트만 문자가 안 오냐」는 물음에 답할 수 있어야 한다. */
-  const { chosen, dropped } = pickOnePerPhone(cands);
+  /* ⚠ 번호가 없는 후보(메일만 받는 분)는 «같은 번호» 규칙과 무관하다.
+       그분들까지 번호로 묶으면 빈 번호끼리 한 덩어리가 돼 **한 분 빼고 전부 탈락**한다. */
+  const withPhone = cands.filter((c) => c.phone);
+  const mailOnly = cands.filter((c) => !c.phone);
+  const { chosen: pickedByPhone, dropped } = pickOnePerPhone(withPhone);
+  const chosen = [...pickedByPhone, ...mailOnly];
   out.samePhone = dropped.length;
   for (const d of dropped) {
     console.log(JSON.stringify({ evt: "weekly_same_phone_skipped", slug: d.slug, inFavorOf: d.inFavorOf }));
@@ -146,8 +167,8 @@ export async function GET(req: Request) {
 
   /* ════ ③ 보낸다 ════ */
   for (const c of chosen) {
-    const siblings = byPhone.get(phoneKey(c.phone)) ?? [];
-    if (sentThisWeekToPhone(siblings.map((x) => x.w), now)) {
+    const siblings = c.phone ? (byPhone.get(phoneKey(c.phone)) ?? []) : [];
+    if (c.phone && sentThisWeekToPhone(siblings.map((x) => x.w), now)) {
       out.sameWeekPhone++;
       console.log(JSON.stringify({ evt: "weekly_phone_already_sent_this_week", slug: c.slug }));
       continue;
@@ -186,8 +207,35 @@ export async function GET(req: Request) {
     const inName = hasBannedPhrase(name);
     if (inName) console.warn(JSON.stringify({ evt: "weekly_name_has_banned", slug: c.slug, word: inName }));
 
-    const ok = await sendSmsRaw(c.phone, text);
-    if (!ok) { out.failed++; continue; }
+    /**
+     * ★★ **보내는 순서: 메일 먼저, 문자는 신청하신 분께 «더해서».**
+     *   (2026-09-13 대표님 결정 6 — 메일 거의 0원 · 문자 20원 · 카톡 13원)
+     * ⚠ 둘 다 실패했을 때만 실패로 센다. 메일이 갔으면 그 주는 간 것이다 —
+     *   실패로 세면 다음 날 크론이 **또** 보낸다.
+     */
+    const targets = await notifyTargets(c.id);
+    let ok = false;
+
+    if (targets.email) {
+      const mailed = await sendEmailRaw(
+        targets.email,
+        `[온스토리] ${name} 사장님, 이번 주 질문이 도착했어요`,
+        `${text}\n\n${WEEKLY_UPGRADE_NOTICE}`,
+      );
+      if (mailed) { ok = true; out.byEmail++; }
+    }
+
+    if (c.wantsSms) {
+      const texted = await sendSmsRaw(c.phone, text);
+      if (texted) { ok = true; out.bySms++; }
+    }
+
+    if (!ok) {
+      /* 보낼 길이 아예 없었나(주소도 번호도 없음), 아니면 보내다 실패했나 — 갈라서 센다 */
+      if (!targets.email && !c.wantsSms) out.noTarget++; else out.failed++;
+      console.warn(JSON.stringify({ evt: "weekly_not_sent", slug: c.slug, hasEmail: !!targets.email, wantsSms: c.wantsSms }));
+      continue;
+    }
     out.sent++;
 
     /* ★ 보낸 뒤에 찍는다. 먼저 찍으면 발송 실패 시 그 주를 통째로 건너뛴다.
@@ -196,8 +244,8 @@ export async function GET(req: Request) {
        ⚠ 저장 결과를 **버리지 않는다.** 못 찍으면 다음 날 크론이 또 보낸다 —
          「같은 주에 두 번 가지 않는다」는 약속이 조용히 깨지는 자리다. */
     const stamp = new Date().toISOString();
-    const targets = siblings.length ? siblings : [{ id: c.id, settings: c.settings, w: c.w }];
-    for (const t of targets) {
+    const stampTo = siblings.length ? siblings : [{ id: c.id, settings: c.settings, w: c.w }];
+    for (const t of stampTo) {
       const { error: upErr } = await sb.from("sites")
         .update({ settings: { ...t.settings, weekly: { ...t.w, lastSentAt: stamp } } })
         .eq("id", t.id);

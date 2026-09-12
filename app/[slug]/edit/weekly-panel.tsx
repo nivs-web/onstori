@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PHONE_PRIVATE_NOTICE, WEEKLY_UPGRADE_NOTICE } from "@/lib/weekly";
 
 /**
  * 「주 1회 촬영 알림」 설정. (2026-09-12 회장님 지시 8)
@@ -14,11 +15,13 @@ import { useCallback, useEffect, useState } from "react";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-type Weekly = { on: boolean; channel: "kakao" | "sms"; phone?: string; weekday: number; hour: number };
+type Weekly = { on: boolean; channel: "email" | "kakao" | "sms"; phone?: string; weekday: number; hour: number };
 
 export function WeeklyPanel({ slug }: { slug: string }) {
   const [w, setW] = useState<Weekly | null>(null);
   const [sitePhone, setSitePhone] = useState("");
+  /** 번호를 홈페이지에 공개할까 — **기본은 비공개**다 (2026-09-13 대표님 결정 · lib/phone-privacy.ts) */
+  const [phonePublic, setPhonePublic] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -31,21 +34,39 @@ export function WeeklyPanel({ slug }: { slug: string }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, anonId: anon(), read: true }),
       });
-      const d = (await r.json().catch(() => ({}))) as { weekly?: Weekly; sitePhone?: string; error?: string };
+      const d = (await r.json().catch(() => ({}))) as { weekly?: Weekly; sitePhone?: string; phonePublic?: boolean; error?: string };
       if (!r.ok) { setErr(d.error ?? "설정을 불러오지 못했어요."); return; }
       setW(d.weekly ?? null);
       setSitePhone(d.sitePhone ?? "");
+      setPhonePublic(d.phonePublic === true);
     } catch { setErr("연결이 끊겼어요."); }
   }, [slug]);
 
   useEffect(() => { const t = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(t); }, [load]);
+
+  /** 번호 공개를 «누르는 즉시» 저장한다 — 스위치처럼 보이는 것은 스위치여야 한다 */
+  async function savePhonePublic(v: boolean) {
+    setPhonePublic(v);
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const r = await fetch("/api/site/weekly", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId: anon(), ...w, phonePublic: v }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { phonePublic?: boolean; error?: string };
+      if (!r.ok) { setErr(d.error ?? "저장하지 못했어요."); setPhonePublic(!v); return; }
+      setPhonePublic(d.phonePublic === true);
+      setMsg(v ? "홈페이지에 번호를 공개했어요." : "홈페이지에서 번호를 내렸어요.");
+    } catch { setErr("연결이 끊겼어요."); setPhonePublic(!v); }
+    finally { setBusy(false); }
+  }
 
   async function save(next: Weekly) {
     setBusy(true); setErr(""); setMsg("");
     try {
       const r = await fetch("/api/site/weekly", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId: anon(), ...next }),
+        body: JSON.stringify({ slug, anonId: anon(), ...next, phonePublic }),
       });
       const d = (await r.json().catch(() => ({}))) as { weekly?: Weekly; error?: string };
       if (!r.ok) { setErr(d.error ?? `저장하지 못했어요 (${r.status})`); return; }
@@ -82,18 +103,47 @@ export function WeeklyPanel({ slug }: { slug: string }) {
         ))}
       </div>
 
+      {/* ★★★ **전화번호 공개 — 기본은 비공개다.** (2026-09-13 대표님 결정 3)
+          ⚠ 어느 사장님도 번호가 홈페이지에 박히는 것을 원하지 않는다. 크롤링당해 광고에 쓰인다.
+          ★ 이 스위치는 주 1회 알림과 **별개**다 — 알림을 꺼도 이 자리는 보여야 한다.
+            그래서 아래 `w.on` 묶음 «밖»에 둔다. */}
+      <div className="rounded-[var(--r-md)] border border-n-300 p-4">
+        <p className="t-small font-bold">홈페이지에 전화번호 보이기</p>
+        <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+          {PHONE_PRIVATE_NOTICE.lead}<b>{PHONE_PRIVATE_NOTICE.strong}</b>
+          {" 켜시면 손님이 홈페이지에서 바로 전화를 거실 수 있어요."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {([[false, "숨기기 (권장)"], [true, "보이기"]] as const).map(([v, label]) => (
+            <button key={label} type="button" disabled={busy}
+              onClick={() => { void savePhonePublic(v); }}
+              className={`rounded-full px-4 py-2 t-caption font-semibold disabled:opacity-40 ${phonePublic === v ? "bg-green-700 text-white" : "border border-n-300"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {w.on && (
         <>
           <div>
             <p className="t-small font-bold">어디로 받을까요?</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {([["kakao", "카카오톡"], ["sms", "문자"]] as const).map(([v, label]) => (
+              {([["email", "이메일"], ["kakao", "카카오톡"], ["sms", "문자"]] as const).map(([v, label]) => (
                 <button key={v} type="button" onClick={() => set({ channel: v })}
                   className={`rounded-full px-4 py-2 t-caption font-semibold ${w.channel === v ? "bg-green-700 text-white" : "border border-n-300"}`}>
                   {label}
                 </button>
               ))}
             </div>
+            {/* ★★ **이메일은 무조건 간다.** 문자·카톡은 그 위에 «더하는» 것이다
+                (2026-09-13 대표님 결정 6 — 메일 거의 0원 · 카톡 13원 · 문자 20원).
+                ⚠ 「메일 대신 문자」로 읽히면 안 된다. 그렇게 읽히면 메일을 끈 줄 아신다. */}
+            <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+              {w.channel === "email"
+                ? WEEKLY_UPGRADE_NOTICE
+                : "이메일은 그대로 가고, 여기에 더해서 보내 드려요."}
+            </p>
             {/* ⚠ 조용히 다른 길로 보내지 않는다 — 사실대로 말한다 */}
             {w.channel === "kakao" && (
               <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
