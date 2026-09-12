@@ -272,15 +272,16 @@ export const tiktok: SnsAdapter = {
         canPrefill: false,                       // ★ 미리 고르면 안 된다
         options: o.privacyOptions.map((v) => ({ value: v, label: PRIVACY_LABEL[v] ?? v })),
       },
-      ...(o.commentDisabled ? [] : [{
-        key: "disableComment", label: "댓글 막기", kind: "check" as const, required: false, canPrefill: false,
-      }]),
-      ...(o.duetDisabled ? [] : [{
-        key: "disableDuet", label: "듀엣 막기", kind: "check" as const, required: false, canPrefill: false,
-      }]),
-      ...(o.stitchDisabled ? [] : [{
-        key: "disableStitch", label: "이어찍기 막기", kind: "check" as const, required: false, canPrefill: false,
-      }]),
+      /* ★★ **「허용」으로 묻는다. 「막기」가 아니다.** (2026-09-12 틱톡 규격서 D)
+         틱톡은 **기본이 «전부 꺼짐»**이어야 한다고 정했다. 「막기」로 물으면
+         아무것도 안 만졌을 때 **댓글이 열린 채로** 올라가 요구와 반대가 된다.
+         심사관도 화면의 라벨을 보는데 「댓글 막기」는 요구를 안 따른 것으로 읽힌다.
+         ⚠ 틱톡 API 필드는 `disable_*` 이라 **보낼 때 뒤집는다**(화면 allow → 서버 disable).
+         ★ 못 켜는 것도 **빼지 않고 보여 준다** — 심사관이 「비활성 처리를 했는지」 봐야 하는데
+           아예 없으면 판단을 못 한다. `disabled` 로 함께 준다. */
+      { key: "allowComment", label: "댓글 허용", kind: "check", required: false, canPrefill: false, disabled: o.commentDisabled },
+      { key: "allowDuet", label: "듀엣 허용", kind: "check", required: false, canPrefill: false, disabled: o.duetDisabled },
+      { key: "allowStitch", label: "이어찍기 허용", kind: "check", required: false, canPrefill: false, disabled: o.stitchDisabled },
     ];
   },
 

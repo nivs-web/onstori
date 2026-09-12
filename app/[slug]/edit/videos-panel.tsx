@@ -138,7 +138,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     | null
     | { entryId: string; state: "loading" }
     | { entryId: string; state: "error"; why: string }
-    | { entryId: string; state: "ready"; opt: TtOptions; privacy: string; title: string; noComment: boolean; noDuet: boolean; noStitch: boolean }
+    | { entryId: string; state: "ready"; opt: TtOptions; privacy: string; title: string; okComment: boolean; okDuet: boolean; okStitch: boolean }
   >(null);
 
   async function openTiktokSheet(it: Item) {
@@ -160,7 +160,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         /* ★ 공개범위는 **미리 고르지 않는다.** 사장님이 직접 눌러야 한다 */
         privacy: "",
         title: it.question || it.title || "",
-        noComment: false, noDuet: false, noStitch: false,
+        /* ★ 기본은 **전부 꺼짐** — 틱톡이 그렇게 요구한다(규격서 D) */
+        okComment: false, okDuet: false, okStitch: false,
       });
     } catch {
       setTtSheet({ entryId: it.id, state: "error", why: "연결이 끊겼어요. 잠시 후 다시 시도해 주세요." });
@@ -519,37 +520,37 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                               ))}
                             </div>
 
-                            {/* ★ 틱톡이 «이 계정은 못 켠다»고 한 것은 아예 안 보여 준다 */}
+                            {/* ★★ **「허용」으로 묻는다** (2026-09-12 틱톡 규격서 D).
+                                「막기」로 물으면 아무것도 안 만졌을 때 댓글이 «열린 채로» 올라가
+                                틱톡 요구(기본 전부 꺼짐)와 **반대**가 된다. 심사관도 이 라벨을 본다.
+                                ★ 못 켜는 것도 **빼지 않고 회색으로** 보여 준다 — 아예 없으면
+                                  심사관이 「비활성 처리를 했는지」 판단할 수 없다(규격서 F). */}
                             <div className="mt-3 space-y-1">
-                              {!ttSheet.opt.commentDisabled && (
-                                <label className="flex items-center gap-2 t-caption">
-                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noComment}
-                                    onChange={(e) => setTtSheet({ ...ttSheet, noComment: e.target.checked })} />
-                                  댓글 막기
+                              {([
+                                ["okComment", "댓글 허용", ttSheet.opt.commentDisabled],
+                                ["okDuet", "듀엣 허용", ttSheet.opt.duetDisabled],
+                                ["okStitch", "이어찍기 허용", ttSheet.opt.stitchDisabled],
+                              ] as const).map(([key, label, off]) => (
+                                <label key={key} className={`flex items-center gap-2 t-caption ${off ? "opacity-40" : ""}`}>
+                                  <input type="checkbox" className="h-4 w-4" disabled={off}
+                                    checked={!off && ttSheet[key]}
+                                    onChange={(e) => setTtSheet({ ...ttSheet, [key]: e.target.checked })} />
+                                  {label}
+                                  {off && <span className="text-[var(--text-soft)]">— 이 계정에서 꺼 두셨어요</span>}
                                 </label>
-                              )}
-                              {!ttSheet.opt.duetDisabled && (
-                                <label className="flex items-center gap-2 t-caption">
-                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noDuet}
-                                    onChange={(e) => setTtSheet({ ...ttSheet, noDuet: e.target.checked })} />
-                                  듀엣 막기
-                                </label>
-                              )}
-                              {!ttSheet.opt.stitchDisabled && (
-                                <label className="flex items-center gap-2 t-caption">
-                                  <input type="checkbox" className="h-4 w-4" checked={ttSheet.noStitch}
-                                    onChange={(e) => setTtSheet({ ...ttSheet, noStitch: e.target.checked })} />
-                                  이어찍기 막기
-                                </label>
-                              )}
+                              ))}
                             </div>
+                            <p className="mt-1.5 t-caption text-[var(--text-soft)]">
+                              틱톡 규칙이라 처음에는 모두 꺼져 있어요. 원하시는 것만 켜 주세요.
+                            </p>
 
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button type="button"
                                 disabled={!ttSheet.privacy || pubBusy === it.id}
                                 onClick={() => void publish(it.id, ["tiktok"], {
                                   title: ttSheet.title, privacyLevel: ttSheet.privacy,
-                                  disableComment: ttSheet.noComment, disableDuet: ttSheet.noDuet, disableStitch: ttSheet.noStitch,
+                                  /* ★ 화면은 「허용」, 틱톡 API 는 「disable」 — **여기서 뒤집는다** */
+                                  disableComment: !ttSheet.okComment, disableDuet: !ttSheet.okDuet, disableStitch: !ttSheet.okStitch,
                                 })}
                                 className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
                                 {pubBusy === it.id ? "올리는 중…" : "이 내용으로 틱톡에 올리기"}

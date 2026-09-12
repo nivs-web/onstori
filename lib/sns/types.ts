@@ -145,6 +145,12 @@ export type ExtraField = {
   canPrefill: boolean;
   /** canPrefill 이 true 일 때만 쓰는 미리 채울 값 */
   prefill?: string;
+  /**
+   * ★ **못 고르는 항목.** 목록에서 «빼지 않고» 회색으로 보여 준다.
+   *   틱톡 요구: 「must disable and grey out the checkbox」 — 아예 없으면
+   *   심사관이 「비활성 처리를 했는지」 판단할 수 없다(2026-09-12 규격서 F).
+   */
+  disabled?: boolean;
 };
 
 /** 이 SNS 를 지금 쓸 수 있나 — 못 쓰면 **왜인지** 같이 준다(조용히 실패 금지) */
