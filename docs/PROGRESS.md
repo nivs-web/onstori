@@ -1,5 +1,67 @@
 # PROGRESS.md — 작업 인수인계
 
+## 2026-09-13 (8) 유튜브 감사 — 공식 원문을 코드에 박고 «저장»까지 막았다
+
+김팀장이 공식 문서로 확정한 원문을 **코드 안에 그대로** 넣었다. 링크만 적으면 나중에
+읽는 사람이 안 들어가 본다. **원문이 옆에 있어야 판단이 안 흔들린다.**
+
+```
+support.google.com/youtube/answer/7300965
+  "For videos that have been locked as private due to upload via an unverified API service,
+   you will not be able to appeal."
+  "You'll need to re-upload the video via a verified API service or via the YouTube app/site."
+
+developers.google.com/youtube/v3/revision_history  (2020-07-28)
+  "All videos uploaded via the videos.insert endpoint from unverified API projects created
+   after 28 July 2020 will be restricted to private viewing mode."
+```
+
+### 무엇을 했나
+
+| # | 지시 | 결과 |
+|---|---|---|
+| 1 | 경고 주석 | ✅ 게이트를 다루는 **네 곳 전부** — `youtube-gate.ts`(원문 전문) · `youtube.ts`(readGate) · `api/admin/sns-gate` · **관리자 화면**(사람이 실제로 보는 곳) |
+| 2 | 코드로 막기 | ✅ **어제 업로드 차단 + 오늘 «저장» 차단** — 아래 |
+| 3 | privacyStatus 줄 | ✅ 원문·출처를 그 줄 옆에. 공식 답이 **"re-upload" 뿐**이라는 것까지 |
+| 4 | review 는 그대로 | ✅ 손대지 않았다. 검사에 「review 는 감사 없이도 저장된다 — 비공개라 안전하다」로 못 박았다 |
+
+### ★ 2번을 «한 겹 더» 쌓은 이유
+
+어제 넣은 `canUpload()` 는 **업로드**를 막는다. 그런데 그것만으로는
+**화면에 「정식 공개」라고 적힌 채 아무도 못 올리는** 상태가 남는다.
+그 상태를 본 사람이 「고장났나」 하고 **다음에 하는 일이 «감사 표시를 확인 없이 켜는 것»**이다.
+
+→ `canSaveGate()` 신설. `on` + 감사 표시 없음이면 **저장 자체를 409로 거절**한다.
+**문은 한 번에 하나씩만 열린다** — 감사 통과를 켜고 저장 → 그다음 정식 공개.
+
+⚠ 조건을 라우트에 다시 적지 않았다. 한 곳(`canSaveGate`)에 두고 검사가 그것을 잰다.
+
+**운영 실측 (2026-09-13)**
+```
+바꾸기 전 : mode=off · auditPassed=false
+on+감사없음 저장 시도 → 409 needAudit ✅
+바꾼 뒤    : mode=off · auditPassed=false   ← 그대로. 아무것도 안 바뀌었다
+```
+
+### ★ 새로 안 사실 하나 (limits.ts 에 기록)
+
+> **그 «감사»는 우리가 준비 중인 할당량 증액 신청서와 «같은 서식»이다**
+> ("Audit and Quota Extension Form").
+
+즉 그 신청서는 「하루 500건으로 늘리는 **선택**」이 아니라
+**「영상을 공개로 올릴 수 있게 만드는 **필수 절차**」**다. 늦을수록 그 사이 올린 영상이 버려진다.
+
+### ⚠ 다음 사람이 절대 하면 안 되는 것
+
+- **「신청서를 냈다」로 게이트를 `on` 으로 올리지 마라.** 통과 «메일»을 받아야 한다.
+  코드가 막지만, 막힌 것을 보고 「고장」으로 오해해 감사 표시를 켜면 그 막이 뚫린다
+- `auditPassed` 를 «짐작»으로 켜지 마라. `true` 하나만 인정하게 해 뒀다(`"true"`·1 은 안 켜진다)
+- 이미 잠긴 영상을 살리려 하지 마라 — **방법이 없다.** 사장님이 다시 찍어 다시 올려야 한다
+
+검사 26건(유튜브 문) · 전체 123건 · build·lint 0오류.
+
+---
+
 ## 2026-09-12 (7) 상무님 지적 6건 — ★ 되돌릴 수 없는 것부터 막았다
 
 ### ★★★ 1. 유튜브 — 감사 전 업로드를 막았다 (제일 위험했던 것)
