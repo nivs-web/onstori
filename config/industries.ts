@@ -23,7 +23,9 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   { id: 1, name: "매장·로컬", template: "visit", cta: "call", active: true }, // 카페·식당만 v1 활성
   { id: 2, name: "예약·케어", template: "book", cta: "reserve", active: false },
-  { id: 3, name: "교육·레슨", template: "consult", cta: "consult", active: false }, // 체험신청 폼 변형
+  /* ★ 2026-09-13 켰다 (기술참모님 지적 · 회장님 지시 14) — 대표님이 샘플 셋(일본어·배드민턴·AI 강의)을
+     만드신다. 꺼져 있는 동안 교육 업종 15개가 전부 `cafe` 로 떨어져 **커피 사진**이 떴다. */
+  { id: 3, name: "교육·레슨", template: "consult", cta: "consult", active: true }, // 체험신청 폼 변형
   { id: 4, name: "전문가·상담", template: "consult", cta: "consult", active: false }, // 의료 업종은 후기 비활성 정책 예약
   { id: 5, name: "시공·출장", template: "quote", cta: "quote", active: true }, // ★ 런칭 집중
   { id: 6, name: "공간·대관", template: "book", cta: "reserve", active: false }, // v1 예약=신청 폼(실시간 캘린더 아님)
@@ -60,6 +62,13 @@ export const INDUSTRIES: Industry[] = [
   // ── 카테고리 1 · 매장·로컬 중 v1 예외 활성 (VISIT, 랜딩 [카페·식당] 탭) ──
   { id: "cafe", name: "카페", categoryId: 1, keywords: ["카페", "커피", "베이커리", "디저트", "브런치"], bankTags: ["cafe"], defaultMood: "warm" },
   { id: "restaurant", name: "식당", categoryId: 1, keywords: ["식당", "맛집", "한식", "중식", "일식", "양식", "고기", "곱창", "국밥", "분식"], bankTags: ["restaurant", "food"], defaultMood: "warm" },
+  /* ── 카테고리 3 · 교육·레슨 (CONSULT) — 2026-09-13 활성화 ──
+     ⚠ 이미지 은행에 **교육 사진이 아직 한 장도 없다**(태그 24종 중 0). 히어로는 AI 가 만들지만
+       갤러리·진행과정 사진은 재고가 없으면 섹션 자체가 안 만들어진다(lib/generate.ts).
+       그래서 bankTags 는 적어 두되, 사진을 채우기 전까지는 «사진 없는 홈페이지»가 나온다. */
+  { id: "academy", name: "학원·교습소", categoryId: 3, keywords: ["학원", "교습소", "공부방", "보습", "입시", "논술", "어학", "영어", "일본어", "중국어", "코딩", "컴퓨터"], bankTags: ["academy", "study"], defaultMood: "clean" },
+  { id: "lesson", name: "레슨·과외", categoryId: 3, keywords: ["과외", "레슨", "개인지도", "피아노", "기타", "보컬", "미술", "댄스", "강의", "클래스", "원데이"], bankTags: ["lesson", "study"], defaultMood: "warm" },
+  { id: "sports", name: "운동·체육", categoryId: 3, keywords: ["요가", "필라테스", "헬스", "PT", "골프", "수영", "태권도", "배드민턴", "테니스", "복싱", "주짓수", "체육관"], bankTags: ["sports", "fitness"], defaultMood: "lively" },
 ];
 
 /** 랜딩 포트폴리오 탭 — 카테고리가 아닌 전시용 태그 (showcase.tag) */

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { localBusinessJsonLd } from "@/lib/jsonld";
 import { getSiteBySlug, getPausedSite } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome } from "@/components/sections/site-chrome";
@@ -89,8 +90,32 @@ export default async function SitePage({ params }: Props) {
     "--s-on-accent": onColor(accent),
   } as React.CSSProperties;
 
+  /**
+   * ★★ **검색엔진용 «기계 쪽지»** (2026-09-13 김팀장 지시서 · 회장님 지시 11).
+   *   검색 결과에 상호 아래 주소가 함께 뜨고, 지도 검색에 잡힐 확률이 올라간다.
+   * ⚠ 번호는 **공개로 켜 두신 분만** 실린다 — 화면에서 숨긴 것을 검색엔진에 넘기면
+   *   숨긴 의미가 없다(lib/jsonld.ts 주석).
+   * ⚠ `dangerouslySetInnerHTML` 을 쓰지만 안전하다 — `localBusinessJsonLd` 가
+   *   `<` 를 유니코드로 바꿔 `</script>` 를 막는다. **그 줄을 지우지 마라.**
+   */
+  const jsonLd = localBusinessJsonLd(site, site.settings ?? {});
+
   return (
     <div style={vars}>
+      {/* ★★ **예시 홈페이지라는 것을 맨 위에서 말한다.** (2026-09-13 박팀장 지적 13)
+          ⚠ 손님이 진짜 가게로 알고 전화를 걸거나 문의를 남기면 아무도 안 받는다.
+          ⚠ 불변 규칙 7 — 예시 후기·예시 실적은 «예시» 표시를 달아야 쓸 수 있다. */}
+      {site.sample && (
+        <div
+          className="t-small text-center font-medium"
+          style={{ padding: "var(--s-3) var(--gutter)", background: "var(--n-900)", color: "var(--n-0)" }}
+        >
+          이 홈페이지는 <b>온스토리가 만든 예시</b>입니다 — 실제 업체가 아니에요.
+        </div>
+      )}
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      )}
       <main
         className="relative min-h-svh"
         style={{
