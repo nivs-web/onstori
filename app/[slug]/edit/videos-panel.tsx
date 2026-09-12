@@ -5,6 +5,8 @@ import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
 import { ReviewSheet } from "./review-sheet";
+import { sayPost, providerName } from "@/lib/sns/status-say";
+import { SNS_EDIT_NOTICE, SNS_GROWTH_NOTE, SNS_DELETE_SCOPE, SNS_DELETE_BUTTON } from "@/lib/sns/copy";
 import { TextMeter } from "./text-meter";
 import type { SnsProvider } from "@/lib/sns/types";
 
@@ -32,8 +34,15 @@ type Item = {
   publicUrl: string | null;
   /** ★ 누르기 «전»에 잰 인스타 가능 여부 (2026-09-12). 서버가 준다 */
   ig?: { ok: boolean; why: string };
-  /** ★ 이 영상을 어디에 올렸나 — **기록에서** 온다. 새로고침해도 남는다 (2026-09-12) */
-  posted?: { provider: string; status: string; url: string | null; publishedAt: string | null; deletedAt: string | null }[];
+  /** 홈페이지에 보이나 — 「숨기기」의 값 (2026-09-12 지시 D2) */
+  visible?: boolean;
+  sort?: number;
+  /** ★ 이 영상을 어디에 올렸나 — **기록에서** 온다. 새로고침해도 남는다 (2026-09-12)
+   *  ⚠ `errorKind` 는 영어다. **화면에 그대로 찍지 마라** — sayPost() 를 거쳐야 한다(지시 D4). */
+  posted?: {
+    provider: string; status: string; url: string | null; publishedAt: string | null;
+    deletedAt: string | null; errorKind?: string | null; attempts?: number | null;
+  }[];
 };
 
 /** 틱톡 공개범위 값 → 사장님 말. **틱톡이 준 값만 쓰되 «읽을 수 있게»만 바꾼다.**
@@ -48,10 +57,9 @@ const TT_PRIVACY_LABEL: Record<string, string> = {
   SELF_ONLY: "나만 보기",
 };
 
-const PROVIDER_LABEL: Record<string, string> = {
-  instagram: "인스타그램", youtube: "유튜브", tiktok: "틱톡",
-  facebook: "페이스북", threads: "스레드", x: "X",
-};
+/* ⚠ SNS 이름표를 여기서 다시 적지 않는다 — lib/sns/status-say.ts 의 providerName() 이
+   PROVIDER_NAME(lib/sns/types.ts) 한 곳에서 가져온다. 두 벌을 두면 한쪽만 고쳐진다.
+   (2026-09-12: 실제로 여기 이름표가 「인스타그램」이고 저쪽이 「인스타그램 릴스」로 어긋나 있었다) */
 
 const mmss = (n: number) => `${Math.floor(n / 60)}:${String(Math.round(n % 60)).padStart(2, "0")}`;
 
@@ -80,6 +88,13 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [snsAll, setSnsAll] = useState<{ provider: SnsProvider; name: string; ok: boolean; why: string }[]>([]);
   /** 지금 「다듬어서 등록」을 열어 둔 영상 (한 번에 하나만 연다) */
   const [reviewFor, setReviewFor] = useState<string | null>(null);
+  /** ⚠ 「지우기」는 마이그레이션(20260912200000) 뒤에 열린다. 그전에는 **버튼을 안 그린다** */
+  const [canDelete, setCanDelete] = useState(true);
+  /** 지금 [관리]를 펼친 영상 */
+  const [manageFor, setManageFor] = useState<string | null>(null);
+  /** 지우기 확인창을 띄운 영상 */
+  const [askDelete, setAskDelete] = useState<string | null>(null);
+  const [manageMsg, setManageMsg] = useState("");
 
   /** 지금 홈페이지에 걸려 있는 영상 주소 — doc 이 진실이다 */
   const attachedUrl = (() => {
@@ -102,7 +117,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      setItems(((await r.json()) as { items: Item[] }).items);
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean };
+      setItems(got.items);
+      /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
+      if (got.softDeleteReady === false) setCanDelete(false);
     } catch {
       setLoadErr("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
       setItems([]);
@@ -235,6 +253,29 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
    *   ⚠ `cap` 상태를 거치지 않고 곧바로 넘긴다 — setState 는 다음 렌더에나 반영돼서,
    *     여기서 `cap[entryId]` 를 읽으면 **방금 고친 글이 아니라 이전 글**이 나간다.
    */
+  /**
+   * 영상관리 — 고치기·숨기기·순서·지우기. (2026-09-12 지시 D2)
+   * ⚠ 결과를 «화면 상태»로만 바꾸지 않고 목록을 **다시 읽는다** — 순서 바꾸기는 옆 줄도 함께 바뀐다.
+   */
+  async function manage(entryId: string, body: Record<string, unknown>) {
+    setManageMsg("");
+    try {
+      const r = await fetch("/api/site/video/manage", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, entryId, ...body }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string; why?: string; notReady?: boolean };
+      if (!r.ok) {
+        if (d.notReady) setCanDelete(false);
+        setManageMsg(d.error ?? `하지 못했어요 (${r.status})`);
+        return;
+      }
+      if (d.why) { setManageMsg(d.why); return; }
+      setAskDelete(null);
+      await load();
+    } catch { setManageMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요."); }
+  }
+
   async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice, captionOverride?: string) {
     /* ★★ **[간단 등록]에서는 틱톡을 뺀다** (2026-09-12 지시 8).
        틱톡은 올릴 때마다 공개범위를 직접 골라야 해서 «5초 흐름»에 들어갈 수 없다.
@@ -364,6 +405,12 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         </section>
       ) : (
         <>
+          {/* ★★ 일곱 자리 중 ① — 목록 맨 위, **항상** (2026-09-12 지시 D3).
+              글자는 lib/sns/copy.ts 한 곳에서 온다. 일곱 번 복사하면 한 번 고칠 때 여섯이 옛말로 남는다. */}
+          <div className="rounded-xl bg-n-50 p-3">
+            <p className="t-caption font-semibold text-danger">⚠ {SNS_EDIT_NOTICE}</p>
+            <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">{SNS_GROWTH_NOTE}</p>
+          </div>
           <p className="t-caption leading-relaxed text-[var(--text-soft)]">
             홈페이지에는 <b>한 편만</b> 걸 수 있어요. 다른 영상을 걸면 지금 걸린 것과 바뀝니다.
           </p>
@@ -430,7 +477,73 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
                     {reviewFor === it.id ? "덮기" : "다듬어서 등록"}
                   </button>
+                  <button type="button"
+                    onClick={() => { setManageFor((x) => (x === it.id ? null : it.id)); setManageMsg(""); }}
+                    className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
+                    {manageFor === it.id ? "관리 덮기" : "관리"}
+                  </button>
                 </div>
+
+                {/* ── 관리 (2026-09-12 지시 D2) ─────────────── */}
+                {manageFor === it.id && (
+                  <div className="rounded-xl border border-n-200 p-3">
+                    {/* ★ 고치는 칸 «바로 위»에 범위를 적는다 — 일곱 자리 중 ④ */}
+                    <label className="block">
+                      <span className="t-caption text-[var(--text-soft)]">제목</span>
+                      <input
+                        defaultValue={it.title}
+                        onBlur={(e) => { if (e.target.value !== it.title) void manage(it.id, { action: "rename", title: e.target.value }); }}
+                        placeholder="영상 제목"
+                        className="mt-1 w-full rounded-lg border border-n-300 px-2 py-1.5 t-caption"
+                      />
+                    </label>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button"
+                        onClick={() => void manage(it.id, { action: "visible", visible: !it.visible })}
+                        className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">
+                        {it.visible ? "숨기기" : "보이기"}
+                      </button>
+                      <button type="button" onClick={() => void manage(it.id, { action: "move", dir: "up" })}
+                        className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">↑ 위로</button>
+                      <button type="button" onClick={() => void manage(it.id, { action: "move", dir: "down" })}
+                        className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">↓ 아래로</button>
+                      {/* ⚠ 지우기가 아직 준비 안 됐으면 **버튼을 아예 안 그린다.**
+                          눌러도 아무 일이 안 나는 버튼이 가장 나쁘다. */}
+                      {canDelete && (
+                        <button type="button" onClick={() => setAskDelete(it.id)}
+                          className="rounded-full border border-danger px-3 py-1.5 t-caption font-semibold text-danger">
+                          지우기
+                        </button>
+                      )}
+                    </div>
+
+                    {!it.visible && (
+                      <p className="mt-2 t-caption text-[var(--text-soft)]">
+                        지금은 <b>숨겨져</b> 있어요. 목록에는 남지만 홈페이지에는 안 나옵니다.
+                      </p>
+                    )}
+
+                    {/* ★★ 지우기 확인 — 일곱 자리 중 ⑤. **버튼 글자 자체가 «어디까지 지우는지»를 말한다** */}
+                    {askDelete === it.id && (
+                      <div className="mt-3 rounded-xl border border-danger p-3">
+                        <p className="t-caption font-bold text-danger">이 영상을 지울까요?</p>
+                        <p className="mt-1 whitespace-pre-line t-caption leading-relaxed text-[var(--text-soft)]">
+                          {SNS_DELETE_SCOPE}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button type="button" onClick={() => void manage(it.id, { action: "delete" })}
+                            className="rounded-full bg-danger px-4 py-2 t-caption font-semibold text-white">
+                            {SNS_DELETE_BUTTON}
+                          </button>
+                          <button type="button" onClick={() => setAskDelete(null)}
+                            className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">취소</button>
+                        </div>
+                      </div>
+                    )}
+                    {manageMsg && <p className="mt-2 t-caption font-semibold text-danger">{manageMsg}</p>}
+                  </div>
+                )}
 
                 {reviewFor === it.id && (
                   <ReviewSheet
@@ -453,21 +566,29 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     · 지워진 것으로 «확인된» 것만 「지워졌어요」라고 쓴다
                     · 확인 못 한 것은 아무 말도 하지 않는다(추측하지 않는다)
                     · [보기] 는 주소가 있을 때만. 없는 링크를 보여 주지 않는다 */}
-                {(it.posted ?? []).filter((x) => x.status === "published").map((x) => (
-                  <p key={x.provider} className="t-caption leading-relaxed">
-                    {x.deletedAt ? (
-                      <span className="text-[var(--text-soft)]">
-                        {PROVIDER_LABEL[x.provider] ?? x.provider} 에 올렸는데, <b>지금은 {PROVIDER_LABEL[x.provider] ?? x.provider} 에서 지워졌어요.</b>
-                        {" "}(올린 기록은 그대로 남아 있어요)
-                      </span>
-                    ) : (
-                      <span className="font-semibold text-green-700">
-                        {PROVIDER_LABEL[x.provider] ?? x.provider} 에 올렸어요.
-                        {x.url && <> <a href={x.url} target="_blank" rel="noreferrer" className="underline">[보기]</a></>}
-                      </span>
-                    )}
-                  </p>
-                ))}
+                {/* ★★ **SNS 등록 현황** (2026-09-12 지시 D1·D4).
+                    ⚠ 전에는 «올라간 것»만 보여 줬다. 그래서 실패한 것은 **화면에서 사라졌고**,
+                      사장님은 올라간 줄 알고 기다렸다. 이제 전부 보여 준다.
+                    ★★ 영어(error_kind·status)는 **한 글자도 안 나간다** — sayPost() 가 번역한다
+                      (검사: scripts/status-say-test.ts).
+                    ★ 기록이 «없는» SNS 는 줄 자체를 안 그린다 — 회색 「안 올림」은 실패처럼 읽힌다. */}
+                {(it.posted ?? []).map((x) => {
+                  const said = sayPost(x);
+                  if (!said) return null;
+                  const tone = said.tone === "good" ? "text-green-700"
+                    : said.tone === "bad" ? "text-danger" : "text-[var(--text-soft)]";
+                  return (
+                    <p key={x.provider} className={`t-caption leading-relaxed ${tone}`}>
+                      <b>{providerName(x.provider)}</b> — {said.text}
+                      {said.action === "보기" && x.url && (
+                        <> <a href={x.url} target="_blank" rel="noreferrer" className="underline">[보기]</a></>
+                      )}
+                      {said.action === "다시 연결하기" && (
+                        <> <button type="button" onClick={() => setView("sns")} className="underline">[다시 연결하기]</button></>
+                      )}
+                    </p>
+                  );
+                })}
 
                 {/* ★ 이미 인스타에 올린 영상에는 버튼을 다시 두지 않는다 — 서버가 중복을 막으므로
                     눌러도 「이미 올렸어요」만 나온다. 눌러도 아무 일이 안 나는 버튼을 두지 않는다. */}

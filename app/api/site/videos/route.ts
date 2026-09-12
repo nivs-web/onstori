@@ -30,17 +30,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });
   }
 
-  const { data, error } = await sbAdmin()
-    .from("story_entries")
-    .select("id, title, question, entry_date, created_at, video_key, video_out_key, media_status")
-    .eq("site_id", r.site.id)
-    .not("video_key", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(LIMIT);
+  /* ★★ 순서는 **사장님이 정한 것**(sort)이 먼저고, 같으면 최신이 위다 (2026-09-12 지시 D2).
+     ⚠ `deleted_at` 칸은 마이그레이션(20260912200000) 뒤에 생긴다. 아직이면 그 조건만 빼고 읽는다 —
+       칸 하나 때문에 **영상 목록 전체가 안 뜨면** 안 된다(캡션 칸에서 같은 함정을 이미 겪었다). */
+  const COLS = "id, title, question, entry_date, created_at, video_key, video_out_key, media_status, visible, sort";
+  const base = () => sbAdmin().from("story_entries").select(COLS)
+    .eq("site_id", r.site.id).not("video_key", "is", null)
+    .order("sort", { ascending: true }).order("created_at", { ascending: false }).limit(LIMIT);
 
-  if (error) {
-    console.error(JSON.stringify({ evt: "video_list_failed", slug, err: error.message.slice(0, 160) }));
-    return NextResponse.json({ error: "영상 목록을 불러오지 못했어요" }, { status: 500 });
+  let data: Record<string, unknown>[] | null = null;
+  let softDeleteReady = true;
+  {
+    const alive = await base().is("deleted_at", null);
+    if (alive.error) {
+      softDeleteReady = false;
+      const all = await base();
+      if (all.error) {
+        console.error(JSON.stringify({ evt: "video_list_failed", slug, err: all.error.message.slice(0, 160) }));
+        return NextResponse.json({ error: "영상 목록을 불러오지 못했어요" }, { status: 500 });
+      }
+      data = all.data as Record<string, unknown>[];
+    } else data = alive.data as Record<string, unknown>[];
   }
 
   /* ⚠ **소리만 녹음한 것은 이 목록에서 뺀다.** 그것도 `video_key` 에 저장되지만
@@ -55,13 +65,19 @@ export async function POST(req: Request) {
      ⚠ `remote_deleted_at` 은 마이그레이션(20260912140000) 뒤에 생긴다. 없으면 그 칸만 빼고 읽는다 —
        칸 하나 때문에 영상 목록 전체가 안 뜨면 안 된다. */
   const entryIds = videoRows.map((r) => r.id as string);
-  type PostRow = { entry_id: string; provider: string; status: string; remote_url: string | null; published_at: string | null; remote_deleted_at?: string | null };
+  type PostRow = {
+    entry_id: string; provider: string; status: string;
+    remote_url: string | null; published_at: string | null;
+    /** ★ 실패 이유·시도 횟수까지 읽는다 — 없으면 화면이 「안 올라갔어요」조차 말할 수 없다 */
+    error_kind?: string | null; attempts?: number | null;
+    remote_deleted_at?: string | null;
+  };
   let posts: PostRow[] = [];
   if (entryIds.length) {
-    const base = "entry_id, provider, status, remote_url, published_at";
-    const first = await sbAdmin().from("sns_posts").select(`${base}, remote_deleted_at`).in("entry_id", entryIds);
+    const cols = "entry_id, provider, status, remote_url, published_at, error_kind, attempts";
+    const first = await sbAdmin().from("sns_posts").select(`${cols}, remote_deleted_at`).in("entry_id", entryIds);
     if (first.error) {
-      const fallback = await sbAdmin().from("sns_posts").select(base).in("entry_id", entryIds);
+      const fallback = await sbAdmin().from("sns_posts").select(cols).in("entry_id", entryIds);
       posts = (fallback.data ?? []) as PostRow[];
     } else {
       posts = (first.data ?? []) as PostRow[];
@@ -99,12 +115,19 @@ export async function POST(req: Request) {
           .filter((p) => p.entry_id === row.id)
           .map((p) => ({
             provider: p.provider, status: p.status,
+            /* ⚠ 이 영어(error_kind)는 **화면에 그대로 찍으면 안 된다.**
+               반드시 lib/sns/status-say.ts 의 sayPost() 를 거쳐 한국어로 바꿔 쓴다 */
+            errorKind: p.error_kind ?? null,
+            attempts: p.attempts ?? null,
             url: p.remote_url, publishedAt: p.published_at,
             /** 그쪽에서 지워진 것을 **확인한** 시각. null 이면 「살아 있다」가 아니라 「확인 못 했거나 살아 있다」 */
             deletedAt: p.remote_deleted_at ?? null,
           })),
         id: row.id as string,
         title: (row.title as string) ?? "",
+        /** 홈페이지에 보일까 — 「숨기기」의 값. 칸이 비어 있으면 «보임»이 기본이다 */
+        visible: row.visible !== false,
+        sort: (row.sort as number) ?? 0,
         question: (row.question as string) ?? "",
         date: (row.entry_date as string) ?? "",
         poster,
@@ -116,5 +139,7 @@ export async function POST(req: Request) {
     }),
   );
 
-  return NextResponse.json({ items });
+  /* ⚠ 「지우기」가 아직 준비 안 됐으면 화면이 그 버튼을 **안 그린다.**
+     눌러도 아무 일이 안 나는 버튼이 가장 나쁘다. */
+  return NextResponse.json({ items, softDeleteReady });
 }
