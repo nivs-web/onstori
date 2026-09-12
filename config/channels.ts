@@ -14,13 +14,24 @@
  *   손으로 적으면 목록이 바뀔 때 화면이 거짓말을 한다(2026-09-11 전수 교체).
  */
 
+/**
+ * ★★★ `live` — **지금 실제로 나가는 곳인가.** (2026-09-13 박팀장 지적)
+ *
+ * ⚠ 왜 생겼나: 화면 여섯 군데가 「6곳에 동시 발행됩니다」라고 **단정**하고 있었는데,
+ *   실제로 나가는 곳은 둘뿐이다. 같은 페이지의 가격표·작동방식 카드는 정직하게
+ *   「준비 중」을 적고 있어서, **한 페이지가 스스로 다른 말을 하고** 있었다.
+ *
+ * ★ 그래서 「되는 곳」을 **여기 한 곳**에 적는다. 화면은 이 값을 읽어 표시만 붙인다 —
+ *   화면마다 손으로 「준비 중」을 적으면 여는 날 여섯 곳을 다 찾아 고쳐야 하고, 하나는 빠진다.
+ * ⚠ 채널을 여는 날 **여기만** `live: true` 로 바꾼다.
+ */
 export const CHANNELS = [
-  { id: "youtube", name: "유튜브 쇼츠", short: "Shorts" },
-  { id: "instagram", name: "인스타 릴스", short: "Reels" },
-  { id: "tiktok", name: "틱톡", short: "TikTok" },
-  { id: "threads", name: "쓰레드", short: "Threads" },
-  { id: "x", name: "X(트위터)", short: "X" },
-  { id: "facebook", name: "페이스북", short: "Facebook" },
+  { id: "youtube", name: "유튜브 쇼츠", short: "Shorts", live: false },
+  { id: "instagram", name: "인스타 릴스", short: "Reels", live: true },
+  { id: "tiktok", name: "틱톡", short: "TikTok", live: true },
+  { id: "threads", name: "쓰레드", short: "Threads", live: false },
+  { id: "x", name: "X(트위터)", short: "X", live: false },
+  { id: "facebook", name: "페이스북", short: "Facebook", live: false },
 ] as const;
 
 /** 한 줄로 이어 붙인 것 — 화면에서는 거의 항상 이걸 쓴다 */
@@ -29,9 +40,29 @@ export const CHANNELS_LINE = CHANNELS.map((c) => c.name).join(" · ");
 /** 개수 — "6곳" 처럼 숫자를 적는 자리. 채널이 늘면 여기도 같이 바뀐다 */
 export const CHANNEL_COUNT = CHANNELS.length;
 
-/** 「6곳 동시 발행」 카드의 설명 한 줄 */
+/* ════════ 「지금 되는 곳」과 「준비 중」 (2026-09-13) ════════ */
+
+/** 지금 실제로 나가는 곳의 개수 */
+export const LIVE_COUNT = CHANNELS.filter((c) => c.live).length;
+
+/** 이름 옆에 «(준비 중)»을 붙인 한 줄 — 목록을 보여 주는 자리는 전부 이것을 쓴다 */
+export const CHANNELS_LINE_MARKED =
+  CHANNELS.map((c) => (c.live ? c.name : `${c.name}(준비 중)`)).join(" · ");
+
+/**
+ * ★★ 숫자만 적는 자리(「6곳」)에 **반드시 함께** 붙이는 한 줄.
+ *
+ * ⚠ 회장님 지시(2026-09-13): 「6곳」 같은 숫자와 「지금 됩니다」 같은 단정에는
+ *   **문구 승인을 기다리지 말고 바로 «준비 중» 표시를 붙여라.**
+ *   전화를 걸기 전에 거짓말이 없어야 한다.
+ * ⚠ 이 문장은 «광고»가 아니라 **사실 표시**다. 숫자가 바뀌면 저절로 따라간다.
+ */
+export const PENDING_NOTE =
+  `지금 나가는 곳은 ${LIVE_COUNT}곳이고, 나머지 ${CHANNEL_COUNT - LIVE_COUNT}곳은 준비 중입니다.`;
+
+/** 「6곳 동시 발행」 카드의 설명 한 줄 — ★ 준비 중 표시를 포함한다 */
 export const CHANNELS_PITCH =
-  `${CHANNELS_LINE}. 동영상 60초만 찍었는데 ${CHANNEL_COUNT}곳에 동시에 발행됩니다.`;
+  `${CHANNELS_LINE_MARKED}. ${PENDING_NOTE}`;
 
 /**
  * 해지해도 남는 것 — 「전부 사장님 것이다」 자리에 쓴다.

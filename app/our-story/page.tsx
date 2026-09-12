@@ -4,7 +4,7 @@ import Image from "next/image";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { BIZ } from "@/config/company";
 import { COPY } from "@/lib/trial";
-import { CHANNELS_LINE, CHANNEL_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
+import { CHANNELS_LINE_MARKED, LIVE_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
 
 export const metadata: Metadata = { title: "온스토리", description: "홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 온스토리를 만든 이유." };
 
@@ -18,7 +18,8 @@ const COMPARE_ROWS = [
   ["사장님이 할 일", "원고·사진 준비, 검수, 수정 요청", "문자 링크 누르고 60초 말하기"],
   ["글쓰기", "사장님 또는 외주 작가", "없음 — 말하면 글이 됨"],
   ["영상", "별도 견적 (편당 30만원~)", "매주 자막 영상 포함"],
-  ["SNS 발행", "없음", `${CHANNELS_LINE} — ${CHANNEL_COUNT}곳`],
+  /* ★ 비교표에서 「6곳」만 적으면 제작업체와의 차이를 부풀린 것이 된다 (2026-09-13) */
+  ["SNS 발행", "없음", `${CHANNELS_LINE_MARKED} — 지금 ${LIVE_COUNT}곳`],
   ["검색 노출", "등록은 해 주지만 새 페이지가 안 생김", "이야기마다 새 페이지 — 검색 면적이 늘어남"],
   ["사진", "스톡 사진", "사장님 사진 우선 + 업종별 이미지뱅크"],
   ["소유권", "업체 서버·업체 계정인 경우 많음", "홈페이지·영상·기록 전부 사장님 것"],

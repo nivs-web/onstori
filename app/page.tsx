@@ -6,7 +6,7 @@ import { QuestionShuffle } from "@/components/site/question-shuffle";
 import { FAQ_FEATURED } from "@/config/faq";
 import { sectionVisibility } from "@/lib/page-sections";
 import { BIZ } from "@/config/company";
-import { CHANNELS_LINE, CHANNELS_PITCH, CHANNEL_COUNT } from "@/config/channels";
+import { CHANNELS_PITCH, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
 import { COPY, BILLING_INTERVAL } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
 import { MarkStack, MarkSearch, MarkVoice } from "@/components/site/marks";
@@ -71,7 +71,9 @@ export default async function Home() {
               <Link href="/how-it-works" className="btn btn-text">작동방식 보기 →</Link>
             </div>
             <dl className="grid grid-cols-3 text-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "28rem" }}>
-              {[["3분", "제작 시간"], [`${CHANNEL_COUNT}곳`, "퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
+              {/* ★ 「6곳」이라고만 적으면 거짓말이다 — 지금 나가는 곳은 둘뿐이다 (2026-09-13 박팀장 지적).
+                  숫자는 «지금 되는 것»을 적고, 나머지 이야기는 아래 카드가 «준비 중»으로 말한다. */}
+              {[["3분", "제작 시간"], [`${LIVE_COUNT}곳`, "지금 퍼지는 채널"], ["30일", "전 기능 무료"]].map(([v, k]) => (
                 <div key={k} className="card" style={{ padding: "var(--s-3) var(--s-2)" }}>
                   <dd className="t-h3" style={{ color: "var(--green-700)" }}>{v}</dd>
                   <dt className="t-caption">{k}</dt>
@@ -148,7 +150,9 @@ export default async function Home() {
             {[
               ["홈페이지", "상호명과 업종만 고르면 3분 만에 onstori.com/name 이 생깁니다. 이야기가 쌓일수록 페이지가 두꺼워집니다."],
               ["60초 영상", "매주(혹은 매일) 질문 하나에 60초. 아직도 타이핑하고 계신가요? 목소리가 있어야 고객이 신뢰합니다."],
-              [`${CHANNEL_COUNT}곳 동시 발행`, CHANNELS_PITCH],
+              /* ★ 제목의 숫자에도 «지금 몇 곳»을 함께 적는다. 설명(CHANNELS_PITCH)은
+                 이름마다 (준비 중) 을 달고 마지막에 PENDING_NOTE 를 붙인다 */
+              [`${CHANNEL_COUNT}곳 동시 발행 — 지금 ${LIVE_COUNT}곳`, CHANNELS_PITCH],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>
@@ -301,7 +305,8 @@ export default async function Home() {
             {[
               ["상호명·업종 고르기", "3분이면 홈페이지 뼈대가 완성됩니다. 사진 10장이 있으면 더 좋고, 없어도 됩니다."],
               ["문자 링크 누르고 60초", "매주 질문 하나. 브라우저에서 열고 말씀만 하세요."],
-              ["이야기만 쌓기", `영상·글·사진 카드가 ${CHANNEL_COUNT}곳에 퍼지고 홈페이지에 쌓입니다. 그게 시공 사례가 되고 문의가 됩니다.`],
+              /* ⚠ 자막 영상·글·사진 카드는 **아직 없다.** 있는 것만 적는다 (2026-09-13) */
+              ["이야기만 쌓기", `영상이 ${LIVE_COUNT}곳에 퍼지고 홈페이지에 쌓입니다. 그게 시공 사례가 되고 문의가 됩니다. (자막 영상·글·사진 카드는 준비 중)`],
             ].map(([t, d], i) => (
               <li key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <span className="t-small font-bold" style={{ color: "var(--green-700)" }}>{String(i + 1).padStart(2, "0")}</span>
@@ -472,7 +477,7 @@ export default async function Home() {
           </p>
           {/* ⚠ t-small(15px) 이라 안 읽혔다 — t-body(17px) 로 키우고 색도 --text 로 올린다(2026-09-07 회장님) */}
           <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-4)", color: "var(--n-200)" }}>
-            매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · {CHANNEL_COUNT}채널 발행 포함
+            매달 자동 결제 · 언제든 해지 · 호스팅 · 네이버/구글 검색 등록 · 수정 무제한 · 이야기 무제한 · {CHANNEL_COUNT}채널 발행 포함(지금 {LIVE_COUNT}곳 · 나머지 준비 중)
           </p>
           <div style={{ marginTop: "var(--s-7)" }}>
             <Link href="/new" className="btn btn-primary">무료로 만들어보기 →</Link>

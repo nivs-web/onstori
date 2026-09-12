@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CHANNELS_LINE, CHANNEL_COUNT } from "@/config/channels";
+import { CHANNELS_LINE_MARKED, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { RecMockup, SpeechToStory } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
@@ -14,7 +14,7 @@ export default function HowItWorks() {
     ["매주 질문이 문자로 옵니다", "주 1회 (원하면 매일)", "\"이 일을 시작한 이유는요?\" 같은 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
     ["링크를 누르고 60초 말합니다", "60초", "브라우저가 열리고 3·2·1 뒤 녹화. 얼굴이 싫으면 '음성만'. 다시 찍기는 무제한."],
     ["온스토리가 영상·글·사진 카드를 만듭니다", "30분", "무음 컷 · 한글 자막 · 쇼츠·릴스 규격 · 원문/1인칭/3인칭 글 · 캡션 6종 · 사진 카드."],
-    [`${CHANNEL_COUNT}곳에 퍼집니다`, "하루 최대 3건", `${CHANNELS_LINE}.`],
+    [`${LIVE_COUNT}곳에 퍼집니다`, "하루 최대 3건", `${CHANNELS_LINE_MARKED}.`],
     ["홈페이지에 쌓입니다", "계속", "이야기가 늘수록 검색에 잡히는 페이지가 늘고, \"작업 기록 47건\"이 말이 아니라 기록으로 증명됩니다."],
   ];
   return (
@@ -24,7 +24,7 @@ export default function HowItWorks() {
       <PageHero
         kicker="작동방식"
         title={<>사장님이 말하면,<br />손님이 찾아옵니다.</>}
-        sub={`글쓰기·편집·앱 설치 없이, 문자 링크 하나로 매주 60초. 그 60초가 홈페이지·영상·글이 되어 ${CHANNEL_COUNT}곳에 퍼집니다.`}
+        sub={`글쓰기·편집·앱 설치 없이, 문자 링크 하나로 매주 60초. 그 60초가 홈페이지와 영상이 되어 ${LIVE_COUNT}곳에 퍼집니다. (나머지 ${CHANNEL_COUNT - LIVE_COUNT}곳은 준비 중)`}
       >
         <div className="flex flex-wrap" style={{ marginTop: "var(--s-5)", gap: "var(--s-3)" }}>
           <Link href="/new" className="btn btn-primary">녹화를 시도해보세요 · 60초</Link>

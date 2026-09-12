@@ -5,14 +5,17 @@
  */
 
 import { COPY } from "@/lib/trial";
-import { CHANNELS_LINE, CHANNEL_COUNT } from "@/config/channels";
+import { CHANNELS_LINE, CHANNEL_COUNT, LIVE_COUNT, CHANNELS_LINE_MARKED } from "@/config/channels";
 
 export interface FaqItem { q: string; a: string; featured?: boolean }
 export interface FaqGroup { id: string; title: string; items: FaqItem[] }
 
 export const FAQ: FaqGroup[] = [
   { id: "about", title: "온스토리란", items: [
-    { q: "온스토리가 뭔가요?", a: `사장님의 60초 이야기를 홈페이지·자막 영상·글·사진 카드로 만들어 ${CHANNEL_COUNT}곳(${CHANNELS_LINE})에 퍼뜨리는 서비스입니다. 홈페이지는 3분 만에 먼저 생깁니다.`, featured: true },
+    /* ★★ 서비스를 «정의»하는 첫 문장이라 여기가 제일 급했다 (2026-09-13 박팀장 지적).
+       전에는 자막 영상·글·사진 카드(전부 준비 중)와 6곳(4곳 준비 중)을 **이미 되는 것처럼** 적었다.
+       ⚠ 손님이 「이게 뭐하는 서비스냐」고 묻는 첫 질문의 답이 사실과 달랐다. */
+    { q: "온스토리가 뭔가요?", a: `사장님의 60초 이야기를 홈페이지와 SNS 영상으로 만들어 퍼뜨리는 서비스입니다. 홈페이지는 3분 만에 먼저 생깁니다. 지금 나가는 곳은 ${LIVE_COUNT}곳(${CHANNELS_LINE_MARKED})이고, 자막 영상·글·사진 카드는 준비 중입니다.`, featured: true },
     { q: "홈페이지 제작업체와 뭐가 다른가요?", a: "제작업체는 홈페이지를 만들고 끝납니다. 온스토리는 매주 질문을 보내고, 사장님의 대답을 이야기로 만들어 손님이 찾아오게 합니다. 제작업체는 홈페이지를 주고, 온스토리는 손님을 부릅니다." },
     { q: "글을 정말 안 써도 되나요?", a: "네. 문자로 온 링크를 누르고 말씀만 하시면 됩니다. 직접 쓰고 싶으시면 써도 되고, 그 글도 온스토리가 다듬어 드립니다.", featured: true },
     { q: "어떤 업종이 쓸 수 있나요?", a: "시공·출장(인테리어·도배·타일·전기·설비·청소·이사 등), 카페·식당, 뷰티·케어, 교육·레슨, 전문가·상담, 건강·의료, 공간·대관, 제작·서비스. 쇼핑몰은 지원하지 않습니다." },

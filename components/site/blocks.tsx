@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { FaqItem } from "@/config/faq";
-import { CHANNELS, CHANNEL_COUNT } from "@/config/channels";
+import { CHANNELS, CHANNEL_COUNT, LIVE_COUNT, CHANNELS_LINE_MARKED } from "@/config/channels";
 
 
 /* 본사 페이지 공용 블록 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md). */
@@ -35,7 +35,9 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
  *   제휴처럼 보이게 하지 말 것»을 요구한다). **가장 안전한 것은 로고를 안 쓰는 것**이라
  *   여섯 곳 전부 글자로만 적는다. 로고를 되살리려면 각 사 브랜드 가이드를 먼저 확인해야 한다.
  */
-export function ChannelStrip({ title = `한 번 말하면 ${CHANNEL_COUNT}곳에 퍼지는 자동화 엔진` }: { title?: string }) {
+/* ★ 띠에 나열된 여섯 개가 **똑같이 되는 것처럼** 보였다 (2026-09-13 박팀장 지적).
+   제목에 «지금 몇 곳»을 적고, 아래 목록은 안 되는 곳을 흐리게 + (준비 중) 으로 구분한다. */
+export function ChannelStrip({ title = `한 번 말하면 ${CHANNEL_COUNT}곳에 퍼지는 자동화 엔진 — 지금 ${LIVE_COUNT}곳` }: { title?: string }) {
   return (
     <section className="surface-50" style={{ borderBlock: "1px solid var(--n-200)" }}>
       <div

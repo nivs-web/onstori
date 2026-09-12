@@ -5,7 +5,7 @@ import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
 import { ReviewSheet } from "./review-sheet";
-import { sayPost, providerName } from "@/lib/sns/status-say";
+import { sayPost, providerName, josa } from "@/lib/sns/status-say";
 import { SNS_EDIT_NOTICE, SNS_GROWTH_NOTE, SNS_DELETE_SCOPE, SNS_DELETE_BUTTON } from "@/lib/sns/copy";
 import { TextMeter } from "./text-meter";
 import type { SnsProvider } from "@/lib/sns/types";
@@ -222,7 +222,9 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
           if (!row) return { ok: false, why: "" };
           if (!row.available.ok) return { ok: false, why: row.available.why ?? "" };
           if (!row.connection || row.connection.status !== "active") {
-            return { ok: false, why: `[SNS 연결] 에서 ${label}을 먼저 연결해 주세요.` };
+            /* ⚠ 받침에 맞는 조사를 쓴다 — 「유튜브 쇼츠을」 같은 말이 **심사관 화면에** 뜬다
+               (2026-09-13 감사 준비 중 발견). 판정은 lib/sns/status-say.ts 의 josa() 한 곳에 있다. */
+            return { ok: false, why: `[SNS 연결] 에서 ${label}${josa(label, "을/를")} 먼저 연결해 주세요.` };
           }
           if (!row.connection.disclaimerAgreedAt) {
             return { ok: false, why: "[SNS 연결] 에서 [올려도 좋아요]를 먼저 눌러 주세요." };
