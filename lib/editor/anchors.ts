@@ -57,6 +57,27 @@ export function highlightAnchor(anchor: string): boolean {
 }
 
 /**
+ * ★ 메뉴를 바꾼 «뒤» 앵커를 찾는다 — **찾을 때까지 몇 번 다시 본다.** (2026-09-12 지시 7)
+ *
+ * ⚠ 전에는 `setTimeout(…, 60)` **한 번**이었다. 60밀리초는 «보통 그 정도면 그려진다»는
+ *   추측이지 보장이 아니다. 그 메뉴의 화면이 목록을 불러오며 그려지면(영상 메뉴가 그렇다)
+ *   60밀리초 뒤에도 앵커가 DOM 에 없고, 사장님은 **아무 일도 안 일어나는 힌트**를 보게 된다.
+ *   점수 힌트가 먹통이면 그 점수는 사장님에게 거짓말이 된다(불변 규칙 12).
+ *
+ * ★ 화면이 그려지는 박자(animation frame)에 맞춰 최대 `tries` 번 다시 본다.
+ *   못 찾으면 `onMissing()` 을 부른다 — 그때만 「그 자리가 없어요」라고 말한다.
+ */
+export function highlightAnchorSoon(anchor: string, onMissing: () => void, tries = 20): void {
+  let left = tries;
+  const look = () => {
+    if (highlightAnchor(anchor)) return;
+    if (--left <= 0) { onMissing(); return; }
+    window.requestAnimationFrame(look);
+  };
+  window.requestAnimationFrame(look);
+}
+
+/**
  * 앵커가 아닌 자리로도 데려간다 — 왼쪽 칸의 «섹션 목록»이 쓴다.
  *
  * ⚠ 섹션 카드 12종 중 앵커가 있는 건 넷뿐이다(sec-hero·sec-form·set-contact·set-hours).

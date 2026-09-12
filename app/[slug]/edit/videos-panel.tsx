@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
+import { TextMeter } from "./text-meter";
+import type { SnsProvider } from "@/lib/sns/types";
 
 /**
  * 「영상」 메뉴 — 찍어 올린 60초 영상을 **홈페이지에 걸고 내린다** (2026-09-11, V-1 C).
@@ -278,6 +280,14 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                 {snsPicked.length > 0 && (
                   <div className="rounded-xl border border-n-200 p-3">
                     <p className="t-caption font-semibold">SNS {snsPicked.length}곳에 올리기</p>
+                    {/* ★★ **실제로 나갈 글**을 그대로 보여 주고 센다 (2026-09-12 지시 6).
+                        고른 곳이 여럿이면 «가장 짧은 곳» 기준이다 — 인스타에 맞춰 쓴 글이
+                        X 에서 잘려도 사장님은 모른다. 넘어도 막지 않고 무엇을 줄일지만 말한다. */}
+                    <TextMeter
+                      text={it.question || it.title || ""}
+                      providers={snsPicked as SnsProvider[]}
+                      className="mt-1"
+                    />
                     <button type="button" disabled={pubBusy === it.id}
                       onClick={() => void publish(it.id)}
                       className="mt-2 rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">

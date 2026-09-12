@@ -5,6 +5,7 @@ import { storyLinkUrl } from "@/lib/story-link";
 import { pickQuestions } from "@/config/questions";
 import { readWeekly, shouldSend } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
+import { refreshInstagramTokens, finishStuckPosts } from "@/lib/sns/maintenance";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -77,5 +78,20 @@ export async function GET(req: Request) {
   }
 
   console.log(JSON.stringify({ evt: "weekly_done", ...out }));
-  return NextResponse.json(out);
+
+  /* ★★ SNS 유지보수를 **여기에 얹는다** (2026-09-12 회장님 지시 1·8).
+     ① 인스타 60일 토큰을 죽기 전에 갱신 ② 화면을 닫아 「받는 중」으로 멈춘 영상 마무리.
+
+     ⚠ 왜 새 크론을 안 만드나: `vercel.json` 의 크론 한 줄이 배포 전체를 실패시킨 적이 있고
+       (2026-09-12), 무료 요금제는 크론 개수에도 제한이 있다. 매일 도는 이 크론에 얹는 것이
+       가장 안전하다. 나중에 분리할 때는 `lib/sns/maintenance.ts` 를 부르는 라우트만 새로 만들면 된다.
+     ⚠ 문자 발송이 실패해도 유지보수는 돈다 — 위 반복문이 이미 끝난 뒤라 서로 막지 않는다. */
+  const sns = { refresh: null as unknown, finish: null as unknown };
+  try { sns.refresh = await refreshInstagramTokens(); }
+  catch (e) { console.error(JSON.stringify({ evt: "sns_refresh_crashed", err: String(e).slice(0, 200) })); }
+  try { sns.finish = await finishStuckPosts(); }
+  catch (e) { console.error(JSON.stringify({ evt: "sns_finish_crashed", err: String(e).slice(0, 200) })); }
+  console.log(JSON.stringify({ evt: "sns_maintenance_done", ...sns }));
+
+  return NextResponse.json({ ...out, sns });
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
 import { BIZ } from "@/config/company";
 import { TRIAL_DAYS, LEGAL } from "@/lib/trial";
+import { LEGAL_VERSION } from "@/lib/consents";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침 — 온스토리",
@@ -35,7 +37,8 @@ export const metadata: Metadata = {
  * ⚠ 변호사 검토 전이다. 법정 필수 항목은 전수 대조했으나, 최종 검토는 받아야 한다.
  */
 
-const UPDATED = "2026-09-06";
+/* ★ 시행일의 단일 출처는 `lib/consents.ts` — 가입 동의 기록이 같은 값을 쓴다 */
+const UPDATED = LEGAL_VERSION.privacy;
 
 function Sec({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
@@ -133,7 +136,7 @@ export default function PrivacyPage() {
           <p>
             즉 이 정보에 대해서는 <b>사장님이 개인정보처리자</b>이고 온스토리가 수탁자입니다.
             둘 사이의 위탁 조건(목적 외 처리 금지, 재위탁 제한, 안전성 확보조치, 손해배상 책임 등)은{" "}
-            <a href="/terms#entrust" className="underline underline-offset-2" style={{ color: "var(--forest)" }}>이용약관 제7조</a>에
+            <Link href="/terms#entrust" className="underline underline-offset-2" style={{ color: "var(--forest)" }}>이용약관 제7조</Link>에
             문서로 정해 두었습니다.
           </p>
           <p>

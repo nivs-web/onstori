@@ -41,7 +41,9 @@ export type ErrorKind = (typeof ERROR_KINDS)[number];
 /** 사장님에게 보여 줄 말 — 화면마다 다시 쓰지 않는다 */
 export const ERROR_SAY: Record<ErrorKind, string> = {
   TRANSIENT: "지금은 올리지 못했어요. 잠시 후 다시 시도해 주세요.",
-  AUTH_EXPIRED: "연결이 풀렸어요. [연결하기]를 한 번 더 눌러 주세요.",
+  /* ⚠ 버튼 이름과 **글자까지 같아야 한다.** 연결이 풀린 줄의 버튼은 [다시 연결하기] 다
+     (app/[slug]/edit/sns-panel.tsx). 없는 버튼을 가리키면 사장님이 화면에서 헤맨다 — 불변 규칙 12. */
+  AUTH_EXPIRED: "연결이 풀렸어요. [다시 연결하기]를 눌러 주세요.",
   REJECTED: "그쪽에서 이 영상을 받지 않았어요. 다른 영상으로 시도해 주세요.",
   QUOTA_EXCEEDED: "오늘 올릴 수 있는 개수를 다 썼어요. 내일 다시 시도해 주세요.",
 };

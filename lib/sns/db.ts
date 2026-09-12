@@ -107,6 +107,50 @@ export async function deleteConnection(siteId: string, provider: SnsProvider): P
   return true;
 }
 
+/**
+ * ★ 갱신할 때가 된 연결 — 크론이 쓴다. (2026-09-12)
+ *
+ * 「만료가 `dueBefore` 보다 앞인 살아 있는 연결」을 준다. 토큰까지 함께 준다 —
+ * 부르는 쪽이 곧바로 갱신 호출을 해야 해서다. **응답·화면에 절대 싣지 마라.**
+ * ⚠ `token_expires_at` 이 비어 있는 줄도 함께 준다. 만료를 «모르는» 연결이야말로
+ *   조용히 죽는 자리라, 크론이 한 번 밀어 보는 편이 안전하다.
+ */
+export async function listForRefresh(provider: SnsProvider, dueBefore: string, limit = 200): Promise<{
+  siteId: string; accessToken: string | null; expiresAt: string | null;
+}[]> {
+  const { data, error } = await sbAdmin()
+    .from("sns_connections")
+    .select("site_id, access_token, token_expires_at")
+    .eq("provider", provider)
+    .eq("status", "active")
+    .not("access_token", "is", null)
+    .or(`token_expires_at.lte.${dueBefore},token_expires_at.is.null`)
+    .limit(limit);
+  if (error || !data) {
+    if (error) console.error(JSON.stringify({ evt: "sns_list_refresh_failed", provider, err: error.message.slice(0, 160) }));
+    return [];
+  }
+  return (data as { site_id: string; access_token: string | null; token_expires_at: string | null }[])
+    .map((d) => ({ siteId: d.site_id, accessToken: d.access_token, expiresAt: d.token_expires_at }));
+}
+
+/**
+ * ★ 토큰만 갈아 끼운다 — 계정 이름·동의 시각 같은 다른 칸을 건드리지 않는다.
+ * `saveConnection` 은 upsert 라 넘기지 않은 칸을 null 로 덮는다. 갱신에는 쓰면 안 된다.
+ */
+export async function updateToken(
+  siteId: string, provider: SnsProvider, accessToken: string, expiresAt: string | null,
+): Promise<boolean> {
+  const { error } = await sbAdmin().from("sns_connections")
+    .update({ access_token: accessToken, token_expires_at: expiresAt, status: "active", updated_at: new Date().toISOString() })
+    .eq("site_id", siteId).eq("provider", provider);
+  if (error) {
+    console.error(JSON.stringify({ evt: "sns_update_token_failed", provider, err: error.message.slice(0, 160) }));
+    return false;
+  }
+  return true;
+}
+
 /** 연결이 풀렸다고 표시 — 토큰은 못 쓰니 함께 비운다 */
 export async function markExpired(siteId: string, provider: SnsProvider): Promise<void> {
   await sbAdmin().from("sns_connections")
@@ -175,6 +219,26 @@ export async function updatePost(id: string, patch: Partial<{
   published_at: string | null;
 }>): Promise<void> {
   await sbAdmin().from("sns_posts").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+}
+
+/**
+ * ★ 화면이 닫혀 «받는 중»으로 멈춰 버린 시도들 — 마무리 크론이 쓴다. (2026-09-12)
+ *
+ * ⚠ `updated_at` 이 오래된 것만 준다. 브라우저가 지금 1분마다 밀고 있는 건을 크론이
+ *   같이 밀면 **같은 영상이 두 번 올라갈 수 있다.** 손을 뗀 것만 집는다.
+ */
+export async function listStuckPosts(idleSince: string, limit = 50): Promise<(PostRow & { site_id: string })[]> {
+  const { data, error } = await sbAdmin().from("sns_posts")
+    .select("id, status, container_id, remote_post_id, remote_url, error_kind, error_detail, attempts, public_key, created_at, provider, entry_id, site_id")
+    .in("status", ["queued", "uploading", "processing"])
+    .lt("updated_at", idleSince)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error(JSON.stringify({ evt: "sns_list_stuck_failed", err: error.message.slice(0, 160) }));
+    return [];
+  }
+  return (data as (PostRow & { site_id: string })[]) ?? [];
 }
 
 /** 한 영상이 어디까지 갔나 — 화면이 쓴다 */

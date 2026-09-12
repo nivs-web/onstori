@@ -210,18 +210,22 @@ function Row({ it, busy, err, selected, onToggle, onCall, onHowTo }: {
           </span>
         </label>
 
+        {/* ★ 연결이 풀린(expired) 줄에는 **[다시 연결하기]가 반드시 보여야 한다.** (2026-09-12)
+            전에는 줄이 남아 있으면 [연결 끊기]만 나왔다. 그런데 안내문은 「[연결하기]를 눌러
+            주세요」라고 했다 — 없는 버튼을 가리킨 것이다(불변 규칙 12: 말과 화면이 어긋나면 거짓말). */}
         <div className="flex shrink-0 flex-wrap gap-2">
-          {c ? (
+          {(!c || expired) && (
+            <button type="button" disabled={!it.available.ok || busy === it.provider}
+              onClick={() => onCall("/api/sns/connect", it.provider, "")}
+              className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
+              {busy === it.provider ? "…" : expired ? "다시 연결하기" : "연결하기"}
+            </button>
+          )}
+          {c && (
             <button type="button" disabled={busy === it.provider}
               onClick={() => onCall("/api/sns/disconnect", it.provider, "연결을 끊고 저장된 열쇠를 지웠어요.")}
               className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold disabled:opacity-40">
               {busy === it.provider ? "…" : "연결 끊기"}
-            </button>
-          ) : (
-            <button type="button" disabled={!it.available.ok || busy === it.provider}
-              onClick={() => onCall("/api/sns/connect", it.provider, "")}
-              className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
-              {busy === it.provider ? "…" : "연결하기"}
             </button>
           )}
         </div>
@@ -239,7 +243,7 @@ function Row({ it, busy, err, selected, onToggle, onCall, onHowTo }: {
         </p>
       )}
       {expired && (
-        <p className="mt-2 t-caption font-semibold text-danger">연결이 풀렸어요. [연결 끊기] 뒤 다시 연결해 주세요.</p>
+        <p className="mt-2 t-caption font-semibold text-danger">연결이 풀렸어요. [다시 연결하기]를 눌러 주세요.</p>
       )}
 
       {/* 면책 동의 — 누르기 전에는 올리기를 시작하지 않는다 */}

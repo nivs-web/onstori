@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
 import { MEMBERSHIP_PRICE, TRIAL_DAYS, LEGAL } from "@/lib/trial";
 import { BIZ } from "@/config/company";
+import { LEGAL_VERSION } from "@/lib/consents";
 
 export const metadata: Metadata = {
   title: "이용약관 — 온스토리",
@@ -38,7 +39,9 @@ export const metadata: Metadata = {
  *   집중 검토 요청 3곳: (1) ③의 회차별 전액 청약철회 (2) ④의 일할 산식 기산일 (3) 제4조 자동 삭제와 통지 요건.
  */
 
-const UPDATED = "2026-09-06";
+/* ★ 시행일의 단일 출처는 `lib/consents.ts` 다. 가입 동의 기록이 「어느 판본에 동의했는지」를
+   이 값으로 적기 때문에, 여기에 날짜를 따로 타이핑하면 화면과 증거가 갈라진다. */
+const UPDATED = LEGAL_VERSION.terms;
 
 function Sec({ n, title, id, children }: { n: string; title: string; id?: string; children: React.ReactNode }) {
   return (

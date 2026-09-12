@@ -138,7 +138,7 @@ export async function pickImages(
 ): Promise<string[]> {
   try {
     const sb = sbAdmin();
-    let query = sb
+    const query = sb
       .from("image_bank")
       .select("id, url, tags, used_count")
       .eq("industry", industry)

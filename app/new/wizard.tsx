@@ -122,6 +122,12 @@ export function Wizard() {
   // 4
   const [tone, setTone] = useState<Tone>("light");
   const [accent, setAccent] = useState(ACCENTS[0].id);
+
+  /* ★ 가입 동의 (2026-09-12 회장님 지시 2). 손님은 체크박스로 보호받는데 사장님은
+     하나도 없었다. 필수 둘·선택 하나로 **반드시 나눠 둔다** — 선택을 필수처럼 묶으면 법 위반이다. */
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
   // 5
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [progress, setProgress] = useState(0);
@@ -197,6 +203,8 @@ export function Wizard() {
         mood: theme.palette, accent: theme.accent,
         industryId: sub?.industryId, industryLabel: sub?.label,
         address: address.trim() || undefined, whyStarted: why.trim() || undefined, anonId: aid || undefined,
+        /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신) */
+        consents: { terms: agreeTerms, privacy: agreePrivacy, marketing: agreeMarketing },
       };
       const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await readJson(r);
@@ -538,12 +546,75 @@ export function Wizard() {
               );
             })}
           </div>
-          {nav({ next: () => { setStep(4); void create(); }, canNext: true, label: "홈페이지 만들기 — 무료" })}
+          {/* ★★ 가입 동의 — 만들기 «직전»이 마지막 문이다 (2026-09-12 회장님 지시 2).
+              · 필수 둘은 안 누르면 [홈페이지 만들기] 가 눌리지 않는다
+              · 알림 수신은 **선택**이다. 안 눌러도 가입은 그대로 된다
+              · 문서는 **새 창**으로 연다 — 여기서 나가면 적어 둔 것이 다 날아간다 */}
+          <div className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--line)", background: "var(--n-0)" }}>
+            <Consent
+              checked={agreeTerms} onChange={setAgreeTerms} required
+              label={<><Doc href="/terms">이용약관</Doc>에 동의합니다</>}
+            />
+            <Consent
+              checked={agreePrivacy} onChange={setAgreePrivacy} required
+              label={<><Doc href="/privacy">개인정보 수집·이용</Doc>에 동의합니다</>}
+            />
+            <Consent
+              checked={agreeMarketing} onChange={setAgreeMarketing}
+              label={<>촬영 알림·안내를 문자로 받겠습니다</>}
+              hint="안 하셔도 가입돼요. 손님 문의 알림은 이것과 상관없이 갑니다."
+            />
+          </div>
+
+          {nav({
+            next: () => { setStep(4); void create(); },
+            canNext: agreeTerms && agreePrivacy,
+            label: "홈페이지 만들기 — 무료",
+          })}
         </section>
       )}
 
       {/* 입력창은 공용 .field (app/globals.css) — 높이 48, focus 초록 2px + 바깥 4px 링 */}
     </>
+  );
+}
+
+/** 동의 문서 링크 — **새 창**으로 연다. 여기서 나가면 적어 둔 것이 날아간다 */
+function Doc({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href} target="_blank" rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="underline underline-offset-2 font-bold"
+      style={{ color: "var(--green-700)" }}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * 동의 한 줄. 손님 견적 폼과 **같은 결**로 맞췄다 — 사장님만 홀대하지 않는다.
+ * ⚠ 「필수」와 「선택」을 글자로 보이게 둔다. 표시가 없으면 선택도 필수처럼 읽힌다.
+ */
+function Consent({ checked, onChange, label, hint, required }: {
+  checked: boolean; onChange: (v: boolean) => void;
+  label: React.ReactNode; hint?: string; required?: boolean;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3" style={{ paddingBlock: "var(--s-2)", minHeight: "var(--tap)" }}>
+      <input
+        type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-5 w-5 shrink-0"
+      />
+      <span className="min-w-0">
+        <span className="t-small block">
+          <b style={{ color: required ? "var(--green-700)" : "var(--muted)" }}>{required ? "[필수]" : "[선택]"}</b>{" "}
+          {label}
+        </span>
+        {hint && <span className="t-caption block" style={{ marginTop: "var(--s-1)", color: "var(--muted)" }}>{hint}</span>}
+      </span>
+    </label>
   );
 }
 

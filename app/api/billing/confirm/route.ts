@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { sbAdmin } from "@/lib/db-admin";
 import { MEMBERSHIP_PRICE } from "@/lib/trial";
 
@@ -58,6 +59,14 @@ export async function POST(req: Request) {
     // 마이그레이션 전(paid_at 없음) — 최소 갱신으로 재시도
     await sb.from("sites").update({ status: "active", plan: "light", settings }).eq("id", site.id);
   }
+  /* ★★ 「결제하시면 그대로 다시 공개됩니다」 — 그 약속을 **여기서** 지킨다. (2026-09-12)
+     손님 사이트(`app/[slug]/page.tsx`)는 ISR(revalidate=60)이라, 결제로 status 가
+     `expired`→`active` 가 돼도 **캐시에 남은 «없는 페이지»가 최대 1분 더 보인다.**
+     사장님은 돈을 내고 바로 새로고침해 보는데 여전히 안 열린다 — 약속이 화면에서 깨진다.
+     사이트맵도 1시간 캐시라 검색 허용이 같이 늦는다. 두 줄이면 둘 다 즉시 풀린다. */
+  revalidatePath(`/${slug}`);
+  revalidatePath("/sitemap.xml");
+
   console.log(JSON.stringify({ evt: "membership_paid", slug, orderId }));
   return NextResponse.json({ ok: true });
 }

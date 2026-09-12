@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
+import { hasRequired, recordConsents } from "@/lib/consents";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
@@ -31,6 +32,12 @@ const Input = z.object({
   industryId: z.string().max(40).optional(),
   industryLabel: z.string().max(40).optional(),
   accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  /* ★ 가입 동의 (2026-09-12). 화면이 체크박스로 받아 보낸다.
+     ⚠ **optional 이다.** 열려 있는 옛 화면은 이 값을 안 보낸다 — 필수로 막으면 그 사장님이
+       만들던 자리에서 실패한다. 값이 오면 기록하고, 안 오면 「기록 없음」으로 남긴다. */
+  consents: z.object({
+    terms: z.boolean(), privacy: z.boolean(), marketing: z.boolean(),
+  }).partial().optional(),
 });
 
 export async function POST(req: Request) {
@@ -149,6 +156,22 @@ export async function POST(req: Request) {
       site_id: site.id,
       funnel: { created_at: new Date().toISOString() },
     });
+
+    /* ★★ 가입 동의를 «증거로» 남긴다 (2026-09-12 회장님 지시 2).
+       ⚠ 홈페이지는 이미 만들어졌다. 기록에 실패해도 **되돌리지 않는다** —
+         사장님은 화면에서 분명히 눌렀고, 못 적은 것은 우리 쪽 문제라 로그로 남겨 사람이 챙긴다.
+       ⚠ 옛 화면은 이 값을 안 보낸다. 그때는 「동의 화면을 못 본 가입」이라 로그만 남긴다. */
+    if (input.consents) {
+      const c = input.consents;
+      if (!hasRequired(c)) {
+        console.warn(JSON.stringify({ evt: "consent_missing_required", slug, got: c }));
+      }
+      await recordConsents(site.id, {
+        terms: c.terms === true, privacy: c.privacy === true, marketing: c.marketing === true,
+      });
+    } else {
+      console.warn(JSON.stringify({ evt: "consent_absent", slug, why: "옛 가입 화면 — 동의 칸이 없다" }));
+    }
 
     console.log(JSON.stringify({ evt: "generate_ok", slug, industry: industry.id, method: inferred.method, ms: Date.now() - started }));
     return NextResponse.json({ url: `https://onstori.com/${slug}`, slug });

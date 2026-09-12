@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getSiteBySlug } from "@/lib/sites";
+import { getSiteBySlug, getPausedSite } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome } from "@/components/sections/site-chrome";
+import { PausedSite } from "@/components/sections/paused";
 
 /**
  * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
@@ -47,7 +48,9 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const site = await getSiteBySlug(slug);
-  if (!site) return {};
+  /* 쉬고 있는 홈페이지 — **검색에 남기지 않는다.** 사장님 상호로 「지금은 볼 수 없어요」가
+     검색되면 그게 더 큰 손해다. 결제하면 api/billing 이 곧바로 캐시를 풀어 원래 화면으로 돌아온다. */
+  if (!site) return { robots: { index: false, follow: false } };
   const hero = site.doc.sections.find((s) => s.type === "hero");
   const url = `https://onstori.com/${slug}`;
   return {
@@ -67,7 +70,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SitePage({ params }: Props) {
   const { slug } = await params;
   const site = await getSiteBySlug(slug);
-  if (!site) notFound();
+  if (!site) {
+    /* ★ 「없는 주소」와 「쉬고 있는 홈페이지」를 가른다 (2026-09-12 지시 5).
+       손님 권한으로는 둘이 똑같이 «없음»으로 보인다. 하지만 뒤쪽은 사장님이 **명함에 적어 둔
+       주소**라 죽은 링크가 되면 안 된다. 이 조회는 «없을 때만» 도므로 평소 비용이 없다. */
+    const paused = await getPausedSite(slug);
+    if (paused) return <PausedSite businessName={paused.businessName} />;
+    notFound();
+  }
 
   const p = PALETTES[site.doc.theme.palette];
   const accent = site.doc.theme.accent ?? p.accent;

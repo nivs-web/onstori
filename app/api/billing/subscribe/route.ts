@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
@@ -99,6 +100,11 @@ export async function POST(req: Request) {
     raw: paid.data as unknown as Record<string, unknown>,
   });
   await sb.from("sites").update({ status: "active", plan: "light", paid_at: new Date().toISOString() }).eq("id", site.id);
+
+  /* ★★ 결제 즉시 손님 사이트를 다시 연다 — confirm 라우트와 같은 이유(ISR 캐시).
+     한쪽만 고치면 「1회 결제로는 열리는데 정기결제로는 안 열린다」가 된다. */
+  revalidatePath(`/${site.slug}`);
+  revalidatePath("/sitemap.xml");
 
   console.log(JSON.stringify({ evt: "subscription_started", slug: site.slug, orderId }));
   return NextResponse.json({ ok: true, nextChargeAt: nextCharge.toISOString(), cardLast4: last4(card?.number) });

@@ -23,7 +23,8 @@ import { WeeklyPanel } from "./weekly-panel";
 import { LogoutButton } from "@/app/my/ui";
 import { EditorShell } from "./shell";
 import { DEFAULT_EDITOR_MENU, isEditorMenu, type EditorMenuId } from "@/config/editor-menu";
-import { highlightAnchor, highlightId, menuOfAnchor } from "@/lib/editor/anchors";
+import { highlightAnchor, highlightAnchorSoon, highlightId, menuOfAnchor } from "@/lib/editor/anchors";
+import { TextMeter } from "./text-meter";
 
 /**
  * 에디터 v1 (클라이언트) — 섹션 12종 편집·이야기. data-tour 앵커 규약 준수 (CLAUDE.md 규칙 3).
@@ -114,14 +115,16 @@ export function EditUi({ slug }: { slug: string }) {
          (2026-09-09 반증 검사). */
     if (home && home !== menu) {
       setMenu(home);
-      window.setTimeout(() => { if (!highlightAnchor(anchor)) flash(ANCHOR_MISSING); }, 60);
+      /* ★ 2026-09-12 — 60밀리초 한 번이 아니라 «그려질 때까지» 본다.
+         영상 메뉴처럼 목록을 불러오며 그려지는 화면은 60밀리초 안에 안 끝난다. */
+      highlightAnchorSoon(anchor, () => flash(ANCHOR_MISSING));
       return;
     }
     if (highlightAnchor(anchor)) return;
     // 표에 없는 앵커(껍데기에 늘 있는 것)인데 못 찾았다면 이 사이트에 그 자리가 없는 것이다
     // (예: 영업시간은 VISIT 템플릿에만 있다).
     setMenu(home ?? DEFAULT_EDITOR_MENU);
-    window.setTimeout(() => { if (!highlightAnchor(anchor)) flash(ANCHOR_MISSING); }, 60);
+    highlightAnchorSoon(anchor, () => flash(ANCHOR_MISSING));
   }
   /**
    * 왼쪽 칸의 «섹션 목록» → 그 칸으로 데려간다.
@@ -327,7 +330,7 @@ export function EditUi({ slug }: { slug: string }) {
           <a href={`/login?next=${encodeURIComponent(`/${slug}/edit`)}`} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>로그인하기</a>
         </>
       )}
-      <p className="mt-4 t-caption text-[var(--text-soft)]">운영자라면 <a className="text-green-700 underline" href="/admin">운영자 인증</a> 후 다시 시도하세요.</p>
+      <p className="mt-4 t-caption text-[var(--text-soft)]">운영자라면 <Link className="text-green-700 underline" href="/admin">운영자 인증</Link> 후 다시 시도하세요.</p>
     </main>
     </div>
   );
@@ -1182,7 +1185,11 @@ function StoryTab({ slug, onDone }: { slug: string; onDone: (score: number) => v
         ))}
       </div>
       <Field label="제목"><input className={inp} value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="예: 강동구 34평 입주청소" /></Field>
-      <Field label="내용"><textarea className={inp} rows={4} value={body} maxLength={1000} onChange={(e) => setBody(e.target.value)} placeholder="두세 문장이면 충분해요" /></Field>
+      <Field label="내용">
+        <textarea className={inp} rows={4} value={body} maxLength={1000} onChange={(e) => setBody(e.target.value)} placeholder="두세 문장이면 충분해요" />
+        {/* ★ 해시태그를 31개 쓰면 인스타가 거절한다. 올리고 나서 알면 늦다 (지시 6) */}
+        <TextMeter text={body} className="mt-1.5" />
+      </Field>
       <Field label="날짜"><input type="date" className={inp} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
       <div>
         <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">사진 ({photos.length}/4)</span>

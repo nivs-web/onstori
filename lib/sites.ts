@@ -88,3 +88,36 @@ export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
   if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null; // 라우팅 최종 방어선
   return (await getFromDb(slug)) ?? (await getFromSeed(slug));
 }
+
+/**
+ * ★ 이 주소가 **아예 없는 것**인지, **쉬고 있는 사장님 홈페이지**인지 가른다. (2026-09-12 지시 5)
+ *
+ * ★★ 왜 필요한가: 위 `getSiteBySlug` 는 **손님 권한(anon)** 으로 읽는다. RLS 가
+ *   `trial`·`active` 만 보여 주므로 **정지·만료된 사이트는 「없는 주소」와 똑같이 보인다.**
+ *   그런데 그 주소는 사장님이 **명함·플레이스에 적어 둔 주소**다. 손님이 그걸 눌렀을 때
+ *   영어 404 를 보면 「이 가게 망했나」가 된다 — 우리가 판 물건이 손님 앞에서 부서지는 순간이다.
+ *
+ * ⚠ 여기서는 **운영자 권한**으로 «있는지»만 본다. 내용(published)은 읽지 않는다 —
+ *   비공개인 홈페이지 내용이 손님 화면에 새어 나갈 길을 아예 만들지 않는다.
+ * ⚠ 상호명만 돌려준다. 그것도 «없는 주소»와 구분해 인사하기 위한 최소한이다.
+ */
+export async function getPausedSite(slug: string): Promise<{ businessName: string } | null> {
+  if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  try {
+    const admin = createClient(url, key, { auth: { persistSession: false } });
+    const { data } = await admin
+      .from("sites")
+      .select("business_name, status")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!data) return null;
+    /* trial·active 인데 여기까지 왔다면 «발행 전»이다. 그건 쉬는 게 아니라 아직 없는 것 */
+    if (data.status === "trial" || data.status === "active") return null;
+    return { businessName: (data.business_name as string) || "" };
+  } catch {
+    return null;
+  }
+}

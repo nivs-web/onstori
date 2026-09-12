@@ -239,7 +239,16 @@ export async function GET(req: Request) {
         });
         if (fails >= 3) {
           await sb.from("billing").update({ status: "failed", fail_count: fails }).eq("site_id", b.site_id);
-          await sb.from("sites").update({ status: "expired" }).eq("id", site.id);
+          /* ★★ `suspended_at` 을 **여기서도 찍는다** (2026-09-12 지시 9 · 상무님 지적).
+             전에는 이 줄만 status 를 내리고 정지 시각을 안 남겼다. 그러면 위 5)의
+             삭제 기한이 `trial_ends_at`(아주 옛날)로 갈음돼 **곧바로 삭제 대상**이 되고,
+             4)의 예고 문자는 D-30·D-7 이 이미 지나 **한 통도 못 나간다.**
+             결과: 카드 한도 문제로 결제가 세 번 실패한 사장님이 **예고도 없이** 삭제 문턱에 선다.
+             (다행히 5)의 «예고를 못 보냈으면 지우지 않는다» 게이트가 막고 있었지만,
+              그건 마지막 안전망이지 설계가 아니다.) */
+          await sb.from("sites")
+            .update({ status: "expired", suspended_at: new Date(now).toISOString() })
+            .eq("id", site.id);
           console.error(JSON.stringify({ evt: "subscription_failed_final", slug: site.slug, code: paid.code }));
         } else {
           const retry = new Date(now + day);

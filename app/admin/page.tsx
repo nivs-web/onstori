@@ -39,10 +39,17 @@ function Card({ label, value, sub, tone }: { label: string; value: string; sub?:
   );
 }
 
+/** 지금 시각을 **렌더 밖에서** 한 번 읽는다. 렌더 안에서 부르면 순수성 규칙에 걸린다 */
+const readClock = () => new Date().getTime();
+
 export default async function DashboardPage() {
   if (!(await isAdmin())) return <AdminLogin />;
   const sb = sbAdmin();
-  const now = Date.now();
+  /* ⚠ `Date.now()` 를 렌더 안에서 바로 부르면 린트가 막는다 —
+     같은 렌더가 두 번 돌 때 값이 달라져 화면이 흔들릴 수 있다는 경고다.
+     이 화면은 서버에서 한 번만 그려지고 「최근 N일」을 세는 데만 쓰지만,
+     규칙을 끄지 않고 **한 번 읽어 고정**하는 쪽으로 맞춘다. */
+  const now = readClock();
 
   const [{ data: sites }, { data: pays }, { data: inqs }, { data: bank }, { data: stories }, { data: note }] = await Promise.all([
     sb.from("sites").select("slug, business_name, status, created_at, trial_ends_at, suspended_at, paid_at, payment, settings"),

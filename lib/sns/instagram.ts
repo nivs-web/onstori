@@ -28,6 +28,8 @@ import type { Availability, Connection, ErrorKind, Quota, SnsAdapter, UploadInpu
 const GRAPH = "https://graph.instagram.com/v21.0";
 const OAUTH_DIALOG = "https://www.instagram.com/oauth/authorize";
 const TOKEN_URL = "https://api.instagram.com/oauth/access_token";
+/** ★ 장기 토큰 교환·갱신은 **버전 없는** 주소다(graph.instagram.com 바로 아래). */
+const GRAPH_ROOT = "https://graph.instagram.com";
 /** ⚠ 확인 필요 — 인스타 로그인 방식의 권한 이름. 심사 전에 대조할 것 */
 const SCOPES = ["instagram_business_basic", "instagram_business_content_publish"];
 
@@ -36,6 +38,70 @@ const appSecret = () => process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP
 
 /** 인스타가 그쪽에서 처리를 끝냈나 — ⚠ 값 집합 확인 필요 */
 type ContainerStatus = "IN_PROGRESS" | "FINISHED" | "ERROR" | "PUBLISHED" | "EXPIRED";
+
+/* ════════════════ 토큰 수명 ════════════════
+   ★★ 인스타 토큰은 **두 종류**다. 이 구분을 놓치면 연결이 조용히 죽는다.
+
+   | 종류 | 수명 | 어떻게 얻나 |
+   |---|---|---|
+   | 단기(short-lived) | **1시간 안팎** | 로그인 직후 코드를 바꿔 받는 첫 토큰 |
+   | 장기(long-lived)  | **60일** | 단기 토큰을 `ig_exchange_token` 으로 한 번 더 바꾼다 |
+
+   ★ 2026-09-12 이전 코드는 **단기 토큰을 그대로 저장**했다. 사장님이 연결하고 한 시간이
+     지나면 올리기가 실패했다는 뜻이다.
+   ★ 장기 토큰도 60일이면 끝난다. 그런데 **갱신(`ig_refresh_token`)은 만료 «전»에만 된다.**
+     한 번 넘기면 사장님이 처음부터 다시 연결해야 한다. 그래서 크론이 미리 밀어 준다
+     (`lib/sns/maintenance.ts`). 갱신은 발급 24시간 뒤부터 가능한데, 우리는 46일째에
+     밀므로 그 조건에 걸리지 않는다.
+   ⚠ 값(60일·24시간)의 근거는 김팀장 조사(2026-09-12). 심사 전에 한 번 더 대조할 것. */
+
+type TokenAnswer = { access_token?: string; expires_in?: number };
+
+/** 몇 초짜리 토큰인지를 만료 시각(ISO)으로. 값이 없으면 null — 「모른다」를 지어내지 않는다 */
+const expiryFrom = (sec: number | undefined) =>
+  sec ? new Date(Date.now() + sec * 1000).toISOString() : null;
+
+/**
+ * 단기 토큰 → **장기 토큰(60일)**. 연결 직후 한 번만 부른다.
+ * 실패해도 던지지 않는다 — 단기 토큰이라도 저장하는 편이 «연결 실패» 보다 낫다(그 자리에서 한 번은 올릴 수 있다).
+ */
+export async function exchangeForLongLived(shortToken: string): Promise<TokenAnswer | null> {
+  if (!appSecret()) return null;
+  const u = new URL(`${GRAPH_ROOT}/access_token`);
+  u.searchParams.set("grant_type", "ig_exchange_token");
+  u.searchParams.set("client_secret", appSecret());
+  u.searchParams.set("access_token", shortToken);
+  try {
+    const r = (await callJson(u.toString(), { method: "GET" }, "ig:exchange")) as TokenAnswer;
+    return r.access_token ? r : null;
+  } catch (e) {
+    console.error(JSON.stringify({ evt: "ig_exchange_failed", err: brief(String(e), 160) }));
+    return null;
+  }
+}
+
+/**
+ * 장기 토큰 **갱신** — 다시 60일. 만료 «전»에만 된다.
+ * 던지지 않고 결과만 돌려준다. 부르는 쪽(크론)이 「끝났다/다시 해 보자」를 판단한다.
+ */
+export async function refreshLongLived(
+  longToken: string,
+): Promise<{ ok: true; token: string; expiresAt: string | null } | { ok: false; kind: ErrorKind; detail: string }> {
+  const u = new URL(`${GRAPH_ROOT}/refresh_access_token`);
+  u.searchParams.set("grant_type", "ig_refresh_token");
+  u.searchParams.set("access_token", longToken);
+  try {
+    const r = (await callJson(u.toString(), { method: "GET" }, "ig:refresh")) as TokenAnswer;
+    if (!r.access_token) return { ok: false, kind: "TRANSIENT", detail: "새 토큰이 오지 않았어요." };
+    return { ok: true, token: r.access_token, expiresAt: expiryFrom(r.expires_in) };
+  } catch (e) {
+    return {
+      ok: false,
+      kind: instagram.translateError(e),
+      detail: e instanceof SnsHttpError ? e.body : brief(String(e)),
+    };
+  }
+}
 
 export const instagram: SnsAdapter = {
   provider: "instagram",
@@ -112,13 +178,19 @@ export const instagram: SnsAdapter = {
         };
       }
 
-      /* ⚠ 인스타 로그인의 첫 토큰은 **짧은 수명**이다(1시간 안팎). 장기 토큰으로 바꾸는 절차가
-         따로 있는데 그 경로는 **확인 필요**다. 지금은 받은 값이 있으면 그대로 적고, 없으면 비워 둔다 —
-         만료되면 화면이 「연결이 풀렸어요」로 안내하고 다시 연결하면 된다(조용히 죽지 않는다). */
-      const expiresAt = tok.expires_in ? new Date(Date.now() + tok.expires_in * 1000).toISOString() : null;
+      /* ★★ 첫 토큰은 **1시간짜리**다. 여기서 곧바로 **60일짜리**로 바꾼다.
+         바꾸지 않으면 사장님이 연결한 지 한 시간 뒤부터 올리기가 실패한다.
+         교환이 실패하면 단기 토큰이라도 저장한다 — 그 자리에서 한 번은 올릴 수 있고,
+         만료되면 화면이 「다시 연결해 주세요」로 안내한다(조용히 죽지 않는다). */
+      const long = await exchangeForLongLived(tok.access_token);
+      const accessToken = long?.access_token ?? tok.access_token;
+      const expiresAt = expiryFrom(long?.expires_in ?? tok.expires_in);
+      if (!long) {
+        console.error(JSON.stringify({ evt: "ig_long_lived_skipped", siteId, why: "교환 실패 — 단기 토큰으로 저장한다" }));
+      }
       const saved = await db.saveConnection({
         siteId, provider: "instagram",
-        accountId, accountName, accessToken: tok.access_token, expiresAt, scopes: SCOPES,
+        accountId, accountName, accessToken, expiresAt, scopes: SCOPES,
       });
       if (!saved) return { stage: "failed" as const, kind: "TRANSIENT" as ErrorKind, detail: "연결을 저장하지 못했어요." };
       return { stage: "connected" as const, connection: saved };
