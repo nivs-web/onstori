@@ -5,7 +5,7 @@ import { storyLinkUrl } from "@/lib/story-link";
 import { pickQuestions } from "@/config/questions";
 import { readWeekly, shouldSend } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
-import { refreshInstagramTokens, finishStuckPosts } from "@/lib/sns/maintenance";
+import { refreshInstagramTokens, finishStuckPosts, checkPublishedAlive } from "@/lib/sns/maintenance";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -86,11 +86,14 @@ export async function GET(req: Request) {
        (2026-09-12), 무료 요금제는 크론 개수에도 제한이 있다. 매일 도는 이 크론에 얹는 것이
        가장 안전하다. 나중에 분리할 때는 `lib/sns/maintenance.ts` 를 부르는 라우트만 새로 만들면 된다.
      ⚠ 문자 발송이 실패해도 유지보수는 돈다 — 위 반복문이 이미 끝난 뒤라 서로 막지 않는다. */
-  const sns = { refresh: null as unknown, finish: null as unknown };
+  const sns = { refresh: null as unknown, finish: null as unknown, alive: null as unknown };
   try { sns.refresh = await refreshInstagramTokens(); }
   catch (e) { console.error(JSON.stringify({ evt: "sns_refresh_crashed", err: String(e).slice(0, 200) })); }
   try { sns.finish = await finishStuckPosts(); }
   catch (e) { console.error(JSON.stringify({ evt: "sns_finish_crashed", err: String(e).slice(0, 200) })); }
+  /* ③ 올린 글이 그쪽에서 지워졌는지 — 화면이 「올라갔어요」라고 거짓말하지 않게 (지시 2) */
+  try { sns.alive = await checkPublishedAlive(); }
+  catch (e) { console.error(JSON.stringify({ evt: "sns_alive_crashed", err: String(e).slice(0, 200) })); }
   console.log(JSON.stringify({ evt: "sns_maintenance_done", ...sns }));
 
   return NextResponse.json({ ...out, sns });

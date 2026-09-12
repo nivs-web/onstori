@@ -702,7 +702,22 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     if (!blob) return;
     setScreen("sending"); setProgress(0); setErr("");
     try {
-      const ct = blob.type || "video/webm";
+      /* ★★ **`blob.type` 을 믿지 않는다** (2026-09-12).
+         크롬은 `video/mp4;codecs=avc1` 로 녹화해 놓고 `blob.type` 을 빈 문자열로 주는 일이 있다.
+         그러면 여기서 `"video/webm"` 으로 떨어지고, 그 값이 그대로
+         **파일 이름의 확장자(.webm)와 저장소의 Content-Type** 이 된다.
+         2026-09-12 실측: 저장된 녹화 12건이 **전부 `.webm` 이름인데 내용은 진짜 mp4**(`ftypisom`) 였다.
+         이름과 딱지가 내용과 다르면, 나중에 그걸 보고 판단하는 모든 코드가 함께 속는다.
+         (실제로 나부터 속아 「webm 이라 인스타에 못 올린다」고 잘못 보고했다.)
+         ★ 우리는 이미 **머리 64바이트로 진짜 형식을 알고 있다**(위 확인 화면에서 잰다). 그것을 쓴다.
+         ⚠ 못 재면 `blob.type` 으로, 그것도 없으면 mp4 로 둔다 — 여기까지 온 파일은
+           위 검사(`isPlayableVideo`)를 통과한 mp4 뿐이다. */
+      const sniffHead = new Uint8Array(await blob.slice(0, SNIFF_BYTES).arrayBuffer().catch(() => new ArrayBuffer(0)));
+      const real = sniff(sniffHead).container;
+      const ct = real === "mp4" ? "video/mp4"
+        : real === "quicktime" ? "video/quicktime"
+        : real === "webm" ? "video/webm"
+        : (blob.type || "video/mp4");
       const r = await fetch("/api/story/upload-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, k, contentType: ct }) });
       const d = (await r.json()) as { mode?: string; url?: string; key?: string; contentType?: string; error?: string };
       if (!r.ok || !d.key) throw new Error(d.error ?? "업로드 준비 실패");

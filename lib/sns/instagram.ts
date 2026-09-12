@@ -81,6 +81,31 @@ export async function exchangeForLongLived(shortToken: string): Promise<TokenAns
 }
 
 /**
+ * ★ 올린 글이 **아직 살아 있나.** (2026-09-12 회장님 지시 2)
+ *
+ * · `"alive"`   — 있다
+ * · `"gone"`    — **없다.** 그쪽에서 지워졌다 (사장님이 인스타 앱에서 지운 경우)
+ * · `"unknown"` — 못 물어봤다(네트워크·권한·한도). **이때는 아무 말도 하지 않는다** —
+ *                 「모르니까 지워졌다」고 적으면 멀쩡한 글에 거짓 표시가 붙는다.
+ *
+ * ⚠ 「없다」의 판정을 **404 하나로만** 한다. 401·403·429 는 우리 쪽 사정이지 글의 사정이 아니다.
+ */
+export async function isPostAlive(postId: string, token: string): Promise<"alive" | "gone" | "unknown"> {
+  try {
+    await callJson(`${GRAPH}/${postId}?fields=id&access_token=${encodeURIComponent(token)}`, { method: "GET" }, "ig:alive");
+    return "alive";
+  } catch (e) {
+    if (e instanceof SnsHttpError && e.status === 404) return "gone";
+    /* 메타는 «없는 개체»에도 400 + code 100 을 주는 일이 있다. 본문에 확실한 단서가 있을 때만 인정한다 */
+    if (e instanceof SnsHttpError && e.status === 400) {
+      const b = e.body.toLowerCase();
+      if (b.includes("does not exist") || b.includes("unsupported get request")) return "gone";
+    }
+    return "unknown";
+  }
+}
+
+/**
  * 장기 토큰 **갱신** — 다시 60일. 만료 «전»에만 된다.
  * 던지지 않고 결과만 돌려준다. 부르는 쪽(크론)이 「끝났다/다시 해 보자」를 판단한다.
  */
@@ -264,12 +289,24 @@ export const instagram: SnsAdapter = {
       const pub = (await callJson(p.toString(), { method: "POST" }, "ig:publish")) as { id?: string };
       if (!pub.id) return { state: "processing", containerId };   // 애매하면 «아직»으로 둔다 — 두 번 올리는 것보다 낫다
 
-      return {
-        state: "published",
-        remotePostId: pub.id,
-        /* ⚠ 확인 필요 — 게시물 주소를 만드는 정확한 방법(permalink 조회가 필요할 수 있다) */
-        remoteUrl: null,
-      };
+      /* ★ 게시물 주소(permalink)를 한 번 더 물어본다. (2026-09-12)
+         ⚠ 2026-09-12 첫 실제 게시에서 `remote_url` 이 **비어 있었다** — 화면의 [보기] 가
+           나오지 않아 회장님이 올라간 글을 눌러서 확인할 수 없었다.
+         ⚠ **여기서 실패해도 «올라간 것»을 뒤집지 않는다.** 글은 이미 올라갔다.
+           주소를 못 얻은 것은 «보기 링크가 없는 것»일 뿐이다 — 그걸로 성공을 실패로 바꾸면
+           사장님이 같은 영상을 또 올린다. */
+      let remoteUrl: string | null = null;
+      try {
+        const link = (await callJson(
+          `${GRAPH}/${pub.id}?fields=permalink&access_token=${encodeURIComponent(token)}`,
+          { method: "GET" }, "ig:permalink",
+        )) as { permalink?: string };
+        remoteUrl = link.permalink ?? null;
+      } catch (e) {
+        console.warn(JSON.stringify({ evt: "ig_permalink_failed", id: pub.id, err: brief(String(e), 160) }));
+      }
+
+      return { state: "published", remotePostId: pub.id, remoteUrl };
     } catch (e) {
       const kind = instagram.translateError(e);
       if (kind === "AUTH_EXPIRED") await db.markExpired(input.siteId, "instagram");

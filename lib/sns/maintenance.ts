@@ -3,7 +3,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import * as db from "./db";
 import { getAdapter } from "./index";
 import { captionFor, hasUrl } from "./no-url";
-import { refreshLongLived } from "./instagram";
+import { refreshLongLived, isPostAlive } from "./instagram";
 
 /**
  * SNS 유지보수 — 사람이 화면을 보고 있지 않을 때 대신 손봐 주는 일들. (2026-09-12 회장님 지시 1·8)
@@ -107,6 +107,84 @@ export async function refreshInstagramTokens(now = Date.now()): Promise<RefreshO
       /* 잠깐 안 되는 것 — 내일 다시 민다. 멀쩡한 연결을 우리가 끊지 않는다 */
       out.failed++;
       console.warn(JSON.stringify({ evt: "ig_token_refresh_retry", siteId: c.siteId, kind: r.kind, detail: r.detail.slice(0, 200) }));
+    }
+  }
+  return out;
+}
+
+/* ─────────────── ①-2 올린 글이 아직 살아 있나 ─────────────── */
+
+/** 한 번 확인한 글을 며칠 뒤에 다시 물어보나 */
+const RECHECK_AFTER_DAYS = 7;
+/** 한 번에 몇 건까지 물어보나 — 호출을 조금씩 나눠 쓴다 */
+const RECHECK_LIMIT = 50;
+
+export type AliveOut = { looked: number; alive: number; gone: number; unknown: number };
+
+/**
+ * 올린 글이 그쪽에서 **지워졌는지** 확인해 사실대로 적는다. (2026-09-12 회장님 지시 2)
+ *
+ * ★★ 왜 필요한가: 2026-09-12 회장님이 첫 게시 뒤 인스타 앱에서 그 글을 직접 지우셨다.
+ *   우리 화면은 여전히 「올라갔어요 [보기]」라고 말하고, 누르면 없는 글로 간다.
+ *   사장님에게도 똑같이 생긴다 — **화면이 사실과 다르면 그 자체가 거짓말이다**(불변 규칙 12).
+ *
+ * ★★ 세 갈래 중 이것을 골랐다:
+ *   ①그냥 두기 → 화면이 계속 거짓말한다
+ *   ②「지워졌을 수도 있어요」라고 쓰기 → **추측이다.** 안 지운 사장님에게도 뜬다
+ *   ③**확인해서 사실만 적기** ← 이것. 확인 못 하면 **아무 말도 하지 않는다**
+ *
+ * ⚠ `status` 는 `published` 로 **그대로 둔다.** 우리가 올린 것은 사실이고,
+ *   메타 심사의 「성공한 호출」 증거도 그 기록이다.
+ */
+export async function checkPublishedAlive(now = Date.now()): Promise<AliveOut> {
+  const out: AliveOut = { looked: 0, alive: 0, gone: 0, unknown: 0 };
+  const sb = sbAdmin();
+
+  /* 아직 지워진 것으로 확인되지 않은 글 중, 한 번도 안 물어봤거나 마지막 확인이 오래된 것 */
+  const staleBefore = new Date(now - RECHECK_AFTER_DAYS * DAY).toISOString();
+  const { data, error } = await sb.from("sns_posts")
+    .select("id, site_id, provider, remote_post_id, remote_checked_at")
+    .eq("status", "published").eq("provider", "instagram")
+    .is("remote_deleted_at", null)
+    .not("remote_post_id", "is", null)
+    .or(`remote_checked_at.is.null,remote_checked_at.lte.${staleBefore}`)
+    .limit(RECHECK_LIMIT);
+  if (error) {
+    /* ⚠ 마이그레이션(20260912140000) 전이면 칸이 없어 여기서 실패한다. **조용히 넘어간다** —
+       크론의 다른 일(토큰 갱신·멈춘 올리기)까지 멈추면 안 된다. */
+    console.warn(JSON.stringify({ evt: "sns_alive_skipped", err: error.message.slice(0, 160) }));
+    return out;
+  }
+
+  /* 같은 사이트의 토큰을 여러 번 읽지 않는다 */
+  const tokenOf = new Map<string, string | null>();
+
+  for (const p of data ?? []) {
+    out.looked++;
+    const siteId = (p as { site_id: string }).site_id;
+    if (!tokenOf.has(siteId)) {
+      const tk = await db.readTokens(siteId, "instagram");
+      tokenOf.set(siteId, tk?.accessToken ?? null);
+    }
+    const token = tokenOf.get(siteId);
+    if (!token) { out.unknown++; continue; }
+
+    const verdict = await isPostAlive(String((p as { remote_post_id: string }).remote_post_id), token);
+    const stamp = new Date(now).toISOString();
+    if (verdict === "gone") {
+      await sb.from("sns_posts")
+        .update({ remote_deleted_at: stamp, remote_checked_at: stamp, updated_at: stamp })
+        .eq("id", (p as { id: string }).id);
+      out.gone++;
+      console.log(JSON.stringify({ evt: "sns_post_gone", provider: "instagram", postId: (p as { id: string }).id }));
+    } else if (verdict === "alive") {
+      await sb.from("sns_posts")
+        .update({ remote_checked_at: stamp })
+        .eq("id", (p as { id: string }).id);
+      out.alive++;
+    } else {
+      /* 못 물어봤다 — **아무것도 적지 않는다.** 다음에 다시 묻는다 */
+      out.unknown++;
     }
   }
   return out;

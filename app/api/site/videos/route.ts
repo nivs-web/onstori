@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
+import { quickCheckForInstagram } from "@/lib/sns/mp4";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,25 @@ export async function POST(req: Request) {
      (주석이 아니라 구조로 막는다 — `app/api/story/upload-url/route.ts`). */
   const videoRows = (data ?? []).filter((row) => storage.publicVideoKeyOf(String(row.video_key ?? "")) !== null);
 
+  /* ★★ 「이 영상을 어디에 올렸나」를 **기록에서** 읽는다 (2026-09-12 회장님 지시 2).
+     전에는 올린 결과가 화면 메모리에만 있어서 **새로고침하면 통째로 사라졌다.**
+     그러면 사장님은 올렸는지 안 올렸는지 알 수 없고, 같은 영상을 또 올리려 한다.
+     ⚠ `remote_deleted_at` 은 마이그레이션(20260912140000) 뒤에 생긴다. 없으면 그 칸만 빼고 읽는다 —
+       칸 하나 때문에 영상 목록 전체가 안 뜨면 안 된다. */
+  const entryIds = videoRows.map((r) => r.id as string);
+  type PostRow = { entry_id: string; provider: string; status: string; remote_url: string | null; published_at: string | null; remote_deleted_at?: string | null };
+  let posts: PostRow[] = [];
+  if (entryIds.length) {
+    const base = "entry_id, provider, status, remote_url, published_at";
+    const first = await sbAdmin().from("sns_posts").select(`${base}, remote_deleted_at`).in("entry_id", entryIds);
+    if (first.error) {
+      const fallback = await sbAdmin().from("sns_posts").select(base).in("entry_id", entryIds);
+      posts = (fallback.data ?? []) as PostRow[];
+    } else {
+      posts = (first.data ?? []) as PostRow[];
+    }
+  }
+
   const items = await Promise.all(
     videoRows.map(async (row) => {
       const key = row.video_key as string;
@@ -66,7 +86,23 @@ export async function POST(req: Request) {
       let preview: string | null = null;
       try { preview = await storage.signedGetUrl(key, 600); } catch { preview = null; }
 
+      /* ★ **누르기 전에** 인스타에 올릴 수 있는지 본다 (2026-09-12 회장님 지시).
+         눌러서 실패하면 **하루 한도 1개가 이미 줄어든 뒤**다. 그 손해를 없앤다.
+         ⚠ 가벼운 검사다(머리 64바이트 + 크기). 가로폭·파일구조는 올릴 때 본다.
+         ⚠ 못 재면 막지 않는다 — 「모르니까 거절」은 멀쩡한 영상을 버린다. */
+      const ig = await quickCheckForInstagram(key).catch(() => ({ ok: true, why: "" }));
+
       return {
+        ig,
+        /** 이 영상을 어디에 올렸나 — 새로고침해도 남는다 */
+        posted: posts
+          .filter((p) => p.entry_id === row.id)
+          .map((p) => ({
+            provider: p.provider, status: p.status,
+            url: p.remote_url, publishedAt: p.published_at,
+            /** 그쪽에서 지워진 것을 **확인한** 시각. null 이면 「살아 있다」가 아니라 「확인 못 했거나 살아 있다」 */
+            deletedAt: p.remote_deleted_at ?? null,
+          })),
         id: row.id as string,
         title: (row.title as string) ?? "",
         question: (row.question as string) ?? "",

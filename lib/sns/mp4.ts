@@ -1,5 +1,5 @@
 import * as storage from "@/lib/storage";
-import { sniff, type Container } from "@/lib/media-sniff";
+import { sniff, SNIFF_BYTES, type Container } from "@/lib/media-sniff";
 
 /**
  * 올리기 전 **영상 규격 검사**. (2026-09-11)
@@ -70,6 +70,41 @@ export type VideoCheck = {
   container: Container | null;
 };
 
+/**
+ * ★ **누르기 «전에»** 거를 수 있는 것만 가볍게 본다. (2026-09-12 회장님 지시)
+ *
+ * ★★ 왜 필요한가: 올리기를 눌러서 실패하면 **하루 한도 1개가 이미 줄어든 뒤**다.
+ *   목록 화면이 미리 「이건 안 됩니다」를 말하면 그 손해가 없다.
+ *
+ * ⚠ **가볍게** 봐야 한다. 목록은 20건까지 뜨고, 열 때마다 도는 자리다.
+ *   그래서 `checkForInstagram` 과 달리 **머리 64바이트 + 크기**만 본다
+ *   (가로폭·moov 순서는 256KB 를 읽어야 해서 여기서 안 본다 — 그건 올릴 때 본다).
+ * ⚠ 못 재면 **막지 않는다.** 「모르니까 거절」은 멀쩡한 영상을 버린다.
+ */
+export async function quickCheckForInstagram(key: string): Promise<{ ok: boolean; why: string }> {
+  try {
+    const head = await storage.readHead("private", key, SNIFF_BYTES);
+    const c = sniff(head).container;
+    if (c === "webm" || c === "ogg") {
+      return { ok: false, why: "이 영상은 인스타그램이 받지 않는 형식이에요. 다시 찍어 주세요." };
+    }
+    if (c === "quicktime") {
+      return { ok: false, why: "폰 기본 카메라로 찍은 영상이라 인스타그램이 받지 않아요. 녹화 화면에서 바로 찍어 주세요." };
+    }
+  } catch { /* 못 재면 막지 않는다 */ }
+
+  try {
+    const url = await storage.signedGetUrl(key, 300);
+    const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+    const len = Number(r.headers.get("content-length") ?? 0);
+    if (len > MAX_BYTES) {
+      return { ok: false, why: `영상이 너무 커요 (${Math.round(len / 1048576)}MB). 인스타그램은 300MB까지만 받아요.` };
+    }
+  } catch { /* 못 재면 막지 않는다 */ }
+
+  return { ok: true, why: "" };
+}
+
 export async function checkForInstagram(key: string): Promise<VideoCheck> {
   let bytes: number | null = null;
   let width: number | null = null;
@@ -102,12 +137,18 @@ export async function checkForInstagram(key: string): Promise<VideoCheck> {
   const out = { bytes, width, moovFirst, container };
 
   /* ★★ **형식을 «맨 먼저» 본다** (2026-09-12).
-     ⚠ 이걸 안 보면 무슨 일이 벌어지나: 녹화기가 안드로이드·크롬에서 만드는 파일은 **webm** 인데,
-       `copyToPublic` 이 그걸 `video-….mp4` 라는 이름에 `video/mp4` 딱지를 붙여 공개 창고에 복사한다.
-       인스타는 그 주소를 가져가 열어 보고 «mp4 가 아니다»를 알아채고 거절한다 —
-       그때 오는 말은 사장님이 무엇을 고쳐야 하는지 알려 주지 않는다.
-       **한도 1개도 이미 써 버린 뒤**다. 그래서 보내기 전에 여기서 막는다.
-     ★ 2026-09-12 실측: 지금 저장소에 쌓인 녹화 11건이 **전부 webm** 이다. */
+     ⚠ 진짜 webm 이 들어오면 `copyToPublic` 이 그걸 `video-….mp4` 라는 이름에 `video/mp4`
+       딱지를 붙여 공개 창고에 복사한다. 인스타는 가져가 열어 보고 거절하는데, 그 말로는
+       사장님이 무엇을 고쳐야 하는지 알 수 없다. **한도 1개도 이미 써 버린 뒤**다.
+       그래서 보내기 전에 여기서 막는다.
+
+     ★★ ⚠ **판정은 파일 «내용»으로 한다. 확장자로 하지 마라.**
+       2026-09-12 실측: 저장된 녹화 12건이 **이름은 전부 `.webm` 인데 내용은 진짜 mp4**(`ftypisom`)였다.
+       원인은 `blob.type` 이 비어 오면 업로드가 「webm」으로 떨어지던 것이다(그날 고쳤다).
+       ★ 그날 나(클코)는 **확장자만 보고 「12건 전부 webm 이라 못 올린다」고 잘못 보고했다.**
+         실제로는 전부 올릴 수 있었고, 회장님이 그중 하나로 첫 게시에 성공하셨다.
+         이 함수가 «내용»을 봤기 때문에 코드는 틀리지 않았다 — 사람이 틀렸다.
+         같은 실수를 막으려고 여기 적어 둔다. */
   if (container === "webm" || container === "ogg") {
     return { ok: false, ...out, why: "이 영상은 인스타그램이 받지 않는 형식(webm)이에요. 아이폰 사파리로 찍으면 인스타가 받는 형식(mp4)으로 저장됩니다." };
   }

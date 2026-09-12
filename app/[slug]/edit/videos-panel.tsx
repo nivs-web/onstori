@@ -29,6 +29,15 @@ type Item = {
   poster: string | null;
   preview: string | null;
   publicUrl: string | null;
+  /** ★ 누르기 «전»에 잰 인스타 가능 여부 (2026-09-12). 서버가 준다 */
+  ig?: { ok: boolean; why: string };
+  /** ★ 이 영상을 어디에 올렸나 — **기록에서** 온다. 새로고침해도 남는다 (2026-09-12) */
+  posted?: { provider: string; status: string; url: string | null; publishedAt: string | null; deletedAt: string | null }[];
+};
+
+const PROVIDER_LABEL: Record<string, string> = {
+  instagram: "인스타그램", youtube: "유튜브", tiktok: "틱톡",
+  facebook: "페이스북", threads: "스레드", x: "X",
 };
 
 const mmss = (n: number) => `${Math.floor(n / 60)}:${String(Math.round(n % 60)).padStart(2, "0")}`;
@@ -324,8 +333,42 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     그래서 이 길은 최대한 짧아야 한다 — [SNS 연결] 탭을 거치지 않는다.
                     ⚠ 못 올리는 상태면 **버튼을 두지 않고 이유를 쓴다.** 눌러도 아무 일이 안 나는
                       버튼이 가장 나쁘다. */}
-                {igReady && (
-                  igReady.ok ? (
+                {/* ★★ 이미 올린 기록 — **사실만** 적는다 (2026-09-12 지시 2).
+                    · 지워진 것으로 «확인된» 것만 「지워졌어요」라고 쓴다
+                    · 확인 못 한 것은 아무 말도 하지 않는다(추측하지 않는다)
+                    · [보기] 는 주소가 있을 때만. 없는 링크를 보여 주지 않는다 */}
+                {(it.posted ?? []).filter((x) => x.status === "published").map((x) => (
+                  <p key={x.provider} className="t-caption leading-relaxed">
+                    {x.deletedAt ? (
+                      <span className="text-[var(--text-soft)]">
+                        {PROVIDER_LABEL[x.provider] ?? x.provider} 에 올렸는데, <b>지금은 {PROVIDER_LABEL[x.provider] ?? x.provider} 에서 지워졌어요.</b>
+                        {" "}(올린 기록은 그대로 남아 있어요)
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-green-700">
+                        {PROVIDER_LABEL[x.provider] ?? x.provider} 에 올렸어요.
+                        {x.url && <> <a href={x.url} target="_blank" rel="noreferrer" className="underline">[보기]</a></>}
+                      </span>
+                    )}
+                  </p>
+                ))}
+
+                {/* ★ 이미 인스타에 올린 영상에는 버튼을 다시 두지 않는다 — 서버가 중복을 막으므로
+                    눌러도 「이미 올렸어요」만 나온다. 눌러도 아무 일이 안 나는 버튼을 두지 않는다. */}
+                {igReady && !(it.posted ?? []).some((x) => x.provider === "instagram" && x.status === "published") && (
+                  /* ★ 이 «영상»이 규격에 안 맞으면 버튼을 아예 두지 않는다 (2026-09-12 지시).
+                     눌러서 실패하면 하루 한도 1개가 줄어든다 — 눌러 봐야 아는 것이 손해다. */
+                  igReady.ok && it.ig && !it.ig.ok ? (
+                    <div className="rounded-xl border border-n-200 bg-n-50 p-3">
+                      <p className="t-caption font-semibold">인스타그램에 올리기</p>
+                      <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+                        이 영상은 <b>올릴 수 없어요.</b> {it.ig.why}
+                      </p>
+                      <p className="mt-1.5 t-caption text-[var(--text-soft)]">
+                        아래 <b>[하나 더 찍기]</b> 로 새로 찍으시면 올릴 수 있는 형식으로 저장돼요.
+                      </p>
+                    </div>
+                  ) : igReady.ok ? (
                     <div className="rounded-xl border border-green-700 p-3">
                       <p className="t-caption font-semibold">인스타그램에 올리기</p>
                       <label className="mt-2 block">
