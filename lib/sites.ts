@@ -84,8 +84,18 @@ async function getFromDb(slug: string, premade: PremadeMode = "hide"): Promise<S
       .maybeSingle();
     if (!site || !site.published) return null;
 
-    /* ★ 견본인가 아닌가 — 부르는 쪽이 원한 것과 다르면 «없는 것»이다 */
-    if (isPremade(site) !== (premade === "only")) return null;
+    /**
+     * ★ 견본인가 아닌가 — 부르는 쪽이 원한 것과 다르면 «없는 것»이다.
+     *
+     * ⚠ **예시 사이트는 «견본»이 아니다.** 둘은 성격이 다르다:
+     *   · 견본(premade) = 콜드콜용. 그 가게 상호로 검색에 뜨면 안 된다 → /g/{주소}
+     *   · 예시(sample)  = 우리 쇼케이스. **랜딩 포트폴리오가 이것을 쓴다**(components/portfolio.tsx)
+     *     → /{주소} 에 그대로 있어야 하고, 화면 맨 위에 「예시입니다」가 붙는다.
+     * ⚠ 예시는 주인이 없어서 isPremade 에 걸린다. 그래서 여기서 **보이기 판정에서만** 뺀다 —
+     *   문자 판정(lib/premade.ts)에서는 그대로 견본으로 둔다. 예시로 문자가 나가면 안 된다.
+     */
+    const hidden = isPremade(site) && !SAMPLE_SLUGS.has(slug);
+    if (hidden !== (premade === "only")) return null;
 
     /**
      * ★★ **전화번호는 기본이 비공개다.** (2026-09-13 대표님 결정 · lib/phone-privacy.ts)
