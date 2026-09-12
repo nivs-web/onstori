@@ -28,6 +28,9 @@ const Input = z.object({
     disableComment: z.boolean().default(false),
     disableDuet: z.boolean().default(false),
     disableStitch: z.boolean().default(false),
+    /* ★ 상업용 콘텐츠 (2026-09-12 규격서 C). 화면의 토글이 여기로 온다 */
+    brandOrganic: z.boolean().default(false),
+    brandedContent: z.boolean().default(false),
   }).optional(),
 });
 

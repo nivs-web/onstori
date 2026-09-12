@@ -37,6 +37,9 @@ type Item = {
 
 /** 틱톡 공개범위 값 → 사장님 말. **틱톡이 준 값만 쓰되 «읽을 수 있게»만 바꾼다.**
     ⚠ 여기 없는 값이 오면 그 값을 그대로 보여 준다 — 우리가 지어내지 않는다. */
+/** ★ 「브랜디드 콘텐츠」와 함께 쓸 수 없는 공개범위 — 틱톡이 거절한다 */
+const TT_PRIVATE = "SELF_ONLY";
+
 const TT_PRIVACY_LABEL: Record<string, string> = {
   PUBLIC_TO_EVERYONE: "모두에게 공개",
   MUTUAL_FOLLOW_FRIENDS: "서로 팔로우한 친구만",
@@ -138,7 +141,9 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     | null
     | { entryId: string; state: "loading" }
     | { entryId: string; state: "error"; why: string }
-    | { entryId: string; state: "ready"; opt: TtOptions; privacy: string; title: string; okComment: boolean; okDuet: boolean; okStitch: boolean }
+    | { entryId: string; state: "ready"; opt: TtOptions; privacy: string; title: string; okComment: boolean; okDuet: boolean; okStitch: boolean;
+        /* ★ 상업용 콘텐츠 — 셋 다 기본 꺼짐 (2026-09-12 틱톡 규격서 C) */
+        commercial: boolean; brandOrganic: boolean; brandedContent: boolean }
   >(null);
 
   async function openTiktokSheet(it: Item) {
@@ -162,6 +167,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         title: it.question || it.title || "",
         /* ★ 기본은 **전부 꺼짐** — 틱톡이 그렇게 요구한다(규격서 D) */
         okComment: false, okDuet: false, okStitch: false,
+        commercial: false, brandOrganic: false, brandedContent: false,
       });
     } catch {
       setTtSheet({ entryId: it.id, state: "error", why: "연결이 끊겼어요. 잠시 후 다시 시도해 주세요." });
@@ -205,7 +211,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     return () => { alive = false; };
   }, [slug]);
 
-  type TtChoice = { title: string; privacyLevel: string; disableComment: boolean; disableDuet: boolean; disableStitch: boolean };
+  type TtChoice = { title: string; privacyLevel: string; disableComment: boolean; disableDuet: boolean; disableStitch: boolean; brandOrganic: boolean; brandedContent: boolean };
 
   async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice) {
     /* ★★ **[간단 등록]에서는 틱톡을 뺀다** (2026-09-12 지시 8).
@@ -510,14 +516,22 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                                 ★ 미리 골라 두지 않는다 — 사장님이 직접 눌러야 한다(심사 요건) */}
                             <p className="mt-3 t-caption font-semibold">누가 볼 수 있나요?</p>
                             <div className="mt-1 flex flex-wrap gap-2">
-                              {ttSheet.opt.privacyOptions.map((p) => (
-                                <button key={p} type="button"
-                                  onClick={() => setTtSheet({ ...ttSheet, privacy: p })}
-                                  className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${
-                                    ttSheet.privacy === p ? "bg-green-700 text-white" : "border border-n-300"}`}>
-                                  {TT_PRIVACY_LABEL[p] ?? p}
-                                </button>
-                              ))}
+                              {ttSheet.opt.privacyOptions.map((p) => {
+                                /* ★★ 「브랜디드 콘텐츠」와 「나만 보기」는 **함께 못 쓴다** (규격서 C-⑤).
+                                   틱톡이 「Either… OR」라 했고, **「나만 보기」를 비활성하는 쪽**을 골랐다 —
+                                   그쪽이 간단하고, 이미 고른 값을 우리가 몰래 바꾸지 않아도 된다. */
+                                const blocked = ttSheet.brandedContent && p === TT_PRIVATE;
+                                return (
+                                  <button key={p} type="button" disabled={blocked}
+                                    title={blocked ? "Branded content visibility cannot be set to private." : undefined}
+                                    onClick={() => setTtSheet({ ...ttSheet, privacy: p })}
+                                    className={`rounded-full px-3.5 py-1.5 t-caption font-semibold ${
+                                      ttSheet.privacy === p ? "bg-green-700 text-white" : "border border-n-300"} ${
+                                      blocked ? "opacity-40" : ""}`}>
+                                    {TT_PRIVACY_LABEL[p] ?? p}
+                                  </button>
+                                );
+                              })}
                             </div>
 
                             {/* ★★ **「허용」으로 묻는다** (2026-09-12 틱톡 규격서 D).
@@ -544,13 +558,88 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                               틱톡 규칙이라 처음에는 모두 꺼져 있어요. 원하시는 것만 켜 주세요.
                             </p>
 
+                            {/* ★★ 상업용 콘텐츠 토글 (2026-09-12 틱톡 규격서 C) — **없으면 반려된다.**
+                                ⚠ 기본은 **꺼짐**이고 사장님이 직접 켜야 한다.
+                                ⚠ 켰는데 아무것도 안 고르면 올리기를 막는다(규격서 C-④). */}
+                            <label className="mt-4 flex items-center gap-2 t-caption font-semibold">
+                              <input type="checkbox" className="h-4 w-4" checked={ttSheet.commercial}
+                                onChange={(e) => setTtSheet({
+                                  ...ttSheet, commercial: e.target.checked,
+                                  /* 끄면 안쪽 선택도 함께 지운다 — 안 보이는 값이 남아 나가면 안 된다 */
+                                  ...(e.target.checked ? {} : { brandOrganic: false, brandedContent: false }),
+                                })} />
+                              이 영상이 나 자신·브랜드·상품·서비스를 홍보하나요?
+                            </label>
+                            <p className="mt-1 t-caption text-[var(--text-soft)]">
+                              가게나 상품을 소개하는 영상이면 켜 주세요. 틱톡 규칙입니다.
+                            </p>
+
+                            {ttSheet.commercial && (
+                              <div className="mt-2 rounded-lg border border-n-200 p-2.5">
+                                <label className="flex items-start gap-2 t-caption">
+                                  <input type="checkbox" className="mt-0.5 h-4 w-4" checked={ttSheet.brandOrganic}
+                                    onChange={(e) => setTtSheet({ ...ttSheet, brandOrganic: e.target.checked })} />
+                                  <span><b>내 브랜드</b> — 내 사업을 홍보합니다</span>
+                                </label>
+                                <label className="mt-1.5 flex items-start gap-2 t-caption">
+                                  <input type="checkbox" className="mt-0.5 h-4 w-4" checked={ttSheet.brandedContent}
+                                    onChange={(e) => setTtSheet({
+                                      ...ttSheet, brandedContent: e.target.checked,
+                                      /* ★ 브랜디드를 켜는 순간 「나만 보기」는 못 쓴다 — 이미 골랐으면 **되돌린다.**
+                                         화면은 못 고르게 막는데 값만 남아 있으면 그것이 거짓말이다. */
+                                      ...(e.target.checked && ttSheet.privacy === TT_PRIVATE ? { privacy: "" } : {}),
+                                    })} />
+                                  <span><b>브랜디드 콘텐츠</b> — 다른 브랜드·제3자를 홍보합니다</span>
+                                </label>
+
+                                {/* ★ 고른 것에 따라 **틱톡이 지정한 문구**를 그대로 보여 준다 */}
+                                {(ttSheet.brandOrganic || ttSheet.brandedContent) && (
+                                  <p className="mt-2 t-caption font-semibold">
+                                    {ttSheet.brandedContent
+                                      ? "Your photo/video will be labeled as ‘Paid partnership’"
+                                      : "Your photo/video will be labeled as ‘Promotional content’"}
+                                  </p>
+                                )}
+                                {ttSheet.brandedContent && ttSheet.privacy === "" && (
+                                  <p className="mt-1 t-caption text-[var(--text-soft)]">
+                                    Branded content visibility cannot be set to private.
+                                    <br />브랜디드 콘텐츠는 「나만 보기」로 올릴 수 없어요. 다시 골라 주세요.
+                                  </p>
+                                )}
+                                {!ttSheet.brandOrganic && !ttSheet.brandedContent && (
+                                  <p className="mt-2 t-caption font-semibold text-danger">
+                                    You need to indicate if your content promotes yourself, a third party, or both.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* ★★ Music Usage Confirmation — **버튼 «바로 위»에, 영어 원문 그대로.**
+                                틱톡이 문장을 지정했다. 번역하면 심사관이 못 찾는다(규격서 B).
+                                ★ 브랜디드를 켜면 문구가 **바뀐다** — 그것도 틱톡이 정한 것이다. */}
+                            <p className="mt-4 t-caption font-semibold">
+                              {ttSheet.brandedContent
+                                ? "By posting, you agree to TikTok’s Branded Content Policy and Music Usage Confirmation"
+                                : "By posting, you agree to TikTok’s Music Usage Confirmation"}
+                            </p>
+                            <p className="mt-0.5 t-caption text-[var(--text-soft)]">
+                              올리시면 틱톡의 음악 사용 확인에 동의하시는 것이 됩니다.
+                            </p>
+
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button type="button"
-                                disabled={!ttSheet.privacy || pubBusy === it.id}
+                                disabled={!ttSheet.privacy || pubBusy === it.id
+                                  || (ttSheet.commercial && !ttSheet.brandOrganic && !ttSheet.brandedContent)}
+                                title={ttSheet.commercial && !ttSheet.brandOrganic && !ttSheet.brandedContent
+                                  ? "You need to indicate if your content promotes yourself, a third party, or both."
+                                  : undefined}
                                 onClick={() => void publish(it.id, ["tiktok"], {
                                   title: ttSheet.title, privacyLevel: ttSheet.privacy,
                                   /* ★ 화면은 「허용」, 틱톡 API 는 「disable」 — **여기서 뒤집는다** */
                                   disableComment: !ttSheet.okComment, disableDuet: !ttSheet.okDuet, disableStitch: !ttSheet.okStitch,
+                                  /* ★ 토글이 꺼져 있으면 둘 다 false 로 나간다 — 화면과 보내는 값이 같아야 한다 */
+                                  brandOrganic: ttSheet.commercial && ttSheet.brandOrganic,
+                                  brandedContent: ttSheet.commercial && ttSheet.brandedContent,
                                 })}
                                 className="rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
                                 {pubBusy === it.id ? "올리는 중…" : "이 내용으로 틱톡에 올리기"}
@@ -611,6 +700,14 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                       {r.state === "published" ? `${r.name} 에 올라갔어요.` : `${r.name} · ${r.msg}`}
                       {r.url && <> <a href={r.url} target="_blank" rel="noreferrer" className="underline">[보기]</a></>}
                     </p>
+                    {/* ★ 틱톡 요구 (규격서 D): 「올린 뒤 처리에 몇 분 걸릴 수 있다」를 **반드시 알린다.**
+                        ⚠ 안 알리면 사장님이 프로필에서 못 찾고 「안 올라갔다」고 생각한다 —
+                          그 상태에서 또 올리면 같은 영상이 두 번 올라간다. */}
+                    {r.provider === "tiktok" && r.state === "published" && (
+                      <p className="mt-1 font-normal">
+                        틱톡에서 영상을 다듬는 데 몇 분 걸릴 수 있어요. 그동안 프로필에 안 보여도 정상입니다.
+                      </p>
+                    )}
                     {/* ★ 실패했을 때만 «그쪽이 준 말»을 함께 보여 준다.
                         사장님에게는 위 한 줄이면 되지만, **무엇을 고쳐야 하는지**는 이 원문에만 있다. */}
                     {r.state === "failed" && (r.detail || r.spec) && (

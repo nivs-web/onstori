@@ -66,7 +66,22 @@ export type TiktokChoice = {
   disableComment: boolean;
   disableDuet: boolean;
   disableStitch: boolean;
+  /**
+   * ★★ 상업용 콘텐츠 — 틱톡이 **화면에 토글을 두라**고 요구하는 항목이다. (2026-09-12 규격서 C)
+   *
+   * · `brandOrganic`  = 「내 브랜드」 — **내 사업**을 홍보한다 → 「Promotional content」 라벨이 붙는다
+   * · `brandedContent` = 「브랜디드 콘텐츠」 — **남의 브랜드**를 홍보한다 → 「Paid partnership」 라벨
+   *
+   * ⚠ **둘 다 기본은 꺼짐이고, 사장님이 직접 켜야 한다.**
+   * ⚠ **`brandedContent` 와 「나만 보기」는 함께 못 쓴다** — 틱톡이 거절한다. 화면이 미리 막는다.
+   * ★ 화면에 토글만 두고 값을 안 보내면 **화면이 거짓말**이 된다. 그래서 여기까지 실어 보낸다.
+   */
+  brandOrganic: boolean;
+  brandedContent: boolean;
 };
+
+/** ★ 「브랜디드 콘텐츠」와 함께 쓸 수 없는 공개범위 — 틱톡이 거절한다 */
+export const PRIVATE_LEVEL = "SELF_ONLY";
 
 /* ─────────────── 토큰 ─────────────── */
 
@@ -307,6 +322,15 @@ export const tiktok: SnsAdapter = {
         detail: "틱톡은 올릴 때마다 제목·공개범위를 직접 고르셔야 해요. [틱톡에 올리기]를 눌러 골라 주세요.",
       };
     }
+    /* ★★ 「브랜디드 콘텐츠」 + 「나만 보기」는 틱톡이 거절한다. **서버가 마지막으로 막는다.**
+       화면도 막지만, 화면 값을 그대로 믿지 않는다(불변 규칙 4의 정신).
+       ⚠ 여기서 안 막으면 한도 1개를 쓰고 그쪽 거절 메시지만 받게 된다. */
+    if (!input.containerId && choice?.brandedContent && choice.privacyLevel === PRIVATE_LEVEL) {
+      return {
+        state: "failed", kind: "REJECTED",
+        detail: "Branded content visibility cannot be set to private. (브랜디드 콘텐츠는 「나만 보기」로 올릴 수 없어요)",
+      };
+    }
 
     try {
       let publishId = input.containerId ?? null;
@@ -320,6 +344,9 @@ export const tiktok: SnsAdapter = {
             disable_comment: choice!.disableComment,
             disable_duet: choice!.disableDuet,
             disable_stitch: choice!.disableStitch,
+            /* ★ 상업용 콘텐츠 — 화면의 토글이 실제로 여기까지 온다 (2026-09-12 규격서 C) */
+            brand_organic_toggle: choice!.brandOrganic === true,
+            brand_content_toggle: choice!.brandedContent === true,
           },
           source_info: { source: "PULL_FROM_URL", video_url: input.publicUrl },
         };
