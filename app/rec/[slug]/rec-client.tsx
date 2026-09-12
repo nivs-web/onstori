@@ -116,6 +116,53 @@ function CameraFallback({ device, mode, onFile, show }: {
 }
 
 /**
+ * 갤러리에서 고르기 — **가장 좋은 화질로 올리는 길.** (2026-09-12 회장님 지시 3)
+ *
+ * ★★ 왜 필요한가: **브라우저 녹화는 폰 카메라 앱보다 원래 나쁘다.** 삼성·애플이 브라우저에
+ *   센서를 다 열어 주지 않는다(손떨림 보정·야간 모드·HDR 이 브라우저에는 안 온다).
+ *   해상도·비트를 아무리 올려도 카메라 앱으로 찍은 것을 못 이긴다.
+ *   그래서 **이미 찍어 둔 좋은 영상을 올리는 길**이 있어야 한다.
+ *
+ * ★ `capture` 를 **안 붙인다.** 붙이면 카메라 앱이 바로 열려 갤러리를 못 고른다
+ *   (그 길은 위 `CameraFallback` 이 따로 맡는다).
+ *
+ * ★★ 아이폰을 어떻게 할지 — **막지 않고, 미리 알려 주고, 고른 뒤 판정한다.** (판단 근거)
+ *   · 아이폰 «기본 카메라»는 `.mov` 를 내놓아 못 쓴다. 하지만 갤러리에는 그것만 있는 게 아니다 —
+ *     사파리로 찍어 저장한 영상, 남이 보내 준 mp4 도 있다. **통째로 막으면 그 길까지 막힌다.**
+ *   · 그렇다고 조용히 받으면 «60초를 쓴 뒤 버려지는» 것이라 더 나쁘다.
+ *   → 버튼 **옆에 미리** 못 쓰는 것을 적어 두고, 고른 뒤에는 이미 있는 형식 검사가 정확히 말한다.
+ *   ⚠ 변환은 하지 않는다 — 변환 워커가 없다. 없는 것을 있는 척하지 않는다.
+ *
+ * ★ 늘 보이되 **접어 둔다.** 펼치지 않으면 한 줄이라, 처음 오신 사장님의 «찍기» 흐름을 가르지 않는다
+ *   (2026-09-11 「선택지가 둘이면 그 자리에서 멈춘다」는 지시와 어긋나지 않게).
+ */
+function GalleryPick({ mode, onFile }: { mode: "video" | "audio"; onFile: (f: File | null) => void }) {
+  if (mode !== "video") return null;
+  return (
+    <details className="faq mt-3 rounded-2xl bg-white/10 px-4 py-3 text-left">
+      <summary className="flex items-center justify-between gap-3 t-small font-bold">
+        더 좋은 화질로 올리려면
+        <span className="chev shrink-0 t-h3 font-light" aria-hidden>＋</span>
+      </summary>
+      <p className="mt-3 t-small leading-relaxed opacity-80">
+        <b>폰 카메라 앱으로 찍은 영상이 가장 좋습니다.</b> 이 화면의 녹화는 브라우저가 하는 것이라
+        폰 카메라만큼 좋게 나오지 않아요. 이미 찍어 두신 영상이 있으면 여기서 고르세요.
+      </p>
+      <p className="mt-2 t-caption leading-relaxed opacity-70">
+        ⚠ 아이폰 <b>기본 카메라</b>로 찍은 영상(mov)은 아직 못 올려요. 고르시면 그 자리에서 알려드립니다.
+      </p>
+      <label className="btn-lime mt-4 flex w-full cursor-pointer items-center justify-center !py-4 !t-body">
+        갤러리에서 고르기
+        <input
+          type="file" accept="video/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ""; onFile(f); }}
+        />
+      </label>
+    </details>
+  );
+}
+
+/**
  * 링크 복사 — 사파리 주소창에 붙여넣어 열 수 있게. 인앱 브라우저의 유일한 탈출구 중 하나다.
  * ⚠ `navigator.clipboard` 는 안 될 수 있다(구형·비보안 맥락). 실패하면 주소를 그대로 보여준다.
  */
@@ -151,15 +198,58 @@ function CopyLinkButton() {
  *   2026-09-07 실측(Chromium 148): 고른 형식 `video/mp4;codecs=avc1` → 머리 `ftypisom` = 진짜 MP4.
  *   ⚠ `video/mp4;codecs=h264` 는 **false** 로 나온다. avc1 로 적어야 한다.
  */
+/* ════════════════ 화질 (2026-09-12 회장님 지시) ════════════════
+   ★★ 회장님 갤럭시 S25 울트라로 찍은 영상을 **실제로 재 봤다**(ffprobe, 2026-09-12):
+
+   | 항목 | 잰 값 | 판정 |
+   |---|---|---|
+   | 해상도 | **720×1280** | 우리가 720p 를 «요청»하고 있었다. 폰 잘못이 아니다 |
+   | 프레임 | **59fps** | 요청을 안 해서 브라우저가 60 을 골랐다. **떨어지진 않았다**(버벅임≠프레임) |
+   | 영상 비트 | 4.97Mbps | 60장에 나눠 쓰니 **장당 화질은 절반**이 된다 |
+   | 소리 | **opus 35kbps** | ⚠ 목소리가 제품의 핵심인데 35k 는 너무 낮다. 게다가 mp4 안의 opus 는 위험한 조합이다 |
+
+   ★ 그래서 셋을 **직접 정한다.** 안 정하면 브라우저가 «안전하게 낮은 쪽»을 고른다.
+   ★ 30fps 로 내리는 것이 화질을 **올린다** — 같은 비트를 절반의 장수에 쓰기 때문이다.
+     릴스·쇼츠는 30fps 가 표준이고, 60fps 로 올려도 그쪽에서 30 으로 다시 만든다.
+   ⚠ 전부 `ideal` 이다. **`exact` 를 쓰면 못 맞추는 기기에서 카메라가 아예 안 열린다.**
+     못 맞추면 기기가 알아서 가장 가까운 값으로 준다 — 실패하지 않는다.
+   ⚠ 60초에 약 45MB 다(6Mbps × 60초 ÷ 8). 인스타 상한 300MB 안이고,
+     지금(38MB)보다 조금 크지만 **화면 넓이가 2.25배**가 된다. */
+const VIDEO_W = 1080;
+const VIDEO_H = 1920;   // 세로. 릴스·쇼츠가 세로다
+const VIDEO_FPS = 30;
+/** 영상 초당 비트 — 인스타 릴스 권장(5~8Mbps)의 가운데 */
+const VIDEO_BPS = 6_000_000;
+/** 소리 초당 비트 — 목소리가 상품이다. 35k 로 두면 안 된다 */
+const AUDIO_BPS = 128_000;
+
+/** 카메라에 요청할 값 — 세 군데(첫 열기·전환·되살리기)가 **같은 값**을 쓴다 */
+const videoWant = (facing: MediaTrackConstraints["facingMode"]): MediaTrackConstraints => ({
+  facingMode: facing,
+  width: { ideal: VIDEO_W }, height: { ideal: VIDEO_H },
+  frameRate: { ideal: VIDEO_FPS, max: VIDEO_FPS },
+});
+
 function pickMime(mode: "video" | "audio"): string {
   /* ★ 2026-09-10 — **영상에서 webm 후보를 통째로 지웠다.**
      회장님 지시 4 가 「업로드 때 mp4 가 아니면 되돌린다」인데, 브라우저가 webm 을 만들도록
      놔두면 사장님이 **60초를 다 찍고 보내기를 누른 순간** 버려진다. 조용히 받는 것보다 나쁘다 —
      시간을 쓰게 만든 뒤에 버리기 때문이다. 못 만들게 막아야 되돌리기가 «있어도 안 터지는 안전망»이 된다.
      ⚠ 소리만 녹음(audio)은 webm 을 허용한다. 소리는 어느 컨테이너든 재생된다. */
+  /* ★★ **소리 코덱을 «명시»한다** (2026-09-12).
+     실측: `video/mp4;codecs=avc1` 로만 적었더니 크롬이 소리를 **opus 35kbps** 로 넣었다.
+     · mp4 안의 opus 는 흔치 않은 조합이라 그쪽(인스타·틱톡)에서 다시 만들 때 탈이 날 수 있다
+     · 무엇보다 **35kbps 는 목소리가 나쁘게 들린다.** 사장님 목소리가 이 제품의 상품이다
+     → `mp4a.40.2`(AAC-LC)를 앞에 세운다. 안 되면 예전 후보로 내려간다 — 실패하지 않는다.
+     ⚠ `avc1.640028` 은 High 프로필 1080p. 못 하는 기기가 있어 **첫 후보로만** 쓰고 뒤에 대안을 둔다. */
   const c = mode === "audio"
-    ? ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"]
-    : ["video/mp4;codecs=avc1", "video/mp4"];
+    ? ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"]
+    : [
+        "video/mp4;codecs=avc1.640028,mp4a.40.2",
+        "video/mp4;codecs=avc1,mp4a.40.2",
+        "video/mp4;codecs=avc1",
+        "video/mp4",
+      ];
   if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") return "";
   for (const m of c) if (MediaRecorder.isTypeSupported(m)) return m;
   return "";
@@ -395,10 +485,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     const phone = device === "android" || device === "ios";
     const before = await readPerm();
     const vc = (kind: "exact" | "ideal"): MediaStreamConstraints => ({
-      video: {
-        facingMode: kind === "exact" ? { exact: side } : { ideal: side },
-        width: { ideal: 1280 }, height: { ideal: 720 },
-      },
+      video: videoWant(kind === "exact" ? { exact: side } : { ideal: side }),
       audio: true,
     });
 
@@ -512,7 +599,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     /* 영상만. 첫 시도는 exact(요청한 쪽을 못 열면 실패시켜 «엉뚱한 카메라»를 막는다),
        재시도는 ideal(그 쪽이 애매한 폰이라도 뭐라도 열리게) */
     const openSide = (kind: "exact" | "ideal") => navigator.mediaDevices.getUserMedia({
-      video: { facingMode: kind === "exact" ? { exact: next } : { ideal: next }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: videoWant(kind === "exact" ? { exact: next } : { ideal: next }),
     });
 
     /* ① 옛 카메라를 먼저 완전히 놓는다 — 독점 접근 폰의 검은 화면·실패를 막는 핵심 */
@@ -555,7 +642,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
       await wait(d);
       try {
         const back = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: videoWant({ ideal: facing }),
         });
         attach(back.getVideoTracks()[0]);
         backOk = true; mark("원래 카메라 되살림");
@@ -591,7 +678,22 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
     if (!stream) { setErr("카메라가 꺼졌어요. 한 번만 다시 켜 주세요."); setBlock("perm"); setScreen("error"); return; }
     chunks.current = [];
     const mime = pickMime(mode);
-    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    /* ★★ **초당 비트를 직접 정한다** (2026-09-12). 안 정하면 브라우저가 «안전하게 낮은 쪽»을 고른다.
+       실측(회장님 S25 울트라): 소리가 **opus 35kbps** 로 들어가 있었다.
+       ⚠ 옵션째로 던지는 기기가 있을 수 있어 **실패하면 옵션 없이 한 번 더** 만든다 —
+         화질을 올리려다 «녹화가 아예 안 되는» 것이 가장 나쁘다. */
+    const opts: MediaRecorderOptions = {
+      ...(mime ? { mimeType: mime } : {}),
+      ...(mode === "video" ? { videoBitsPerSecond: VIDEO_BPS } : {}),
+      audioBitsPerSecond: AUDIO_BPS,
+    };
+    let rec: MediaRecorder;
+    try {
+      rec = new MediaRecorder(stream, opts);
+    } catch (e) {
+      console.warn(JSON.stringify({ evt: "rec_opts_rejected", err: String(e).slice(0, 120) }));
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    }
     recRef.current = rec;
     rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.current.push(e.data); };
     rec.onstop = () => {
@@ -876,6 +978,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
                 사장님은 버튼이 고장 난 줄 안다(2026-09-10 반증 검사가 잡아냈다). */}
             {badWhy && <p className="mt-4 rounded-xl bg-white/10 p-3 t-small leading-relaxed">{badWhy}</p>}
             <CameraFallback device={device} mode={mode} onFile={takeFromCamera} show={camFailed} />
+            <GalleryPick mode={mode} onFile={takeFromCamera} />
           </section>
         )}
 
@@ -1097,6 +1200,7 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
             <div className="w-full max-w-xs">
               {badWhy && <p className="mt-4 rounded-xl bg-white/10 p-3 text-left t-small leading-relaxed">{badWhy}</p>}
               <CameraFallback device={device} mode={mode} onFile={takeFromCamera} show={camFailed} />
+            <GalleryPick mode={mode} onFile={takeFromCamera} />
             </div>
           </section>
         )}
