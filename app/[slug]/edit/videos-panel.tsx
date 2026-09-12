@@ -34,7 +34,7 @@ type Item = {
   publicUrl: string | null;
   /** ★ 누르기 «전»에 잰 인스타 가능 여부 (2026-09-12). 서버가 준다 */
   ig?: { ok: boolean; why: string };
-  /** 홈페이지에 보이나 — 「숨기기」의 값 (2026-09-12 지시 D2) */
+  /** ⚠ **완성도 점수를 세는 칸**이다(lib/score.ts). 화면의 스위치로 쓰지 마라 — 점수가 조용히 바뀐다 */
   visible?: boolean;
   sort?: number;
   /** ★ 이 영상을 어디에 올렸나 — **기록에서** 온다. 새로고침해도 남는다 (2026-09-12)
@@ -254,7 +254,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
    *     여기서 `cap[entryId]` 를 읽으면 **방금 고친 글이 아니라 이전 글**이 나간다.
    */
   /**
-   * 영상관리 — 고치기·숨기기·순서·지우기. (2026-09-12 지시 D2)
+   * 영상관리 — 고치기·순서·지우기. (2026-09-12 지시 D2)
    * ⚠ 결과를 «화면 상태»로만 바꾸지 않고 목록을 **다시 읽는다** — 순서 바꾸기는 옆 줄도 함께 바뀐다.
    */
   async function manage(entryId: string, body: Record<string, unknown>) {
@@ -499,11 +499,6 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     </label>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button"
-                        onClick={() => void manage(it.id, { action: "visible", visible: !it.visible })}
-                        className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">
-                        {it.visible ? "숨기기" : "보이기"}
-                      </button>
                       <button type="button" onClick={() => void manage(it.id, { action: "move", dir: "up" })}
                         className="rounded-full border border-n-300 px-3 py-1.5 t-caption font-semibold">↑ 위로</button>
                       <button type="button" onClick={() => void manage(it.id, { action: "move", dir: "down" })}
@@ -518,11 +513,16 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                       )}
                     </div>
 
-                    {!it.visible && (
-                      <p className="mt-2 t-caption text-[var(--text-soft)]">
-                        지금은 <b>숨겨져</b> 있어요. 목록에는 남지만 홈페이지에는 안 나옵니다.
-                      </p>
-                    )}
+                    {/* ★★ **「숨기기」 버튼을 일부러 두지 않았다.** (2026-09-12 배포 확인 중 발견)
+                        · 홈페이지에 보이고 안 보이고는 이미 위의 [홈페이지에 걸기]·[내리기] 가 한다
+                        · 그리고 `story_entries.visible` 은 **완성도 점수**를 세는 칸이다
+                          (lib/score.ts storyCount·photos). 여기에 스위치를 달면 사장님이
+                          「숨기기」를 누른 순간 **점수가 조용히 내려간다** — 불변 규칙 12 위반이다.
+                        ⚠ 나중에 영상을 여러 편 거는 날이 오면, 그때는 `visible` 이 아니라
+                          **새 칸**을 만들어라. 점수 칸과 노출 칸을 겸하면 반드시 한쪽이 거짓말을 한다. */}
+                    <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+                      홈페이지에 <b>보이고 안 보이고</b>는 위의 [홈페이지에 걸기] · [홈페이지에서 내리기] 로 정합니다.
+                    </p>
 
                     {/* ★★ 지우기 확인 — 일곱 자리 중 ⑤. **버튼 글자 자체가 «어디까지 지우는지»를 말한다** */}
                     {askDelete === it.id && (

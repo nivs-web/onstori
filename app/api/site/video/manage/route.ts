@@ -6,16 +6,19 @@ import { sbAdmin } from "@/lib/db-admin";
 export const dynamic = "force-dynamic";
 
 /**
- * 영상관리 — **고치기 · 숨기기 · 순서 · 지우기.** (2026-09-12 회장님 지시 D2)
+ * 영상관리 — **고치기 · 순서 · 지우기.** (2026-09-12 회장님 지시 D2)
  *
  * ★★ **지우기는 파일을 지우지 않는다.** `deleted_at` 만 찍는다(불변 규칙 10).
  *   이미 발행된 손님 사이트가 그 영상 주소를 문서에 갖고 있어서, 파일을 지우면
  *   **남의 홈페이지 영상이 깨진다.** 그리고 SNS 에 올라간 것은 그쪽에서 지워야 한다 —
  *   화면이 확인창에서 그 사실을 그대로 말한다.
  *
- * ★ **숨기기와 지우기는 다른 일이다.** 합치면 사장님이 헷갈린다:
- *   · 숨기기 — 목록에는 남고 홈페이지에만 안 보인다 (`visible`)
- *   · 지우기 — 목록에서도 빠진다 (`deleted_at`)
+ * ★★ **「숨기기」를 여기에 만들지 않았다.** (2026-09-12 배포 확인 중 잡은 것)
+ *   처음에는 `story_entries.visible` 을 켜고 끄게 만들었다. 그런데 그 칸은
+ *   **완성도 점수를 세는 칸**이다(lib/score.ts 의 storyCount·photos 가 `visible = true` 만 센다).
+ *   그대로 두면 사장님이 「숨기기」를 누른 순간 **점수가 조용히 내려간다** — 불변 규칙 12 위반이다.
+ *   홈페이지 노출은 이미 [홈페이지에 걸기]·[내리기]가 맡고 있으므로 중복이기도 했다.
+ *   ⚠ 나중에 영상을 여러 편 거는 날이 오면 `visible` 을 재사용하지 말고 **새 칸**을 만들어라.
  *
  * ⚠ 순서(`sort`)는 **작을수록 위**다. 위/아래 한 칸씩 옮기는 것만 한다 —
  *   끌어서 옮기기는 폰에서 잘 안 되고, 사장님 화면은 폰이 먼저다.
@@ -25,11 +28,9 @@ const Input = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,30}$/),
   anonId: z.string().max(64).optional(),
   entryId: z.string().uuid(),
-  action: z.enum(["rename", "visible", "move", "delete"]),
+  action: z.enum(["rename", "move", "delete"]),
   /** rename 일 때 — 제목 */
   title: z.string().max(100).optional(),
-  /** visible 일 때 */
-  visible: z.boolean().optional(),
   /** move 일 때 */
   dir: z.enum(["up", "down"]).optional(),
   /** delete 일 때 — 기록에 남는다 */
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
 
   /* ⚠ 남의 사이트 영상을 건드릴 수 없게 `site_id` 를 **항상 함께** 건다 */
   const { data: row } = await sb.from("story_entries")
-    .select("id, sort, visible, title").eq("id", v.entryId).eq("site_id", siteId).maybeSingle();
+    .select("id, sort, title").eq("id", v.entryId).eq("site_id", siteId).maybeSingle();
   if (!row) return NextResponse.json({ error: "그 영상을 찾지 못했어요" }, { status: 404 });
 
   if (v.action === "rename") {
@@ -61,13 +62,6 @@ export async function POST(req: Request) {
       .update({ title: (v.title ?? "").slice(0, 100) }).eq("id", v.entryId).eq("site_id", siteId);
     if (error) return fail("제목을 바꾸지 못했어요", error.message);
     return NextResponse.json({ ok: true, title: v.title ?? "" });
-  }
-
-  if (v.action === "visible") {
-    const { error } = await sb.from("story_entries")
-      .update({ visible: v.visible !== false }).eq("id", v.entryId).eq("site_id", siteId);
-    if (error) return fail("바꾸지 못했어요", error.message);
-    return NextResponse.json({ ok: true, visible: v.visible !== false });
   }
 
   if (v.action === "move") {
@@ -107,7 +101,9 @@ export async function POST(req: Request) {
     /* ⚠ 마이그레이션(20260912200000) 전이면 칸이 없다. **거짓으로 「지웠다」고 하지 않는다.** */
     console.warn(JSON.stringify({ evt: "video_delete_column_missing", err: error.message.slice(0, 160) }));
     return NextResponse.json(
-      { error: "아직 지우기 준비가 끝나지 않았어요. 대신 [숨기기]를 쓰시면 홈페이지에서 안 보입니다.", notReady: true },
+      /* ⚠⚠ 없는 버튼을 가리키지 않는다(불변 규칙 12). 화면에 「숨기기」는 **없다** —
+         홈페이지에서 내리는 길은 [홈페이지에서 내리기] 다. 글자까지 화면과 같아야 한다. */
+      { error: "아직 지우기 준비가 끝나지 않았어요. 홈페이지에서 빼려면 [홈페이지에서 내리기]를 눌러 주세요.", notReady: true },
       { status: 409 },
     );
   }
