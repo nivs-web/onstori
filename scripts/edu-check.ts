@@ -16,3 +16,29 @@ for (const label of ["일본어", "배드민턴", "코딩", "카페"]) {
   );
   console.log(`         문구: 「${label}${josa(label, "을/를")} 해요」`);
 }
+
+/* ════════ 부르는 말이 템플릿에 맞는지 (2026-09-13 상무님 지적 18·19·21) ════════ */
+import { TEMPLATE_WORDS } from "../config/industries";
+
+let bad = 0, done = 0;
+const t = (name: string, got: unknown, want: unknown) => {
+  done++;
+  if (JSON.stringify(got) !== JSON.stringify(want)) {
+    console.log(`  ❌ ${name}\n       기대 ${JSON.stringify(want)}\n       실제 ${JSON.stringify(got)}`); bad++;
+  } else console.log(`  ✅ ${name}`);
+};
+
+console.log("\n── 학원에 「견적」·「매장」·「메뉴」를 쓰지 않는다 ──");
+t("★ 문의 단추", TEMPLATE_WORDS.consult.cta, "수업 문의");
+t("★ 사진 제목", TEMPLATE_WORDS.consult.gallery, "수업 사진");
+t("★ 가격표 제목", TEMPLATE_WORDS.consult.priceTitle, "수업료");
+t("시공은 그대로 「견적 문의」", TEMPLATE_WORDS.quote.cta, "견적 문의");
+t("카페는 그대로 「매장 사진」", TEMPLATE_WORDS.visit.gallery, "매장 사진");
+
+console.log("\n── 모든 템플릿에 말이 빠짐없이 있다 ──");
+for (const [k, w] of Object.entries(TEMPLATE_WORDS)) {
+  t(`${k} — 네 가지가 다 있다`, [w.cta, w.formTitle, w.gallery, w.priceTitle].every((x) => !!x && x.length <= 8), true);
+}
+
+console.log(`\n검사 ${done}건 · 실패 ${bad}건`);
+process.exitCode = bad ? 1 : 0;

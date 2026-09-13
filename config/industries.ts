@@ -71,6 +71,25 @@ export const INDUSTRIES: Industry[] = [
   { id: "sports", name: "운동·체육", categoryId: 3, keywords: ["요가", "필라테스", "헬스", "PT", "골프", "수영", "태권도", "배드민턴", "테니스", "복싱", "주짓수", "체육관"], bankTags: ["sports", "fitness"], defaultMood: "lively" },
 ];
 
+/**
+ * ★★ **템플릿마다 «부르는 말»이 다르다 — 단일 출처.** (2026-09-13 상무님 지적 18·19)
+ *
+ * ⚠ 교육·레슨을 켜 보니 시공용 말이 그대로 나왔다:
+ *   · 문의 단추가 「견적 문의」 — 학원에 견적을 내는 사람은 없다
+ *   · 사진 제목이 「매장 사진」 — 학원은 매장이 아니라 **수업**을 보여 준다
+ * ★ 화면마다 갈래를 또 쓰지 않게 여기 한 곳에 둔다. 새 템플릿이 생기면 여기만 늘린다.
+ *
+ * ⚠ 여기 값은 **홈페이지를 처음 만들 때** 쓰는 기본값이다. 사장님이 편집화면에서 바꾸면
+ *   그 값이 이긴다 — 이미 만들어진 홈페이지의 글자를 여기서 바꾸지 않는다.
+ */
+export const TEMPLATE_WORDS: Record<Template, { cta: string; formTitle: string; gallery: string; priceTitle: string }> = {
+  quote:   { cta: "견적 문의", formTitle: "견적 문의", gallery: "작업 사진", priceTitle: "가격" },
+  consult: { cta: "수업 문의", formTitle: "수업 문의", gallery: "수업 사진", priceTitle: "수업료" },
+  visit:   { cta: "전화 문의", formTitle: "문의하기", gallery: "매장 사진", priceTitle: "메뉴" },
+  book:    { cta: "예약 문의", formTitle: "예약 문의", gallery: "매장 사진", priceTitle: "가격" },
+  browse:  { cta: "문의하기",  formTitle: "문의하기", gallery: "사진",      priceTitle: "가격" },
+};
+
 /** 랜딩 포트폴리오 탭 — 카테고리가 아닌 전시용 태그 (showcase.tag) */
 export const PORTFOLIO_TABS = ["전체", "인테리어", "시공·건설", "서비스·출장", "카페·식당"] as const;
 export type PortfolioTag = Exclude<(typeof PORTFOLIO_TABS)[number], "전체">;

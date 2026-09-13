@@ -294,7 +294,9 @@ export const MOOD_CARDS: MoodCard[] = [
   { id: "m12", name: "밝은 미용실", blurb: "산뜻하고 감각적이에요", style: "basic", mode: "light", colorId: "purple", inWizard: false },
   { id: "m13", name: "시원한 인테리어", blurb: "맑은 청록으로 깔끔하게", style: "basic", mode: "light", colorId: "teal", inWizard: false },
   { id: "m14", name: "활기찬 정육점", blurb: "힘 있고 눈에 잘 띄어요", style: "bold", mode: "light", colorId: "red", inWizard: false },
-  { id: "m15", name: "단정한 학원", blurb: "차분하고 반듯해요", style: "refined", mode: "light", colorId: "indigo", inWizard: false },
+  /* ★ 2026-09-13 켰다 (상무님 지적 20) — 교육·레슨 카테고리를 열었는데 정작 학원용 모양이
+     숨겨져 있었다. 대표님이 샘플 셋(일본어·배드민턴·AI 강의)을 만드신다. */
+  { id: "m15", name: "단정한 학원", blurb: "차분하고 반듯해요", style: "refined", mode: "light", colorId: "indigo", inWizard: true },
   { id: "m16", name: "푸른 조경", blurb: "넓은 여백에 초록 한 줄", style: "quiet", mode: "light", colorId: "lime", inWizard: false },
   { id: "m17", name: "맑은 세탁소", blurb: "깨끗하고 시원해요", style: "basic", mode: "light", colorId: "sky", inWizard: false },
   { id: "m18", name: "온화한 떡집", blurb: "은은하고 정겨워요", style: "warm", mode: "light", colorId: "magenta", inWizard: false },

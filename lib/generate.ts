@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { geminiJson } from "./gemini";
-import { INDUSTRIES, matchIndustry, categoryOf, type Industry } from "@/config/industries";
+import { INDUSTRIES, TEMPLATE_WORDS, matchIndustry, categoryOf, type Industry } from "@/config/industries";
 import { pickImage, pickImages } from "./bank";
 import { SiteDoc, type SiteDocT } from "./schema";
 
@@ -121,7 +121,8 @@ export async function generateSite(input: GenerateInput) {
       headline: copy.headline,
       sub: copy.sub,
       image: heroImage,
-      cta: { label: cat.template === "quote" ? "견적 문의" : "전화 문의", action: cat.cta === "quote" ? "quote" : "call" },
+      /* ★ 부르는 말의 단일 출처는 `config/industries.ts` 의 `TEMPLATE_WORDS` 다 (2026-09-13 지적 18) */
+      cta: { label: TEMPLATE_WORDS[cat.template].cta, action: cat.cta === "quote" ? "quote" : "call" },
     },
     { type: "about", title: copy.aboutTitle, body: copy.aboutBody, image: aboutImage },
   ];
@@ -131,7 +132,7 @@ export async function generateSite(input: GenerateInput) {
   if (galleryPhotos.length > 0) {
     sections.push({
       type: "gallery",
-      title: cat.template === "quote" ? "작업 사진" : "매장 사진",
+      title: TEMPLATE_WORDS[cat.template].gallery,
       photos: galleryPhotos,
     });
   }
@@ -153,7 +154,7 @@ export async function generateSite(input: GenerateInput) {
     // visit (카페·식당): 메뉴·영업시간은 사실 정보라 생성하지 않음 — 에디터(P3)에서 입력
     sections.push(
       { type: "storyFeed", title: copy.storyFeedTitle, showCount: 5 },
-      { type: "quoteForm", title: "문의하기", sub: copy.quoteSub, phone: input.phone, allowPhotos: false },
+      { type: "quoteForm", title: TEMPLATE_WORDS[cat.template].formTitle, sub: copy.quoteSub, phone: input.phone, allowPhotos: false },
     );
   }
 
