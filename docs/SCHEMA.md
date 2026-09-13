@@ -133,7 +133,7 @@ VISIT 전용: `hoursCard` `menuPrice`
 |---|---|---|---|
 | title | string | ⬜ | ≤40자, 기본값 `"견적 문의"` |
 | sub | string | ⬜ | ≤120자 |
-| phone | string | ✅ | 1~20자 |
+| phone | string | ⬜ | ≤20자, 기본값 `""`. **빈 값 허용**(전화 비공개가 기본 — `lib/phone-privacy.ts`). ⚠ `optional` 로 풀지 마라 — 렌더러가 `.replace()` 를 불러 500 이 난다 |
 | kakaoUrl | string | ⬜ | URL 형식 |
 | allowPhotos | boolean | ⬜ | 기본값 `true`. 실제 폼 접수는 P8 — 현재는 연락 CTA 카드로 렌더 |
 

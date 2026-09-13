@@ -1,3 +1,4 @@
+import { TEMPLATE_WORDS } from "@/config/industries";
 import type { SectionT } from "@/lib/schema";
 
 /**
@@ -32,7 +33,9 @@ export const ADDABLE_SECTIONS: { type: AddableType; name: string; needsPhoto?: b
 ];
 
 /** photoUrl은 needsPhoto 타입(gallery·portfolioGallery)에서 필수 — zod min(1) 배열의 첫 항목이 된다. */
-export function sectionDefault(type: AddableType, photoUrl?: string): SectionT {
+export function sectionDefault(type: AddableType, photoUrl?: string, template?: string): SectionT {
+  /* ★ 부르는 말의 단일 출처 (2026-09-13 상무님 지적 21) */
+  const words = TEMPLATE_WORDS[(template ?? "quote") as keyof typeof TEMPLATE_WORDS];
   switch (type) {
     case "about": return { type, title: "소개", body: "우리 가게를 소개하는 글을 적어주세요." };
     case "storyFeed": return { type, title: "우리 가게 이야기", showCount: 5 };
@@ -42,9 +45,14 @@ export function sectionDefault(type: AddableType, photoUrl?: string): SectionT {
     case "banner": return { type, text: "안내 문구를 입력해 주세요" };
     case "portfolioGallery": return { type, title: "시공 사례", items: [{ title: "", image: photoUrl ?? "" }] };
     case "processSteps": return { type, title: "진행 과정", steps: [{ name: "상담" }, { name: "진행" }] };
-    case "quoteForm": return { type, title: "견적 문의", phone: "전화번호를 입력해 주세요", allowPhotos: true };
+    /* ⚠ 2026-09-13 — 전에는 `phone: "전화번호를 입력해 주세요"` 였다. 그것이 **손님 화면에
+       그대로 찍혔다**(전화 단추 글자로). 안내문은 편집화면의 라벨이 할 일이다.
+       ★ 이제 빈 값이 허용된다(lib/schema.ts QuoteForm.phone 의 `.default("")`). */
+    case "quoteForm": return { type, title: "견적 문의", phone: "", allowPhotos: true };
     case "hoursCard": return { type, title: "영업시간", hours: "영업시간을 입력해 주세요" };
-    case "menuPrice": return { type, title: "메뉴", items: [{ name: "", price: "" }] };
+    /* ★ 2026-09-13 (상무님 지적 21) — 학원에 「메뉴」는 말이 안 된다. 제목 칸은 이미 있으니
+       **기본값만** 템플릿에 맞춘다. 사장님이 바꾸시면 그 값이 이긴다. */
+    case "menuPrice": return { type, title: words?.priceTitle ?? "메뉴", items: [{ name: "", price: "" }] };
   }
 }
 

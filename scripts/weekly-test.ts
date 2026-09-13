@@ -132,5 +132,52 @@ t("기록이 없는 형제는 막지 않는다", sentThisWeekToPhone([{}, {}], K
 
 /* ⚠ 개수를 손으로 적지 않는다 — 검사를 늘려 놓고 숫자를 안 고치면 그 숫자가 거짓말한다.
    실제로 2026-09-12 에 그랬다(9건을 더했는데 「15건」이라고 찍혔다). */
+
+console.log("\n── ★ 「한 사람에게 주 한 통」 — 열쇠가 «받는 사람»인가 (2026-09-13 상무님 지적 6) ──");
+/* ★★ 기본 채널이 메일이 되면서, 번호만 열쇠로 삼으면 **같은 메일을 쓰는 두 사이트**를
+   못 막는다. 실제로 그 틈으로 주 두 통이 나갈 뻔했다. */
+{
+  const mail = pickOnePerPhone([
+    { phone: "", slug: "aaa", status: "trial", updatedAt: "2026-09-12T00:00:00Z", email: "boss@shop.com", wantsSms: false },
+    { phone: "", slug: "bbb", status: "trial", updatedAt: "2026-09-10T00:00:00Z", email: "BOSS@Shop.com", wantsSms: false },
+  ]);
+  t("★ 같은 메일이면 한 통만 간다", mail.chosen.length, 1);
+  t("★ 대소문자가 달라도 같은 사람이다", mail.chosen[0].slug, "aaa");
+  t("버린 쪽을 조용히 버리지 않는다", mail.dropped[0]?.inFavorOf, "aaa");
+}
+{
+  const diff = pickOnePerPhone([
+    { phone: "", slug: "one", status: "trial", updatedAt: null, email: "a@shop.com", wantsSms: false },
+    { phone: "", slug: "two", status: "trial", updatedAt: null, email: "b@shop.com", wantsSms: false },
+  ]);
+  t("메일이 다르면 둘 다 간다", diff.chosen.length, 2);
+}
+{
+  /* ⚠ 메일만 받는 분들끼리 «빈 번호»로 묶이면 한 분 빼고 전부 굶는다 — 그 사고를 막는지 */
+  const noMail = pickOnePerPhone([
+    { phone: "", slug: "x", status: "trial", updatedAt: null, email: null, wantsSms: false },
+    { phone: "", slug: "y", status: "trial", updatedAt: null, email: null, wantsSms: false },
+  ]);
+  t("★ 닿을 곳이 없는 후보끼리는 서로 안 막는다", noMail.chosen.length, 2);
+}
+{
+  /* ★ 메일로 한 번 묶이고 번호로 또 묶이는 «셋이 한 사람» 경우 */
+  const chain = pickOnePerPhone([
+    { phone: "010-1111-2222", slug: "aaa", status: "active", updatedAt: null, email: "boss@shop.com", wantsSms: true },
+    { phone: "010-3333-4444", slug: "bbb", status: "trial", updatedAt: null, email: "boss@shop.com", wantsSms: true },
+    { phone: "010-1111-2222", slug: "ccc", status: "trial", updatedAt: null, email: "other@shop.com", wantsSms: true },
+  ]);
+  t("★ 메일로도 번호로도 이어지면 셋이 한 사람이다", chain.chosen.length, 1);
+  t("돈 내는 곳이 남는다", chain.chosen[0].slug, "aaa");
+}
+{
+  /* ⚠ 문자를 신청하신 분과 메일만 받는 분이 **번호가 같아도** 메일이 다르면 갈라진다 */
+  const mixed = pickOnePerPhone([
+    { phone: "010-1111-2222", slug: "sms", status: "trial", updatedAt: null, email: "a@shop.com", wantsSms: true },
+    { phone: "010-1111-2222", slug: "mail", status: "trial", updatedAt: null, email: "b@shop.com", wantsSms: false },
+  ]);
+  t("★ 문자를 안 받는 분은 번호로 묶이지 않는다", mixed.chosen.length, 2);
+}
+
 console.log(`\n검사 ${done}건 · 실패 ${bad}건`);
 process.exit(bad ? 1 : 0);

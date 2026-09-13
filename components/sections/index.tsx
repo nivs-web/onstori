@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
+import { TEMPLATE_WORDS } from "@/config/industries";
 import { workCount } from "@/lib/stories";
 import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
@@ -93,7 +94,14 @@ function ctaHref(action: string, ctx: Ctx): string {
 function ctaLabel(label: string, action: string, ctx: Ctx): string {
   if (action === "quote") return label;
   const { tel } = contactOf(ctx.doc);
-  return tel ? label : "문의하기";
+  /* ★ 부회장 지적(2026-09-13): 「이메일로 문의」가 아니라 **「견적 문의하기」**다.
+     손님이 무엇을 하게 되는지를 말해야지, 우리가 어떤 수단을 쓰는지를 말할 자리가 아니다.
+     ⚠ **렌더러에서 바꾼다.** 편집화면에 이 글자를 고치는 칸이 없어서(cta 칸 0건),
+       기존 사이트와 새 사이트가 **여기 한 곳으로 동시에** 고쳐진다.
+     ★ 학원에 「견적」은 말이 안 된다 — 템플릿에 맞는 말을 쓴다(지적 18, TEMPLATE_WORDS). */
+  if (tel) return label;
+  const words = TEMPLATE_WORDS[ctx.doc.template as keyof typeof TEMPLATE_WORDS];
+  return `${words?.formTitle ?? "문의"}하기`.replace("문의하기하기", "문의하기");
 }
 
 /** next/image 가 쓸 수 있는 호스트인지 — next.config.ts 의 remotePatterns 와 같이 간다.

@@ -104,7 +104,16 @@ export const QuoteForm = z.object({
   type: z.literal("quoteForm"),
   title: z.string().max(40).default("견적 문의"),
   sub: z.string().max(120).optional(),
-  phone: z.string().min(1).max(20),
+  /**
+   * ★★ **비어 있어도 된다. 다만 `undefined` 는 안 된다.** (2026-09-13 상무님 지적 3)
+   *
+   * ⚠ 전화번호가 기본 비공개가 되면서(대표님 결정 3) 이 칸은 빈 값으로 손님에게 나간다
+   *   (lib/phone-privacy.ts 가 비운다). 그런데 `min(1)` 이라 스키마상으로는 «빈 값 금지»였다.
+   * ⚠ 그렇다고 `optional()` 로 풀면 **손님 페이지가 500 이 난다** — 렌더러가
+   *   `s.phone.replace(…)` 를 부르는 자리가 있고 `undefined` 에는 그 함수가 없다.
+   * ★ 그래서 `.default("")` 다. 없으면 빈 글자가 되고, 화면은 「없으면 안 그린다」로 이미 돼 있다.
+   */
+  phone: z.string().max(20).default(""),
   kakaoUrl: z.string().url().optional(),
   allowPhotos: z.boolean().default(true), // 접수 폼은 components/sections/quote-form.tsx
 });

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
-import { sendSmsRaw, sendEmailRaw, notifyTargets, notifyChannels } from "@/lib/notify";
+import { sendSmsRaw, sendEmailRaw, notifyTargets, notifyChannels, clearNotifyError } from "@/lib/notify";
 import { storyLinkUrl } from "@/lib/story-link";
 import { ALIMTALK_QUESTIONS } from "@/config/questions";
 import {
   readWeekly, shouldSend, deadlineText, hasBannedPhrase, withOptOut, pickOnePerPhone,
-  WEEKLY_UPGRADE_NOTICE,
+  WEEKLY_UPGRADE_NOTICE, recipientKeys,
   phoneKey, safeBusinessName, sentThisWeekToPhone,
   type Weekly,
 } from "@/lib/weekly";
@@ -78,6 +78,15 @@ export async function GET(req: Request) {
     phone: string;
     /** 문자·카톡을 «따로» 신청하셨나. 기본(email)이면 false */
     wantsSms: boolean;
+    /**
+     * ★★ 메일 주소 — **「한 사람에게 주 한 통」의 진짜 열쇠다.** (2026-09-13 상무님 지적 6)
+     * ⚠ 기본 채널이 메일이라, 이 값을 안 실어 보내면 `recipientKeys` 가 빈 열쇠를 돌려주고
+     *   **같은 메일로 사이트를 둘 가진 분께 주 두 통**이 간다.
+     * ⚠ 여기서는 `settings.notify.email` 만 본다. 로그인 계정 메일까지 찾으려면 사이트마다
+     *   DB 를 한 번 더 읽어야 해서 후보를 고르는 단계에는 무겁다 — 실제 발송 주소는
+     *   아래에서 `notifyTargets` 가 다시 정확히 찾는다.
+     */
+    email: string | null;
     status: string | null; updatedAt: string | null;
   };
   const cands: Cand[] = [];
@@ -127,6 +136,7 @@ export async function GET(req: Request) {
       settings, w: w as Weekly,
       phone: wantsSms && canSms ? phone : "",
       wantsSms: wantsSms && canSms && !!phone,
+      email: ((settings.notify as { email?: string } | undefined)?.email ?? "").trim() || null,
       status: (s.status as string) ?? null,
       updatedAt: (s.updated_at as string) ?? null,
     });
@@ -135,12 +145,13 @@ export async function GET(req: Request) {
   /* ════ ② 같은 번호는 한 곳만 ════
      ⚠ 조용히 버리지 않는다 — 어느 사이트를 어느 사이트 때문에 건너뛰었는지 로그에 남긴다.
        나중에 「왜 이 사이트만 문자가 안 오냐」는 물음에 답할 수 있어야 한다. */
-  /* ⚠ 번호가 없는 후보(메일만 받는 분)는 «같은 번호» 규칙과 무관하다.
-       그분들까지 번호로 묶으면 빈 번호끼리 한 덩어리가 돼 **한 분 빼고 전부 탈락**한다. */
-  const withPhone = cands.filter((c) => c.phone);
-  const mailOnly = cands.filter((c) => !c.phone);
-  const { chosen: pickedByPhone, dropped } = pickOnePerPhone(withPhone);
-  const chosen = [...pickedByPhone, ...mailOnly];
+  /**
+   * ★★ **「한 사람에게 주 한 통」** — 열쇠는 이제 번호가 아니라 «받는 곳 전부»다
+   *   (메일 + 신청하신 경우의 번호). `lib/weekly.ts` 의 `recipientKeys` 주석 참고.
+   * ⚠ 2026-09-13 전에는 여기서 «번호 있는 후보»만 걸렀다. 기본이 메일이 된 뒤로는
+   *   그 방식이 **같은 메일을 쓰는 두 사이트를 못 막았다**(상무님 지적 6).
+   */
+  const { chosen, dropped } = pickOnePerPhone(cands);
   out.samePhone = dropped.length;
   for (const d of dropped) {
     console.log(JSON.stringify({ evt: "weekly_same_phone_skipped", slug: d.slug, inFavorOf: d.inFavorOf }));
@@ -157,18 +168,35 @@ export async function GET(req: Request) {
     if (isPremade(s)) continue;                     // ★ 형제 목록에도 넣지 않는다
     const settings = (s.settings as Record<string, unknown>) ?? {};
     const w = readWeekly(settings);
-    const phone = (w?.phone?.trim() || (settings.phone as string) || "").trim();
-    if (!phone) continue;
-    const k = phoneKey(phone);
-    const list = byPhone.get(k) ?? [];
-    list.push({ id: s.id as string, settings, w: (w ?? {}) as Weekly });
-    byPhone.set(k, list);
+    const entry = { id: s.id as string, settings, w: (w ?? {}) as Weekly };
+    /* ★ 형제를 찾는 열쇠도 «받는 곳»이다 — 번호만 보면 메일만 쓰는 형제를 못 찾는다 */
+    const keys = recipientKeys({
+      slug: s.slug as string,
+      phone: (w?.phone?.trim() || (settings.phone as string) || "").trim(),
+      wantsSms: (w?.channel ?? "email") !== "email",
+      email: ((settings.notify as { email?: string } | undefined)?.email ?? "").trim() || null,
+    });
+    for (const k of keys) {
+      const list = byPhone.get(k) ?? [];
+      list.push(entry);
+      byPhone.set(k, list);
+    }
   }
 
   /* ════ ③ 보낸다 ════ */
   for (const c of chosen) {
-    const siblings = c.phone ? (byPhone.get(phoneKey(c.phone)) ?? []) : [];
-    if (c.phone && sentThisWeekToPhone(siblings.map((x) => x.w), now)) {
+    /* ★ 이 사장님께 닿는 모든 열쇠의 형제를 모은다 — 같은 사이트가 겹쳐 들어와도
+         `lastSentAt` 을 찍는 일은 같은 값을 두 번 쓰는 것뿐이라 해롭지 않다. */
+    const sibIds = new Set<string>();
+    const siblings: { id: string; settings: Record<string, unknown>; w: Weekly }[] = [];
+    for (const k of recipientKeys(c)) {
+      for (const sib of byPhone.get(k) ?? []) {
+        if (sibIds.has(sib.id)) continue;
+        sibIds.add(sib.id);
+        siblings.push(sib);
+      }
+    }
+    if (siblings.length && sentThisWeekToPhone(siblings.map((x) => x.w), now)) {
       out.sameWeekPhone++;
       console.log(JSON.stringify({ evt: "weekly_phone_already_sent_this_week", slug: c.slug }));
       continue;
@@ -237,6 +265,10 @@ export async function GET(req: Request) {
       continue;
     }
     out.sent++;
+
+    /* ★ 갔다 = 이제 괜찮다. 남아 있던 오류 표시를 지운다 (2026-09-13 상무님 지적 7).
+       ⚠ 안 지우면 운영자 계기판이 「고장난 곳」을 영원히 부풀려 보여 준다. */
+    await clearNotifyError(c.id);
 
     /* ★ 보낸 뒤에 찍는다. 먼저 찍으면 발송 실패 시 그 주를 통째로 건너뛴다.
        ★★ **같은 번호를 쓰는 형제 사이트에도 함께 찍는다** (2026-09-13) —

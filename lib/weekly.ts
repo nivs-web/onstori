@@ -267,10 +267,50 @@ export type PhoneCandidate = {
   slug: string;
   status?: string | null;
   updatedAt?: string | null;
+  /** 메일로도 가는 주소. 기본 채널이 메일이라 대부분 여기가 «진짜 받는 사람»이다 */
+  email?: string | null;
+  /** 문자·카톡도 «따로» 신청하셨나 */
+  wantsSms?: boolean;
 };
 
 /**
- * ★★ **한 번호에는 한 주에 한 통만.**
+ * ★★★ **「한 사람에게 주 한 통」의 열쇠 — 번호가 아니라 «받는 사람»이다.**
+ *   (2026-09-13 상무님 지적 6)
+ *
+ * ⚠ **무엇이 무너졌었나:** 이 파일의 중복 제거가 전부 **번호**를 열쇠로 삼고 있었다.
+ *   그런데 대표님 결정으로 기본 채널이 **메일**이 됐다. 그러면
+ *   **같은 메일 주소로 사이트를 둘 가진 분은 한 주에 두 통**을 받는다 —
+ *   번호가 서로 다르거나 아예 없으면 옛 열쇠로는 «다른 사람»으로 보이기 때문이다.
+ *   지시 6 이 막으려던 바로 그 일이 채널이 바뀌면서 되살아난 것이다.
+ *
+ * ★ 그래서 한 사이트가 **실제로 닿는 곳 전부**를 열쇠로 만든다:
+ *   · 메일은 **언제나** 간다 → `mail:…` 열쇠가 늘 하나 있다
+ *   · 문자·카톡을 신청하셨으면 → `tel:…` 열쇠가 하나 더 붙는다
+ *   두 사이트가 **열쇠를 하나라도 공유하면 같은 사람**으로 본다.
+ *
+ * ⚠ 메일 주소는 대소문자를 가리지 않는다 — `Boss@G.com` 과 `boss@g.com` 은 같은 사람이다.
+ */
+export function recipientKeys(c: PhoneCandidate): string[] {
+  const keys: string[] = [];
+  const mail = (c.email ?? "").trim().toLowerCase();
+  if (mail) keys.push(`mail:${mail}`);
+  /**
+   * ⚠ 번호는 문자를 **«안» 신청하신 것이 분명할 때만** 열쇠에서 뺀다(`wantsSms === false`).
+   *   값을 안 준 경우(undefined)는 **번호를 열쇠로 쓴다** — 애매하면 «덜 보내는 쪽»이다.
+   *   잘못 묶여 한 통을 못 받는 것은 다음 주에 회복되지만, 잘못 풀려 두 통이 나가면 못 되돌린다.
+   */
+  if (c.wantsSms !== false) {
+    const tel = phoneKey(c.phone ?? "");
+    if (tel) keys.push(`tel:${tel}`);
+  }
+  return keys;
+}
+
+/**
+ * ★★ **한 «사람»에게 한 주에 한 통만.**
+ *
+ * ⚠ 2026-09-13 — 이름은 `pickOnePerPhone` 그대로 두지만 **열쇠는 번호가 아니다.**
+ *   `recipientKeys` 가 주는 «닿는 곳 전부»(메일·번호)를 쓴다. 왜 바꿨는지는 그 함수 주석에.
  *
  * ⚠ 왜 필요한가: 한 분이 사이트를 둘 이상 가진 경우가 실제로 있다(2026-09-12 확인 —
  *   「안녕월드」와 「욕실 인테리어 전문가」가 같은 번호다). 그대로 두면 **같은 번호로 같은 날
@@ -290,26 +330,35 @@ export type PhoneCandidate = {
 export function pickOnePerPhone<T extends PhoneCandidate>(
   cands: T[],
 ): { chosen: T[]; dropped: Array<{ slug: string; inFavorOf: string }> } {
-  const groups = new Map<string, T[]>();
-  for (const c of cands) {
-    const k = phoneKey(c.phone);
-    const g = groups.get(k);
-    if (g) g.push(c); else groups.set(k, [c]);
-  }
+  /* ★ 먼저 «누구를 남길지»의 순서대로 줄을 세운다. 그 뒤 위에서부터 집으면서
+       이미 닿은 곳이 하나라도 겹치는 사이트는 내린다.
+     ⚠ 열쇠가 둘(메일·번호)일 수 있어서 «묶어서 고르기»로는 안 된다 —
+       A 와 B 가 메일을 공유하고 B 와 C 가 번호를 공유하면 셋이 한 사람이다. */
+  const sorted = [...cands].sort((a, b) => {
+    const rank = (s?: string | null) => (s === "active" ? 0 : 1);
+    if (rank(a.status) !== rank(b.status)) return rank(a.status) - rank(b.status);
+    const at = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+    const bt = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+    if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return bt - at;
+    return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
+  });
 
   const chosen: T[] = [];
   const dropped: Array<{ slug: string; inFavorOf: string }> = [];
-  for (const g of groups.values()) {
-    const sorted = [...g].sort((a, b) => {
-      const rank = (s?: string | null) => (s === "active" ? 0 : 1);
-      if (rank(a.status) !== rank(b.status)) return rank(a.status) - rank(b.status);
-      const at = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-      const bt = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-      if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return bt - at;
-      return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
-    });
-    chosen.push(sorted[0]);
-    for (const rest of sorted.slice(1)) dropped.push({ slug: rest.slug, inFavorOf: sorted[0].slug });
+  /** 이미 닿기로 한 곳 → 그것을 차지한 사이트의 주소 */
+  const taken = new Map<string, string>();
+
+  for (const c of sorted) {
+    const keys = recipientKeys(c);
+    /* ⚠ 닿을 곳이 하나도 없으면(메일도 없고 문자도 안 신청) 중복될 일이 없다. 그대로 둔다 —
+         보낼 곳이 없다는 판정은 크론이 하고, 왜 못 보냈는지도 거기서 말한다. */
+    const clash = keys.find((k) => taken.has(k));
+    if (clash) {
+      dropped.push({ slug: c.slug, inFavorOf: taken.get(clash) as string });
+      continue;
+    }
+    for (const k of keys) taken.set(k, c.slug);
+    chosen.push(c);
   }
   return { chosen, dropped };
 }
@@ -354,6 +403,7 @@ export function safeBusinessName(raw: string): string {
  *   형제 사이트들의 `lastSentAt` 중 하나라도 이번 주 안이면 보내지 않는다.
  */
 export function sentThisWeekToPhone(siblings: { lastSentAt?: string }[], at = new Date()): boolean {
+  /* ⚠ 이름은 그대로지만 «형제»를 고르는 열쇠는 이제 메일까지 본다 — `recipientKeys` 참고 */
   const start = weekStartMs(at);
   return siblings.some((w) => {
     if (!w.lastSentAt) return false;

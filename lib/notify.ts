@@ -50,6 +50,32 @@ async function recordError(siteId: string, channel: string, msg: string) {
   }
 }
 
+/**
+ * ★★★ **성공하면 오류 표시를 «지운다».** (2026-09-13 상무님 지적 7)
+ *
+ * ⚠ **지우는 코드가 한 곳도 없었다.** `recordError` 가 `notify_last_error` 를 적기만 하고,
+ *   사장님이 메일 주소를 고쳐서 정상으로 돌아와도 그 표시는 **영원히 남았다.**
+ *   그러면 운영자 계기판(`/api/admin/notify-check`)이 「고장난 사이트 목록」을 늘 부풀려
+ *   보여 주고, 결국 **아무도 그 화면을 안 보게 된다.** 계기판이 못 쓰게 되는 것이
+ *   이 문제의 진짜 손해다 — 진짜 고장을 그 속에서 못 찾는다.
+ *
+ * ★ 그래서 «보내기가 성공한 순간»에 지운다. 성공이 곧 「이제 괜찮다」는 증거다.
+ * ⚠ 지우다 실패해도 삼킨다 — 알림은 갔는데 뒷정리 때문에 흐름을 멈출 이유가 없다.
+ */
+export async function clearNotifyError(siteId: string): Promise<void> {
+  try {
+    const sb = sbAdmin();
+    const { data } = await sb.from("sites").select("settings").eq("id", siteId).maybeSingle();
+    const settings = ((data?.settings as Settings) ?? {}) as Settings;
+    if (!settings.notify_last_error) return;      // 없으면 건드리지 않는다(쓸데없는 갱신 금지)
+    delete settings.notify_last_error;
+    await sb.from("sites").update({ settings }).eq("id", siteId);
+    console.log(JSON.stringify({ evt: "notify_error_cleared", siteId }));
+  } catch (e) {
+    console.error(JSON.stringify({ evt: "notify_error_clear_failed", siteId, err: String(e).slice(0, 160) }));
+  }
+}
+
 /** 문자 1건 — 이야기 녹화 링크·무료 기간 안내 등 문의 외 용도 (2026-09-05). env 없으면 false, 실패는 throw 하지 않는다. */
 export async function sendSmsRaw(to: string, text: string): Promise<boolean> {
   if (!notifyChannels().sms) return false;
@@ -176,6 +202,8 @@ export async function notifyInquiry(args: NotifyInquiryArgs): Promise<void> {
     ].join("\n");
     try {
       await sendEmail(targets.email, `[견적 문의] ${businessName} — ${inquiry.name}`, body);
+      /* ★ 갔다 = 이제 괜찮다. 남아 있던 오류 표시를 지운다 (2026-09-13 상무님 지적 7) */
+      await clearNotifyError(siteId);
     } catch (e) {
       await recordError(siteId, "email", String(e));
     }
