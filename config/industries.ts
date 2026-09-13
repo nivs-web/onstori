@@ -82,12 +82,22 @@ export const INDUSTRIES: Industry[] = [
  * ⚠ 여기 값은 **홈페이지를 처음 만들 때** 쓰는 기본값이다. 사장님이 편집화면에서 바꾸면
  *   그 값이 이긴다 — 이미 만들어진 홈페이지의 글자를 여기서 바꾸지 않는다.
  */
+/**
+ * 문의 버튼 글자 — 업종·템플릿과 상관없이 전부 이 값. (대표 결정 R-0001, 2026-09-13)
+ * 예전엔 템플릿마다 「견적 문의」·「수업 문의」·「전화 문의」·「예약 문의」로 갈렸으나
+ * 대표가 「전부 다 문의하기 버튼으로 통일해」로 확정했다(needs-ceo/R-0001.md).
+ * ★ 렌더러(components/sections/index.tsx `ctaLabel`)가 이 값을 직접 쓴다 — 사이트 문서에
+ *   저장된 옛 글자(`s.cta.label`)는 무시한다. 편집화면에 이 글자를 고치는 칸이 없어서
+ *   (cta 칸 0건), 이미 만들어진 손님 사이트도 재발행 없이 함께 바뀐다.
+ */
+export const INQUIRY_CTA_LABEL = "문의하기";
+
 export const TEMPLATE_WORDS: Record<Template, { cta: string; formTitle: string; gallery: string; priceTitle: string }> = {
-  quote:   { cta: "견적 문의", formTitle: "견적 문의", gallery: "작업 사진", priceTitle: "가격" },
-  consult: { cta: "수업 문의", formTitle: "수업 문의", gallery: "수업 사진", priceTitle: "수업료" },
-  visit:   { cta: "전화 문의", formTitle: "문의하기", gallery: "매장 사진", priceTitle: "메뉴" },
-  book:    { cta: "예약 문의", formTitle: "예약 문의", gallery: "매장 사진", priceTitle: "가격" },
-  browse:  { cta: "문의하기",  formTitle: "문의하기", gallery: "사진",      priceTitle: "가격" },
+  quote:   { cta: INQUIRY_CTA_LABEL, formTitle: "견적 문의", gallery: "작업 사진", priceTitle: "가격" },
+  consult: { cta: INQUIRY_CTA_LABEL, formTitle: "수업 문의", gallery: "수업 사진", priceTitle: "수업료" },
+  visit:   { cta: INQUIRY_CTA_LABEL, formTitle: "문의하기", gallery: "매장 사진", priceTitle: "메뉴" },
+  book:    { cta: INQUIRY_CTA_LABEL, formTitle: "예약 문의", gallery: "매장 사진", priceTitle: "가격" },
+  browse:  { cta: INQUIRY_CTA_LABEL, formTitle: "문의하기", gallery: "사진",      priceTitle: "가격" },
 };
 
 /** 랜딩 포트폴리오 탭 — 카테고리가 아닌 전시용 태그 (showcase.tag) */

@@ -29,10 +29,10 @@ const t = (name: string, got: unknown, want: unknown) => {
 };
 
 console.log("\n── 학원에 「견적」·「매장」·「메뉴」를 쓰지 않는다 ──");
-t("★ 문의 단추", TEMPLATE_WORDS.consult.cta, "수업 문의");
+t("★ 문의 단추(전 업종 「문의하기」로 통일, 대표 결정 R-0001)", TEMPLATE_WORDS.consult.cta, "문의하기");
 t("★ 사진 제목", TEMPLATE_WORDS.consult.gallery, "수업 사진");
 t("★ 가격표 제목", TEMPLATE_WORDS.consult.priceTitle, "수업료");
-t("시공은 그대로 「견적 문의」", TEMPLATE_WORDS.quote.cta, "견적 문의");
+t("시공도 문의 단추는 「문의하기」(대표 결정 R-0001)", TEMPLATE_WORDS.quote.cta, "문의하기");
 t("카페는 그대로 「매장 사진」", TEMPLATE_WORDS.visit.gallery, "매장 사진");
 
 console.log("\n── 모든 템플릿에 말이 빠짐없이 있다 ──");
