@@ -253,3 +253,10 @@ onstori/docs/AI/
 - 빌드 확인: `npm run build`
 - 마이그레이션: `npx supabase migration new <name>` / `npx supabase db reset` / `npx supabase db push`
 - 주간 루틴: `npx supabase db diff --linked` (드리프트 검사), `npx supabase db dump -f backups/$(date +%F).sql`
+
+## AI 회사 운영 (2026-09-13 추가)
+- 회사 폴더는 `fable51plandept/ai-company/` 다 (환경변수 ONSTORI_AI_DIR). 업무(tasks/)·결과(results/)·검수(reviews/)·대표 검토(needs-ceo/)·상태(STATE.md)가 거기 있다.
+- 자동 실행 직원(ONSTORI_ROLE 환경변수가 있는 세션)은 `.claude/hooks/guard-*.ps1` 의 권한 레벨을 따른다: git push·배포·supabase db push·삭제·외부 발송·.env 는 어떤 직원도 못 한다. 사람 세션(클코님)은 제한 없음.
+- 코드 업무는 항상 `worktree-T-xxxx` 브랜치에서. main 병합은 리뷰어 PASS + 대표 승인 뒤 dispatcher(merge.ps1)가 한다. push 는 사람이 확인 후.
+- 대화형 세션은 컨텍스트 80% 에서 Stop 훅이 인수인계서(ai-company/handoffs/)를 쓰게 하고, /clear 뒤 SessionStart 훅이 자동으로 읽어 준다. 인수인계서 요청이 오면 다른 일보다 먼저 쓴다.
+- `.claude/worktrees/` 는 .gitignore 에 있다.
