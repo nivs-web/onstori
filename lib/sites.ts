@@ -169,6 +169,11 @@ export async function getSiteBySlug(slug: string, premade: PremadeMode = "hide")
  * ⚠ 여기서는 **운영자 권한**으로 «있는지»만 본다. 내용(published)은 읽지 않는다 —
  *   비공개인 홈페이지 내용이 손님 화면에 새어 나갈 길을 아예 만들지 않는다.
  * ⚠ 상호명만 돌려준다. 그것도 «없는 주소»와 구분해 인사하기 위한 최소한이다.
+ *
+ * ⚠ **견본(premade)은 「쉬고 있어요」 화면을 못 받는다 — 404 로 남는다.** (2026-09-13 · T-0014)
+ *   견본은 **계약 안 한 남의 가게** 다. 그 상호가 우리 화면(「지금은 볼 수 없어요」)에 박히면
+ *   안 된다. `getFromDb` 가 «보이기 판정»에서 쓰는 것과 **같은 판정**(`isPremade` + `SAMPLE_SLUGS`
+ *   예외)을 여기서도 쓴다 — 그래서 `owner_id`·`anon_id`·`settings` 를 함께 읽는다.
  */
 export async function getPausedSite(slug: string): Promise<{ businessName: string } | null> {
   if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null;
@@ -179,12 +184,14 @@ export async function getPausedSite(slug: string): Promise<{ businessName: strin
     const admin = createClient(url, key, { auth: { persistSession: false } });
     const { data } = await admin
       .from("sites")
-      .select("business_name, status")
+      .select("business_name, status, owner_id, anon_id, settings")
       .eq("slug", slug)
       .maybeSingle();
     if (!data) return null;
     /* trial·active 인데 여기까지 왔다면 «발행 전»이다. 그건 쉬는 게 아니라 아직 없는 것 */
     if (data.status === "trial" || data.status === "active") return null;
+    /* 견본(주인 없음)이면 «쉬는 화면» 대신 «없는 주소» 로 — 남의 상호를 우리 화면에 박지 않는다 */
+    if (isPremade(data) && !SAMPLE_SLUGS.has(slug)) return null;
     return { businessName: (data.business_name as string) || "" };
   } catch {
     return null;
