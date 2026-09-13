@@ -113,10 +113,30 @@ export async function POST(req: Request) {
     console.error(JSON.stringify({ evt: "video_attach_row_failed", slug, entryId, err: upErr.message.slice(0, 160) }));
   }
 
+  /**
+   * ★★ **사장님이 쓰신 글을 먼저 쓴다.** (2026-09-13 상무님 지적 15)
+   *
+   * ⚠ 여기만 `question`(우리가 던진 질문)을 캡션으로 썼다. 그래서 홈페이지에는
+   *   「오늘 가장 기억에 남은 손님은?」 같은 **우리 질문**이 영상 아래 달리고,
+   *   같은 영상이 SNS 에는 사장님이 쓴 글로 나갔다 — **한 영상에 두 얼굴**이었다.
+   * ★ SNS 쪽(app/api/sns/publish)이 이미 `caption → title → question` 순이다. 여기를 그쪽에 맞춘다.
+   * ⚠ `caption` 칸은 아직 db push 전이라 없을 수 있다 — 없으면 옛 순서로 조용히 내려앉는다.
+   */
+  /* ⚠ `caption` 칸은 아직 db push 전이라 **없을 수 있다.** 위 조회에 섞어 넣으면
+     칸이 없는 DB 에서 **조회 전체가 실패**해 영상 걸기가 멈춘다. 그래서 따로, 실패해도
+     그만인 방식으로 읽는다 — 못 읽으면 옛 순서(제목 → 질문)로 조용히 내려앉는다. */
+  let typed = "";
+  {
+    const c = await sb.from("story_entries").select("caption").eq("id", entryId).maybeSingle();
+    if (!c.error) typed = ((c.data as { caption?: string } | null)?.caption ?? "").trim();
+  }
+
+  const caption = typed || (row.title as string) || (row.question as string) || "";
+
   const section = videoSection({
     url: storage.publicUrl(publicKey),
     poster,
-    caption: (row.question as string) || undefined,
+    caption: caption || undefined,
   });
 
   console.log(JSON.stringify({ evt: "video_attached", slug, entryId, poster: !!poster }));

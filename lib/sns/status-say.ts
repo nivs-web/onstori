@@ -17,8 +17,18 @@ import { ERROR_SAY, PROVIDER_NAME, type ErrorKind, type SnsProvider } from "./ty
  *      회색으로 「안 올림」이라 쓰면 그것이 실패처럼 읽힌다.
  */
 
-/** 자동 재시도 횟수 — 이 숫자를 넘으면 사람이 [다시 시도]를 눌러야 한다 */
-export const AUTO_RETRIES = 3;
+/**
+ * 자동 재시도 횟수 — 이 숫자를 넘으면 사람이 [다시 시도]를 눌러야 한다.
+ *
+ * ★★ **3 → 1 로 내렸다.** (2026-09-13 상무님 지적 11)
+ *   ⚠ 3 일 때 화면이 **두 겹으로 거짓말**을 했다:
+ *     ① 실제로 자동 재시도를 돌리는 코드가 없는데 「다시 해보는 중 (1/3)」이라고 했다
+ *     ② 그 문구가 계속 떠 있어서, 아래 「안 올라갔어요」 + [다시 시도] 가 **영영 안 나왔다**
+ *   ⇒ 사장님은 기다리기만 하고 고칠 기회를 못 받았다.
+ * ★ 1 이면 한 번 실패한 순간 곧바로 「안 올라갔어요」와 [다시 시도] 가 나온다.
+ *   숫자 하나로 거짓말 둘이 함께 사라진다.
+ */
+export const AUTO_RETRIES = 1;
 
 export type PostState = {
   provider: string;
@@ -92,7 +102,10 @@ export function sayPost(p: PostState): Said | null {
     }
     /* TRANSIENT 와 «모르는 값»은 같이 다룬다 — 모르면 「잠깐 그런 것」으로 본다 */
     const tries = p.attempts ?? 0;
-    if (tries < AUTO_RETRIES) return { tone: "wait", text: `다시 해보는 중 (${Math.max(1, tries)}/${AUTO_RETRIES})` };
+    /* ⚠ 한 번뿐이면 「(1/1)」은 그 자체로 어색하다 — 셀 것이 없으면 숫자를 안 보인다 */
+    if (tries < AUTO_RETRIES) {
+      return { tone: "wait", text: AUTO_RETRIES <= 1 ? "다시 해보는 중" : `다시 해보는 중 (${Math.max(1, tries)}/${AUTO_RETRIES})` };
+    }
     return { tone: "bad", text: "안 올라갔어요", action: "다시 시도" };
   }
 

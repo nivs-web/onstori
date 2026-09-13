@@ -2,7 +2,7 @@
  * SNS 상태 번역 검사 — ★ **영어가 한 글자도 안 새는지**가 이 검사의 핵심이다.
  * (2026-09-12 회장님 지시 D4). 실패하면 종료코드 1.
  */
-import { sayPost, josa, AUTO_RETRIES } from "../lib/sns/status-say";
+import { sayPost, josa } from "../lib/sns/status-say";
 import { ERROR_KINDS, ERROR_SAY } from "../lib/sns/types";
 
 let bad = 0, done = 0;
@@ -47,16 +47,26 @@ t("한도 초과는 «나쁨»이 아니라 «기다림»이다",
 t("거절은 SNS 이름을 넣어 말한다",
   sayPost({ provider: "instagram", status: "failed", errorKind: "REJECTED" })?.text,
   "인스타그램 릴스가 이 영상을 받지 않았어요");
-t("잠깐 그런 것은 «다시 해보는 중»",
-  sayPost({ provider: "instagram", status: "failed", errorKind: "TRANSIENT", attempts: 1 })?.text,
-  `다시 해보는 중 (1/${AUTO_RETRIES})`);
-t("세 번을 넘기면 사람이 눌러야 한다",
+/* ★★ 2026-09-13 (상무님 지적 11) — 자동 재시도를 3 → 1 로 내렸다.
+   ⚠ 3 일 때 화면이 두 겹으로 거짓말했다: ①자동 재시도를 도는 코드가 없는데 「다시 해보는 중」이라 하고
+     ②그 문구에 가려 「안 올라갔어요」+[다시 시도] 가 **영영 안 나왔다.**
+   ★ 그래서 이 검사들은 «사람이 고칠 기회를 언제 받는가»를 지킨다. */
+t("아직 한 번도 안 해봤으면 «다시 해보는 중»",
+  sayPost({ provider: "instagram", status: "failed", errorKind: "TRANSIENT", attempts: 0 })?.text,
+  "다시 해보는 중");
+t("★ 한 번뿐이면 「(1/1)」 같은 숫자를 안 보인다",
+  sayPost({ provider: "instagram", status: "failed", errorKind: "TRANSIENT", attempts: 0 })?.text.includes("("),
+  false);
+t("★ 한 번 실패하면 곧바로 사람이 누를 수 있다",
+  sayPost({ provider: "instagram", status: "failed", errorKind: "TRANSIENT", attempts: 1 }),
+  { tone: "bad", text: "안 올라갔어요", action: "다시 시도" });
+t("여러 번 실패해도 같다",
   sayPost({ provider: "instagram", status: "failed", errorKind: "TRANSIENT", attempts: 3 }),
   { tone: "bad", text: "안 올라갔어요", action: "다시 시도" });
 /* ⚠ 모르는 이유가 와도 영어를 보여 주면 안 된다 */
 t("모르는 실패 이유는 «잠깐 그런 것»으로 다룬다",
   sayPost({ provider: "instagram", status: "failed", errorKind: "SOMETHING_NEW", attempts: 0 })?.text,
-  `다시 해보는 중 (1/${AUTO_RETRIES})`);
+  "다시 해보는 중");
 t("모르는 상태 글자도 그대로 안 보여 준다",
   sayPost({ provider: "instagram", status: "weird_new_status" })?.text, "확인 중이에요");
 

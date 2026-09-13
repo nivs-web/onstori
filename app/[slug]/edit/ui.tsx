@@ -821,7 +821,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
   }
 
   function addSection(type: AddableType, photoUrl?: string) {
-    setDoc({ ...doc, sections: [...doc.sections, sectionDefault(type, photoUrl)] });
+    setDoc({ ...doc, sections: [...doc.sections, sectionDefault(type, photoUrl, doc.template)] });
   }
 
   const missing = ADDABLE_SECTIONS.filter((m) => !doc.sections.some((s) => s.type === m.type));
@@ -896,15 +896,19 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               <h2 className="t-small font-bold">문의 받기</h2>
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
-                <Field label="전화번호 (문의 버튼 연결)">
-                  <input className={inp} value={s.phone} maxLength={20} onChange={(e) => patchSection(i, { phone: e.target.value })} aria-invalid={!isValidPhone(s.phone)} />
+                <Field label="전화번호 (선택 — 홈페이지에는 공개되지 않아요)">
+                  <input className={inp} value={s.phone} maxLength={20} placeholder="비워 두셔도 됩니다"
+                    onChange={(e) => patchSection(i, { phone: e.target.value })}
+                    aria-invalid={!!s.phone.trim() && !isValidPhone(s.phone)} />
                   {/* 온보딩에서 막아도 여기서 지울 수 있다 — 그때 CTA 가 조용히 문의 폼으로 바뀌는 이유를 알려준다 */}
-                  {!isValidPhone(s.phone) && (
-                    <p className="mt-1.5 text-[12px] text-danger">전화번호를 정확히 입력해 주세요 — 숫자 9자리 이상. 이대로 두면 문의 버튼이 전화 걸기 대신 문의 폼으로 연결됩니다.</p>
+                  {/* ⚠ 2026-09-13 — **비어 있는 것은 이제 «정상»이다.** 전화번호는 기본이
+                      비공개라(대표님 결정 3) 안 적으셔도 홈페이지가 멀쩡하다. 빈 칸에 빨간 경고를
+                      띄우면 잘못한 것처럼 보인다. **적었는데 틀렸을 때만** 말한다. */}
+                  {!!s.phone.trim() && !isValidPhone(s.phone) && (
+                    <p className="mt-1.5 text-[12px] text-danger">전화번호를 정확히 입력해 주세요 — 숫자 9자리 이상.</p>
                   )}
                 </Field>
               </div>
-              <NotifyBox notify={notify} setNotify={setNotify} channels={channels} />
             </section>
           );
           case "map": return (
@@ -1110,6 +1114,24 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           </div>
         );
       })}
+
+      {/**
+        * ★★★ **메일 주소는 섹션이 아니다 — 섹션 목록 «밖»에 둔다.** (2026-09-13 상무님 지적 9)
+        *
+        * ⚠ 전에는 「문의 받기」 카드 **안**에 있었다. 그 자리는 두 가지가 잘못됐다:
+        *   ① 그 섹션이 사라지면 이메일 칸도 함께 사라진다(지금은 삭제가 막혀 있지만,
+        *      한 줄만 풀리면 곧바로 그렇게 된다 — 그런 자리에 둘 값이 아니다)
+        *   ② **뜻이 맞지 않는다.** 이 주소로 오는 것이 이제 손님 문의만이 아니다.
+        *      **주 1회 「이번 주 질문」이 이 주소로 간다**(2026-09-13 대표님 결정 6).
+        *      「문의 받기」 안에 있으면 사장님은 그 사실을 알 길이 없다.
+        */}
+      <section className="space-y-3 rounded-2xl border border-n-200 p-4">
+        <h2 className="t-small font-bold">알림 받을 메일</h2>
+        <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+          손님 문의와 <b>주 1회 「이번 주 질문」</b>이 이 주소로 갑니다. 비워 두면 둘 다 못 받으세요.
+        </p>
+        <NotifyBox notify={notify} setNotify={setNotify} channels={channels} />
+      </section>
 
       {/* 섹션 추가 — 없는 타입만. gallery·portfolioGallery는 zod min(1) 제약 때문에 첫 사진과 함께 삽입 */}
       <section className="rounded-2xl border-2 border-dashed border-n-300 p-4">

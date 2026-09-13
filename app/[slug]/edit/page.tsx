@@ -6,7 +6,11 @@ import { EditUi } from "./ui";
 import { themeAttrs, themeVars } from "@/lib/design-tokens";
 import { readDesignAll } from "@/lib/design-settings";
 
-export const metadata: Metadata = { title: "홈페이지 수정", robots: { index: false, follow: false } };
+/* ★ 2026-09-13 — 「홈페이지 수정」 → **「홈페이지 관리」**. (상무님 지적 14)
+   다른 문구들이 이미 그 이름으로 부르고 있었다 —
+   `lib/weekly.ts` 의 `OPT_OUT_LINE`(「홈페이지 관리 > 연결 > …」)·`PHONE_PRIVATE_NOTICE`.
+   이름이 둘이면 사장님이 그 화면을 못 찾는다. */
+export const metadata: Metadata = { title: "홈페이지 관리", robots: { index: false, follow: false } };
 
 /**
  * 사장님 편집화면.

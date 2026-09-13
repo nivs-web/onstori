@@ -21,8 +21,16 @@ const Save = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,30}$/),
   anonId: z.string().max(64).optional(),
   entryId: z.string().uuid().optional(),
-  /** 이 영상의 글. 비우면 지우는 것이 아니라 «빈 글»로 저장된다 */
-  caption: z.string().max(5000).optional(),
+  /**
+   * 이 영상의 글. 비우면 지우는 것이 아니라 «빈 글»로 저장된다.
+   *
+   * ⚠ **저장 한도와 올리기 한도가 달랐다** (2026-09-13 상무님 지적 16).
+   *   여기는 5000자를 받아 주는데 SNS 올리기는 2200자에서 자른다. 그러면 사장님이
+   *   3000자를 정성껏 써 저장하고 **올릴 때 조용히 잘린다.** 화면은 저장됐다고만 말한다.
+   * ★ 두 곳을 같은 숫자로 맞춘다. 한도의 단일 출처는 `lib/sns/limits.ts` 이므로
+   *   거기 인스타 한도(가장 짧은 축)와 같은 2200 을 쓴다.
+   */
+  caption: z.string().max(2200).optional(),
   /** 가게 고정 해시태그 — 최대 5개(회장님 지시). 넘으면 서버가 자른다 */
   fixedTags: z.array(z.string().max(60)).max(30).optional(),
   /**
