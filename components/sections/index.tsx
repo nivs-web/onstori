@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { SectionT, SiteDocT, StoryEntryT, ThemeT } from "@/lib/schema";
-import { TEMPLATE_WORDS } from "@/config/industries";
+import { INQUIRY_CTA_LABEL } from "@/config/industries";
 import { workCount } from "@/lib/stories";
 import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
@@ -84,24 +84,19 @@ function ctaHref(action: string, ctx: Ctx): string {
 }
 
 /**
- * ★★★ **글자와 데려가는 곳을 맞춘다.** (불변 규칙 12 · 2026-09-13)
+ * ★★★ 문의 버튼 글자는 업종·템플릿·전화번호 유무와 상관없이 항상 «문의하기» 다.
+ *   (대표 결정 R-0001, 2026-09-13 — 단일 출처는 config/industries.ts 의 `INQUIRY_CTA_LABEL`)
  *
- * ⚠ 전화번호가 **기본 비공개**가 되면서(대표님 결정 3) 「전화 문의」 단추가 번호 없이 남는다.
- *   위 `ctaHref` 는 그때 문의 폼(`#quote`)으로 떨어뜨리는데, **글자는 그대로 「전화 문의」**였다.
- *   손님이 전화가 걸릴 줄 알고 누르면 폼이 열린다 — 규칙 12 가 막으려는 바로 그 어긋남이다.
- * ★ 그래서 전화가 «실제로 걸릴 때»만 전화라고 말한다.
+ * ⚠ 예전엔 템플릿마다 「견적 문의」·「수업 문의」·「전화 문의」·「예약 문의」로 갈렸고,
+ *   전화번호가 **기본 비공개**가 되면서(대표님 결정 3) 「전화 문의」 단추가 번호 없이 남는
+ *   문제(불변 규칙 12)까지 있었다. 대표가 「전부 다 문의하기 버튼으로 통일해」로 확정해
+ *   그 갈래를 전부 없앴다(needs-ceo/R-0001.md).
+ * ★ 사이트 문서에 저장된 `s.cta.label`(옛 사이트에 남은 「견적 문의」 등)은 여기서
+ *   무시한다 — 그래야 이미 만들어진 손님 사이트도 다시 발행하지 않고 전부 바뀐다.
+ * ★ 데려가는 곳(`ctaHref`)은 그대로다 — 전화가 실제로 걸리는 사이트는 여전히 전화가 걸린다.
  */
-function ctaLabel(label: string, action: string, ctx: Ctx): string {
-  if (action === "quote") return label;
-  const { tel } = contactOf(ctx.doc);
-  /* ★ 부회장 지적(2026-09-13): 「이메일로 문의」가 아니라 **「견적 문의하기」**다.
-     손님이 무엇을 하게 되는지를 말해야지, 우리가 어떤 수단을 쓰는지를 말할 자리가 아니다.
-     ⚠ **렌더러에서 바꾼다.** 편집화면에 이 글자를 고치는 칸이 없어서(cta 칸 0건),
-       기존 사이트와 새 사이트가 **여기 한 곳으로 동시에** 고쳐진다.
-     ★ 학원에 「견적」은 말이 안 된다 — 템플릿에 맞는 말을 쓴다(지적 18, TEMPLATE_WORDS). */
-  if (tel) return label;
-  const words = TEMPLATE_WORDS[ctx.doc.template as keyof typeof TEMPLATE_WORDS];
-  return `${words?.formTitle ?? "문의"}하기`.replace("문의하기하기", "문의하기");
+function ctaLabel(): string {
+  return INQUIRY_CTA_LABEL;
 }
 
 /** next/image 가 쓸 수 있는 호스트인지 — next.config.ts 의 remotePatterns 와 같이 간다.
@@ -195,7 +190,7 @@ function HeroSec({ s, ctx, first }: { s: Extract<SectionT, { type: "hero" }>; ct
               borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)",
             }}
           >
-            {ctaLabel(s.cta.label, s.cta.action, ctx)}
+            {ctaLabel()}
           </a>
           {works > 0 && (
             <span className="t-small" style={{ color: "inherit" }}>
