@@ -34,6 +34,11 @@ t("★ 사진 제목", TEMPLATE_WORDS.consult.gallery, "수업 사진");
 t("★ 가격표 제목", TEMPLATE_WORDS.consult.priceTitle, "수업료");
 t("시공도 문의 단추는 「문의하기」(대표 결정 R-0001)", TEMPLATE_WORDS.quote.cta, "문의하기");
 t("카페는 그대로 「매장 사진」", TEMPLATE_WORDS.visit.gallery, "매장 사진");
+t(
+  "★ 템플릿 5종의 문의 단추가 전부 같은 값이다(누가 한 업종만 되돌려도 여기서 잡힌다)",
+  Object.values(TEMPLATE_WORDS).map((w) => w.cta),
+  Object.values(TEMPLATE_WORDS).map(() => "문의하기"),
+);
 
 console.log("\n── 모든 템플릿에 말이 빠짐없이 있다 ──");
 for (const [k, w] of Object.entries(TEMPLATE_WORDS)) {
