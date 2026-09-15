@@ -8,7 +8,7 @@ import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
-import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE } from "@/lib/weekly";
+import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE, WEEKLY_CHANNEL_HINT } from "@/lib/weekly";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
 import { sbBrowser } from "@/lib/supabase/browser";
@@ -108,6 +108,15 @@ export function Wizard() {
   const [placeOn, setPlaceOn] = useState<boolean | null>(null);
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [placeBusy, setPlaceBusy] = useState(false);
+  /**
+   * ★★ **고른 매장 — 2026-09-15 대표님 지적으로 신설.**
+   *
+   * ⚠ **버그가 아니라 «말이 없던 것»이었다.** 전에는 매장을 누르면 값은 다 들어갔는데
+   *   `setPlaces(null)` 로 **목록만 사라지고 아무 말도 안 했다.** 상호는 위 칸에 보이니까
+   *   「가게명만 불러온다」로 보였고, 주소·전화는 **3단계에 있어서 안 보였을 뿐**이다.
+   * ★ 그래서 고른 것을 **카드로 남겨** 무엇이 들어왔는지 그 자리에서 보여 준다.
+   */
+  const [picked, setPicked] = useState<Place | null>(null);
   // 2
   const [group, setGroup] = useState(INDUSTRY_GROUPS[0].id);
   const [sub, setSub] = useState<SubIndustry | null>(null);
@@ -186,6 +195,7 @@ export function Wizard() {
       if (s) { setSub(s); setGroup(INDUSTRY_GROUPS.find((g) => g.items.includes(s))?.id ?? group); }
     }
     setPlaces(null);
+    setPicked(p); /* ★ 고른 것을 남긴다 — 이게 없어서 「아무 반응이 없다」로 보였다 */
   }
 
   function onLogoFile(f: File | null) {
@@ -436,8 +446,41 @@ export function Wizard() {
               고르신 첫 질문: <b>{pickedQuestion.text}</b> — 홈페이지가 생기면 이 질문부터 문자로 보내드려요.
             </p>
           )}
-          <input className="field mt-8" value={name} maxLength={40} autoFocus onChange={(e) => { setName(e.target.value); setPlaces(null); }} placeholder="예: 바른전기 · 카페 크로프트" />
-          {placeOn && (
+          <input className="field mt-8" value={name} maxLength={40} autoFocus onChange={(e) => { setName(e.target.value); setPlaces(null); setPicked(null); }} placeholder="예: 바른전기 · 카페 크로프트" />
+
+          {/* ★★ **고른 매장 확인 카드** (2026-09-15 대표님 지적으로 신설)
+              ⚠ 「선택되었습니다」를 **글자로 말한다.** 값이 조용히 들어가는 것은 «안 된 것»과 구별이 안 된다.
+              ⚠ 무엇이 들어왔는지 **줄마다 보여 준다** — 주소·전화는 3단계에 있어 지금은 안 보인다.
+                안 보이는 것을 「들어갔습니다」라고만 하면 믿을 근거가 없다. */}
+          {picked && (
+            <div className="mt-3 rounded-2xl border-2 p-4" style={{ borderColor: "var(--green)", background: "var(--green-50)" }}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="t-body font-bold" style={{ color: "var(--forest)" }}>✓ 선택되었습니다</p>
+                <button
+                  type="button"
+                  onClick={() => { setPicked(null); searchPlace(); }}
+                  className="tap-row t-small underline"
+                  style={{ color: "var(--forest)" }}
+                >
+                  다시 고르기
+                </button>
+              </div>
+              <p className="mt-2 t-body font-bold">{picked.name}</p>
+              <ul className="mt-2 space-y-1 t-small">
+                {picked.category && <li>업종 · {picked.category}</li>}
+                {(picked.roadAddress || picked.address) && <li>주소 · {picked.roadAddress || picked.address}</li>}
+                {picked.phone && <li>전화 · {picked.phone}</li>}
+              </ul>
+              <p className="mt-3 t-small font-semibold" style={{ color: "var(--forest)" }}>
+                {[picked.phone && "전화번호", (picked.roadAddress || picked.address) && "주소", "가게명"].filter(Boolean).join(", ")} 정보를 바탕으로 홈페이지 제작을 시작합니다
+              </p>
+              <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>
+                다음 단계에서 하나하나 고치실 수 있어요. 틀린 곳이 있어도 괜찮습니다.
+              </p>
+            </div>
+          )}
+
+          {placeOn && !picked && (
             <div className="mt-3 rounded-2xl border bg-white p-4" style={{ borderColor: "var(--line)" }}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="t-small"><b>네이버 플레이스에 등록된 가게</b>라면 이름·업종·주소·전화를 불러올 수 있어요.</p>
@@ -468,7 +511,12 @@ export function Wizard() {
       {step === 1 && (
         <section className="mt-6">
           <h1 className="font-display t-h1 leading-snug">어떤 일을 하시나요?</h1>
-          <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>가장 가까운 것 하나만 고르세요. 나중에 바꿀 수 있어요. (쇼핑몰은 지원하지 않아요)</p>
+          <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>
+            가장 가까운 것 하나만 고르세요. 나중에 바꿀 수 있어요. (쇼핑몰은 지원하지 않아요)<br />
+            {/* ★ 2026-09-15 대표님 — 목록에 없는 업종에서 사장님이 «막혔다»고 느끼신다.
+                직접 적으면 된다는 것을 여기서 말해 준다. 아래 검색칸이 그 역할을 이미 한다. */}
+            본인의 업종이 없으면, 업종명을 직접 입력하시고 [다음] 버튼을 누르세요
+          </p>
           <input className="field mt-6" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="업종 검색 — 예: 도배, 네일, 카페" />
           {!filter && (
             <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
@@ -591,8 +639,12 @@ export function Wizard() {
             />
             {/* 회색 힌트로 만들지 않는다 — 손님이 전화를 걸 번호라 눈에 걸려야 한다.
                 ⚠ 2026-09-11 — 「문자가 옵니다」를 뺐다. 문의 알림은 **이메일로** 간다(회장님 결정). */}
+            {/* ★★ 2026-09-15 대표님 개정 — **한 줄로 줄였다.**
+                「입력은 오타 없이 정확히 받기 위해서 심플한 멘트. 기본은 공개 안 함이야.
+                 부가적으로 설명하지 말고, 그냥 공개 안 하는 게 기본인 게 맞는 것 같아.」
+                ⚠ 주 1회 질문 안내는 **이메일 칸 아래로 옮겼다** — 이제 메일로 가기 때문이다. */}
             <p id="phone-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
-              고객의 문의를 받을 수 있는 실제 사장님의 정확한 전화번호를 입력해주세요.
+              사장님의 정확한 전화번호를 입력해주세요.
             </p>
             {/* ★★★ 「주 1회 질문」은 **광고가 아니라 우리가 판 상품**이다 (2026-09-12 상무님 지적).
                 ⚠ 전에는 이것이 4단계의 «선택 체크박스»에 광고와 한 칸으로 묶여 있었다. 그러면
@@ -608,10 +660,6 @@ export function Wizard() {
                 ⚠ 문구의 출처는 `lib/weekly.ts` 한 곳이다 — 관리자 화면과 같은 말을 해야 한다. */}
             <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
               {PHONE_PRIVATE_NOTICE.lead}<b>{PHONE_PRIVATE_NOTICE.strong}</b>{PHONE_PRIVATE_NOTICE.tail}
-            </p>
-            {/* ★ 주 1회 질문은 **상품**이라 묻지 않고 알린다. 이제 기본은 «메일»이다 */}
-            <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
-              {WEEKLY_NOTICE.lead}<b>{WEEKLY_NOTICE.strong}</b>{WEEKLY_NOTICE.tail}
             </p>
           </Field>
           {/* ★ 2026-09-11 신설 — **문의 알림이 이 주소로 간다.** 비면 문의가 와도 사장님이 모른다.
@@ -631,8 +679,13 @@ export function Wizard() {
             />
             <p id="email-why" className="t-small" style={{ marginTop: "var(--s-2)", borderRadius: "var(--r-md)", padding: "var(--s-2) var(--s-3)", background: "var(--green-50)", color: "var(--n-800)" }}>
               정확한 메일 주소를 입력해주세요. 고객 문의가 오면 이메일로 연락이 옵니다.<br />
-              반드시 이메일의 알림 기능을 활성화 해주세요<br />
-              (이메일 앱에서 알림을 켜면 메일 도착 즉시 핸드폰에 알림이 옵니다)
+              이메일 알림을 켜면, 메일 도착 즉시 핸드폰에 알림이 오도록 셋팅하세요
+            </p>
+            {/* ★★ 주 1회 질문은 **상품**이라 묻지 않고 알린다. 기본은 «메일»이므로 이 칸 아래가 맞다.
+                (2026-09-15 대표님이 전화번호 칸에서 여기로 옮기라 하심) */}
+            <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--n-800)" }}>
+              {WEEKLY_NOTICE.lead}<b>{WEEKLY_NOTICE.strong}</b>{WEEKLY_NOTICE.tail}<br />
+              {WEEKLY_CHANNEL_HINT}
             </p>
           </Field>
           <Field label="주소 (선택)" hint="오시는 길 섹션에 들어가요">

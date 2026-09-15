@@ -127,7 +127,12 @@ export default async function DashboardPage() {
       <h2 className="mt-10 t-body font-bold">사장님</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="전체 홈페이지" value={`${made}곳`} sub={`오늘 ${rows.filter(since(DAY)).length} · 이번 주 ${rows.filter(since(7 * DAY)).length}`} />
-        <Card label="공개 중" value={`${openCount}곳`} sub={`정지 ${made - openCount}곳`} />
+        {/* ★ 2026-09-15 대표님 — **「폐쇄된 사이트 보기」로 바로 가는 길**을 여기 둔다.
+            ⚠ 폐쇄중이어도 지운 것이 아니다. 자료는 그대로 있고 `/x/{주소}` 에서 운영자만 본다. */}
+        <Card label="공개 중" value={`${openCount}곳`}
+          sub={made - openCount > 0
+            ? <Link href="/admin/sites?state=closed" className="underline">폐쇄중 {made - openCount}곳 — 목록 보기</Link>
+            : "폐쇄중 0곳"} />
         <Card label="정회원" value={`${paidCount}명`} sub={made ? `전환율 ${Math.round((paidCount / made) * 100)}%` : "—"} />
         <Card label="손님 문의" value={`${(inqs ?? []).length}건`} sub={`오늘 ${(inqs ?? []).filter(since(DAY)).length}건`} />
       </div>
