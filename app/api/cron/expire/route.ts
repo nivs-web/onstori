@@ -250,6 +250,12 @@ export async function GET(req: Request) {
       .select("site_id, card_last4, next_charge_at")
       .eq("status", "active").gte("next_charge_at", from).lte("next_charge_at", to).limit(300);
     for (const b of upcoming ?? []) {
+      /* 견본-걸름-불필요 — 왜 안전한가:
+         이 조회의 대상은 위 `billing` 표에서 `status: "active"` 인 구독뿐이다.
+         **견본은 결제한 적이 없어 billing 행 자체가 없다** — 이 자리에 견본이 올 길이 없다.
+         그래서 `isPremade` 를 부르지 않고, 판정에 필요한 두 칸도 읽지 않는다.
+         ⚠ 언젠가 이 조회가 billing 을 거치지 않게 바뀌면 **이 표시를 지우고 걸름을 넣어라.**
+         (검사: scripts/sites-columns-test.ts) */
       const { data: site } = await sb.from("sites").select("slug, settings").eq("id", b.site_id).maybeSingle();
       const phone = (site?.settings as { phone?: string } | null)?.phone;
       if (!site || !phone) continue;
