@@ -7,7 +7,7 @@ import { adminError } from "@/lib/admin-error";
 type Row = { id: string; slug: string; tag: string; sort: number; featured: boolean };
 const TAGS = PORTFOLIO_TABS.filter((t) => t !== "전체");
 
-export function ShowcaseManager({ initial }: { initial: Row[] }) {
+export function ShowcaseManager({ initial, why = {} }: { initial: Row[]; why?: Record<string, string> }) {
   const [rows, setRows] = useState(initial);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -84,6 +84,21 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
         {err && <p className="mt-2 t-caption font-semibold text-danger">{err}</p>}
       </div>
 
+      {/* ★★ 2026-09-15 대표님 — 「사진 다시 찍기」가 **왜 안 되는지**를 누르기 «전»에 말한다.
+          전에는 누른 «뒤»에야 「서버에서는 못 찍어요」가 떴다. 그건 세 번 눌러 보고 포기하게 만든다. */}
+      <div className="rounded-2xl border border-n-200 p-4">
+        <p className="t-small font-semibold">카드 사진에 대해</p>
+        <p className="mt-1 t-caption text-[var(--text-soft)]">
+          <b>「사진 다시 찍기」는 운영 서버에서 언제나 실패합니다.</b> 화면을 찍으려면 크롬이 필요한데
+          서버(Vercel)에는 크롬이 없습니다. <b>고장이 아니라 구조입니다.</b>
+          <br />
+          ★ 그래서 스크린샷이 없으면 <b>그 사이트의 「첫 화면 사진」이 카드에 자동으로 쓰입니다.</b>
+          사장님이 사진을 바꾸면 카드도 같이 바뀌므로 오히려 늘 최신입니다.
+          <br />
+          진짜 스크린샷이 필요하시면 사무실 PC 에서 <code>scripts/site-shots.ts</code> 를 돌리십시오.
+        </p>
+      </div>
+
       <ul className="space-y-2">
         {rows.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-n-200 p-3">
@@ -105,6 +120,10 @@ export function ShowcaseManager({ initial }: { initial: Row[] }) {
               {shooting === r.slug ? "찍는 중…" : "사진 다시 찍기"}
             </button>
             <button onClick={() => remove(r.id, r.slug)} className="rounded-full border border-n-300 px-2.5 py-1 t-caption text-[var(--text-soft)]">빼기</button>
+            {/* 🔴 조용히 걸러지던 것을 드러낸다 — 「등록됐는데 안 보인다」의 원인이었다 */}
+            {why[r.slug]
+              ? <p className="w-full t-caption font-semibold text-danger">⚠ 첫 화면에 안 보입니다 — {why[r.slug]}</p>
+              : <p className="w-full t-caption" style={{ color: "var(--green)" }}>✓ 첫 화면에 보입니다</p>}
           </li>
         ))}
       </ul>

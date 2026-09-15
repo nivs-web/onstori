@@ -57,9 +57,29 @@ export async function loadShowcase(): Promise<ShowcaseItem[]> {
         }
         const site = await getSiteBySlug(r.slug);
         if (!site) return null as ShowcaseItem | null;
-        // 미리 찍은 스크린샷 — 없으면 카드가 사진 없이 뜬다(그래도 화면은 안 깨진다)
         const sh = (bySlug.get(r.slug) as { settings?: { shots?: { pc?: string; phone?: string } } } | undefined)?.settings?.shots;
-        return { slug: r.slug, tag: r.tag, featured: r.featured, name: site.doc.businessName, pc: sh?.pc, phone: sh?.phone };
+
+        /**
+         * ★★ **스크린샷이 없으면 그 사이트의 «첫 화면 사진»을 대신 쓴다.** (2026-09-15 대표님 지적)
+         *
+         * ⚠ 전에는 사진 없이 **빈 카드**가 떴다. 대표님은 그것을 「추가해도 추가가 안 된다」로
+         *   겪으셨다 — 등록은 됐는데 **화면에 아무것도 안 보이니** 안 된 것과 똑같았다.
+         *
+         * ★ 왜 스크린샷이 없나: 촬영에 **크롬이 필요한데 Vercel 서버에는 크롬이 없다**
+         *   (`lib/site-shot.ts` · 2026-09-07 회장님 결정으로 @sparticuz/chromium 을 안 얹었다).
+         *   그래서 **운영 환경에서는 「사진 다시 찍기」가 언제나 실패한다.** 고장이 아니라 구조다.
+         *
+         * ★ 히어로 사진은 **언제나 있고, 언제나 최신이다** — 사장님이 사진을 바꾸면 카드도 바뀐다.
+         *   스크린샷은 찍은 순간에 멈춰 있어 오히려 낡는다. 이 대체가 더 나은 면도 있다.
+         */
+        const hero = site.doc.sections.find((x) => x.type === "hero");
+        const heroImg = hero && "image" in hero && typeof hero.image === "string" ? hero.image : undefined;
+
+        return {
+          slug: r.slug, tag: r.tag, featured: r.featured, name: site.doc.businessName,
+          pc: sh?.pc ?? heroImg,
+          phone: sh?.phone ?? heroImg,
+        };
       }),
     );
     return items.filter((x): x is ShowcaseItem => !!x);

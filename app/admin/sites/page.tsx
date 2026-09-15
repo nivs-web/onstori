@@ -2,6 +2,8 @@ import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
 import { DeleteSite } from "./delete-ui";
+import { ChangeSlug } from "./slug-ui";
+import { trialInfo } from "@/lib/trial";
 
 export const metadata = { title: "사이트 관리", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -21,7 +23,21 @@ export const dynamic = "force-dynamic";
 type Row = {
   slug: string; business_name: string; industry: string; template: string;
   status: string; trial_ends_at: string | null; created_at: string;
+  paid_at: string | null; suspended_at: string | null;
 };
+
+/**
+ * ★★ **회원 종류와 남은 날 — 2026-09-15 대표님 지시.**
+ *   「유료회원 항목을 추가하고, 그 옆에 «무료남은일수» 라고 표기하고 표에는 D-15 이런 식으로」
+ * ⚠ 판정은 `lib/trial.ts` 한 곳이 한다. 여기서 날짜를 다시 계산하지 않는다 —
+ *   두 곳이 세면 반드시 어긋나고, 어긋난 숫자로 사장님께 문자가 나간다.
+ */
+function membership(s: Row): { label: string; paid: boolean; dday: string; urgent: boolean } {
+  const t = trialInfo(s);
+  if (t.paid) return { label: "유료회원", paid: true, dday: "—", urgent: false };
+  if (t.expired) return { label: "무료 종료", paid: false, dday: `삭제 D-${Math.max(0, t.daysUntilDelete)}`, urgent: true };
+  return { label: "무료회원", paid: false, dday: `D-${t.daysLeft}`, urgent: t.daysLeft <= 7 };
+}
 
 /** DB 상태 → 사람이 읽는 상태. **운영중(초록) / 폐쇄중(빨강)** 둘뿐이다 */
 function stateOf(status: string): { live: boolean; label: string; detail: string } {
@@ -58,7 +74,7 @@ export default async function SitesAdmin({
 
   const { data } = await sbAdmin()
     .from("sites")
-    .select("slug, business_name, industry, template, status, trial_ends_at, created_at")
+    .select("slug, business_name, industry, template, status, trial_ends_at, created_at, paid_at, suspended_at")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -111,7 +127,7 @@ export default async function SitesAdmin({
         <table className="w-full min-w-[760px] t-small">
           <thead className="bg-n-50 t-caption text-[var(--text-soft)]">
             <tr>
-              {["상태", "주소", "상호", "업종", "템플릿", "체험 만료", "생성일", "지우기"].map((h) => (
+              {["상태", "회원", "무료 남은 일수", "주소", "상호", "업종", "체험 만료", "지우기"].map((h) => (
                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
               ))}
             </tr>
@@ -122,9 +138,19 @@ export default async function SitesAdmin({
             )}
             {rows.map((s) => {
               const st = stateOf(s.status);
+              const m = membership(s);
               return (
                 <tr key={s.slug} className="border-t border-n-100">
                   <td className="px-3 py-2"><StateBadge status={s.status} /></td>
+                  {/* ★ 유료/무료 — 대표님이 한눈에 보고 전화를 거실 자리다 */}
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <b style={{ color: m.paid ? "var(--green)" : "var(--text)" }}>{m.label}</b>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span style={{ color: m.urgent ? "var(--danger)" : "var(--text-soft)", fontWeight: m.urgent ? 700 : 400 }}>
+                      {m.dday}
+                    </span>
+                  </td>
                   <td className="px-3 py-2">
                     {/* ★ 폐쇄중이면 공개 주소로 보내지 않는다 — 「쉬고 있어요」만 나와서 헛걸음이 된다.
                         운영자가 보고 싶은 것은 «내용»이므로 비공개 보관실로 보낸다. */}
@@ -136,10 +162,11 @@ export default async function SitesAdmin({
                     >
                       {st.live ? `/${s.slug}` : `/x/${s.slug}`}
                     </a>
+                    {/* ★ 2026-09-15 대표님 — 주소는 **운영자만** 바꾼다(전화로 이유를 듣고 우리가 바꾼다) */}
+                    <div className="mt-0.5"><ChangeSlug slug={s.slug} businessName={s.business_name ?? ""} /></div>
                   </td>
                   <td className="px-3 py-2">{s.business_name}</td>
                   <td className="px-3 py-2">{s.industry}</td>
-                  <td className="px-3 py-2">{s.template}</td>
                   <td className="px-3 py-2 t-caption">{s.trial_ends_at?.slice(0, 10) ?? "—"}</td>
                   <td className="px-3 py-2 t-caption">{s.created_at?.slice(0, 10)}</td>
                   {/* ★ 운영자 전용 — 사장님 화면에는 없다. 서버가 다시 인증을 확인한다 */}

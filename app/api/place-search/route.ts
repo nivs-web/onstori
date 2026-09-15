@@ -86,7 +86,17 @@ export async function GET(req: Request) {
       const key = (c.name + "|" + (c.roadAddress || c.address)).replace(/\s/g, "");
       const prev = seen.get(key);
       if (!prev) seen.set(key, c);
-      else if (!prev.phone && c.phone) prev.phone = c.phone;
+      else {
+        /* ★ 2026-09-15 — **없는 칸만 채워 넣는다.** 전에는 전화만 합쳤다.
+           네이버는 전화가 비는 일이 잦고(실제로 「바른전기」가 그랬다) 카카오는 대개 갖고 있다.
+           주소·홈페이지도 한쪽에만 있는 일이 있어 같은 방식으로 메운다.
+           ⚠ **덮어쓰지 않는다.** 네이버 값이 있으면 그것을 남긴다 — 먼저 온 쪽이 더 정확했다. */
+        if (!prev.phone && c.phone) prev.phone = c.phone;
+        if (!prev.roadAddress && c.roadAddress) prev.roadAddress = c.roadAddress;
+        if (!prev.address && c.address) prev.address = c.address;
+        if (!prev.link && c.link) prev.link = c.link;
+        if (!prev.subIndustry && c.subIndustry) prev.subIndustry = c.subIndustry;
+      }
     }
     return NextResponse.json({ available: true, items: [...seen.values()].slice(0, 6) });
   } catch (e) {

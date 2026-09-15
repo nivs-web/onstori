@@ -7,7 +7,7 @@ import { INDUSTRY_GROUPS, findSubIndustry, type SubIndustry } from "@/config/ind
 import { ACCENTS, TONE_PREVIEW, themeFor, type Tone } from "@/config/palettes";
 import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
-import { isValidPhone } from "@/lib/phone";
+import { isValidPhone, formatPhone } from "@/lib/phone";
 import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE, WEEKLY_CHANNEL_HINT } from "@/lib/weekly";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
@@ -97,7 +97,32 @@ const svgUrl = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(sv
 
 /* ─────────────────────────── 위저드 ─────────────────────────── */
 
-type Place = { source: string; name: string; category: string; address: string; roadAddress: string; phone: string; subIndustry?: string };
+type Place = {
+  source: string; name: string; category: string; address: string; roadAddress: string;
+  phone: string; subIndustry?: string;
+  /**
+   * ★ 2026-09-15 — **서버는 이 값을 계속 주고 있었는데 화면이 버리고 있었다.**
+   *   네이버는 그 가게의 «홈페이지·블로그» 주소를, 카카오는 «카카오맵 페이지» 주소를 준다.
+   *   블로그·인스타·스마트스토어면 **채널 연결 칸에 미리 채워 드린다** — 사장님 손이 덜 간다.
+   */
+  link?: string;
+};
+
+/**
+ * ★★ 플레이스가 준 주소 하나를 **우리 채널 칸 이름**으로 옮긴다.
+ * ⚠ **모르는 주소는 버린다.** 그 가게의 자체 홈페이지(`www.xxx.co.kr`)는 우리 칸에 없다 —
+ *   엉뚱한 칸에 넣느니 안 넣는 편이 낫다. 사장님이 다음 단계에서 직접 넣으시면 된다.
+ */
+function channelFromLink(link?: string): { id: string; url: string } | null {
+  const u = (link ?? "").trim();
+  if (!u.startsWith("https://")) return null;                  // http:// 는 손님 브라우저가 경고한다
+  if (/blog\.naver\.com/i.test(u)) return { id: "naverBlog", url: u };
+  if (/smartstore\.naver\.com|shopping\.naver\.com/i.test(u)) return { id: "smartStore", url: u };
+  if (/instagram\.com/i.test(u)) return { id: "instagram", url: u };
+  if (/youtube\.com|youtu\.be/i.test(u)) return { id: "youtube", url: u };
+  if (/map\.naver\.com|naver\.me/i.test(u)) return { id: "naverPlace", url: u };
+  return null;
+}
 
 export function Wizard() {
   const params = useSearchParams();
@@ -197,11 +222,15 @@ export function Wizard() {
   function applyPlace(p: Place) {
     setName(p.name);
     if (p.roadAddress || p.address) setAddress(p.roadAddress || p.address);
-    if (p.phone) setPhone(p.phone);
+    if (p.phone) setPhone(formatPhone(p.phone));
     if (p.subIndustry) {
       const s = findSubIndustry(p.subIndustry);
       if (s) { setSub(s); setGroup(INDUSTRY_GROUPS.find((g) => g.items.includes(s))?.id ?? group); }
     }
+    /* ★ 2026-09-15 — 플레이스가 준 주소가 우리 채널 칸에 맞으면 **미리 채워 드린다.**
+       ⚠ 사장님이 이미 넣으신 값은 **덮어쓰지 않는다** — 직접 넣은 것이 언제나 이긴다. */
+    const ch = channelFromLink(p.link);
+    if (ch) setChannels((prev) => (prev[ch.id] ? prev : { ...prev, [ch.id]: ch.url }));
     setPlaces(null);
     setPicked(p); /* ★ 고른 것을 남긴다 — 이게 없어서 「아무 반응이 없다」로 보였다 */
   }
@@ -483,14 +512,55 @@ export function Wizard() {
                 </button>
               </div>
               <p className="mt-2 t-body font-bold">{picked.name}</p>
-              <ul className="mt-2 space-y-1 t-small">
-                {picked.category && <li>업종 · {picked.category}</li>}
-                {(picked.roadAddress || picked.address) && <li>주소 · {picked.roadAddress || picked.address}</li>}
-                {picked.phone && <li>전화 · {picked.phone}</li>}
+
+              {/* ★★ 2026-09-15 대표님 — **체크 표시로 보여 준다.**
+                  「업종 · 주소 · 연락처 · 이메일 … 체크가 되어 있는 체크박스가 있었으면 좋겠어」
+                  ⚠ **못 가져온 것을 숨기지 않는다.** 전에는 값이 없으면 줄 자체가 사라져서
+                    「이건 원래 안 가져오나? 내가 뭘 잘못했나?」가 됐다. 빈 칸도 보여 주고
+                    **왜 비었는지**를 말한다. 그게 다음 단계에서 채우실 준비가 된다.
+                  ⚠ **끄는 기능은 없다**(대표님 지시) — 어차피 다음 단계에서 다 고치신다. */}
+              <ul className="mt-3 space-y-1.5 t-small">
+                {([
+                  ["업종", picked.category],
+                  ["주소", picked.roadAddress || picked.address],
+                  ["연락처", picked.phone && formatPhone(picked.phone)],
+                  /* 🔴 **이메일은 네이버·카카오 어느 쪽도 주지 않는다.** 2026-09-15 실측.
+                     공식 지역검색 API 응답에 이메일 칸 자체가 없다. 「아직 없다」가 아니라 «없다».
+                     그래서 여기는 언제나 빈 칸이고, 다음 단계에서 직접 받는다. */
+                  ["이메일", ""],
+                ] as [string, string | undefined | false][]).map(([label, value]) => (
+                  <li key={label} className="flex items-start" style={{ gap: "var(--s-2)" }}>
+                    <span
+                      aria-hidden
+                      className="shrink-0 font-bold"
+                      style={{ color: value ? "var(--green)" : "var(--n-400)", width: "1.2em" }}
+                    >
+                      {value ? "☑" : "☐"}
+                    </span>
+                    <span style={{ color: value ? undefined : "var(--muted)" }}>
+                      <b>{label}</b>
+                      {value
+                        ? <> · {value}</>
+                        : <> · 못 가져왔어요 — 다음 단계에서 넣어 주세요</>}
+                    </span>
+                  </li>
+                ))}
               </ul>
+
               <p className="mt-3 t-small font-semibold" style={{ color: "var(--forest)" }}>
-                {[picked.phone && "전화번호", (picked.roadAddress || picked.address) && "주소", "가게명"].filter(Boolean).join(", ")} 정보를 바탕으로 홈페이지 제작을 시작합니다
+                {[
+                  picked.category && "업종",
+                  (picked.roadAddress || picked.address) && "주소",
+                  picked.phone && "연락처",
+                  "가게명",
+                ].filter(Boolean).join(", ")} 정보를 바탕으로 홈페이지 제작을 시작합니다
               </p>
+              {/* ★ 채널 칸을 미리 채웠으면 그 사실도 말한다 — 조용히 채우면 나중에 놀라신다 */}
+              {channelFromLink(picked.link) && (
+                <p className="mt-1 t-caption" style={{ color: "var(--forest)" }}>
+                  ☑ 운영 중이신 채널 주소도 하나 찾아서 <b>채널 연결 단계에 미리 넣어 두었어요.</b>
+                </p>
+              )}
               <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>
                 다음 단계에서 하나하나 고치실 수 있어요. 틀린 곳이 있어도 괜찮습니다.
               </p>
@@ -571,7 +641,9 @@ export function Wizard() {
             <h1 className="font-display t-h1 leading-snug">가게를 한 줄로 소개해 주세요</h1>
             <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>사장님 말투 그대로. 문구는 온스토리가 다듬어요.</p>
           </div>
-          <Field label="하는 일 한 줄">
+          {/* ★ 2026-09-15 대표님 — **이 칸을 안 채우면 다음으로 안 넘어가는데 그 말이 없었다.**
+              「(필수)」를 붙이고, 왜 필요한지도 한 줄로 말한다. 막히는 이유를 모르면 그냥 나가신다. */}
+          <Field label="하는 일 한 줄 (필수)" hint="무슨 일을 하시나요? 간단해도 좋아요. 꼭 입력해 주세요.">
             <input className="field" value={oneLiner} maxLength={120} onChange={(e) => setOneLiner(e.target.value)} placeholder={(() => { const t = sub?.label ?? "인테리어"; return `예: ${t}${josa(t, "을/를")} 해요. 작은 현장도 갑니다.`; })()} />
           </Field>
           <Field label="로고" hint="직접 올리거나(정사각 512×512 이상 · PNG/JPG/SVG · 2MB), 온스토리가 만든 4안 중 고르세요. 나중에 바꿀 수 있어요.">
@@ -604,6 +676,10 @@ export function Wizard() {
             hint={slugMsg || "안 정하셔도 됩니다 — 비워 두시면 상호에 맞춰 저희가 지어 드려요"}
             hintColor={slugOk === false ? "text-danger" : undefined}
           >
+            {/* ★ 2026-09-15 대표님 — 추천만 고르는 칸으로 오해하신다. **직접 쳐도 된다**고 먼저 말한다 */}
+            <p className="mb-2 t-small" style={{ color: "var(--muted)" }}>
+              선택하셔도 되지만, <b>원하시는 도메인명이 있으시면 직접 타이핑해서 입력하세요.</b>
+            </p>
             {slugSuggest.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
                 {slugSuggest.map((s) => (
@@ -642,6 +718,13 @@ export function Wizard() {
                 aria-invalid={slugOk === false}
               />
             </div>
+            {/* ★ 내 도메인(.com) 안내 — 「이건 평생 onstori.com 주소인가」를 가장 많이 물으신다.
+                ⚠ 연결 «방법»은 여기서 설명하지 않는다. 가입 중에 읽을 글이 아니다 —
+                  홈페이지 관리자에 따로 화면을 둔다(`/{상호}/edit` → 도메인 연결). */}
+            <p className="mt-2 t-caption" style={{ color: "var(--muted)" }}>
+              가지고 계신 <b>.com 도메인</b>도 연결하실 수 있어요. 도메인 업체에서 구매하신 뒤
+              홈페이지 관리자의 「도메인 연결」에서 붙이시면 됩니다.
+            </p>
           </Field>
           <Field label="전화번호 (필수)" hint={phoneErr} hintColor={phoneErr ? "text-danger" : undefined}>
             <input
@@ -649,7 +732,7 @@ export function Wizard() {
               value={phone}
               maxLength={20}
               inputMode="tel"
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
               placeholder="010-0000-0000"
               aria-invalid={!!phoneErr}
               aria-describedby="phone-why"
@@ -723,7 +806,11 @@ export function Wizard() {
           ⚠ **전부 선택이다.** 하나도 안 넣어도 [다음]이 눌린다 — 여기서 막으면 가입이 끊긴다. */}
       {step === 3 && (
         <section className="mt-6">
-          <h1 className="font-display t-h1 leading-snug">채널 연결을 해보시겠습니까?</h1>
+          <h1 className="font-display t-h1 leading-snug">
+            채널 연결을 해보시겠습니까?
+            {/* ★ 2026-09-15 대표님 — 「필수가 아니라는 게 있어야 할 듯」. 제목 옆이 가장 먼저 눈에 든다 */}
+            <span className="ml-2 align-middle t-small font-medium" style={{ color: "var(--muted)" }}>선택 · 안 하셔도 됩니다</span>
+          </h1>
           <p className="mt-3 t-body">
             홈페이지는 <b>모든 채널의 최종 종착지</b>입니다.<br />
             다양한 채널에서 홍보를 도와주고, 실적은 홈페이지에서 쌓입니다!

@@ -802,6 +802,11 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     font-size: var(--t-body);
     font-family: inherit;
     letter-spacing: var(--ls-body);
+    /* ★ 2026-09-15 대표님 — **글자 아래 획(p·g·y)이 잘리던 것.**
+       `line-height` 가 없어서 브라우저 기본값(normal)이 잡혔고, 그 높이가 한글·영문
+       내림획을 담기에 좁아 **꼬리가 잘렸다**(「map」의 p 아래 획).
+       ⚠ textarea 는 이미 이 값을 갖고 있었다 — 한 줄 입력칸만 빠져 있었다. */
+    line-height: var(--lh-body);
     transition: border-color var(--dur-2) var(--ease-ui), box-shadow var(--dur-2) var(--ease-ui);
   }
   .field::placeholder { color: var(--n-400); }

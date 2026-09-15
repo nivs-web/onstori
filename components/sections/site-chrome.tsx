@@ -87,7 +87,24 @@ function TopBar({
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={logo} alt="" width={28} height={28} style={{ width: 28, height: 28, borderRadius: "var(--r-sm)", objectFit: "contain" }} />
           )}
-          <span className="t-small truncate font-bold" style={{ maxWidth: "16ch" }}>{businessName}</span>
+          {/* ★★ 2026-09-15 대표님 — **여기서 상호를 자르지 않는다.**
+              전에는 `truncate` + `maxWidth:16ch` 라 「다산 리모델링 (샘플사이트)」가
+              「다산 리모델링 (샘플사이...」로 잘렸다. **여긴 로고 자리다 — 이름이 잘리면 안 된다.**
+              ⚠ 그렇다고 폭을 무한히 주면 차례(메뉴)와 부딪친다. 그래서:
+                · 줄바꿈만 막고(`whitespace-nowrap`) 자르지는 않는다
+                · 대신 **긴 이름은 글자를 줄인다**(`clamp`) — 잘리는 것보다 작아지는 편이 낫다
+                · `flex-shrink:0` 로 메뉴에 밀리지 않게 한다 */}
+          <span
+            className="whitespace-nowrap font-bold"
+            style={{
+              flexShrink: 0,
+              fontSize: businessName.length > 14
+                ? "clamp(11px, 2.6vw, var(--t-small))"
+                : "var(--t-small)",
+            }}
+          >
+            {businessName}
+          </span>
         </a>
 
         {/* PC — 차례를 가로로 펼친다. 햄버거는 숨는다.
