@@ -9,6 +9,7 @@ import { WEEKLY_DEFAULT } from "@/lib/weekly";
 import { sbAdmin } from "@/lib/db-admin";
 import { getSessionUser } from "@/lib/supabase/server";
 import { generateSite, type GenerateInput } from "@/lib/generate";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { checkRateLimit, clientIp, GENERATE_LIMITS } from "@/lib/rate-limit";
 import { TRIAL_DAYS, MONTHLY_SITE_CAP } from "@/lib/trial";
 import { SITES_PER_ACCOUNT, SITE_LIMIT_MSG } from "@/config/limits";
@@ -133,7 +134,7 @@ export async function POST(req: Request) {
 
   const started = Date.now();
   try {
-    const { doc, industry, category, copy, inferred } = await generateSite(input as GenerateInput);
+    const { doc, industry, category, copy, inferred, aiRaw } = await generateSite(input as GenerateInput);
 
     const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 3600 * 1000); // 무료 기간 (일수의 단일 출처는 lib/trial.ts)
     const { data: site, error } = await sb
@@ -238,6 +239,11 @@ export async function POST(req: Request) {
     } else {
       console.warn(JSON.stringify({ evt: "consent_absent", slug, why: "옛 가입 화면 — 동의 칸이 없다" }));
     }
+
+    /* ★★ **토큰 영수증을 적는다.** (2026-09-15 대표님 지시 — lib/ai-usage.ts)
+       ⚠ 여기가 사이트가 «처음 존재하게 된» 자리다. 만들기 전에는 적을 곳이 없다.
+       ⚠ 실패해도 던지지 않는다 — 영수증 때문에 가입이 실패하면 그게 훨씬 나쁘다. */
+    await recordAiUsage(slug, "site_create", aiRaw.model, aiRaw.copy);
 
     console.log(JSON.stringify({ evt: "generate_ok", slug, industry: industry.id, method: inferred.method, ms: Date.now() - started }));
     return NextResponse.json({ url: `https://onstori.com/${slug}`, slug });

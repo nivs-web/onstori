@@ -60,11 +60,21 @@ const CopyOut = z.object({
   eyebrow: z.string().max(40),
   headline: z.string().max(60),
   sub: z.string().max(160),
-  aboutTitle: z.string().max(40),
+  /**
+   * ★★★ **메뉴에 뜨는 글자다. 8자를 넘기지 마라.** (2026-09-15 대표님 지시)
+   *
+   * ⚠ 전에는 40자였다. 그래서 AI 가 「자연에서 온 편백나무 그대로, 정직하게 만듭니다」 같은
+   *   **문장**을 지었고, 그게 **상단 메뉴에 그대로 박혔다.** 메뉴가 문장이면 읽히지 않는다.
+   * ★ 좋은 예(`sample-interior`): 「소개」 · 「진행 과정」 · 「시공 갤러리」 · 「견적 문의」
+   * ⚠ **스키마에서 막는 것이 진짜 자물쇠다.** 프롬프트에만 적으면 AI 가 가끔 어긴다.
+   *   길면 `geminiJson` 이 다시 요청하거나 실패시키므로, 아래 프롬프트에도 같은 말을 적어 둔다.
+   */
+  aboutTitle: z.string().max(8),
   aboutBody: z.string().max(600),
   steps: z.array(z.object({ name: z.string().max(20), desc: z.string().max(80) })).min(3).max(4),
   quoteSub: z.string().max(120),
-  storyFeedTitle: z.string().max(40),
+  /** ★ 메뉴 글자 — 8자 제한. 위 `aboutTitle` 주석 참고 (2026-09-15 대표님) */
+  storyFeedTitle: z.string().max(8),
   firstStory: z.object({ title: z.string().max(60), body: z.string().max(400) }).nullable(),
 });
 
@@ -84,9 +94,13 @@ ${input.whyStarted ? `시작한 이유: ${input.whyStarted}` : ""}
 - headline은 24자 이내, 줄바꿈이 필요하면 \\n 사용. sub는 한 문장.
 - steps는 이 업종의 일반적인 진행 과정 3~4단계 (사실 날조 없이 일반적 절차만).
 - firstStory: "시작한 이유"가 있으면 그걸 1인칭 이야기(2~3문장)로 다듬어라. 없으면 null.
+- 🔴 aboutTitle 과 storyFeedTitle 은 **상단 메뉴에 그대로 박히는 글자**다. **반드시 8자 이내의 짧은 낱말**로 써라.
+  문장을 쓰지 마라. 가게 이름을 넣지 마라. 쉼표·마침표를 넣지 마라.
+  좋은 예 — aboutTitle: "소개" · "우리 가게"    storyFeedTitle: "이야기" · "사장님 이야기" · "작업 일지"
+  나쁜 예 — "자연에서 온 편백나무 그대로, 정직하게 만듭니다" · "펠리즈의 나무 향 가득한 이야기"
 
 JSON으로만 답하라:
-{"eyebrow":"지역·전문 분야 한 줄(입력에 지역 없으면 업종 표현만)","headline":"...","sub":"...","aboutTitle":"...","aboutBody":"3~4문장, 줄바꿈은 \\n","steps":[{"name":"...","desc":"..."}],"quoteSub":"문의를 부담없게 만드는 한 문장","storyFeedTitle":"가게 이름을 살린 스토리 코너 제목","firstStory":{"title":"...","body":"..."} 또는 null}`,
+{"eyebrow":"지역·전문 분야 한 줄(입력에 지역 없으면 업종 표현만)","headline":"...","sub":"...","aboutTitle":"8자 이내 낱말","aboutBody":"3~4문장, 줄바꿈은 \\n","steps":[{"name":"...","desc":"..."}],"quoteSub":"문의를 부담없게 만드는 한 문장","storyFeedTitle":"8자 이내 낱말","firstStory":{"title":"...","body":"..."} 또는 null}`,
     CopyOut,
   );
 }
@@ -170,5 +184,12 @@ export async function generateSite(input: GenerateInput) {
     sections,
   });
 
-  return { doc, industry, category: cat, copy, inferred: { method, confidence, industryId: industry.id, copyModel: copyResult.model } };
+  /* ★ 2026-09-15 — **토큰 영수증**. 사이트가 아직 DB 에 없으므로 여기서 적지 못한다.
+     그래서 «원본 응답»을 그대로 올려 보내고, 사이트를 만든 뒤 app/api/generate 가 적는다.
+     ⚠ 분류(classify)도 AI 를 쓸 때가 있다 — 그 응답도 같이 올린다. */
+  return {
+    doc, industry, category: cat, copy,
+    inferred: { method, confidence, industryId: industry.id, copyModel: copyResult.model },
+    aiRaw: { copy: copyResult.raw, model: copyResult.model },
+  };
 }

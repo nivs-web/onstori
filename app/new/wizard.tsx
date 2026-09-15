@@ -121,7 +121,13 @@ function channelFromLink(link?: string): { id: string; url: string } | null {
   if (/instagram\.com/i.test(u)) return { id: "instagram", url: u };
   if (/youtube\.com|youtu\.be/i.test(u)) return { id: "youtube", url: u };
   if (/map\.naver\.com|naver\.me/i.test(u)) return { id: "naverPlace", url: u };
-  return null;
+  if (/kakao\.com/i.test(u)) return null;   // 카카오맵 페이지는 우리 칸에 없다
+  /**
+   * ★ 2026-09-15 대표님 — 그 밖의 주소는 **그 가게가 쓰던 홈페이지**로 본다.
+   *   버리지 않고 「서브 홈페이지」 칸에 담는다. 쓰실지 지우실지는 사장님이 정하신다.
+   * ⚠ **메인 주소로 쓰지 않는다.** 소상공인에게 홈페이지 주소가 둘이면 손님이 헷갈린다.
+   */
+  return { id: "homepage", url: u };
 }
 
 export function Wizard() {
@@ -149,6 +155,13 @@ export function Wizard() {
   const [filter, setFilter] = useState("");
   // 3
   const [oneLiner, setOneLiner] = useState("");
+  /**
+   * ★★ **「하는 일 한 줄」 예시** — 2026-09-15 대표님 지시.
+   *   「나는 그냥 평범한 커피숍인데 이거 입력이 너무 불편할 수 있잖아?」
+   * 🔴 **플레이스에서 업종이 잡힌 분께만** 드린다. 손으로 적으신 분께 예시를 주면
+   *   우리가 모르는 가게를 지어내는 셈이 된다.
+   */
+  const [linerHints, setLinerHints] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
   /**
    * ★★ **홈페이지 주소 — 2026-09-15 대표님 지시로 되살렸다.**
@@ -274,6 +287,25 @@ export function Wizard() {
     }, 200);
     return () => { alive = false; clearTimeout(t); };
   }, [step, name, sub?.industryId]);
+
+  /* ★ 3단계에 들어오면 예시를 받아 둔다. **플레이스로 업종이 잡힌 분께만.**
+     ⚠ 이미 뭔가 쓰셨으면 부르지 않는다 — 돈이 드는 호출이고, 쓰신 분께는 필요 없다. */
+  useEffect(() => {
+    if (step !== 2 || !picked || !sub?.label || oneLiner.trim() || linerHints.length) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/oneliner", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ industryLabel: sub.label, businessName: name.trim() }),
+        });
+        const d = await r.json();
+        if (alive && Array.isArray(d.examples)) setLinerHints(d.examples.filter((x: unknown) => typeof x === "string"));
+      } catch { /* 예시는 «있으면 좋은 것»이다. 실패해도 가입을 막지 않는다 */ }
+    })();
+    return () => { alive = false; };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [step, picked, sub?.label]);
 
   /* 사장님이 친 주소를 **치는 동안** 검사한다.
      ⚠ 400ms 를 기다린다 — 글자마다 부르면 서버를 때리고, 답이 엇갈려 늦은 답이 이긴다. */
@@ -524,10 +556,10 @@ export function Wizard() {
                   ["업종", picked.category],
                   ["주소", picked.roadAddress || picked.address],
                   ["연락처", picked.phone && formatPhone(picked.phone)],
-                  /* 🔴 **이메일은 네이버·카카오 어느 쪽도 주지 않는다.** 2026-09-15 실측.
-                     공식 지역검색 API 응답에 이메일 칸 자체가 없다. 「아직 없다」가 아니라 «없다».
-                     그래서 여기는 언제나 빈 칸이고, 다음 단계에서 직접 받는다. */
-                  ["이메일", ""],
+                  /* 🔴 **이메일 줄을 뺐다** (2026-09-15 대표님).
+                     네이버·카카오 지역검색 API 응답에 **이메일 칸 자체가 없다**(실측).
+                     즉 «영원히» 빈 칸이다. 채울 수 없는 칸을 보여 주면 사장님은
+                     「내가 뭘 잘못했나」라고 생각하신다. 다음 단계에서 직접 받는 편이 낫다. */
                 ] as [string, string | undefined | false][]).map(([label, value]) => (
                   <li key={label} className="flex items-start" style={{ gap: "var(--s-2)" }}>
                     <span
@@ -644,6 +676,28 @@ export function Wizard() {
           {/* ★ 2026-09-15 대표님 — **이 칸을 안 채우면 다음으로 안 넘어가는데 그 말이 없었다.**
               「(필수)」를 붙이고, 왜 필요한지도 한 줄로 말한다. 막히는 이유를 모르면 그냥 나가신다. */}
           <Field label="하는 일 한 줄 (필수)" hint="무슨 일을 하시나요? 간단해도 좋아요. 꼭 입력해 주세요.">
+            {/* ★ 2026-09-15 대표님 — 「뽑혀진 선택 항목을 누르기 때문에 더 좋을 거 같다」.
+                ⚠ 고르지 않으셔도 된다. 예시는 «시작점»이고 그 자리에서 고쳐 쓰신다. */}
+            {linerHints.length > 0 && (
+              <div className="mb-2">
+                <p className="mb-1.5 t-caption" style={{ color: "var(--muted)" }}>
+                  {sub?.label} 업종에서 흔히 쓰는 말이에요. 눌러서 넣고 고치셔도 됩니다.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {linerHints.map((h) => (
+                    <button key={h} type="button" onClick={() => setOneLiner(h)}
+                      className="tap-row t-small rounded-full border px-3 py-1 text-left"
+                      style={{
+                        borderColor: oneLiner === h ? "var(--green)" : "var(--line)",
+                        background: oneLiner === h ? "var(--green-50)" : "transparent",
+                        fontWeight: oneLiner === h ? 700 : 400,
+                      }}>
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <input className="field" value={oneLiner} maxLength={120} onChange={(e) => setOneLiner(e.target.value)} placeholder={(() => { const t = sub?.label ?? "인테리어"; return `예: ${t}${josa(t, "을/를")} 해요. 작은 현장도 갑니다.`; })()} />
           </Field>
           <Field label="로고" hint="직접 올리거나(정사각 512×512 이상 · PNG/JPG/SVG · 2MB), 온스토리가 만든 4안 중 고르세요. 나중에 바꿀 수 있어요.">

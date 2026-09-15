@@ -18,7 +18,7 @@ export async function geminiJson<T>(
   prompt: string,
   schema: z.ZodType<T>,
   opts?: { retries?: number },
-): Promise<{ data: T; model: string }> {
+): Promise<{ data: T; model: string; raw: unknown }> {
   const retries = opts?.retries ?? 1;
 
   let lastErr: unknown;
@@ -38,7 +38,9 @@ export async function geminiJson<T>(
         if (!text) { lastErr = new Error(`${model} empty response`); continue; }
         const parsed = schema.safeParse(JSON.parse(text));
         if (!parsed.success) { lastErr = parsed.error; continue; } // 재시도로 교정 유도
-        return { data: parsed.data, model };
+        /* ★ 2026-09-15 — 원본 응답을 함께 돌려준다. 여기 usageMetadata(토큰 수)가 들어 있는데
+           지금까지 «버리고» 있었다. 부르는 쪽이 lib/ai-usage.ts 로 영수증을 적는다. */
+        return { data: parsed.data, model, raw: r.data };
       } catch (e) {
         lastErr = e;
       }

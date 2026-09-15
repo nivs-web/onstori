@@ -1,0 +1,168 @@
+"use client";
+
+import { useState } from "react";
+import { ChangeSlug } from "./slug-ui";
+import { DeleteSite } from "./delete-ui";
+
+export type BulkRow = {
+  slug: string; name: string; industry: string;
+  live: boolean; stateLabel: string; stateDetail: string;
+  member: string; paid: boolean; dday: string; urgent: boolean;
+  trialEnds: string;
+  phone: string; email: string; ownerId: string | null;
+};
+
+/**
+ * ★★★ **사이트 관리 표 — 체크박스 · 일괄 처리 · 사장님 정보.** (2026-09-15 대표님 지시)
+ *
+ * ★ 대표님이 정하신 셋(결정 3건):
+ *   ① 일괄 **「유료 전환」은 뺀다** → 대신 **이벤트 기간 주기**
+ *   ② 만료 예고 문자는 **켜되 기본은 꺼짐** (그 설정은 `/admin/alerts`)
+ *   ③ 「사장님 정보」는 **회원 목록으로 이동** · 단 **전화번호는 표에 바로**
+ *
+ * ⚠ **되돌리기 어려운 것은 한 번 더 묻는다.** 폐쇄·이벤트는 바로 실행하지 않고
+ *   「몇 곳에 적용됩니다」를 먼저 세어 보여 준다.
+ */
+export function SitesTable({ rows }: { rows: BulkRow[] }) {
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [openEvent, setOpenEvent] = useState(false);
+  const [months, setMonths] = useState(3);
+  const [reason, setReason] = useState("");
+
+  const allOn = rows.length > 0 && rows.every((r) => sel.has(r.slug));
+  const toggle = (slug: string) =>
+    setSel((p) => { const n = new Set(p); if (n.has(slug)) n.delete(slug); else n.add(slug); return n; });
+
+  async function run(mode: "close" | "open" | "event") {
+    const slugs = [...sel];
+    if (!slugs.length) return;
+    if (mode !== "event") {
+      const word = mode === "close" ? "폐쇄" : "다시 열기";
+      if (!confirm(`${slugs.length}곳을 ${word} 합니다.\n\n폐쇄해도 자료는 지워지지 않고, 손님에게만 안 보입니다.\n계속할까요?`)) return;
+    }
+    setBusy(true); setMsg(""); setErr("");
+    try {
+      const r = await fetch("/api/admin/site-bulk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, slugs, months, reason }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(String(d.error ?? `실패했어요 (${r.status})`)); return; }
+      setMsg(`${d.done}곳에 적용했습니다. 새로고침하면 표에 반영됩니다.`);
+      setSel(new Set()); setOpenEvent(false); setReason("");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <>
+      {/* ── 고른 것이 있을 때만 뜨는 막대 ── */}
+      {sel.size > 0 && (
+        <div className="card mt-4 flex flex-wrap items-center gap-3 p-4" style={{ borderColor: "var(--green)", borderWidth: 2 }}>
+          <b className="t-small">{sel.size}곳 선택됨</b>
+          <button type="button" disabled={busy} onClick={() => run("close")}
+            className="rounded-full border px-3 py-1 t-small font-semibold disabled:opacity-40"
+            style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>폐쇄하기</button>
+          <button type="button" disabled={busy} onClick={() => run("open")}
+            className="rounded-full border px-3 py-1 t-small font-semibold disabled:opacity-40"
+            style={{ borderColor: "var(--green)", color: "var(--green)" }}>다시 열기</button>
+          <button type="button" disabled={busy} onClick={() => setOpenEvent((v) => !v)}
+            className="rounded-full border border-n-300 px-3 py-1 t-small font-semibold disabled:opacity-40">
+            이벤트 기간 주기
+          </button>
+          <button type="button" onClick={() => setSel(new Set())} className="t-caption underline text-[var(--text-soft)]">선택 해제</button>
+
+          {openEvent && (
+            <div className="w-full border-t border-n-200 pt-3">
+              <p className="t-small font-bold">무료 기간을 늘려 드립니다</p>
+              <p className="mt-1 t-caption text-[var(--text-soft)]">
+                남은 날이 있으면 <b>그 뒤에 이어서</b> 더합니다. 이미 끝난 분은 오늘부터 셉니다.
+                <b> 「유료회원」으로 바꾸지 않습니다</b> — 결제 기록이 없는 유료회원이 생기면 매출 숫자가 틀어집니다.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className="t-small">개월 수
+                  <input type="number" min={1} max={36} value={months}
+                    onChange={(e) => setMonths(Number(e.target.value))}
+                    className="field ml-2" style={{ width: 90, display: "inline-block" }} />
+                </label>
+                <input className="field min-w-0 flex-1" value={reason} maxLength={120}
+                  placeholder="왜 드리나요? 예) 지인 홍보 · 불만 응대 · 베타 파트너"
+                  onChange={(e) => setReason(e.target.value)} />
+                <button type="button" disabled={busy || reason.trim().length < 2} onClick={() => run("event")}
+                  className="btn btn-primary !py-1.5 !t-small disabled:opacity-40">
+                  {busy ? "적용 중…" : `${sel.size}곳에 ${months}개월 주기`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {msg && <p className="mt-3 t-small" style={{ color: "var(--green)" }}>{msg}</p>}
+      {err && <p className="mt-3 t-small font-semibold text-danger">{err}</p>}
+
+      <div className="table-scroll card mt-4">
+        <table className="w-full min-w-[900px] t-small">
+          <thead className="bg-n-50 t-caption text-[var(--text-soft)]">
+            <tr>
+              <th className="px-3 py-2 text-left">
+                <input type="checkbox" checked={allOn} aria-label="전체 선택"
+                  onChange={(e) => setSel(e.target.checked ? new Set(rows.map((r) => r.slug)) : new Set())} />
+              </th>
+              {["상태", "회원", "무료 남은", "주소", "상호", "연락처", "사장님", "지우기"].map((h) => (
+                <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={9} className="px-3 py-8 text-center text-[var(--text-soft)]">여기에 해당하는 사이트가 없습니다.</td></tr>
+            )}
+            {rows.map((r) => (
+              <tr key={r.slug} className="border-t border-n-100" style={{ background: sel.has(r.slug) ? "var(--green-50)" : undefined }}>
+                <td className="px-3 py-2">
+                  <input type="checkbox" checked={sel.has(r.slug)} onChange={() => toggle(r.slug)} aria-label={`${r.name} 선택`} />
+                </td>
+                <td className="px-3 py-2">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    {/* 색만으로 뜻을 나르지 않는다 — 글자를 함께 둔다 */}
+                    <span aria-hidden className="inline-block h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: r.live ? "var(--green)" : "var(--danger)" }} />
+                    <b style={{ color: r.live ? "var(--green)" : "var(--danger)" }}>{r.stateLabel}</b>
+                    <span className="t-caption text-[var(--text-soft)]">{r.stateDetail}</span>
+                  </span>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <b style={{ color: r.paid ? "var(--green)" : undefined }}>{r.member}</b>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span style={{ color: r.urgent ? "var(--danger)" : "var(--text-soft)", fontWeight: r.urgent ? 700 : 400 }}>{r.dday}</span>
+                </td>
+                <td className="px-3 py-2">
+                  <a className="underline underline-offset-2"
+                    style={{ color: r.live ? "var(--green-700, #15803d)" : "var(--danger)" }}
+                    href={r.live ? `/${r.slug}` : `/x/${r.slug}`} target="_blank">
+                    {r.live ? `/${r.slug}` : `/x/${r.slug}`}
+                  </a>
+                  <div className="mt-0.5"><ChangeSlug slug={r.slug} businessName={r.name} /></div>
+                </td>
+                <td className="px-3 py-2">{r.name}<div className="t-caption text-[var(--text-soft)]">{r.industry}</div></td>
+                {/* ★ 대표님 결정 ③ — 전화번호는 «표에 바로». 급한 것이 눈앞에 있어야 한다 */}
+                <td className="px-3 py-2 whitespace-nowrap t-caption">
+                  {r.phone ? <a className="underline" href={`tel:${r.phone.replace(/[^0-9+]/g, "")}`}>{r.phone}</a> : "—"}
+                </td>
+                {/* ★ 나머지(메일·결제·동의)는 회원 목록으로 «이동». 같은 정보를 두 곳에 그리면 한쪽이 낡는다 */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <a className="t-caption underline text-[var(--text-soft)]"
+                    href={`/admin/members?q=${encodeURIComponent(r.email || r.name)}`}>사장님 정보</a>
+                </td>
+                <td className="px-3 py-2"><DeleteSite slug={r.slug} businessName={r.name} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

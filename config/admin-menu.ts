@@ -43,6 +43,8 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       { href: "/admin/sites", label: "사이트 관리", desc: "전체 고객 사이트 목록·상태", ready: true },
       { href: "/admin/showcase", label: "랜딩 포트폴리오", desc: "첫 화면에 전시할 사이트 지정·순서", ready: true },
       { href: "/admin/subdomains", label: "서브도메인", desc: "본사 내부 기능 전용 (자리만)", ready: true },
+      /* ★ 2026-09-15 대표님 지시로 신설 — 토큰 폭주를 여기서 잡는다 */
+      { href: "/admin/tokens", label: "토큰 사용량", desc: "회원별 AI 토큰 영수증·내역서 · 추정 비용", ready: true },
     ],
   },
   {
@@ -59,6 +61,11 @@ export const ADMIN_GROUPS: AdminGroup[] = [
   {
     group: "설정",
     items: [
+      /* ★★ 2026-09-15 대표님 지시로 신설된 셋 — 순서에 뜻이 있다.
+         카피(손님이 보는 글) → 알림(사장님께 나가는 것) → 검색(밖에서 우리를 찾는 길) */
+      { href: "/admin/copy", label: "카피 관리", desc: "🔴 SNS 채널 핵심 문구 · 저작권 줄 — 여기서 바꾸면 전체에 반영", ready: true },
+      { href: "/admin/alerts", label: "긴급 알림 발송", desc: "사장님께 문자·메일 · 만료 예고(기본 꺼짐) · 사이트별 끄기", ready: true },
+      { href: "/admin/seo", label: "검색 노출(SEO)", desc: "네이버·구글 소유확인 · 색인 조건 · 설명서", ready: true },
       { href: "/admin/settings/brand", label: "디자인 설정", desc: "화면별 분위기·색·밝기 (온스토리 홈 · 운영자 콘솔 · 사장님 편집화면)", ready: true },
       { href: "/admin/settings", label: "예약 슬러그·운영자", desc: "쓸 수 없는 주소 · 운영자 목록", ready: false },
     ],
