@@ -65,6 +65,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url,
       description: (hero && "sub" in hero && hero.sub) || undefined,
       images: hero && "image" in hero && hero.image ? [hero.image] : undefined,
+      /* ★ 2026-09-15 — 경쟁사(홈ON) 실측에서 빠져 있던 것 둘을 채웠다.
+         카톡·블로그에 링크를 붙일 때 「한국어 사이트」·「웹사이트」로 바로 읽힌다.
+         ⚠ `siteName` 은 **사장님 상호**다. 「온스토리」가 아니다 — 그 홈페이지의 주인은 사장님이다. */
+      locale: "ko_KR",
+      type: "website",
+      siteName: site.doc.businessName,
     },
   };
 }

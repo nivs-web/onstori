@@ -29,6 +29,30 @@ export const metadata: Metadata = {
     images: [{ url: `${BRAND_BASE}/icon/icon-1024.png`, width: 1024, height: 1024, alt: "온스토리" }],
   },
 
+  /**
+   * ★★★ **네이버·구글 「사이트 소유확인」 도장.** (2026-09-15 · 경쟁사 홈ON 실측)
+   *
+   * ★ 쉬운 말로: 이 줄이 없으면 **네이버는 우리 사이트를 사실상 수집하지 않는다.**
+   *   네이버 서치어드바이저에서 `onstori.com` 을 등록하면 글자값을 하나 주는데, 그것을 여기 둔다.
+   *
+   * ★★ **왜 한 줄이 그렇게 큰가 — 소유확인은 «도메인 단위»다.**
+   *   `onstori.com` 하나만 확인하면 `onstori.com/{상호}` **사장님 홈페이지 전부**가
+   *   수집 대상이 된다. 사장님이 각자 네이버에 등록할 필요가 **없다.**
+   *   경쟁사 홈ON 이 정확히 이 구조다(`naver-site-verification` 3개 · `google-site-verification` 2개).
+   *
+   * ⚠ **값은 코드에 박지 않고 환경변수로 받는다.** 값이 바뀌거나 계정이 늘어도
+   *   Vercel 에서 한 줄만 고치면 되고, 배포를 다시 할 필요가 없다.
+   *   여러 개면 쉼표로 이어 적는다 — 홈ON 도 여러 개를 달고 있다.
+   * ⚠ 값이 없으면 **태그 자체가 안 나간다.** 빈 태그는 검색엔진에 「고장난 사이트」로 보인다.
+   */
+  verification: {
+    google: (process.env.GOOGLE_SITE_VERIFICATION ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+    other: {
+      "naver-site-verification": (process.env.NAVER_SITE_VERIFICATION ?? "")
+        .split(",").map((s) => s.trim()).filter(Boolean),
+    },
+  },
+
   /* ★ 파비콘·홈화면 아이콘 (brand v1, 2026-09-15 전면 교체).
      ⚠ `app/favicon.ico` · `app/icon.png` · `app/apple-icon.png` 을 **지웠다.**
        그 파일들이 app/ 에 있으면 Next 가 그것을 먼저 쓰고 **여기 설정을 통째로 무시한다.**

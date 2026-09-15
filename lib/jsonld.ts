@@ -77,6 +77,26 @@ export function localBusinessJsonLd(site: SiteData, settings: Record<string, unk
   }
 
   /**
+   * ★★★ **`sameAs` — 「이 홈페이지 = 저 네이버 플레이스·블로그·인스타와 같은 업체다」**
+   *   (2026-09-15 · 경쟁사 홈ON 실측에서 배운 것 — `AI_Context/BANJANG/SEO-홈온-분석-2026-09-15.md`)
+   *
+   * ★ 쉬운 말로: 네이버는 그 가게를 **플레이스로 이미 알고 있다.** 새로 생긴 홈페이지를
+   *   처음부터 알아봐 달라고 조르는 것보다, **이미 아는 것에 붙는 것**이 훨씬 빠르다.
+   *   홈ON 의 고객 사이트가 네이버 상단에 뜨는 가장 큰 이유가 이 줄이다.
+   *
+   * ⚠ **사장님이 «직접 넣은» 주소만 싣는다.** 우리가 추측해서 넣으면 틀린 가게와 이어질 수 있고,
+   *   그건 구글·네이버가 스팸으로 본다. 그래서 `settings.channels` 만 읽는다.
+   * ⚠ **`https://` 로 시작하는 것만** 싣는다. 빈 값·오타는 조용히 버린다 — 깨진 주소를 넣느니 빼는 게 낫다.
+   * ★ 이 칸을 채우는 화면은 가입의 **「채널 연결」 단계**다. 거기서 받은 인스타·유튜브·블로그·
+   *   네이버플레이스 주소가 **그대로 여기로 온다.** 그 단계는 위젯을 만드는 동시에 **SEO 엔진**이다.
+   */
+  const channels = (settings.channels as Record<string, unknown> | undefined) ?? {};
+  const sameAs = Object.values(channels)
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter((v) => /^https:\/\/\S+$/.test(v));
+  if (sameAs.length) data.sameAs = [...new Set(sameAs)];
+
+  /**
    * ★★★ **XSS 를 막는 줄이다. 지우지 마라.** (김팀장 지시서 그대로)
    *   상호·주소는 사장님이 직접 친 글자다. 그 안에 `</script>` 가 들어오면 스크립트 태그가
    *   거기서 끊기고 그 뒤가 **코드로 실행된다.** `JSON.stringify` 만으로는 안 막힌다 —
