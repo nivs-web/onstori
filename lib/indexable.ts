@@ -57,9 +57,16 @@ export type IndexVerdict = { ok: true } | { ok: false; why: "not-active" | "not-
  * ⚠ **`trial` 의 `noindex` 도 함께 풀어야 한다** — `app/[slug]/page.tsx` 의 `generateMetadata`.
  *   **둘은 한 쌍이다.** 사이트맵에 넣고 noindex 를 두면 검색엔진이 그냥 무시한다.
  */
-export function sitemapVerdict(s: IndexInput): IndexVerdict {
+export function sitemapVerdict(s: IndexInput, opts?: { indexTrial?: boolean }): IndexVerdict {
   /* 정지·만료된 곳은 안 싣는다 — 「쉬고 있어요」 안내만 나오는 주소를 검색에 올릴 이유가 없다 */
   if (s.status !== "active" && s.status !== "trial") return { ok: false, why: "not-active" };
+  /**
+   * ★ 2026-09-15 대표님 — 「돈을 내지 않았는데 완성도가 높으면 광고가 시작되는데,
+   *   **그 부분도 켜고 끌 수 있게** 만들고」
+   * ⚠ 기본은 «켬»이다(대표님이 「당연히 올려야지」라고 하셨다).
+   *   `/admin/seo` 에서 끄면 무료 사장님이 사이트맵에서 빠진다 — 유료만 남는다.
+   */
+  if (s.status === "trial" && opts?.indexTrial === false) return { ok: false, why: "not-active" };
   if (!s.publishedAt) return { ok: false, why: "not-published" };
   if ((s.score ?? 0) < SITEMAP_MIN_SCORE) return { ok: false, why: "low-score" };
   /* 전화가 틀리면 손님이 전화를 걸 수 없다. 검색으로 데려와도 문의로 이어지지 않는다 */

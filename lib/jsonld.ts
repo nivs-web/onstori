@@ -18,8 +18,21 @@ import type { SiteData } from "./sites";
  * ⚠ **별점(aggregateRating)·후기(review)는 넣지 않는다** — 불변 규칙 7.
  */
 export function localBusinessJsonLd(site: SiteData, settings: Record<string, unknown>): string | null {
-  /* 발행 안 된 체험 사이트는 noindex 라 구조화 데이터도 의미가 없다 */
-  if (site.status !== "active") return null;
+  /**
+   * 🔴 **2026-09-15 — 내가 낸 구멍을 고친다.**
+   *
+   * ⚠ 전에는 `status !== "active"` 면 돌려보냈다. 이유는 「무료(trial)는 어차피 noindex 라
+   *   구조화 데이터도 의미가 없다」였고, **그때는 맞는 말이었다.**
+   * 🔴 그런데 같은 날 대표님 결정으로 **무료 체험도 검색에 올리기로** 했다
+   *   (`lib/indexable.ts` · `app/[slug]/page.tsx` 의 noindex 해제).
+   *   그 둘만 고치고 **여기를 안 고쳐서**, 무료 사장님은 **검색에는 올라가는데
+   *   구조화 데이터가 한 줄도 안 나가는** 상태가 됐다 — SEO 에서 가장 값진 것을 잃는다.
+   *
+   * ★ 배운 것(또): **한 결정이 여러 파일에 걸쳐 있으면 «전부»를 찾아야 한다.**
+   *   색인에 관한 판단은 지금 셋이다 — 사이트맵 · robots(noindex) · 구조화 데이터.
+   *   하나를 고칠 때 나머지 둘을 반드시 같이 본다.
+   */
+  if (site.status !== "active" && site.status !== "trial") return null;
   /* ★ 예시 홈페이지를 «진짜 업체»로 검색엔진에 알리지 않는다 — 구글이 스팸으로 본다 */
   if (site.sample) return null;
 

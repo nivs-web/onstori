@@ -59,7 +59,19 @@ console.log("\n── 넣지 않기로 한 것 ──");
 }
 
 console.log("\n── 아예 안 싣는 경우 ──");
-t("체험(trial) 중이면 없다", localBusinessJsonLd(site({ status: "trial" }), {}), null);
+/**
+ * ★★ **2026-09-15 대표님 결정으로 «뒤집힌» 검사다.**
+ *
+ * ⚠ 전에는 「체험(trial) 중이면 없다」였다. 그때는 무료 사이트가 `noindex` 라 맞는 말이었다.
+ * 🔴 대표님이 **「무료체험 사장님도 검색에 당연히 올려야지」**라고 정하셔서
+ *   사이트맵·`noindex`·구조화 데이터 **셋을 함께** 열었다.
+ *   그러면 이 검사도 뒤집어야 한다 — **안 뒤집으면 셋 중 하나가 도로 닫힌다.**
+ * ★ 속이 빈 홈페이지를 막는 것은 여기가 아니라 `lib/indexable.ts` 의 문턱 셋이다
+ *   (완성도 75점 · 올바른 전화번호 · 한 번이라도 직접 고침).
+ */
+t("★ 체험(trial) 중이어도 싣는다 (2026-09-15 대표님 결정)",
+  typeof localBusinessJsonLd(site({ status: "trial" }), {}) === "string", true);
+t("정지·만료면 없다", localBusinessJsonLd(site({ status: "expired" as "trial" }), {}), null);
 t("★ 예시 사이트면 없다", localBusinessJsonLd(site({ sample: true }), {}), null);
 
 console.log("\n── ★ </script> 막는 줄이 살아 있나 ──");

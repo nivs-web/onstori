@@ -1,12 +1,18 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { sitemapVerdict, SITEMAP_MIN_SCORE } from "@/lib/indexable";
+import { readConfig } from "@/lib/admin-config";
 
 /**
  * 도메인 통합 사이트맵 — 경로 방식의 핵심 이점.
  * 서치어드바이저/서치콘솔에 onstori.com 1회 등록 + 이 사이트맵 1개 제출이면
  * 신규 고객 사이트는 자동으로 크롤 대상에 포함된다 (개별 등록·캡차 불필요).
- * 체험(trial) 사이트는 제외 — 페이지 자체도 noindex.
+ * ★★ **2026-09-15 대표님 결정 — 체험(trial) 사이트도 «싣는다».**
+ *   옛 규칙은 「체험은 제외 — 페이지 자체도 noindex」였다. 그러면 사장님이 무료 기간 내내
+ *   검색에 안 잡혀 **돈을 내기 전에 제품 가치를 못 보신다.**
+ * ⚠ 색인에 관한 판단은 **셋이 한 몸**이다 — ①이 사이트맵 ②`app/[slug]/page.tsx` 의 noindex
+ *   ③`lib/jsonld.ts` 의 구조화 데이터. **하나를 고치면 셋을 다 봐야 한다.**
+ *   2026-09-15 에 실제로 ①을 빼먹어 나머지 둘만 열려 있었다.
  */
 export const revalidate = 3600;
 
@@ -40,9 +46,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const { data } = await sb
         .from("sites")
         .select("slug, published_at, status, settings, site_progress(score, funnel)")
-        .eq("status", "active")
+        /**
+         * 🔴 **2026-09-15 — 여기가 진짜 관문이었다.**
+         *   `lib/indexable.ts` 의 판정을 무료(trial)까지 열어 놨는데, **이 조회가 유료만 가져와서**
+         *   무료 사장님은 판정 함수에 **닿지도 못했다.** 한 결정이 여러 파일에 걸쳐 있을 때
+         *   «전부»를 찾지 않으면 이렇게 **조용히 무효**가 된다.
+         * ⚠ 무료를 넣을지 말지는 `/admin/seo` 에서 끌 수 있다(`indexTrial`).
+         */
+        .in("status", ["active", "trial"])
         .not("published", "is", null)
         .limit(5000);
+      /* 운영자가 「무료는 빼라」고 꺼 두셨을 수 있다 — 설정이 없거나 표가 없으면 기본(켬)으로 돈다 */
+      const cfg = await readConfig();
       const skipped: Record<string, number> = {};
       for (const s of data ?? []) {
         const prog = Array.isArray(s.site_progress) ? s.site_progress[0] : s.site_progress;
@@ -53,7 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           score: (prog?.score as number) ?? null,
           phone: (s.settings as { phone?: unknown } | null)?.phone,
           firstEditAt: funnel.first_edit_at ?? null,
-        });
+        }, { indexTrial: cfg.indexTrial });
         if (gated && !v.ok) { skipped[v.why] = (skipped[v.why] ?? 0) + 1; continue; }
         entries.push({
           url: `${base}/${s.slug}`,
