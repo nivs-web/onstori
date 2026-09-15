@@ -30,7 +30,7 @@ export const CHANNELS = [
   { id: "instagram", name: "인스타 릴스", short: "Reels", live: true },
   { id: "tiktok", name: "틱톡", short: "TikTok", live: true },
   { id: "threads", name: "쓰레드", short: "Threads", live: false },
-  { id: "x", name: "X(트위터)", short: "X", live: false },
+  { id: "x", name: "X 트위터", short: "X", live: false },
   { id: "facebook", name: "페이스북", short: "Facebook", live: false },
 ] as const;
 

@@ -1,3 +1,4 @@
+/* 기간 출처: lib/trial.ts — 아래 주석의 「무료 30일」은 설명을 위한 것이고, 실제 값은 그 파일이 정한다 */
 import { isValidPhone } from "@/lib/phone";
 
 /**
@@ -36,8 +37,29 @@ export type IndexInput = {
 /** 왜 뺐는지 한 낱말로 — 로그에 남겨 사람이 이유를 알 수 있게 */
 export type IndexVerdict = { ok: true } | { ok: false; why: "not-active" | "not-published" | "low-score" | "bad-phone" | "never-edited" };
 
+/**
+ * ★★★ **2026-09-15 대표님 결정 — 무료 체험 사장님도 검색에 올린다.**
+ *
+ * 대표님 말씀: 「무료체험 사장님도 검색에 **당연히** 올려야지. 검색 SEO 부분 완벽하게 처리해야 해.」
+ *
+ * ★★ **왜 바꿨나 — 돈을 내기 «전»에는 제품 가치를 보여 주지 못하는 구조였다.**
+ *   전에는 `status === "active"`(= 유료 결제)를 요구했다. 사장님은 30일 무료로 시작하는데
+ *   그 30일 내내 검색에 **아예** 안 잡혔다. 「만들었는데 검색에 안 뜨네」 → 해지.
+ *   경쟁사 홈ON 은 고객 사이트를 **어제·오늘 것까지** 사이트맵에 넣는다(2026-09-15 실측).
+ *
+ * ★ **대신 나머지 관문 셋은 그대로 둔다.** 그 셋이 진짜 문지기다:
+ *   · 완성도 점수 75점 — 속이 빈 홈페이지를 막는다
+ *   · 올바른 전화번호 — 검색으로 데려와도 연락이 안 되면 의미가 없다
+ *   · **한 번이라도 직접 고쳤다** — AI 가 지어 준 그대로면 「그 가게」가 아니다. 가짜를 막는 핵심
+ *
+ * ⚠ **모든 사장님이 `onstori.com` 이라는 하나의 도메인 평판을 나눠 쓴다.** 그래서 문턱 자체는
+ *   없애지 않았다. 없앤 것은 「돈을 냈는가」 하나뿐이다.
+ * ⚠ **`trial` 의 `noindex` 도 함께 풀어야 한다** — `app/[slug]/page.tsx` 의 `generateMetadata`.
+ *   **둘은 한 쌍이다.** 사이트맵에 넣고 noindex 를 두면 검색엔진이 그냥 무시한다.
+ */
 export function sitemapVerdict(s: IndexInput): IndexVerdict {
-  if (s.status !== "active") return { ok: false, why: "not-active" };
+  /* 정지·만료된 곳은 안 싣는다 — 「쉬고 있어요」 안내만 나오는 주소를 검색에 올릴 이유가 없다 */
+  if (s.status !== "active" && s.status !== "trial") return { ok: false, why: "not-active" };
   if (!s.publishedAt) return { ok: false, why: "not-published" };
   if ((s.score ?? 0) < SITEMAP_MIN_SCORE) return { ok: false, why: "low-score" };
   /* 전화가 틀리면 손님이 전화를 걸 수 없다. 검색으로 데려와도 문의로 이어지지 않는다 */

@@ -79,6 +79,12 @@ export async function GET(req: Request) {
     /** 문자·카톡을 «따로» 신청하셨나. 기본(email)이면 false */
     wantsSms: boolean;
     /**
+     * ★★★ **2026-09-15 대표님 — 관리자 화면에서 «직접 켠» 분만.**
+     *   「문자는 무조건 본인이 관리자 페이지에서 뭔가 세팅을 건드려야만 가능한 기능으로 가자.」
+     * ⚠ 이 칸을 켜는 화면이 **아직 없어서 지금은 언제나 false** 다 — 즉 주 1회 문자는 한 통도 안 나간다.
+     */
+    smsOptIn: boolean;
+    /**
      * ★★ 메일 주소 — **「한 사람에게 주 한 통」의 진짜 열쇠다.** (2026-09-13 상무님 지적 6)
      * ⚠ 기본 채널이 메일이라, 이 값을 안 실어 보내면 `recipientKeys` 가 빈 열쇠를 돌려주고
      *   **같은 메일로 사이트를 둘 가진 분께 주 두 통**이 간다.
@@ -136,6 +142,13 @@ export async function GET(req: Request) {
       settings, w: w as Weekly,
       phone: wantsSms && canSms ? phone : "",
       wantsSms: wantsSms && canSms && !!phone,
+      /**
+       * ★★★ **2026-09-15 대표님 — 문자는 «관리자 화면에서 직접 켜야만» 나간다.**
+       *   「문자는 무조건 본인이 관리자 페이지에서 뭔가 세팅을 건드려야만 가능한 기능으로 가자.」
+       * ⚠ 이 칸을 켜는 화면은 **아직 없다.** 그래서 **지금은 주 1회 문자가 한 통도 안 나간다.**
+       *   그게 의도다. 화면을 만들 때 `settings.weekly.smsOptIn` 을 켜는 스위치를 함께 만들어라.
+       */
+      smsOptIn: (w as Weekly & { smsOptIn?: boolean })?.smsOptIn === true,
       email: ((settings.notify as { email?: string } | undefined)?.email ?? "").trim() || null,
       status: (s.status as string) ?? null,
       updatedAt: (s.updated_at as string) ?? null,
@@ -253,7 +266,25 @@ export async function GET(req: Request) {
       if (mailed) { ok = true; out.byEmail++; }
     }
 
-    if (c.wantsSms) {
+    /**
+     * ★★★ **2026-09-15 대표님 — 「주 1회 질문」은 이제 «문자로 안 나간다».**
+     *
+     * 대표님 말씀: 「어차피 **문자 자동 발송은 결제 관련 내용 이외에는 안 할 거야.**
+     *   문자는 무조건 본인이 관리자 페이지에서 뭔가 세팅을 건드려야만 가능한 기능으로 가자.」
+     *
+     * ★ 그래서 자물쇠를 **하나 더 얹었다** — 사장님이 채널을 문자로 고르셨더라도(`wantsSms`),
+     *   그것만으로는 안 나간다. **관리자 화면에서 `weekly.smsOptIn` 을 직접 켜셔야** 나간다.
+     *   ⚠ 지금 그 스위치를 만드는 화면은 **없다.** 즉 **지금은 한 통도 안 나간다.** 그게 의도다.
+     *     화면을 만들 때 이 칸(`settings.weekly.smsOptIn`)을 켜는 스위치를 함께 만들어라.
+     *
+     * ⚠ **`lib/premade.ts` 의 견본 자물쇠는 «지우지 않았다».**
+     *   대표님이 「그런 판단 다 지워」라고 하셨지만, **만료·결제 예고 문자는 남습니다**
+     *   (7일·3일·1일 전 — 대표님이 같은 메시지에서 요청하신 것).
+     *   그 문자가 남아 있는 한, **계약도 안 한 남의 가게 번호로 나가는 것을 막는 판단이 필요합니다.**
+     *   그것을 지우면 2026-09-13 의 P0 사고가 그대로 되살아납니다.
+     *   ⇒ **없앤 것은 「주 1회 질문의 문자 경로」이고, 남긴 것은 「결제 관련 문자의 안전장치」입니다.**
+     */
+    if (c.wantsSms && c.smsOptIn) {
       const texted = await sendSmsRaw(c.phone, text);
       if (texted) { ok = true; out.bySms++; }
     }

@@ -59,7 +59,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: site.doc.businessName,
     description: (hero && "sub" in hero && hero.sub) || `${site.doc.businessName} 공식 홈페이지`,
-    robots: site.status === "trial" ? { index: false, follow: false } : undefined,
+    /**
+     * ★★★ **2026-09-15 대표님 결정 — 무료 체험도 검색에 올린다.**
+     *   전에는 `trial` 이면 `noindex` 였다. 사이트맵에서 빼는 것과 **한 쌍**이었는데,
+     *   사이트맵 쪽을 열면서(`lib/indexable.ts`) 이쪽도 같이 풀지 않으면
+     *   **검색엔진이 사이트맵을 받고도 그냥 무시한다.** 둘은 반드시 함께 움직인다.
+     * ⚠ 속이 빈 홈페이지를 막는 것은 여전히 `lib/indexable.ts` 의 문턱 셋이 한다
+     *   (완성도 75점 · 올바른 전화번호 · 한 번이라도 직접 고침).
+     *   여기서 막는 것이 아니다 — **우리가 «먼저 알리지» 않을 뿐, 「지우라」고는 하지 않는다.**
+     */
     alternates: { canonical: url },
     openGraph: {
       title: site.doc.businessName,
