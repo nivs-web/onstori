@@ -163,7 +163,14 @@ export async function GET(req: Request) {
   //    ★ 결제 이력이 있는 사이트는 절대 건드리지 않는다 — 전자상거래법상 5년 보존 대상이다.
   const { data: stopped } = await sb
     .from("sites")
-    .select("id, slug, settings, trial_ends_at, suspended_at, paid_at, payment")
+    /* ★★★ `owner_id`·`anon_id` 를 «반드시» 함께 읽는다 (2026-09-15).
+       ⚠ 아래 `isPremade` 가 이 두 칸을 본다. 빠지면 `undefined` 로 와서 「주인이 아무도 없다」로
+         읽히고 **정지된 사이트가 전부 견본으로 판정**된다 — 그러면 계약하신 진짜 사장님께
+         삭제 예고 문자가 **한 통도 안 간다.** 막으려던 것과 정반대 사고다.
+       ⚠ 2026-09-13 에 `lib/sites.ts` 에서 똑같은 실수로 손님 사이트가 전부 404 가 됐다.
+         타입 검사도 빌드도 못 잡는다 — Supabase 의 select 는 «글자열»이라 빠진 칸이
+         오류가 아니라 조용히 undefined 로 온다. */
+    .select("id, slug, settings, trial_ends_at, suspended_at, paid_at, payment, owner_id, anon_id")
     .eq("status", "expired")
     .is("paid_at", null)
     .is("payment", null)
@@ -178,6 +185,14 @@ export async function GET(req: Request) {
   // 4) 삭제 예고 문자 — 남은 일수가 예고일과 정확히 같은 날에만 (크론이 하루 한 번이라 중복되지 않는다)
   //    ★ 보낸 사실을 settings.delete_notices 에 기록한다. 5)의 삭제 게이트가 이 기록을 본다.
   for (const s of withDeleteAt) {
+    /* ★★★ **견본에는 삭제 예고 문자를 보내지 않는다.** (2026-09-15 권반장 지시 · 웹님 T-0017)
+       ⚠ 견본은 위저드가 네이버·카카오에서 불러온 **그 가게의 진짜 번호**를 갖고 있다.
+         그 사이트가 정지되면 **계약한 적 없는 가게 사장님께** 우리 이름으로 문자가 간다.
+       ★ ①번 구간(무료 종료 예고)에는 이 걸름이 이미 있었다. 여기 ④번에만 빠져 있었다. */
+    if (isPremade(s)) {
+      console.log(JSON.stringify({ evt: "expire_skip_premade_delete_notice", slug: s.slug, why: premadeReason(s) }));
+      continue;
+    }
     const left = Math.ceil((s.deleteMs - now) / day);
     if (!(DELETE_NOTICE_DAYS as readonly number[]).includes(left)) continue;
     const phone = (s.settings as { phone?: string } | null)?.phone;
