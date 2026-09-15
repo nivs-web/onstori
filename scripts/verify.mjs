@@ -15,7 +15,14 @@ import path from "node:path";
  * ⚠ 날짜가 박힌 역사 기록은 뺀다 — 그때 값을 그대로 두는 것이 맞다.
  */
 function checkPrices() {
-  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public"]);
+  /* ⚠ `.claude` 를 빼는 이유 (2026-09-15):
+       AI 회사 직원이 코드 작업을 `.claude/worktrees/T-xxxx/` 에서 한다 — 그 안은 **main 의 사본**이다.
+       빼지 않으면 같은 파일을 사본 수만큼 다시 검사해, 손대지도 않은 옛 숫자가 무더기로 잡힌다
+       (2026-09-15 실제로 77건이 잡혀 관문이 빨간불이 됐다. 전부 사본 안이었다).
+       ⚠ git 은 `.gitignore:70` 으로 이미 무시한다 — 커밋에는 안 들어간다. 이 검사기만 못 보고 있었다.
+     ★ `.claude/agents/*.md` 도 함께 빠진다. 그쪽은 AI 에게 주는 지시문이지 «사장님이 보는 문구»가
+       아니라서 규칙 9(요금 단일 출처)의 대상이 아니다. */
+  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public", ".claude"]);
   const EXT = new Set([".ts", ".tsx", ".md", ".js", ".mjs", ".sql", ".json", ".html"]);
   /* "49,900원" 처럼 **원**이 붙은 것만 본다.
      ⚠ `20_000`(메모 글자 수 상한) 같은 것까지 잡으면 오탐이라 밑줄 형태는 빼 두었다. */
@@ -60,7 +67,8 @@ function checkPrices() {
  *   **왜 요금과 무관한지**를 한 줄로 적어라.
  */
 function checkPeriods() {
-  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public", "docs"]);
+  /* ⚠ `.claude` 를 빼는 이유는 위 `checkPrices` 주석과 같다 — 작업 사본을 다시 검사하지 않는다 */
+  const SKIP_DIR = new Set(["node_modules", ".next", ".git", "backups", "public", "docs", ".claude"]);
   const EXT = new Set([".ts", ".tsx"]);
   /* 요금 정책에 쓰이는 숫자만 — 14(옛 값) · 30(무료) · 60(삭제 유예) · 90(총 수명) */
   const RE = /(?:^|[^0-9])(14|30|60|90)\s*일/g;
