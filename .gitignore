@@ -69,3 +69,4 @@ deployments.json
 # AI 회사 직원이 코드 작업에 쓰는 임시 작업폴더 (2026-09-13)
 .claude/worktrees/
 .claude-backup-*/
+logo-sheet.html

@@ -14,6 +14,8 @@ import { josa } from "@/lib/sns/status-say";
 import { OWNER_CHANNELS, isUsableChannelUrl } from "@/config/owner-channels";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
+import { LogoPicker, type LogoChoice } from "./logo-picker";
+import { embedPretendard } from "@/lib/logo-embed";
 
 /* ─────────────────────────── 공용 ─────────────────────────── */
 
@@ -35,66 +37,13 @@ function anonId(): string {
 }
 
 /**
- * 「배지」 로고에서 글자가 테두리를 넘지 않게 크기를 정한다. (2026-09-12)
+ * ★★ **로고 만들기는 `app/new/logo-picker.tsx` 로 옮겼다.** (2026-09-16 대표님 지시 [5])
  *
- * ★ 버그: 알약 테두리 안쪽 폭이 **360px** 인데 글자 크기를 min(fs, 52) 로 못 박아 뒀다.
- *   한글 6자면 52×6=312 로 아슬아슬하고, **8자면 416** 이라 테두리와 겹쳤다(박팀장 발견).
- *
- * ★ 한글은 한 글자가 대략 글자크기만큼(1em) 넓고, 영문·숫자는 그 절반쯤(0.55em)이다.
- *   그 비율로 **실제 폭을 어림잡아** 크기를 맞춘다.
- * ★ 그래도 너무 작아지면(28px 미만) **두 줄로 나눈다** — 읽을 수 없는 로고는 로고가 아니다.
+ * ⚠ 전에는 여기에 `wordmarks()` 4안이 하드코딩돼 있었다. 대표님: 「우리 로고 부분 너무 별로야.」
+ *   지금은 모양 5 × 글꼴 5 × 심볼 15 이고, 크기·자간은 `lib/logo-maker.ts` 가 자동으로 정한다.
+ * ★ 옛 `svgUrl()`(data URL)도 함께 없앴다 — 그 방식은 **우리 웹폰트를 못 부른다.**
+ *   미리보기는 인라인 SVG 로, 저장은 글꼴을 심어서 한다(`lib/logo-embed.ts`).
  */
-function fitBadge(name: string, maxW = 360, maxSize = 52): { size: number; lines: string[] } {
-  const emWidth = (t: string) =>
-    [...t].reduce((w, ch) => w + (/[ㄱ-힝一-鿿぀-ヿ]/.test(ch) ? 1 : 0.55), 0);
-
-  const one = emWidth(name) || 1;
-  const size = Math.min(maxSize, maxW / one);
-  if (size >= 28) return { size: Math.floor(size), lines: [name] };
-
-  /* 두 줄 — 띄어쓰기가 있으면 거기서, 없으면 가운데서 자른다 */
-  const sp = name.lastIndexOf(" ", Math.ceil(name.length / 2));
-  const cut = sp > 0 ? sp : Math.ceil(name.length / 2);
-  const lines = [name.slice(0, cut).trim(), name.slice(sp > 0 ? cut + 1 : cut).trim()].filter(Boolean);
-  const widest = Math.max(...lines.map(emWidth), 1);
-  return { size: Math.floor(Math.min(maxSize, maxW / widest)), lines };
-}
-
-/** 자동 로고 4안 — 상호명 워드마크 SVG. 즉시·무료. (기획1 #onboarding: AI 그림 로고는 후순위) */
-function wordmarks(name: string, accent: string): { id: string; label: string; svg: string }[] {
-  const esc = name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const initial = esc.trim().charAt(0) || "온";
-  const fs = name.length > 8 ? 44 : name.length > 5 ? 56 : 68;
-  // 사장님 로고 그림(SVG 파일)에 박히는 글꼴 이름이다 — 우리 사이트 웹폰트와 무관하고,
-  // 보는 사람 컴퓨터에 있는 글꼴로 그려진다. 그래서 시스템에 있을 만한 것만 적는다.
-  const serif = `"Nanum Myeongjo","Batang",serif`;
-  const sans = `"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
-  return [
-    { id: "serif", label: "세리프", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><text x="256" y="276" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="${fs}" fill="${accent}">${esc}</text><rect x="196" y="316" width="120" height="6" fill="${accent}"/></svg>` },
-    { id: "sans", label: "굵은 고딕", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="64" fill="${accent}"/><text x="256" y="278" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${fs}" fill="#FFFFFF" letter-spacing="-2">${esc}</text></svg>` },
-    { id: "mono", label: "모노그램", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><circle cx="256" cy="216" r="120" fill="${accent}"/><text x="256" y="262" text-anchor="middle" font-family='${serif}' font-weight="700" font-size="120" fill="#FFFFFF">${initial}</text><text x="256" y="420" text-anchor="middle" font-family='${sans}' font-weight="700" font-size="40" fill="#1B2C2C">${esc}</text></svg>` },
-    /* ★ 2026-09-12 — 글자 크기를 **테두리 안쪽 폭에 맞춰 계산한다.** 전에는 min(fs,52) 로 못 박혀
-       8자 이상 상호에서 글자가 테두리를 뚫고 나갔다(박팀장 발견). 너무 작아지면 두 줄로 간다. */
-    badge(esc, accent, sans),
-  ];
-}
-
-/** 「배지」 한 장 — 글자 수에 따라 크기가 줄고, 필요하면 두 줄이 된다 */
-function badge(esc: string, accent: string, sans: string): { id: string; label: string; svg: string } {
-  const { size, lines } = fitBadge(esc);
-  /* 한 줄이면 가운데(272), 두 줄이면 위아래로 나눈다 — 알약 세로 가운데가 256 이다 */
-  const ys = lines.length === 1 ? [272] : [256 - size * 0.15, 256 + size * 1.0];
-  const text = lines
-    .map((ln, i) => `<text x="256" y="${Math.round(ys[i])}" text-anchor="middle" font-family='${sans}' font-weight="800" font-size="${size}" fill="${accent}">${ln}</text>`)
-    .join("");
-  return {
-    id: "badge", label: "배지",
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#FFFFFF"/><rect x="56" y="176" width="400" height="160" rx="80" fill="none" stroke="${accent}" stroke-width="10"/>${text}<text x="256" y="400" text-anchor="middle" font-family='${sans}' font-size="24" fill="#5F6B69" letter-spacing="6">SINCE ${new Date().getFullYear()}</text></svg>`,
-  };
-}
-
-const svgUrl = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-
 /* ─────────────────────────── 위저드 ─────────────────────────── */
 
 type Place = {
@@ -181,9 +130,11 @@ export function Wizard() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [why, setWhy] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState("");
-  const [logoAuto, setLogoAuto] = useState<string | null>(null); // 선택한 자동 로고 id
+  /**
+   * ★ 로고 — 파일 하나 또는 «만든 글자 로고 SVG» 하나. (2026-09-16 지시 [5])
+   * ⚠ 기본값이 **이미 골라져 있다.** 사장님이 아무것도 안 만져도 로고가 나간다(대표님 지시).
+   */
+  const [logo, setLogo] = useState<LogoChoice>({ file: null, svg: "", usedText: "" });
   // 4 — 채널 연결 (2026-09-15 신설)
   /**
    * ★ 사장님이 이미 운영 중인 채널 주소. **전부 선택**이다.
@@ -215,7 +166,6 @@ export function Wizard() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   const accentHex = ACCENTS.find((a) => a.id === accent)?.hex ?? ACCENTS[0].hex;
-  const marks = useMemo(() => wordmarks(name || "온스토리", accentHex), [name, accentHex]);
 
   /* 플레이스 검색 가능 여부 + 로그인 상태 */
   useEffect(() => {
@@ -248,11 +198,6 @@ export function Wizard() {
     setPicked(p); /* ★ 고른 것을 남긴다 — 이게 없어서 「아무 반응이 없다」로 보였다 */
   }
 
-  function onLogoFile(f: File | null) {
-    setLogoFile(f); setLogoAuto(null);
-    if (!f) { setLogoPreview(""); return; }
-    const url = URL.createObjectURL(f); setLogoPreview(url);
-  }
 
   const can1 = name.trim().length >= 1;
   const can2 = !!sub;
@@ -372,10 +317,15 @@ export function Wizard() {
       try {
         const fd = new FormData();
         fd.set("slug", String(d.slug)); if (aid) fd.set("anonId", aid);
-        if (logoFile) fd.set("file", logoFile);
-        else if (logoAuto) fd.set("svg", marks.find((m) => m.id === logoAuto)?.svg ?? "");
+        if (logo.file) fd.set("file", logo.file);
+        else if (logo.svg) {
+          /* ★★ **글꼴을 심어서 보낸다.** 저장된 로고는 `<img>` 로 쓰이는데, 그렇게 쓰이는 SVG 는
+             우리 웹폰트를 못 부른다 — 안 심으면 사장님이 «미리보기에서 본 것과 다른» 로고를 받는다.
+             ⚠ 심기가 실패해도 원본을 그대로 보낸다(lib/logo-embed.ts). 가입을 멈추지 않는다. */
+          fd.set("svg", await embedPretendard(logo.svg, logo.usedText));
+        }
         // 여기부터는 추정이 아니다 — 생성 응답을 이미 받았다
-        if (logoFile || logoAuto) { setProgress(95); setStage("logo"); await fetch("/api/site/logo", { method: "POST", body: fd }); }
+        if (logo.file || logo.svg) { setProgress(95); setStage("logo"); await fetch("/api/site/logo", { method: "POST", body: fd }); }
       } catch {}
       try { if (pickedQuestion) localStorage.setItem("onstori:firstQuestion", pickedQuestion.id); } catch {}
       clearInterval(tick); setProgress(100); setStage("finish");
@@ -700,23 +650,10 @@ export function Wizard() {
             )}
             <input className="field" value={oneLiner} maxLength={120} onChange={(e) => setOneLiner(e.target.value)} placeholder={(() => { const t = sub?.label ?? "인테리어"; return `예: ${t}${josa(t, "을/를")} 해요. 작은 현장도 갑니다.`; })()} />
           </Field>
-          <Field label="로고" hint="직접 올리거나(정사각 512×512 이상 · PNG/JPG/SVG · 2MB), 온스토리가 만든 4안 중 고르세요. 나중에 바꿀 수 있어요.">
-            <div className="grid grid-cols-5 gap-2">
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed bg-white text-center t-caption" style={{ borderColor: logoFile ? "var(--green)" : "var(--line)" }}>
-                {logoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoPreview} alt="올린 로고" className="h-full w-full rounded-xl object-contain p-1" />
-                ) : (<><span className="t-h2">＋</span>직접 올리기</>)}
-                <input type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={(e) => onLogoFile(e.target.files?.[0] ?? null)} />
-              </label>
-              {marks.map((m) => (
-                <button key={m.id} type="button" onClick={() => { setLogoAuto(m.id); onLogoFile(null); setLogoAuto(m.id); }} className="aspect-square overflow-hidden rounded-xl border bg-white" style={{ borderColor: logoAuto === m.id ? "var(--green)" : "var(--line)", boxShadow: logoAuto === m.id ? "0 0 0 2px var(--green)" : undefined }} title={m.label}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={svgUrl(m.svg)} alt={`자동 로고 ${m.label}`} className="h-full w-full" />
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>{logoFile ? "올린 로고를 써요" : logoAuto ? `자동 로고 · ${marks.find((m) => m.id === logoAuto)?.label}` : "로고 없이 시작해도 돼요"}</p>
+          {/* ★★ 로고 — 화면은 `logo-picker.tsx` 가 통째로 그린다 (2026-09-16 지시 [5]).
+              대표님이 정하신 순서: ①파일첨부 ②이름 ③한글/영문 ④모양5 ⑤글꼴5 ⑥심볼·이니셜 */}
+          <Field label="로고">
+            <LogoPicker businessName={name} accent={accentHex} value={logo} onChange={setLogo} />
           </Field>
           {/* ★★★ 2026-09-15 — 「홈페이지 주소」 칸을 **되살렸다** (대표님 지시).
               ⚠ 2026-09-12 에 없앴던 칸이다. 이탈 1위였다. 하지만 원인은 «칸»이 아니라
