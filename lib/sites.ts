@@ -1,7 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import { isPremade } from "./premade";
 import { forVisitors } from "./phone-privacy";
 import { SiteDoc, StoryEntry, type SiteDocT, type StoryEntryT } from "./schema";
 import { z } from "zod";
@@ -48,20 +47,23 @@ function sb() {
 }
 
 /**
- * ★★ **미리 만들어 둔 견본을 어떻게 다룰까.** (2026-09-13 상무님 지적 7)
+ * ★★★ **폐기됨 — `/g/` 견본 경로 (2026-09-15 대표님 지시).**
  *
- * · "hide"(기본) — 견본이면 **없는 것처럼** 다룬다. 손님 주소 `/{상호}` 가 쓴다.
- * · "only"       — 견본**만** 보여 준다. 회장님이 영업에 쓰는 `/g/{상호}` 가 쓴다.
+ *   전에는 「미리 만든 홈페이지」를 `/{상호}` 에서 **숨기고** `/g/{상호}` 에만 보여 주었다.
+ *   그런데 그 판정이 `isPremade()` — **문자를 보내면 안 되는 곳인가**를 묻는 함수 — 와
+ *   **한 덩어리로 묶여 있었다.** 그래서 대표님이 만드신 홈페이지가 만들자마자
+ *   **`/{상호}` 에서 안 열렸다.** 실제로 09-15 에 `onstori.com/feliz` 를 못 만드셨다.
  *
- * ★★ **왜 `/{상호}` 페이지에 조건을 안 넣고 여기에 넣었나.**
- *   그 페이지는 ISR 로 캐시되고(revalidate=60) 빌드 때 200곳을 미리 만들어 둔다
- *   (`generateStaticParams`). 거기에 「요청마다 봐야 하는 조건」을 넣으면 **손님 사이트
- *   200곳의 캐시가 통째로 무너진다** — 2026-09-07 실측에서 캐시가 빠지자 TTFB 가
- *   0.73~1.19초로 뛰었다. 여기서 «자료를 읽을 때» 거르면 결과가 그대로 캐시되므로
- *   빠르기를 잃지 않는다.
- * ⚠ 대신 넘겨주는 순간 캐시를 풀어야 한다 — `app/api/auth/handover` 가 `revalidatePath` 한다.
+ * ★★ **둘은 다른 질문이다. 이제 갈라 둔다:**
+ *   · **보이기** — 발행됐으면 `/{상호}` 에서 **그냥 열린다.** 조건 없다 (여기)
+ *   · **문자**   — `isPremade()` 가 그대로 막는다 (`lib/premade.ts` · 크론 셋)
+ *   ⚠ **`lib/premade.ts` 를 건드리지 마라.** 그것은 09-13 P0(남의 가게로 문자가 나갈 뻔한 것)의
+ *     자물쇠다. 보이기 때문에 그 자물쇠를 풀면 **그 사고가 그대로 되살아난다.**
+ *
+ * ★ 대표님 말씀: 「시키지 않은 안전장치를 마음대로 넣지 마라. `/g/` 로 옮기기 같은 것.」
+ *   `/g/{상호}` 는 **`/{상호}` 로 영구 이동**한다(`app/g/[slug]/page.tsx`) — 이미 보내 둔
+ *   링크가 깨지지 않게 길만 남겨 두고 화면은 없앴다.
  */
-export type PremadeMode = "hide" | "only";
 
 /**
  * ★ **예시 홈페이지 목록 — 단일 출처.** (2026-09-13 지시 13)
@@ -70,7 +72,7 @@ export type PremadeMode = "hide" | "only";
  */
 export const SAMPLE_SLUGS = new Set(["sample-interior"]);
 
-async function getFromDb(slug: string, premade: PremadeMode = "hide"): Promise<SiteData | null> {
+async function getFromDb(slug: string): Promise<SiteData | null> {
   const client = sb();
   if (!client) return null;
   try {
@@ -85,17 +87,12 @@ async function getFromDb(slug: string, premade: PremadeMode = "hide"): Promise<S
     if (!site || !site.published) return null;
 
     /**
-     * ★ 견본인가 아닌가 — 부르는 쪽이 원한 것과 다르면 «없는 것»이다.
-     *
-     * ⚠ **예시 사이트는 «견본»이 아니다.** 둘은 성격이 다르다:
-     *   · 견본(premade) = 콜드콜용. 그 가게 상호로 검색에 뜨면 안 된다 → /g/{주소}
-     *   · 예시(sample)  = 우리 쇼케이스. **랜딩 포트폴리오가 이것을 쓴다**(components/portfolio.tsx)
-     *     → /{주소} 에 그대로 있어야 하고, 화면 맨 위에 「예시입니다」가 붙는다.
-     * ⚠ 예시는 주인이 없어서 isPremade 에 걸린다. 그래서 여기서 **보이기 판정에서만** 뺀다 —
-     *   문자 판정(lib/premade.ts)에서는 그대로 견본으로 둔다. 예시로 문자가 나가면 안 된다.
+     * ★★ **발행됐으면 그냥 보여 준다.** (2026-09-15 대표님 지시)
+     *   전에 여기에 「견본이면 숨긴다」가 있었다. 그것 때문에 만든 홈페이지가 안 열렸다.
+     *   ⚠ 안 보여야 할 것은 **RLS 가 이미 막는다** — 손님 권한(anon)은 `trial`·`active` 만 읽는다.
+     *     즉 만료·정지된 사이트는 여기까지 오지도 못한다. 자물쇠를 두 번 걸 필요가 없다.
+     *   ⚠ 문자 자물쇠(`isPremade`)는 **손대지 않았다.** 크론 셋이 그대로 쓴다.
      */
-    const hidden = isPremade(site) && !SAMPLE_SLUGS.has(slug);
-    if (hidden !== (premade === "only")) return null;
 
     /**
      * ★★ **전화번호는 기본이 비공개다.** (2026-09-13 대표님 결정 · lib/phone-privacy.ts)
@@ -150,12 +147,81 @@ async function getFromSeed(slug: string): Promise<SiteData | null> {
   }
 }
 
-export async function getSiteBySlug(slug: string, premade: PremadeMode = "hide"): Promise<SiteData | null> {
+export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
   if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null; // 라우팅 최종 방어선
-  const fromDb = await getFromDb(slug, premade);
+  const fromDb = await getFromDb(slug);
   if (fromDb) return fromDb;
-  /* ⚠ 시드(쇼케이스)는 견본이 아니다 — `/g/` 로 들어온 요청에는 주지 않는다 */
-  return premade === "only" ? null : await getFromSeed(slug);
+  return await getFromSeed(slug);
+}
+
+/**
+ * ★★ **비공개 홈페이지를 «운영자만» 읽는다.** (2026-09-15 대표님 지시)
+ *
+ * ★ 대표님 말씀 그대로: 「돈을 안 내서 기간이 지난 고객도 **나중에 돈을 낼 수 있는 고객**이다.
+ *   우리는 **그 어떤 사이트도 삭제하지 않는다.** 단, 권한을 아예 없애 **관리자만** 볼 수 있는
+ *   곳으로 바꾼다.」
+ *
+ * · 손님에게는 `/{상호}` 가 **「쉬고 있어요」 안내**만 보여 준다 (RLS 가 내용을 안 준다)
+ * · 운영자는 `/x/{상호}` 에서 **원래 홈페이지 그대로** 본다 (이 함수)
+ * · 결제하면 `status` 가 돌아오고 **아무것도 복구할 것이 없다** — 자료는 처음부터 그대로 있다
+ *
+ * 🔴 **부르는 쪽이 `isAdmin()` 을 반드시 먼저 확인한다.** 이 함수는 운영자 열쇠로 읽으므로
+ *   확인 없이 부르면 비공개 홈페이지가 통째로 새어 나간다. (`app/x/[slug]/page.tsx` 참고)
+ */
+export async function getSiteForAdmin(
+  slug: string,
+): Promise<(SiteData & { realStatus: string; businessName: string }) | null> {
+  if (!/^[a-z0-9-]{2,30}$/.test(slug)) return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  try {
+    const admin = createClient(url, key, { auth: { persistSession: false } });
+    const { data: site } = await admin
+      .from("sites")
+      /* ⚠ owner_id·anon_id 는 빼지 마라 — 09-13 사고의 그 두 칸이다(lib/premade.ts) */
+      .select("id, slug, status, business_name, published, draft, settings, owner_id, anon_id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!site) return null;
+
+    /* 발행본이 없으면 작업본이라도 보여 준다 — 운영자는 «무엇이 들어 있는지»를 봐야 한다 */
+    const raw = site.published ?? site.draft;
+    if (!raw) return null;
+    const parsed = SiteDoc.safeParse(raw);
+    if (!parsed.success) return null;
+
+    const { data: rows } = await admin
+      .from("story_entries")
+      .select("id, entry_type, title, body, photos, entry_date")
+      .eq("site_id", site.id)
+      .order("entry_date", { ascending: false })
+      .limit(30);
+
+    const stories: StoryEntryT[] = (rows ?? []).flatMap((r) => {
+      const p = StoryEntry.safeParse({
+        id: r.id, entryType: r.entry_type, title: r.title, body: r.body,
+        photos: r.photos ?? [], entryDate: String(r.entry_date),
+      });
+      return p.success ? [p.data] : [];
+    });
+
+    const logo = (site.settings as { logo?: unknown } | null)?.logo;
+    return {
+      slug,
+      /* ⚠ 운영자 화면이라도 번호는 손님 화면과 같은 규칙으로 지운다 — 습관을 가르지 않는다 */
+      doc: forVisitors(parsed.data, site.settings),
+      stories,
+      status: site.status === "active" ? "active" : "trial",
+      realStatus: String(site.status),
+      businessName: String(site.business_name ?? ""),
+      logo: typeof logo === "string" && logo ? logo : undefined,
+      settings: (site.settings as Record<string, unknown> | null) ?? {},
+      sample: SAMPLE_SLUGS.has(slug),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

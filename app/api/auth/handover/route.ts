@@ -138,9 +138,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "방금 다른 분이 먼저 가져가셨어요." }, { status: 409 });
   }
 
-  /* ★★ 방금까지 견본이라 `/{상호}` 가 **없는 곳**이었다(lib/sites.ts PremadeMode).
-     이제 사장님 것이 됐으니 곧바로 열어 준다 — 안 풀면 최대 60초 동안 404 다. */
-  try { revalidatePath(`/${slug}`); revalidatePath(`/g/${slug}`); } catch { /* 캐시 해제 실패가 넘겨주기를 무르게 하지 않는다 */ }
+  /* ★ 넘겨준 직후 캐시를 푼다 — 안 풀면 최대 60초 동안 옛 화면이 나간다.
+     ⚠ 2026-09-15: `/g/` 는 폐기됐다(이제 `/{상호}` 로 영구 이동한다). 그래서 한 줄이면 된다. */
+  try { revalidatePath(`/${slug}`); } catch { /* 캐시 해제 실패가 넘겨주기를 무르게 하지 않는다 */ }
 
   console.log(JSON.stringify({ evt: "site_handover", slug, business: site.business_name, trialEndsAt }));
   return NextResponse.json({ ok: true, slug });

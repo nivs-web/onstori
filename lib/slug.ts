@@ -35,6 +35,62 @@ function clean(s: string): string {
     .slice(0, MAX);
 }
 
+/* ───────── 한글 상호 → 영문 주소 (2026-09-15 대표님 지시로 신설) ───────── */
+
+/**
+ * ★★ **한글 상호를 영문으로 옮긴다.** 국어의 로마자 표기법(가까운 쪽) 근사.
+ *
+ * ★ 왜 필요한가: 주소 칸을 되살리면서 **추천 단추 3개**를 같이 드리기로 했다.
+ *   그런데 상호가 한글이면 뽑아 낼 영문이 **한 글자도 없었다.** 그래서 전에는
+ *   자동 초안이 «빈칸»이었고, 그게 가입 이탈 1위의 진짜 원인이었다(2026-09-12).
+ *   여기서 옮겨 주면 「다산 리모델링」이 `dasan` 이 된다 — 사장님이 **읽을 수 있는** 주소다.
+ *
+ * ⚠ **완벽한 표기법이 아니다.** 사람 이름·고유명사는 관용 표기가 따로 있다(「이」=Lee 등).
+ *   그래서 이것은 **추천일 뿐**이고, 옆 칸에서 사장님이 직접 고칠 수 있어야 한다. 그게 핵심이다.
+ * ⚠ 한글이 아닌 글자는 **그대로 둔다** — 이미 영문 상호면 손대지 않는다.
+ */
+const CHO = ["g","kk","n","d","tt","r","m","b","pp","s","ss","","j","jj","ch","k","t","p","h"];
+const JUNG = ["a","ae","ya","yae","eo","e","yeo","ye","o","wa","wae","oe","yo","u","wo","we","wi","yu","eu","ui","i"];
+const JONG = ["","k","k","k","n","n","n","t","l","k","m","p","t","t","p","l","m","p","p","t","t","ng","t","t","k","t","p","t"];
+
+export function romanize(s: string): string {
+  let out = "";
+  for (const ch of s ?? "") {
+    const code = ch.charCodeAt(0) - 0xac00;
+    if (code < 0 || code > 11171) { out += ch; continue; } // 한글 음절이 아니면 그대로
+    out += CHO[Math.floor(code / 588)] + JUNG[Math.floor((code % 588) / 28)] + JONG[code % 28];
+  }
+  return out;
+}
+
+/**
+ * ★ **주소 후보를 «좋은 순서»로 만든다.** 겹침 검사는 부르는 쪽이 한다(`/api/slug-check`).
+ *
+ * 순서에 뜻이 있다 — 사장님이 **첫 번째를 고를 확률이 가장 높다**:
+ *   ① 상호 첫 낱말      「다산 리모델링」 → `dasan`          ← 가장 짧고 기억하기 쉽다
+ *   ② 상호 첫 낱말＋업종 「다산 리모델링」 → `dasan-interior` ← ①이 찼을 때의 자연스러운 다음
+ *   ③ 상호 전체         「다산 리모델링」 → `dasanrimodelring`
+ *   ④ 업종만            `interior`                          ← 상호에서 아무것도 못 뽑았을 때
+ *
+ * ⚠ 3글자 미만은 버린다 — 주소 규칙이 3~30자다(`/api/slug-check`).
+ * ⚠ **중복을 뺀 순서 그대로** 돌려준다. 부르는 쪽이 위에서부터 비어 있는 것을 고른다.
+ */
+export function slugCandidates(businessName: string, industryId?: string | null): string[] {
+  const words = romanize(businessName ?? "").split(/[\s·,./_-]+/).map(clean).filter(Boolean);
+  const first = words[0] ?? "";
+  const joined = clean(words.join(""));
+  const ind = clean(INDUSTRY_SLUG[String(industryId ?? "")] ?? "");
+
+  const raw = [
+    first,
+    first && ind && first !== ind ? `${first}-${ind}`.slice(0, MAX) : "",
+    joined !== first ? joined : "",
+    ind,
+  ];
+  const seen = new Set<string>();
+  return raw.filter((c) => c.length >= MIN && !seen.has(c) && seen.add(c));
+}
+
 /** 후보 하나를 만든다(겹침 검사는 부르는 쪽이 한다) */
 export function baseSlug(businessName: string, industryId?: string | null): string {
   const fromName = clean(businessName ?? "");

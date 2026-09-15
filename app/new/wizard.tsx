@@ -115,6 +115,20 @@ export function Wizard() {
   // 3
   const [oneLiner, setOneLiner] = useState("");
   const [phone, setPhone] = useState("");
+  /**
+   * ★★ **홈페이지 주소 — 2026-09-15 대표님 지시로 되살렸다.**
+   *
+   * ⚠ 2026-09-12 에 이 칸을 **없앴었다.** 가입 이탈 1위였기 때문이다. 이유는 칸 자체가 아니라
+   *   **「한글을 치면 글자가 안 찍히는데 왜인지 안 알려준 것」**이었다. 그래서 이번에는:
+   *   ① 한글을 치는 **그 순간** 이유를 말한다  ② **비어 있는 주소 3개**를 단추로 먼저 보여 준다
+   *   ③ **비워 두면 지금까지처럼 서버가 짓는다** — 안 건드리면 아무것도 달라지지 않는다
+   * ★ 대표님이 `onstori.com/feliz` 를 못 만드신 것이 이 칸이 없어서였다.
+   */
+  const [slug, setSlug] = useState("");
+  const [slugSuggest, setSlugSuggest] = useState<string[]>([]);
+  /** null = 아직 안 봤다 · true/false = 서버가 답했다 */
+  const [slugOk, setSlugOk] = useState<boolean | null>(null);
+  const [slugMsg, setSlugMsg] = useState("");
   /** ★ 문의 알림이 가는 주소. 비면 문의가 와도 사장님이 모른다(2026-09-11 회장님 결정) */
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -188,7 +202,53 @@ export function Wizard() {
      정규식으로 조이면 멀쩡한 회사 메일이 막히는 일이 더 잦다. */
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   const emailErr = email.trim() && !emailOk ? "메일 주소를 정확히 입력해 주세요 — 예: example@gmail.com" : "";
-  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk;
+  /* ★ 주소는 **선택**이다. 비워 두면 서버가 짓는다(lib/slug.ts).
+     ⚠ 그래서 「안 썼다」로는 막지 않는다. **썼는데 못 쓰는 주소일 때만** 막는다 —
+       안 그러면 2026-09-12 의 이탈이 그대로 돌아온다. */
+  const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk && slugOk !== false;
+
+  /* 3단계에 들어오면 **비어 있는 주소 3개**를 미리 받아 둔다.
+     ⚠ 상호·업종이 바뀌면 다시 받는다 — 옛 상호로 지은 추천을 보여 주면 그게 더 헷갈린다. */
+  useEffect(() => {
+    if (step !== 2 || !name.trim()) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/slug-check?suggest=1&name=${encodeURIComponent(name.trim())}&industry=${encodeURIComponent(sub?.industryId ?? "")}`);
+        const d = await r.json();
+        if (alive && Array.isArray(d.suggestions)) setSlugSuggest(d.suggestions);
+      } catch { /* 추천이 없어도 직접 입력으로 만들 수 있다 — 조용히 넘어간다 */ }
+    }, 200);
+    return () => { alive = false; clearTimeout(t); };
+  }, [step, name, sub?.industryId]);
+
+  /* 사장님이 친 주소를 **치는 동안** 검사한다.
+     ⚠ 400ms 를 기다린다 — 글자마다 부르면 서버를 때리고, 답이 엇갈려 늦은 답이 이긴다. */
+  useEffect(() => {
+    const v = slug.trim().toLowerCase();
+    if (!v) { setSlugOk(null); setSlugMsg(""); return; }
+    /* ★ **한글은 서버를 기다리지 않는다.** 그 자리에서 바로 말한다 — 이것이 그때 없던 한 줄이다 */
+    if (/[^a-z0-9-]/.test(v)) {
+      setSlugOk(false);
+      setSlugMsg("주소는 영문 소문자·숫자·하이픈(-)만 됩니다. 한글은 쓸 수 없어요 — 위 추천을 눌러 보세요");
+      return;
+    }
+    let alive = true;
+    setSlugMsg("확인하는 중…");
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/slug-check?slug=${encodeURIComponent(v)}`);
+        const d = await r.json();
+        if (!alive) return;
+        setSlugOk(Boolean(d.available));
+        setSlugMsg(d.available ? `onstori.com/${v} — 쓸 수 있어요` : String(d.reason ?? "쓸 수 없는 주소예요"));
+      } catch {
+        /* 못 물어봤으면 «막지 않는다». 서버가 만들 때 한 번 더 본다(app/api/generate) */
+        if (alive) { setSlugOk(null); setSlugMsg(""); }
+      }
+    }, 400);
+    return () => { alive = false; clearTimeout(t); };
+  }, [slug]);
 
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
@@ -208,6 +268,9 @@ export function Wizard() {
         mood: theme.palette, accent: theme.accent,
         industryId: sub?.industryId, industryLabel: sub?.label,
         address: address.trim() || undefined, whyStarted: why.trim() || undefined, anonId: aid || undefined,
+        /* ★ 주소를 비워 두면 **안 보낸다** — 서버가 상호·업종에서 짓는다(lib/slug.ts).
+           ⚠ 빈 문자열을 보내면 서버 검사(3~30자)에 걸려 가입이 통째로 실패한다. */
+        slug: slug.trim().toLowerCase() || undefined,
         /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신)
            ⚠ `marketing: false` 를 **일부러 보낸다.** 묻지 않았으니 「동의 못 받았다」가 사실이고,
              그 사실이 기록에 남아야 나중에 「동의받았다」고 오해할 여지가 없다(2026-09-13). */
@@ -464,12 +527,57 @@ export function Wizard() {
             </div>
             <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>{logoFile ? "올린 로고를 써요" : logoAuto ? `자동 로고 · ${marks.find((m) => m.id === logoAuto)?.label}` : "로고 없이 시작해도 돼요"}</p>
           </Field>
-          {/* ★★ 2026-09-12 — 「홈페이지 주소」 칸을 **없앴다.** 가입 이탈 1위였다(회장님).
-              한글 상호면 자동 초안이 빈칸이고, 한글을 치면 글자가 안 찍히는데 **이유를 안 알려줬다.**
-              사장님은 「고장났나」 하고 나간다.
-              ★ 이제 **서버가 상호·업종에서 짓고, 겹치면 뒤에 숫자를 붙인다**(lib/slug.ts).
-              ⚠ 주소를 나중에 바꾸는 길은 편집화면에 남길 자리다 — 이미 발행된 주소가 깨지므로
-                되돌리기(리다이렉트)까지 같이 만들어야 한다. 지금은 손대지 않는다. */}
+          {/* ★★★ 2026-09-15 — 「홈페이지 주소」 칸을 **되살렸다** (대표님 지시).
+              ⚠ 2026-09-12 에 없앴던 칸이다. 이탈 1위였다. 하지만 원인은 «칸»이 아니라
+                **한글을 쳤을 때 아무 말도 안 해 준 것**이었다. 그래서 세 가지를 같이 넣었다:
+                ① 비어 있는 주소 3개를 **단추로 먼저** ② 한글을 치면 **그 자리에서** 이유를
+                ③ **비워 두면 예전 그대로** — 서버가 짓는다. 안 건드린 사장님은 아무 변화가 없다.
+              ⚠ 주소를 나중에 바꾸는 길은 아직 없다 — 이미 발행된 주소가 깨지므로
+                되돌리기(리다이렉트)까지 같이 만들어야 한다. 그래서 **여기가 정하는 유일한 자리**다. */}
+          <Field
+            label="홈페이지 주소 (선택)"
+            hint={slugMsg || "안 정하셔도 됩니다 — 비워 두시면 상호에 맞춰 저희가 지어 드려요"}
+            hintColor={slugOk === false ? "text-danger" : undefined}
+          >
+            {slugSuggest.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {slugSuggest.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSlug(s)}
+                    className="tap-row t-small rounded-full border px-3 py-1"
+                    style={{
+                      borderColor: slug === s ? "var(--green)" : "var(--line)",
+                      background: slug === s ? "var(--green-50)" : "transparent",
+                      fontWeight: slug === s ? 700 : 400,
+                    }}
+                  >
+                    onstori.com/{s}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* 주소 앞부분을 «칸 안»에 붙여 둔다 — 「onstori.com/」까지 치시는 분이 실제로 있다 */}
+            <div
+              className="field flex items-center gap-1"
+              style={{ borderColor: slugOk === false ? "var(--danger)" : undefined }}
+            >
+              <span className="t-small shrink-0" style={{ color: "var(--muted)" }}>onstori.com/</span>
+              <input
+                className="min-w-0 flex-1 bg-transparent outline-none"
+                value={slug}
+                maxLength={30}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="url"
+                onChange={(e) => setSlug(e.target.value.trim().toLowerCase())}
+                placeholder={slugSuggest[0] ?? "myshop"}
+                aria-invalid={slugOk === false}
+              />
+            </div>
+          </Field>
           <Field label="전화번호 (필수)" hint={phoneErr} hintColor={phoneErr ? "text-danger" : undefined}>
             <input
               className="field"

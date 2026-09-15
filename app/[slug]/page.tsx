@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { isAdmin } from "@/lib/admin-auth";
 import { localBusinessJsonLd } from "@/lib/jsonld";
 import { getSiteBySlug, getPausedSite } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
@@ -76,7 +77,14 @@ export default async function SitePage({ params }: Props) {
        손님 권한으로는 둘이 똑같이 «없음»으로 보인다. 하지만 뒤쪽은 사장님이 **명함에 적어 둔
        주소**라 죽은 링크가 되면 안 된다. 이 조회는 «없을 때만» 도므로 평소 비용이 없다. */
     const paused = await getPausedSite(slug);
-    if (paused) return <PausedSite businessName={paused.businessName} />;
+    if (paused) {
+      /* ★★ **운영자는 「쉬고 있어요」 안내를 볼 이유가 없다** — 비공개 보관실로 보낸다.
+         (2026-09-15 대표님: 「비공개 사이트 주소를 정해서 **그쪽으로 이동해서 관리한다**」)
+         ⚠ 손님에게는 이 갈림길 자체가 안 보인다. `isAdmin()` 이 아니면 아래 안내로 그대로 간다.
+         ⚠ 이 조회는 **사이트가 «없을 때만»** 돈다. 평소 손님 화면의 빠르기에 영향이 없다. */
+      if (await isAdmin()) redirect(`/x/${slug}`);
+      return <PausedSite businessName={paused.businessName} />;
+    }
     notFound();
   }
 
