@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/db-admin";
 import { isPremade, premadeReason } from "@/lib/premade";
 import { purgeSnsForSite } from "@/lib/sns/maintenance";
-import { sendSmsRaw } from "@/lib/notify";
+import { sendSmsRaw, sendEmailRaw } from "@/lib/notify";
+import { readConfig } from "@/lib/admin-config";
 import * as storage from "@/lib/storage";
 import {
   DELETE_AFTER_SUSPEND_DAYS, INQUIRY_RETENTION_DAYS, INQUIRY_MAX_AGE_DAYS, COPY,
@@ -47,7 +48,9 @@ export async function GET(req: Request) {
   const sb = sbAdmin();
   const now = Date.now();
   const day = 86_400_000;
-  const out = { nudged: 0, suspended: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, deleteBlocked: 0, sitesDeleted: 0, filesPurged: 0, chargeNoticed: 0, charged: 0, chargeFailed: 0 };
+  /** 🔴 만료 예고 스위치 — 기본은 «꺼짐». 화면(/admin/alerts)에서 켜야만 나간다 (2026-09-15 대표님) */
+  const cfg = await readConfig();
+  const out = { nudged: 0, nudgedMail: 0, alertsOff: 0, suspended: 0, inquiriesPurged: 0, photosPurged: 0, deleteNoticed: 0, deleteBlocked: 0, sitesDeleted: 0, filesPurged: 0, chargeNoticed: 0, charged: 0, chargeFailed: 0 };
 
   // 1) 안내 문자 — 만료까지 3일/1일 남은 사이트 (하루 한 번 도는 크론이므로 24시간 창)
   const { data: soon } = await sb
@@ -67,8 +70,25 @@ export async function GET(req: Request) {
     const left = Math.ceil((new Date(s.trial_ends_at).getTime() - now) / day);
     /* ★ 「3일 전·1일 전」을 여기 적지 않는다. 바꾸려면 lib/trial.ts 의 TRIAL_NOTICE_DAYS 만 고친다 */
     if (!(TRIAL_NOTICE_DAYS as readonly number[]).includes(left)) continue;
+    /**
+     * 🔴🔴 **2026-09-15 대표님 — 만료 예고는 «기본이 꺼짐»이다.**
+     *
+     * 「기본으로는 7일 전 3일 전 1일 전 문자 발송이 **꺼져 있는 걸로** 세팅하고, 켤 수 있게 만들어.
+     *  … 초기에는 꺼져 있으니까 **문자 안 날아가는 걸로** 하자.」
+     *
+     * ⚠ 나(권반장)는 09-15 밤에 `/admin/alerts` 화면과 설정만 만들고 **이 크론에 연결을 안 했다.**
+     *   그래서 화면은 「꺼짐」인데 크론은 그대로 보내는 상태였다. **화면이 거짓말을 하고 있었다.**
+     *   여기서 잇는다 — 설정이 꺼져 있으면 **한 통도 안 나간다.**
+     * ★ 메일은 따로 켠다. 대표님 방침이 「메일이 기본, 문자는 유료회원에게만」이다.
+     */
+    if (!cfg.expiryAlertOn) { out.alertsOff++; continue; }
+    const mail = ((s.settings as { notify?: { email?: string } } | null)?.notify?.email ?? "").trim();
+    if (cfg.expiryByEmail && mail) {
+      if (await sendEmailRaw(mail, "[온스토리] 무료 기간 안내", nudgeText(left, s.slug))) out.nudgedMail++;
+    }
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
+    if (!cfg.expiryBySms) continue;
     if (await sendSmsRaw(phone, nudgeText(left, s.slug))) out.nudged++;
   }
 
@@ -195,6 +215,10 @@ export async function GET(req: Request) {
     }
     const left = Math.ceil((s.deleteMs - now) / day);
     if (!(DELETE_NOTICE_DAYS as readonly number[]).includes(left)) continue;
+    /* 🔴 만료 예고와 같은 스위치를 쓴다 — 화면에서 껐는데 여기만 나가면 안 된다 (2026-09-15).
+       ⚠ 다만 **삭제 예고는 「보냈다는 기록」이 삭제의 조건**이다(아래 5번).
+         꺼 두면 «예고를 못 보낸 것»이 되어 자료가 안 지워진다 — 그게 맞는 쪽이다. */
+    if (!cfg.expiryAlertOn || !cfg.expiryBySms) { out.alertsOff++; continue; }
     const phone = (s.settings as { phone?: string } | null)?.phone;
     if (!phone) continue;
     // 90바이트(EUC-KR) 안 — 넘으면 LMS 로 나가 요금이 3배가 된다 (2026-09-06 nudgeText 와 같은 제약)
@@ -262,6 +286,9 @@ export async function GET(req: Request) {
       const d = new Date(b.next_charge_at);
       const when = `${d.getMonth() + 1}/${d.getDate()}`;
       // EUC-KR 90바이트 안 (슬러그 30자 기준 실측)
+      /* 🔴 같은 스위치. ⚠ 이것은 «유료회원»에게만 가는 안내다 — 대표님 방침(문자는 유료회원)과 맞는다.
+         그래도 초기에는 꺼 둔다. 켜는 것은 대표님 손이다 */
+      if (!cfg.expiryAlertOn || !cfg.expiryBySms) { out.alertsOff++; continue; }
       if (await sendSmsRaw(phone, `온스토리 ${when} ${COPY.priceOnly} 결제 예정. 해지는 onstori.com/my`)) out.chargeNoticed++;
     }
   }

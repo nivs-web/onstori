@@ -11,6 +11,7 @@ import {
 } from "@/lib/weekly";
 import { trialInfo } from "@/lib/trial";
 import { isPremade, premadeReason } from "@/lib/premade";
+import { canUse } from "@/lib/plan-gate";
 import { refreshInstagramTokens, refreshTiktokTokens, finishStuckPosts, checkPublishedAlive } from "@/lib/sns/maintenance";
 
 export const dynamic = "force-dynamic";
@@ -148,7 +149,13 @@ export async function GET(req: Request) {
        * ⚠ 이 칸을 켜는 화면은 **아직 없다.** 그래서 **지금은 주 1회 문자가 한 통도 안 나간다.**
        *   그게 의도다. 화면을 만들 때 `settings.weekly.smsOptIn` 을 켜는 스위치를 함께 만들어라.
        */
-      smsOptIn: (w as Weekly & { smsOptIn?: boolean })?.smsOptIn === true,
+      /**
+       * 🔴🔴 **문자는 «정회원»에게만.** (2026-09-15 대표님 확정 — `lib/plan-gate.ts`)
+       *   「30일 무료이지만 문자로 연락 받기 … 는 전부 **무료 기간중에는 활성화되지 않습니다**」
+       * ★ 자물쇠가 둘이다 — ①정회원인가 ②그분이 관리자 화면에서 직접 켰는가.
+       *   둘 다여야 나간다. 지금은 유료 고객이 0명이라 **한 통도 안 나간다.**
+       */
+      smsOptIn: canUse(s, "sms") && (w as Weekly & { smsOptIn?: boolean })?.smsOptIn === true,
       email: ((settings.notify as { email?: string } | undefined)?.email ?? "").trim() || null,
       status: (s.status as string) ?? null,
       updatedAt: (s.updated_at as string) ?? null,
