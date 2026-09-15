@@ -102,17 +102,19 @@ export default async function SitePage({ params }: Props) {
 
   return (
     <div style={vars}>
-      {/* ★★ **예시 홈페이지라는 것을 맨 위에서 말한다.** (2026-09-13 박팀장 지적 13)
-          ⚠ 손님이 진짜 가게로 알고 전화를 걸거나 문의를 남기면 아무도 안 받는다.
-          ⚠ 불변 규칙 7 — 예시 후기·예시 실적은 «예시» 표시를 달아야 쓸 수 있다. */}
-      {site.sample && (
-        <div
-          className="t-small text-center font-medium"
-          style={{ padding: "var(--s-3) var(--gutter)", background: "var(--n-900)", color: "var(--n-0)" }}
-        >
-          이 홈페이지는 <b>온스토리가 만든 예시</b>입니다 — 실제 업체가 아니에요.
-        </div>
-      )}
+      {/* ★★ 2026-09-15 대표님 — **상단 검은 띠를 뗐다.**
+          전에는 여기에 「이 홈페이지는 온스토리가 만든 예시입니다」 띠가 있었다.
+          왜 뗐나: 정식 영업을 시작했고, 예시는 `sample-interior` **한 곳뿐**이며,
+          그 화면은 **히어로 위에 「샘플 예시 사이트」 글자를 이미 달고 있다**(사이트 내용에 들어 있음).
+          같은 말이 두 번 나와서 첫인상이 어수선했다.
+
+          🔴 **그래서 지켜야 하는 것 — 없애면 안 되는 표시가 하나 남았다**
+          ⚠ `sample-interior` 의 히어로 위 「샘플 예시 사이트」 글자를 **지우지 마라.**
+            그것까지 지우면 예시 표시가 **하나도 안 남는다.** 유료 고객 0명인 지금
+            실제 사례처럼 보이면 **표시광고법**에 걸린다(불변 규칙 7 · R-0017).
+          ⚠ 손님이 진짜 가게로 알고 전화를 걸면 **아무도 안 받는다.** 그 위험은 그대로다.
+          ★ 예시를 새로 만들면 `SAMPLE_SLUGS`(lib/sites.ts)에 넣고,
+            그 사이트 **화면 안에** 예시 표시를 직접 넣어라. */}
       {jsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       )}
