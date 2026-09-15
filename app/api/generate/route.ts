@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
+import { cleanOwnerChannels } from "@/config/owner-channels";
 import { hasRequired, recordConsents } from "@/lib/consents";
 import { isAdmin } from "@/lib/admin-auth";
 import { WEEKLY_DEFAULT } from "@/lib/weekly";
@@ -39,6 +40,10 @@ const Input = z.object({
   address: z.string().max(120).optional(),
   whyStarted: z.string().max(300).optional(),
   anonId: z.string().max(64).optional(),
+  /* ★ 2026-09-15 — 사장님이 운영 중인 다른 채널 주소(선택).
+     ⚠ 모양 검사는 `config/channels.ts` 의 `cleanChannels` 한 곳에서 한다 — 화면과 같은 규칙이다.
+       여기서는 **통째로 받아만 두고** 아래에서 걸러 넣는다. 화면 값을 그대로 믿지 않는다. */
+  channels: z.record(z.string(), z.string()).optional(),
   // 온보딩 5단계 (2026-09-05) — 업종 직접 선택 · 세부 업종명 · 포인트색
   industryId: z.string().max(40).optional(),
   industryLabel: z.string().max(40).optional(),
@@ -189,6 +194,12 @@ export async function POST(req: Request) {
            */
           ...(admin ? { premade: true } : {}),
           weekly: { ...WEEKLY_DEFAULT, ...(admin ? { on: false } : {}) },
+          /* ★★ 채널 주소 — **위젯이자 «SEO 엔진»이다.** (2026-09-15)
+             lib/jsonld.ts 가 이 자리를 읽어 구조화 데이터의 `sameAs` 를 만든다.
+             ⚠ 저장 위치를 바꾸지 마라. 바꾸면 검색엔진에 나가던 연결이 조용히 끊긴다.
+             ⚠ 빈 객체면 칸 자체를 안 만든다 — 빈 값이 있는 것과 없는 것은 다르다. */
+          ...(Object.keys(cleanOwnerChannels(input.channels)).length
+            ? { channels: cleanOwnerChannels(input.channels) } : {}),
         },
         draft: doc,
         published: doc,

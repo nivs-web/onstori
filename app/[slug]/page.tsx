@@ -7,6 +7,7 @@ import { getSiteBySlug, getPausedSite } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
+import { ChannelWidget } from "@/components/sections/channel-widget";
 
 /**
  * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
@@ -150,6 +151,9 @@ export default async function SitePage({ params }: Props) {
       >
         {/* 상단 바(로고·햄버거)와 하단 고정 바 — 미리보기 셸과 같은 컴포넌트를 쓴다 */}
         <SiteChrome doc={site.doc} businessName={site.doc.businessName} logo={site.logo} />
+        {/* ★ 떠 있는 채널 위젯 — 사장님이 «직접 넣은» 채널만 뜬다(2026-09-15 대표님 지시).
+            채널이 하나도 없으면 아무것도 그리지 않는다. */}
+        <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}

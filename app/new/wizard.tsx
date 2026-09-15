@@ -11,12 +11,13 @@ import { isValidPhone } from "@/lib/phone";
 import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE, WEEKLY_CHANNEL_HINT } from "@/lib/weekly";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
+import { OWNER_CHANNELS, isUsableChannelUrl } from "@/config/owner-channels";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
 
 /* ─────────────────────────── 공용 ─────────────────────────── */
 
-const STEPS = ["상호명", "업종", "가게 정보", "분위기", "만들기"] as const;
+const STEPS = ["상호명", "업종", "가게 정보", "채널 연결", "분위기", "만들기"] as const;
 
 async function readJson(r: Response): Promise<Record<string, unknown>> {
   if ((r.headers.get("content-type") ?? "").includes("application/json")) return (await r.json()) as Record<string, unknown>;
@@ -145,7 +146,14 @@ export function Wizard() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState("");
   const [logoAuto, setLogoAuto] = useState<string | null>(null); // 선택한 자동 로고 id
-  // 4
+  // 4 — 채널 연결 (2026-09-15 신설)
+  /**
+   * ★ 사장님이 이미 운영 중인 채널 주소. **전부 선택**이다.
+   * ⚠ 저장 위치는 `sites.settings.channels` 다 — `lib/jsonld.ts` 가 그 자리를 읽어
+   *   구조화 데이터의 `sameAs` 를 만든다. 이름을 바꾸면 검색 연결이 조용히 끊긴다.
+   */
+  const [channels, setChannels] = useState<Record<string, string>>({});
+  // 5
   const [tone, setTone] = useState<Tone>("light");
   const [accent, setAccent] = useState(ACCENTS[0].id);
 
@@ -215,6 +223,12 @@ export function Wizard() {
   /* ★ 주소는 **선택**이다. 비워 두면 서버가 짓는다(lib/slug.ts).
      ⚠ 그래서 「안 썼다」로는 막지 않는다. **썼는데 못 쓰는 주소일 때만** 막는다 —
        안 그러면 2026-09-12 의 이탈이 그대로 돌아온다. */
+  /** 화면과 서버가 **같은 규칙**으로 거른다 — 한쪽만 고쳐지는 일이 없게 */
+  const usableChannels = useMemo(
+    () => Object.fromEntries(Object.entries(channels).filter(([, v]) => isUsableChannelUrl(v))),
+    [channels],
+  );
+
   const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk && slugOk !== false;
 
   /* 3단계에 들어오면 **비어 있는 주소 3개**를 미리 받아 둔다.
@@ -281,6 +295,9 @@ export function Wizard() {
         /* ★ 주소를 비워 두면 **안 보낸다** — 서버가 상호·업종에서 짓는다(lib/slug.ts).
            ⚠ 빈 문자열을 보내면 서버 검사(3~30자)에 걸려 가입이 통째로 실패한다. */
         slug: slug.trim().toLowerCase() || undefined,
+        /* ★ 채널 주소 — **쓸 만한 것만** 보낸다. 서버도 같은 규칙으로 한 번 더 거른다.
+           ⚠ 빈 객체면 아예 안 보낸다 — 빈 칸을 만들어 두면 「넣었는데 안 됐다」와 구별이 안 된다. */
+        ...(Object.keys(usableChannels).length ? { channels: usableChannels } : {}),
         /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신)
            ⚠ `marketing: false` 를 **일부러 보낸다.** 묻지 않았으니 「동의 못 받았다」가 사실이고,
              그 사실이 기록에 남아야 나중에 「동의받았다」고 오해할 여지가 없다(2026-09-13). */
@@ -367,7 +384,7 @@ export function Wizard() {
   const stageText = STAGE_TEXT[stage];
 
   /* 5단계 — 만드는 중 / 완료 */
-  if (step === 4) {
+  if (step === 5) {
     return shell(
       <>
         {state === "done" && result ? (
@@ -403,7 +420,7 @@ export function Wizard() {
             <h1 className="t-h1">잠깐 멈췄어요</h1>
             <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--danger)" }}>{errMsg}</p>
             <button type="button" onClick={create} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>다시 만들기</button>
-            <button type="button" onClick={() => setStep(3)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
+            <button type="button" onClick={() => setStep(4)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
           </section>
           )
         ) : (
@@ -698,8 +715,84 @@ export function Wizard() {
         </section>
       )}
 
-      {/* 4 분위기 */}
+      {/* ★★★ 4 채널 연결 — 2026-09-15 대표님 지시로 신설.
+          ⚠ **이 단계는 위젯이 아니라 «SEO 엔진»이다.** 여기서 받은 주소가 구조화 데이터의
+            `sameAs` 가 되어 「이 홈페이지 = 저 네이버 플레이스와 같은 업체」를 검색엔진에 알린다.
+            경쟁사 홈ON 이 네이버 상단에 뜨는 가장 큰 이유가 그것이었다
+            (`fable51plandept/AI_Context/BANJANG/SEO-홈온-분석-2026-09-15.md`).
+          ⚠ **전부 선택이다.** 하나도 안 넣어도 [다음]이 눌린다 — 여기서 막으면 가입이 끊긴다. */}
       {step === 3 && (
+        <section className="mt-6">
+          <h1 className="font-display t-h1 leading-snug">채널 연결을 해보시겠습니까?</h1>
+          <p className="mt-3 t-body">
+            홈페이지는 <b>모든 채널의 최종 종착지</b>입니다.<br />
+            다양한 채널에서 홍보를 도와주고, 실적은 홈페이지에서 쌓입니다!
+          </p>
+          <p className="mt-3 t-small" style={{ color: "var(--muted)" }}>
+            채널 연결을 통해 홈페이지의 규모가 커 보이고, 다양한 채널을 통해서 홍보할 수 있습니다.<br />
+            최대한 많은 채널을 연결해 주세요. (추후에 어드민에서 연결 가능)
+          </p>
+          <p className="mt-4 rounded-xl px-4 py-3 t-small" style={{ background: "var(--green-50)", color: "var(--n-800)" }}>
+            <b>현재 운영 중인 채널만</b> 선택해 주세요.<br />
+            선택한 채널은 홈페이지에 <b>문의 위젯으로 자동 생성</b>되어, 고객이 더 쉽고 빠르게 연락할 수 있습니다.<br />
+            생성 후에도 「수정하기」에서 언제든 자유롭게 변경할 수 있습니다.
+          </p>
+
+          <div className="mt-6 space-y-4">
+            {OWNER_CHANNELS.map((c) => {
+              const v = channels[c.id] ?? "";
+              /* ⚠ 「비었다」와 「틀렸다」를 가른다. 안 쓰신 것을 빨갛게 칠하면 겁을 드린다 */
+              const bad = v.trim().length > 0 && !isUsableChannelUrl(v);
+              return (
+                <Field
+                  key={c.id}
+                  label={c.label}
+                  hint={bad ? "https:// 로 시작하는 주소를 붙여 주세요" : c.hint}
+                  hintColor={bad ? "text-danger" : undefined}
+                >
+                  <div className="flex items-center" style={{ gap: "var(--s-2)" }}>
+                    {/* 위젯에 뜰 모양을 «여기서 미리» 보여 준다 — 무엇이 생기는지 알고 넣으시게 */}
+                    <span
+                      aria-hidden
+                      className="flex shrink-0 items-center justify-center font-bold text-white"
+                      style={{
+                        width: 36, height: 36, borderRadius: "50%", background: c.color,
+                        fontSize: c.mark.length > 2 ? 11 : 14,
+                        opacity: isUsableChannelUrl(v) ? 1 : 0.25,
+                        transition: "opacity .15s",
+                      }}
+                    >
+                      {c.mark}
+                    </span>
+                    <input
+                      className="field min-w-0 flex-1"
+                      style={{ borderColor: bad ? "var(--danger)" : undefined }}
+                      value={v}
+                      maxLength={300}
+                      inputMode="url"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      placeholder={c.placeholder}
+                      aria-invalid={bad}
+                      onChange={(e) => setChannels((p) => ({ ...p, [c.id]: e.target.value }))}
+                    />
+                  </div>
+                </Field>
+              );
+            })}
+          </div>
+
+          <p className="mt-5 t-caption" style={{ color: "var(--muted)" }}>
+            하나도 넣지 않으셔도 됩니다. 나중에 편집화면에서 언제든 추가하실 수 있어요.
+          </p>
+
+          {nav({ next: () => setStep(4), canNext: true })}
+        </section>
+      )}
+
+      {/* 5 분위기 */}
+      {step === 4 && (
         <section className="mt-6">
           <h1 className="font-display t-h1 leading-snug">분위기를 골라 주세요</h1>
           <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>바탕은 다크/화이트, 포인트색은 8가지. 미리보기를 보고 고르세요.</p>
@@ -757,7 +850,7 @@ export function Wizard() {
           </div>
 
           {nav({
-            next: () => { setStep(4); void create(); },
+            next: () => { setStep(5); void create(); },
             canNext: agreeTerms && agreePrivacy,
             label: "홈페이지 만들기 — 무료",
           })}
