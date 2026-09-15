@@ -52,7 +52,10 @@ export function ChangeSlug({ slug, businessName }: { slug: string; businessName:
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setErr(String(d.error ?? `실패했어요 (${r.status})`)); return; }
-      setMsg(`onstori.com/${d.to} 로 바꿨습니다.${d.oldLocked ? " 옛 주소는 다른 분이 못 가져가게 잠가 뒀어요." : ""} 새로고침하면 목록에 반영됩니다.`);
+      /* ★ 함께 고친 곳·못 고친 곳을 **사실대로** 말한다. 조용히 넘기면 나중에 「왜 안 뜨지?」가 된다 */
+      const also = Array.isArray(d.alsoFixed) && d.alsoFixed.length ? ` ${d.alsoFixed.join("·")}의 주소도 같이 고쳤습니다.` : "";
+      const bad = Array.isArray(d.alsoFailed) && d.alsoFailed.length ? ` ⚠ ${d.alsoFailed.join("·")}은(는) 못 고쳤습니다 — 직접 확인해 주세요.` : "";
+      setMsg(`onstori.com/${d.to} 로 바꿨습니다.${d.oldLocked ? " 옛 주소는 다른 분이 못 가져가게 잠가 뒀어요." : ""}${also}${bad} 새로고침하면 목록에 반영됩니다.`);
     } finally {
       setBusy(false);
     }

@@ -60,6 +60,33 @@ export async function POST(req: Request) {
   const { error } = await sb.from("sites").update({ slug: next }).eq("id", site.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  /**
+   * ★★★ **주소를 «복사해 둔» 다른 표도 함께 고친다.** (2026-09-15 대표님 지적)
+   *
+   * ★ 대표님 말씀: 「랜딩에 걸어 둔 홈페이지 주소를 내가 나중에 바꾸면 **랜딩에서 사이트 뜰 때
+   *   링크 깨지는 건 아니지?** … 사이트명 주소가 바뀌면 **연결된 다양한 장소에서 링크가 자동으로
+   *   업데이트되게** 만들어.」
+   *
+   * 🔴 **실제로 깨진다.** `showcase` 표는 `slug` 를 **글자로 복사해** 갖고 있다(사이트 id 가 아니다).
+   *   주소를 바꾸면 랜딩이 옛 주소로 사이트를 찾다가 못 찾고 **카드가 조용히 사라진다.**
+   *   등록은 그대로 남아 있으니 「왜 안 뜨지?」만 남는다 — 조용히 사라지는 것이 가장 나쁘다.
+   *
+   * ⚠ **바꾸면 «안 되는» 곳도 있다 — 지난 일의 기록이다:**
+   *   · `billing_events.site_slug` — 「그때 무엇이었나」를 남기는 칸이다. 고치면 과거가 바뀐다
+   *   · `site_deletions.slug`      — 같은 이유
+   *   ⇒ **「지금을 가리키는 것」만 고치고, 「그때를 적어 둔 것」은 그대로 둔다.**
+   *
+   * ⚠ 실패해도 주소 변경 자체를 무르지 않는다. 대신 **화면에 사실대로 알린다** — 조용히 넘기지 않는다.
+   */
+  const alsoFixed: string[] = [];
+  const alsoFailed: string[] = [];
+  try {
+    const { error: e3, count } = await sb
+      .from("showcase").update({ slug: next }, { count: "exact" }).eq("slug", cur);
+    if (e3) alsoFailed.push("랜딩 포트폴리오");
+    else if ((count ?? 0) > 0) alsoFixed.push("랜딩 포트폴리오");
+  } catch { alsoFailed.push("랜딩 포트폴리오"); }
+
   /* ★ 옛 주소를 잠가 둔다 — 다른 분이 가져가면 옛 명함을 보고 온 손님이 엉뚱한 가게를 본다.
      ⚠ 실패해도 주소 변경 자체를 무르지 않는다. 잠그기는 «덤»이고 변경이 «본체»다. */
   let locked = false;
@@ -69,8 +96,9 @@ export async function POST(req: Request) {
   } catch { /* 표가 없거나 권한이 다르면 조용히 넘어간다 */ }
 
   /* 캐시를 푼다 — 안 풀면 최대 60초 동안 옛 화면이 나간다 */
+  /* ⚠ 랜딩(`/`)도 함께 푼다 — 포트폴리오 카드가 옛 주소로 굳어 있을 수 있다 */
   try { revalidatePath(`/${cur}`); revalidatePath(`/${next}`); revalidatePath("/"); } catch { /* 캐시 실패가 변경을 무르게 하지 않는다 */ }
 
-  console.log(JSON.stringify({ evt: "site_slug_changed", from: cur, to: next, business: site.business_name, oldLocked: locked }));
-  return NextResponse.json({ ok: true, from: cur, to: next, oldLocked: locked });
+  console.log(JSON.stringify({ evt: "site_slug_changed", from: cur, to: next, business: site.business_name, oldLocked: locked, alsoFixed, alsoFailed }));
+  return NextResponse.json({ ok: true, from: cur, to: next, oldLocked: locked, alsoFixed, alsoFailed });
 }
