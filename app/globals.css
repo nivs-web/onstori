@@ -1385,6 +1385,10 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 
 /* 로고 갈아 끼우기 — 자바스크립트 없이 CSS 로만. 두 장을 겹쳐 두고 하나만 보인다.
    ⚠ 스크립트로 src 를 바꾸면 화면이 처음 뜰 때 **잘못된 색이 한 번 스쳐 간다.** */
+/* ★ 2026-09-15 — 기본값을 **전역**으로 올렸다. 전에는 `.editor-brand` 안에만 있어서
+   Logo 를 다른 자리에 놓으면 두 장이 겹쳐 보였다. 이제 `<Logo />` 한 줄이면 어디서든 된다. */
+.logo-light { display: block; }
+.logo-dark  { display: none; }
 [data-mode="dark"] .logo-light { display: none !important; }
 [data-mode="dark"] .logo-dark { display: block !important; }
 /* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */

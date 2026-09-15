@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { EditUi } from "./ui";
 import { themeAttrs, themeVars } from "@/lib/design-tokens";
+import { designRev } from "@/lib/admin-theme";
 import { readDesignAll } from "@/lib/design-settings";
 
 /* ★ 2026-09-13 — 「홈페이지 수정」 → **「홈페이지 관리」**. (상무님 지적 14)
@@ -49,6 +50,18 @@ export default async function EditPage({ params }: { params: Promise<{ slug: str
   const all = await readDesignAll();
   return (
     <div
+      /* ★ 2026-09-15 대표님 — **사장님도 밝기를 껐다 켤 수 있다.**
+         사장님은 처음 한 번만 onstori.com 을 보고, 그 뒤로는 이 화면에서 산다.
+         밝기 토글(`shell.tsx` 의 [라이트모드]/[다크모드])이 이 상자의 `data-mode` 를 뒤집는다.
+         ⚠ 속성 이름이 `data-admin-root` 인 것은 **운영자 전용이라는 뜻이 아니다.**
+           밝기 토글이 「어느 상자를 뒤집을지」 찾는 표식이고, 운영자 콘솔이 먼저 썼을 뿐이다.
+           이름을 바꾸면 `components/admin/theme-toggle.tsx` 와 `app/admin/settings/brand/ui.tsx`
+           두 곳을 같이 고쳐야 한다 — 지금은 그대로 쓴다.
+         ★ 기본은 **밝은 화면**이다(`config/design.ts` 의 `DEFAULTS.editor.mode = "light"`). */
+      data-admin-root
+      /* ★ 설정 지문 — 밝기 토글이 남긴 **임시값을 무효로 만드는 열쇠**다.
+         「디자인 설정」이 바뀌면 이 값이 달라지고, 지문이 안 맞는 임시값은 브라우저가 스스로 버린다. */
+      data-design-rev={designRev(all.editor)}
       {...themeAttrs(all.editor, "editor")}
       style={{ display: "contents", ...themeVars(all.editor, all.site) } as React.CSSProperties}
     >

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Logo } from "@/components/site/logo";
+import { AdminThemeToggle } from "@/components/admin/theme-toggle";
 import { VISIBLE_EDITOR_MENUS, type EditorMenuId } from "@/config/editor-menu";
 
 /**
@@ -65,8 +67,12 @@ export function EditorShell(p: Props) {
       <header className="editor-bar">
         <div className="editor-bar-row">
           <span className="editor-brand">
-            <span className="logo-light"><Logo height={20} priority={false} /></span>
-            <span className="logo-dark"><Logo variant="white" height={20} priority={false} /></span>
+            {/* ★ 밝은/어두운 전환은 Logo 가 스스로 한다 — 부르는 쪽은 한 줄이면 된다.
+                ★ 2026-09-15 대표님 — **누르면 온스토리 홈으로 간다.**
+                  ⚠ 편집 내용은 자동저장된다(상단 `status` 줄). 그래서 같은 탭으로 보낸다. */}
+            <Link href="/" aria-label="온스토리 홈" className="flex items-center" style={{ minHeight: "var(--tap)" }}>
+              <Logo height={20} priority={false} />
+            </Link>
           </span>
 
           <div data-tour="score-bar" className="editor-ident">
@@ -84,6 +90,9 @@ export function EditorShell(p: Props) {
             <button type="button" data-tour="btn-publish" onClick={p.onPublish} disabled={!!p.busy} className="btn btn-primary btn-xs t-caption">
               {p.busy === "publish" ? "반영 중…" : "사이트 반영"}
             </button>
+            {/* ★ 2026-09-15 대표님 — 사장님도 밝기를 껐다 켤 수 있다. 기본은 **밝은 화면**.
+                이 브라우저에서만 기억한다(`lib/admin-theme.ts`). */}
+            <AdminThemeToggle className="btn btn-secondary btn-xs t-caption" />
             {p.logout}
           </div>
         </div>

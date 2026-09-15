@@ -20,7 +20,15 @@ import { ADMIN_THEME_KEY, DESIGN_APPLIED, readOverride, writeOverride, type Mode
  * ⚠ 첫 렌더에서는 **서버가 준 값 그대로** 보인다(깜빡임 없음). 임시값이 있으면
  *   그 뒤에 한 번 바뀐다 — 임시로 뒤집어 둔 사람만 겪는 일이라 감수한다.
  */
-export function AdminThemeToggle() {
+/**
+ * ★ 2026-09-15 대표님 — **사장님 편집화면에서도 쓴다.**
+ *   사장님은 처음 한 번만 onstori.com 을 보고 그 뒤로는 편집화면에서 산다 —
+ *   거기서 밝기를 못 바꾸면 안 된다. `app/[slug]/edit/shell.tsx` 가 이 버튼을 단다.
+ *   ⚠ 이름이 `Admin…` 인 것은 **운영자 전용이라는 뜻이 아니다.** 운영자 콘솔이 먼저 썼을 뿐이고,
+ *     하는 일은 `[data-admin-root]` 상자의 `data-mode` 를 뒤집는 것 하나다.
+ *     이름을 바꾸려면 부르는 곳 두 군데를 같이 고쳐야 한다 — 지금은 그대로 둔다.
+ */
+export function AdminThemeToggle({ className = "btn btn-secondary t-caption" }: { className?: string } = {}) {
   /** null = 아직 안 읽음. 읽기 전에는 서버가 심은 값이 그대로 보인다 */
   const [dark, setDark] = useState<boolean | null>(null);
 
@@ -60,7 +68,7 @@ export function AdminThemeToggle() {
       type="button"
       onClick={flip}
       aria-pressed={!!dark}
-      className="btn btn-secondary t-caption"
+      className={className}
       title={dark ? "밝은 화면으로 (이 브라우저에서만)" : "어두운 화면으로 (이 브라우저에서만)"}
       data-storage-key={ADMIN_THEME_KEY}
     >

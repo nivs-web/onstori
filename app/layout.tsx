@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { themeAttrs, themeVars } from "@/lib/design-tokens";
 import { readDesign } from "@/lib/design-settings";
@@ -7,6 +7,11 @@ import { readDesign } from "@/lib/design-settings";
    화면당 서른 글자 남짓 쓰자고 한글 세리프 405KB 를 받고 있었다(Lighthouse 실측).
    제목은 이제 서체가 아니라 **굵기와 자간**으로 낸다 — app/globals.css 의 --w-bold/--ls-h1.
    글꼴은 Pretendard 하나뿐이고, 자체 호스팅한다(app/fonts.css). */
+
+/** 브랜드 자산의 단일 출처. 로고가 바뀌면 v2 를 올리고 이 환경변수만 바꾼다.
+ *  ⚠ 같은 주소에 다른 그림을 올리면 브라우저가 옛 파비콘을 **몇 주씩** 붙잡는다.
+ *    그래서 주소에 판 번호를 넣는다 — 새 판은 새 주소라 즉시 반영된다. */
+const BRAND_BASE = process.env.NEXT_PUBLIC_BRAND_URL ?? "/brand/v1";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://onstori.com"),
@@ -20,8 +25,30 @@ export const metadata: Metadata = {
     siteName: "온스토리",
     locale: "ko_KR",
     type: "website",
+    /* 카카오톡·슬랙 공유 미리보기 그림 */
+    images: [{ url: `${BRAND_BASE}/icon/icon-1024.png`, width: 1024, height: 1024, alt: "온스토리" }],
+  },
+
+  /* ★ 파비콘·홈화면 아이콘 (brand v1, 2026-09-15 전면 교체).
+     ⚠ `app/favicon.ico` · `app/icon.png` · `app/apple-icon.png` 을 **지웠다.**
+       그 파일들이 app/ 에 있으면 Next 가 그것을 먼저 쓰고 **여기 설정을 통째로 무시한다.**
+       다시 만들지 마라.
+     ⚠ apple-touch-icon 은 **각진 정사각**이어야 한다. 둥근 것을 넣으면 iOS 가 모서리를
+       한 번 더 깎아 **두 번 깎인다.** */
+  icons: {
+    icon: [
+      { url: `${BRAND_BASE}/icon/favicon.svg`, type: "image/svg+xml" },
+      { url: `${BRAND_BASE}/icon/favicon-96.png`, sizes: "96x96", type: "image/png" },
+      { url: `${BRAND_BASE}/icon/favicon-32.png`, sizes: "32x32", type: "image/png" },
+      { url: `${BRAND_BASE}/icon/favicon.ico`, sizes: "any" },
+    ],
+    apple: [{ url: `${BRAND_BASE}/icon/apple-touch-icon.png`, sizes: "180x180" }],
   },
 };
+
+/** 안드로이드 크롬 주소창 색.
+ *  ⚠ 색의 단일 출처는 globals.css 의 `--green` 이다 — 값이 어긋나면 안 된다. */
+export const viewport: Viewport = { themeColor: "#005B2A" };
 
 /**
  * ★ 테마 엔진 주입 지점 (2026-09-08, S1).

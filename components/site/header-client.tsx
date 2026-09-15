@@ -153,7 +153,10 @@ function MenuSheet({
       style={{ background: "var(--n-0)" }}
     >
       <div className="wrap flex items-center justify-between" style={{ height: "var(--bar-h)" }}>
-        <Logo height={20} />
+        {/* ★ 2026-09-15 — 폰 메뉴의 로고도 누르면 홈으로 간다(위 헤더와 같게) */}
+        <Link href="/" aria-label="온스토리 홈" className="flex items-center" style={{ minHeight: "var(--tap)" }}>
+          <Logo height={20} />
+        </Link>
         <button
           type="button"
           className="grid place-items-center"

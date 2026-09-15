@@ -143,8 +143,8 @@ export function AdminSidebar() {
           aria-label="운영자 콘솔 첫 화면"
           style={{ display: "block", padding: "0 12px", marginBottom: "var(--s-6)", fontWeight: "var(--w-bold)", color: "var(--text-strong)" }}
         >
-          <span className="logo-light" style={{ display: "block" }}><Logo height={22} priority={false} /></span>
-          <span className="logo-dark" style={{ display: "none" }}><Logo variant="white" height={22} priority={false} /></span>
+          {/* ★ 밝은/어두운 전환은 Logo 가 스스로 한다 */}
+          <Logo height={22} priority={false} />
           <span style={{ fontSize: "var(--t-caption)", color: "var(--text-soft)", display: "block", marginTop: "var(--s-1)" }}>운영자 콘솔</span>
         </Link>
         <Nav pathname={pathname} />
