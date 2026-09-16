@@ -9,6 +9,10 @@ import { sayPost, providerName, josa } from "@/lib/sns/status-say";
 import { SNS_EDIT_NOTICE, SNS_GROWTH_NOTE, SNS_DELETE_SCOPE, SNS_DELETE_BUTTON } from "@/lib/sns/copy";
 import { TextMeter } from "./text-meter";
 import type { SnsProvider } from "@/lib/sns/types";
+import {
+  SNS_DEFAULTS, composeCaption, normalizeTags, TEXT_MAX, TAGS_MAX,
+  type SnsDefaults,
+} from "@/lib/sns-defaults";
 
 /**
  * 「영상」 메뉴 — 찍어 올린 60초 영상을 **홈페이지에 걸고 내린다** (2026-09-11, V-1 C).
@@ -21,7 +25,16 @@ import type { SnsProvider } from "@/lib/sns/types";
  *   낡은 doc 이 곧 덮어쓴다.
  *
  * ⚠ **조용히 실패하지 않는다**(회장님 지시 1). 걸기가 실패하면 그 카드 안에 이유를 띄운다.
- * ⚠ V-1 은 **한 편만** 걸린다. 이미 걸린 게 있으면 「바꾸시겠습니까」로 묻는다(지시 5).
+ *
+ * ★★ **2026-09-16 — 「한 편만」이 끝났다.** 홈페이지는 `video_out_key` 가 있는 영상을
+ *   **전부** 숏폼 피드로 보여 준다(`lib/shorts.ts`). 여기서도 여러 편을 걸고, 내릴 때는
+ *   **그 한 편만** 내린다. 옛 주석의 「한 편만 · 바꾸시겠습니까」는 폐기됐다.
+ *
+ * ★★ **「한 방 등록」이 이 화면의 중심이다** (2026-09-16 대표님 지시).
+ *   글·해시태그를 한 번 정해 두면 영상마다 다시 안 적는다. 버튼 하나로
+ *   홈페이지 + 인스타 + 틱톡이 함께 나간다.
+ *   🔴 **틱톡의 «공개범위»만은 매번 묻는다.** 미리 골라 두면 틱톡 심사에서 떨어진다
+ *     (`lib/sns/tiktok.ts` 의 `canPrefill:false`). 우리 기술이 아니라 **틱톡 규정**이다.
  */
 
 type Item = {
@@ -102,6 +115,16 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [askDelete, setAskDelete] = useState<string | null>(null);
   const [manageMsg, setManageMsg] = useState("");
 
+  /* ══ 「한 방 등록」 (2026-09-16 대표님 지시) ══════════════════════════════
+     대표님 말씀: 「인스타 릴스 각각 설정 넣고 등록하기 누르고, 또 틱톡도 각각 설정하고 —
+     이게 무슨 한 방 등록이야.」 글·해시태그·영상은 **공통**이니 한 번 적고 한 번에 나가야 한다.
+     ⚠ 아래 개별 상자(인스타·틱톡)는 **그대로 둔다.** 채널마다 다르게 쓰고 싶은 분의 길이다. */
+  const [sd, setSd] = useState<SnsDefaults>(SNS_DEFAULTS);
+  const [sdOpen, setSdOpen] = useState(false);
+  const [sdSaved, setSdSaved] = useState<"" | "saving" | "ok" | "fail">("");
+  /** 설정을 한 번이라도 저장하셨나 — 아직이면 카드를 펼쳐 둔다(처음 오신 분이 그냥 지나치지 않게) */
+  const [sdReady, setSdReady] = useState(false);
+
   /** 지금 홈페이지에 걸려 있는 영상 주소 — doc 이 진실이다 */
   const attachedUrl = (() => {
     const v = doc.sections.find((s) => s.type === "video");
@@ -140,6 +163,45 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     return () => window.clearTimeout(t);
   }, [load]);
 
+  /* ★ 「한 방 등록」 기본 설정을 읽어 온다. 못 읽어도 기본값으로 돈다 — 화면이 멈추지 않는다 */
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        let anonId = "";
+        try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 사생활 보호 모드 */ }
+        const r = await fetch("/api/site/sns-defaults", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, anonId, read: true }),
+        });
+        const d = (await r.json().catch(() => ({}))) as { defaults?: SnsDefaults; configured?: boolean };
+        if (!alive || !d.defaults) return;
+        setSd(d.defaults);
+        setSdReady(!!d.configured);
+        /* 아직 한 번도 안 정하셨으면 펼쳐 둔다 — 「한 방」의 값어치는 채워 넣어야 생긴다 */
+        if (!d.configured) setSdOpen(true);
+      } catch { /* 기본값으로 간다 */ }
+    })();
+    return () => { alive = false; };
+  }, [slug]);
+
+  /** 기본 설정 저장 — 한 칸만 보내도 나머지는 서버가 지킨다 */
+  async function saveDefaults(next: Partial<SnsDefaults>) {
+    const merged = { ...sd, ...next };
+    setSd(merged);
+    setSdSaved("saving");
+    try {
+      let anonId = "";
+      try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 무시 */ }
+      const r = await fetch("/api/site/sns-defaults", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, ...merged }),
+      });
+      setSdSaved(r.ok ? "ok" : "fail");
+      if (r.ok) setSdReady(true);
+    } catch { setSdSaved("fail"); }
+  }
+
   /* ── SNS 올리기 ────────────────
      ★ 인스타는 한 번에 안 끝난다. `processing` 이면 **1분에 한 번, 최대 5분** 이어 간다
        (회장님 지시 4). 기다림을 서버에 맡기면 시간 초과로 끊기고, 그 끊김이 곧
@@ -177,7 +239,11 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         commercial: boolean; brandOrganic: boolean; brandedContent: boolean }
   >(null);
 
-  async function openTiktokSheet(it: Item) {
+  /**
+   * @param prefill 「한 방에 올리기」가 넘겨 주는 글. 제목은 `canPrefill: true` 라 미리 채워도 된다.
+   *   ⚠ **공개범위는 절대 미리 고르지 않는다** — 그건 `canPrefill: false` 다(틱톡 심사 요건).
+   */
+  async function openTiktokSheet(it: Item, prefill?: string) {
     setTtSheet({ entryId: it.id, state: "loading" });
     try {
       let anonId = "";
@@ -195,7 +261,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         entryId: it.id, state: "ready", opt: d.options,
         /* ★ 공개범위는 **미리 고르지 않는다.** 사장님이 직접 눌러야 한다 */
         privacy: "",
-        title: it.question || it.title || "",
+        title: prefill ?? (it.question || it.title || ""),
         /* ★ 기본은 **전부 꺼짐** — 틱톡이 그렇게 요구한다(규격서 D) */
         okComment: false, okDuet: false, okStitch: false,
         commercial: false, brandOrganic: false, brandedContent: false,
@@ -377,6 +443,58 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     }
   }
 
+  /**
+   * ★★ **한 방에 올리기** — 이 화면의 중심 기능이다. (2026-09-16 대표님 지시)
+   *
+   *   ① 홈페이지에 건다 (아직 안 걸렸으면)
+   *   ② 저장된 글 + 해시태그로 SNS 에 한 번에 보낸다
+   *   ③ 🔴 틱톡이 끼어 있으면 **공개범위만** 고르는 시트를 연다 — 제목은 이미 채워져 있다
+   *
+   * 🔴 **왜 틱톡만 한 번 더 묻나 — 틱톡 규정이다.**
+   *   틱톡 심사는 「사장님이 **매번 스스로** 공개범위를 골랐는가」를 본다.
+   *   미리 골라 두면 그 하나로 심사에서 떨어진다(`lib/sns/tiktok.ts` 의 `canPrefill:false`).
+   *   기술로는 한 번에 되지만 **규정이 막는다.** 그래서 「인스타·홈페이지는 즉시,
+   *   틱톡은 한 번 더 누르기」가 지금 만들 수 있는 가장 짧은 길이다.
+   *
+   * ⚠ 이미 올린 곳은 **뺀다.** 서버가 중복을 막지만, 빼고 보내야 「이미 올렸어요」가 안 뜬다.
+   * ⚠ 규격에 안 맞는 영상(`it.ig.ok === false`)이면 SNS 는 건너뛰고 홈페이지만 건다 —
+   *   눌러서 실패하면 그날 한도가 줄어든다.
+   */
+  async function oneShot(it: Item) {
+    setErr(null);
+    const already = new Set((it.posted ?? []).filter((x) => x.status === "published").map((x) => x.provider));
+    const badSpec = !!it.ig && !it.ig.ok;
+
+    /* ① 홈페이지 */
+    const attachedNow = it.attached ?? (!!it.publicUrl && it.publicUrl === attachedUrl);
+    if (sd.home && !attachedNow) await attach(it);
+
+    if (badSpec) {
+      setErr({ id: it.id, msg: `홈페이지에는 걸었어요. 다만 이 영상은 SNS 규격에 안 맞아요 — ${it.ig?.why ?? ""}` });
+      return;
+    }
+
+    /* ② 어디로 보낼까 — 저장된 채널 중 «아직 안 올린 곳»만 */
+    const want = sd.providers.filter((p) => !already.has(p));
+    if (want.length === 0) {
+      if (!sd.home) setErr({ id: it.id, msg: "올릴 곳이 없어요. 아래 [한 방 등록 설정]에서 채널을 골라 주세요." });
+      return;
+    }
+
+    const caption = composeCaption(sd, it.question || it.title || "");
+
+    /* ③ 틱톡이 끼어 있으면 — 공개범위를 먼저 받는다(규정) */
+    if (want.includes("tiktok")) {
+      /* 틱톡 말고 먼저 보낼 수 있는 곳은 지금 보낸다 — 기다릴 이유가 없다 */
+      const rest = want.filter((p) => p !== "tiktok");
+      if (rest.length) await publish(it.id, rest, undefined, caption);
+      await openTiktokSheet(it, caption);
+      return;
+    }
+
+    await publish(it.id, want, undefined, caption);
+  }
+
   async function attach(it: Item) {
     /* ★ 2026-09-16 — **묻지 않는다.** 전에는 「지금 걸린 것을 이 영상으로 바꿀까요?」를 물었다.
        한 편만 걸리던 시절의 말이다. 이제 여러 편이 함께 걸리므로 바꾸는 것이 아니라 «더하는» 것이다. */
@@ -456,6 +574,107 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
             <p className="t-caption font-semibold text-danger">⚠ {SNS_EDIT_NOTICE}</p>
             <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">{SNS_GROWTH_NOTE}</p>
           </div>
+          {/* ══ 「한 방 등록」 설정 — 한 번 정해 두면 영상마다 다시 안 적는다 (2026-09-16) ══ */}
+          <section className="rounded-2xl border border-green-700 p-4">
+            <button type="button" onClick={() => setSdOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 text-left">
+              <span>
+                <span className="t-small font-bold">⚡ 한 방 등록 설정</span>
+                <span className="ml-2 t-caption text-[var(--text-soft)]">
+                  {sdReady ? "정해 두셨어요 — 버튼 한 번이면 다 나갑니다" : "먼저 한 번만 정해 주세요"}
+                </span>
+              </span>
+              <span className="shrink-0 t-caption text-[var(--text-soft)]">{sdOpen ? "접기 ▴" : "펼치기 ▾"}</span>
+            </button>
+
+            {!sdOpen && (
+              <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+                지금 설정: {sd.home ? "홈페이지 + " : ""}
+                {sd.providers.length ? sd.providers.map(providerName).join(" · ") : "고른 채널 없음"}
+                {normalizeTags(sd.tags).length > 0 && ` · 해시태그 ${normalizeTags(sd.tags).length}개`}
+              </p>
+            )}
+
+            {sdOpen && (
+              <div className="mt-3 space-y-3">
+                <p className="t-caption leading-relaxed text-[var(--text-soft)]">
+                  여기서 정한 <b>글과 해시태그가 모든 채널에 똑같이</b> 들어갑니다.
+                  영상마다 다시 적지 않으셔도 돼요. 채널별로 다르게 쓰고 싶으시면 아래 개별 상자를 쓰시면 됩니다.
+                </p>
+
+                <label className="block">
+                  <span className="t-caption font-semibold">기본 글 <span className="font-normal text-[var(--text-soft)]">(비워 두면 그 영상의 질문이 들어가요)</span></span>
+                  <textarea
+                    className="mt-1 w-full rounded-lg border border-n-300 p-2 t-caption" rows={3}
+                    maxLength={TEXT_MAX}
+                    value={sd.text}
+                    onChange={(e) => setSd({ ...sd, text: e.target.value })}
+                    onBlur={() => void saveDefaults({})}
+                    placeholder="예) 다산 리모델링입니다. 오늘도 현장에서 한 컷 남깁니다."
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="t-caption font-semibold">해시태그 <span className="font-normal text-[var(--text-soft)]">(# 없이 적으셔도 됩니다)</span></span>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-n-300 p-2 t-caption"
+                    maxLength={TAGS_MAX}
+                    value={sd.tags}
+                    onChange={(e) => setSd({ ...sd, tags: e.target.value })}
+                    onBlur={() => void saveDefaults({})}
+                    placeholder="예) 남양주인테리어 다산리모델링 욕실공사"
+                  />
+                  {normalizeTags(sd.tags).length > 0 && (
+                    <span className="mt-1 block t-caption text-[var(--text-soft)]">
+                      {normalizeTags(sd.tags).map((t) => `#${t}`).join(" ")}
+                    </span>
+                  )}
+                </label>
+
+                <div>
+                  <p className="t-caption font-semibold">어디에 올릴까요</p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <label className="inline-flex items-center gap-1.5 rounded-full border border-n-300 px-3 py-1.5 t-caption">
+                      <input type="checkbox" checked={sd.home}
+                        onChange={(e) => void saveDefaults({ home: e.target.checked })} />
+                      홈페이지
+                    </label>
+                    {(["instagram", "tiktok"] as SnsProvider[]).map((p) => (
+                      <label key={p} className="inline-flex items-center gap-1.5 rounded-full border border-n-300 px-3 py-1.5 t-caption">
+                        <input type="checkbox" checked={sd.providers.includes(p)}
+                          onChange={(e) => void saveDefaults({
+                            providers: e.target.checked
+                              ? [...sd.providers.filter((x) => x !== p), p]
+                              : sd.providers.filter((x) => x !== p),
+                          })} />
+                        {providerName(p)}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">
+                    유튜브 쇼츠·쓰레드·X·페이스북은 <b>준비 중</b>이라 아직 못 고릅니다. 열리는 대로 여기에 나타납니다.
+                  </p>
+                </div>
+
+                {/* 🔴 틱톡 규정 — 이걸 안 적으면 「왜 틱톡만 한 번 더 누르지?」가 된다 */}
+                {sd.providers.includes("tiktok") && (
+                  <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">
+                    ⚠ <b>틱톡만은 올릴 때마다 「누가 볼 수 있나요?」를 한 번 물어봅니다.</b>{" "}
+                    틱톡 규정이 「사장님이 매번 직접 고를 것」을 요구해서, 우리가 미리 정해 둘 수 없습니다.
+                    제목·해시태그는 이미 채워져 있으니 <b>공개범위만 한 번 누르시면</b> 됩니다.
+                  </p>
+                )}
+
+                <p className="t-caption font-semibold">
+                  {sdSaved === "saving" ? "저장 중…"
+                    : sdSaved === "ok" ? <span className="text-green-700">저장했어요</span>
+                    : sdSaved === "fail" ? <span className="text-danger">저장하지 못했어요. 다시 한 번 눌러 주세요.</span>
+                    : null}
+                </p>
+              </div>
+            )}
+          </section>
+
           {/* ★★ 2026-09-16 — 「한 편만」이 **사실이 아니게 됐다.** 홈페이지가 걸린 영상을
               전부 보여 준다(숏폼 피드). 옛 문장을 그대로 두면 사장님이 한 편만 거신다. */}
           <p className="t-caption leading-relaxed text-[var(--text-soft)]">
@@ -506,6 +725,24 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
 
                 {err?.id === it.id && (
                   <p className="rounded-lg bg-danger-soft p-2.5 t-caption font-semibold text-danger">{err.msg}</p>
+                )}
+
+                {/* ══ ⚡ 한 방에 올리기 — 이 화면의 중심 버튼 (2026-09-16 대표님 지시) ══
+                    ⚠ 아래 개별 상자(인스타·틱톡)는 그대로 둔다. 채널마다 다르게 쓰실 분의 길이다. */}
+                {(sd.home || sd.providers.length > 0) && (
+                  <div className="rounded-xl border-2 border-green-700 bg-green-50/40 p-3">
+                    <button type="button" disabled={pubBusy === it.id || busyId === it.id}
+                      onClick={() => void oneShot(it)}
+                      className="w-full rounded-full bg-green-700 px-4 py-3 t-small font-bold text-white disabled:opacity-40">
+                      {pubBusy === it.id || busyId === it.id ? "올리는 중…" : "⚡ 한 방에 올리기"}
+                    </button>
+                    <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+                      {[sd.home ? "홈페이지" : null, ...sd.providers.map(providerName)].filter(Boolean).join(" + ")}
+                      {" 에 한 번에 올라갑니다."}
+                      {normalizeTags(sd.tags).length > 0 && " 정해 두신 글·해시태그가 그대로 들어갑니다."}
+                      {sd.providers.includes("tiktok") && <> <b>틱톡은 「누가 볼 수 있나요?」만 한 번 눌러 주시면 됩니다.</b></>}
+                    </p>
+                  </div>
                 )}
 
                 <div className="flex flex-wrap gap-2">
