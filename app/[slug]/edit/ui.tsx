@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RULES } from "@/config/completeness";
+import { MAX_UPLOAD_LABEL } from "@/config/limits";
 import type { SiteDocT, SectionT } from "@/lib/schema";
 import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
 import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
@@ -785,6 +786,41 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
 }) {
   const [uploading, setUploading] = useState(false);
 
+  /**
+   * [반장 지시 6] 첫 화면 사진 «자동 교체» — 이미지뱅크에서 3장을 고르는 것뿐,
+   * AI 로 새로 만드는 게 아니다(우리 비용 0). 서버는 app/api/site/hero-bank.
+   * `urls` 를 누르면 그 자리에서 히어로 이미지로 바뀌고, 프롬프트는 직접 만들고 싶을 때 쓴다.
+   */
+  const [heroBank, setHeroBank] = useState<{ open: boolean; loading: boolean; urls: string[]; prompt: string; copied: boolean }>(
+    { open: false, loading: false, urls: [], prompt: "", copied: false },
+  );
+
+  async function loadHeroBank(exclude: string[]) {
+    setHeroBank((h) => ({ ...h, open: true, loading: true, copied: false }));
+    try {
+      const r = await fetch("/api/site/hero-bank", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId: anon(), exclude }),
+      });
+      const d = await r.json();
+      if (!r.ok) { alert(d.error ?? "사진을 불러오지 못했어요"); setHeroBank((h) => ({ ...h, loading: false })); return; }
+      setHeroBank({ open: true, loading: false, urls: d.urls ?? [], prompt: d.prompt ?? "", copied: false });
+    } catch {
+      setHeroBank((h) => ({ ...h, loading: false }));
+      alert("사진을 불러오지 못했어요");
+    }
+  }
+
+  async function copyHeroPrompt() {
+    try {
+      await navigator.clipboard.writeText(heroBank.prompt);
+      setHeroBank((h) => ({ ...h, copied: true }));
+      setTimeout(() => setHeroBank((h) => ({ ...h, copied: false })), 2000);
+    } catch {
+      alert("복사에 실패했어요 — 문장을 길게 눌러 직접 복사해 주세요");
+    }
+  }
+
   async function upload(file: File): Promise<string | null> {
     setUploading(true);
     const fd = new FormData();
@@ -841,13 +877,58 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
               <Field label="작은 소개 (한 줄)"><input className={inp} value={s.eyebrow ?? ""} maxLength={40} onChange={(e) => patchSection(i, { eyebrow: e.target.value })} /></Field>
               <Field label="큰 제목"><textarea className={inp} rows={2} value={s.headline} maxLength={60} onChange={(e) => patchSection(i, { headline: e.target.value })} /></Field>
               <Field label="설명 문장"><textarea className={inp} rows={2} value={s.sub ?? ""} maxLength={160} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
-              <div data-tour="panel-photos">
+              <div data-tour="panel-photos" className="space-y-3">
                 <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">첫 화면 사진 {s.image ? "" : "(없음)"}</span>
                 {s.image && /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.image} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />}
-                <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
-                  {uploading ? "올리는 중…" : "내 사진으로 교체 (+15점 항목)"}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
-                </label>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
+                    {uploading ? "올리는 중…" : "내 사진으로 교체 (+15점)"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
+                  </label>
+                  <span className="text-[11px] text-[var(--text-soft)]">권장 1600×900 이상 · JPG/PNG · {MAX_UPLOAD_LABEL} 이하</span>
+                </div>
+                <button type="button"
+                  className="rounded-full bg-n-100 px-4 py-1.5 t-caption font-semibold"
+                  onClick={() => (heroBank.open ? setHeroBank((h) => ({ ...h, open: false })) : loadHeroBank([]))}>
+                  {heroBank.loading ? "불러오는 중…" : heroBank.open ? "접기" : "첫 화면 사진 자동 교체"}
+                </button>
+
+                {/* 이미지뱅크에서 «고르는» 것뿐이다 — 새로 만드는 게 아니라 우리 비용이 들지 않는다 */}
+                {heroBank.open && (
+                  <div className="space-y-3 rounded-xl bg-n-50 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="t-caption font-semibold text-[var(--text-soft)]">이미지뱅크 사진</span>
+                      <button type="button" disabled={heroBank.loading}
+                        className="rounded-full bg-n-100 px-3 py-1 t-caption font-semibold disabled:opacity-50"
+                        onClick={() => loadHeroBank(heroBank.urls)}>
+                        {heroBank.loading ? "고르는 중…" : "다시 고르기"}
+                      </button>
+                    </div>
+                    {heroBank.urls.length === 0 && !heroBank.loading && (
+                      <p className="text-[12px] leading-relaxed text-[var(--text-soft)]">지금 보여드릴 사진이 없어요. 아래 문장으로 직접 만들어 올려 주세요.</p>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      {heroBank.urls.map((url) => (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img key={url} src={url} alt="" onClick={() => patchSection(i, { image: url })}
+                          className="aspect-video w-full cursor-pointer rounded-lg object-cover ring-1 ring-n-200 hover:ring-2 hover:ring-accent" />
+                      ))}
+                    </div>
+                    <div className="border-t border-n-200 pt-3">
+                      <p className="mb-1 t-caption font-semibold text-[var(--text-soft)]">이 사진은 이렇게 만들어졌어요 (영어 프롬프트)</p>
+                      <textarea readOnly rows={2} value={heroBank.prompt} onFocus={(e) => e.target.select()}
+                        className={inp + " resize-none"} />
+                      <button type="button" onClick={copyHeroPrompt}
+                        className="mt-2 rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
+                        {heroBank.copied ? "복사했어요" : "프롬프트 복사하기"}
+                      </button>
+                      <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-soft)]">
+                        마음에 드는 사진이 없으시면, 위 문장을 복사해 ChatGPT·Gemini 에서 직접 만들어
+                        올려 주세요. 세부 업종은 다시 고르기가 안 될 수 있습니다.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           );

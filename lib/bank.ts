@@ -132,10 +132,46 @@ export async function pickImage(
 export async function pickImages(
   industry: string,
   mood: string,
-  role: "gallery" | "about" | "process",
+  role: "gallery" | "about" | "process" | "hero",
   n: number,
-  opts?: { text?: string; widenMood?: boolean },
+  opts?: { text?: string; widenMood?: boolean; exclude?: string[] },
 ): Promise<string[]> {
+  /**
+   * ★ hero 는 여러 장을 «후보»로 보여주는 자리라 아래 공용 로직과 다르다 — pickImage() 처럼
+   *   지금 다른 사이트가 첫 화면으로 쓰는 사진은 후보에서 뺀다(첫인상이 겹치면 안 된다).
+   *   [반장 지시 6] 「내 사진으로 교체」 옆 「첫 화면 사진 자동 교체」 버튼 전용 (2026-09-16).
+   * ⚠ `opts.exclude` = 이 편집 화면에서 이미 보여준 사진(「다시 고르기」 누적) — 최대한 안 겹치게 뺀다.
+   *   그래도 모자라면 겹칠 수밖에 없다 — 그건 호출부(API)가 재고를 따로 확인해 메일을 보낸다.
+   */
+  if (role === "hero") {
+    try {
+      const sb = sbAdmin();
+      const base = () => sb.from("image_bank").select("id, url, tags, used_count")
+        .eq("role", "hero").eq("quality_ok", true).eq("deleted", false)
+        .order("quality_score", { ascending: false }).order("used_count", { ascending: true });
+      const { data } = await base().eq("industry", industry).eq("mood", mood).limit(40);
+      const rows = (data ?? []) as Row[];
+      if (rows.length < HERO_STOCK_MIN) {
+        // pickImage()와 같은 순서 — 같은 업종 → 그래도 모자라면 전체
+        const seen = new Set(rows.map((r) => r.url));
+        const { data: sameIndustry } = await base().eq("industry", industry).limit(80);
+        for (const r of (sameIndustry ?? []) as Row[]) if (!seen.has(r.url)) { seen.add(r.url); rows.push(r); }
+        if (rows.length < HERO_STOCK_MIN) {
+          const { data: anyIndustry } = await base().limit(160);
+          for (const r of (anyIndustry ?? []) as Row[]) if (!seen.has(r.url)) { seen.add(r.url); rows.push(r); }
+        }
+      }
+      const inUse = heroUrls(await loadImageUsage());
+      const excludeSet = new Set(opts?.exclude ?? []);
+      const free = rows.filter((r) => !inUse.has(r.url));
+      const fresh = free.filter((r) => !excludeSet.has(r.url));
+      // 단계적으로 완화: 안 겹치는 것 → 지금 안 쓰이는 것 → 전체(재고가 정말 없을 때만)
+      const pool = fresh.length >= n ? fresh : free.length >= n ? free : rows;
+      const chosen = pool.slice(0, n);
+      await Promise.all(chosen.map((c) => sb.rpc("bump_bank_used", { bank_id: c.id }).then(() => {}, () => {})));
+      return chosen.map((c) => c.url);
+    } catch { return []; }
+  }
   try {
     const sb = sbAdmin();
     const query = sb
