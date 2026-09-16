@@ -16,6 +16,9 @@ import { TrialBar } from "@/components/site/pay-modal";
 const PayModal = dynamic(() => import("@/components/site/pay-modal").then((m) => m.PayModal), { ssr: false });
 import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
+/* ★ 「몇 점을 넘어야 검색에 올라가나」의 **단일 출처**. 화면에 75 를 손으로 적지 않는다 —
+   판정(lib/indexable.ts)과 화면이 어긋나면 그 순간 사장님에게 거짓말이 된다(CLAUDE.md 규칙 12). */
+import { SITEMAP_MIN_SCORE } from "@/lib/indexable";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
 import { ChannelsPanel } from "./channels-panel";
@@ -146,6 +149,21 @@ export function EditUi({ slug }: { slug: string }) {
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
   const [dirty, setDirty] = useState(false);
+
+  /* ★★ 2026-09-16 대표님 — **폰에서 왼쪽 칸이 화면 위를 다 먹던 것**을 접는다 (지시 [11]).
+   *   접힌 상태가 «기본»이고, 여는 것은 사장님 손이다.
+   *
+   * ⚠ **PC 는 이 값과 상관없이 늘 펼쳐진다.** 여는 것은 자바스크립트가 아니라 **CSS** 다 —
+   *   `app/globals.css` 의 `.editor-fold` 가 1024px 이상에서 `display:block` 으로 되돌리고
+   *   여는 단추(`.editor-fold-btn`)를 숨긴다.
+   *   ★ 왜 CSS 로 하나: `window.matchMedia` 로 첫 값을 정하면 **서버가 그린 화면과 어긋나** 깜빡인다.
+   *     (이 파일 103줄 `isDesktop` 이 그 방식인데, 거기는 «미리보기 시트»라 깜빡여도 티가 안 난다.
+   *      왼쪽 칸은 화면 맨 위라 깜빡이면 바로 보인다.)
+   *
+   * ⚠ 기억하지 않는다 — 새로고침하면 다시 접힌다. 대표님이 「기억할 필요 없다」고 하셨다.
+   */
+  const [tipsOpen, setTipsOpen] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/site/get", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, anonId: anon() }) })
@@ -415,12 +433,51 @@ export function EditUi({ slug }: { slug: string }) {
        본문 위에 있었다.
      ★ 2026-09-16 대표님 — **앵커 score-bar 가 상단바에서 다시 여기로 돌아왔다.**
        숫자(상단바)와 막대(여기)가 따로 놀던 것을 ScoreMeter 하나로 합쳤다. 아래 주석 참조. */
+  const reachedIndex = data.score >= SITEMAP_MIN_SCORE;
+  const ptsLeft = Math.max(0, SITEMAP_MIN_SCORE - data.score);
+
   const rail = (
     <div className="space-y-4">
-      <ScoreMeter score={data.score} />
+      {/* ── 완성도 — 접힌 상태(폰)에서는 여기까지가 «한 줄»이다 ── */}
+      <section>
+        <ScoreMeter
+          score={data.score}
+          action={
+            <button
+              type="button"
+              className="editor-fold-btn btn btn-secondary btn-xs t-caption"
+              aria-expanded={tipsOpen}
+              aria-controls="rail-tips"
+              onClick={() => setTipsOpen((v) => !v)}
+            >
+              점수 올리기 {tipsOpen ? "▴" : "▾"}
+            </button>
+          }
+          note={
+            /* ⚠ 「75」를 손으로 적지 않는다 — `SITEMAP_MIN_SCORE` 가 유일한 출처다(규칙 12).
+               ⚠ 이미 넘긴 사장님께 「N점 남음」은 거짓말이라, 그때는 **이미 쓰던 그 문장**을 그대로 쓴다.
+                 새 문구를 지어내지 않는다(손님·사장님이 보는 글은 대표님 허락 사항이다). */
+            reachedIndex ? null : (
+              <span className="t-caption" style={{ color: "var(--text-soft)" }}>
+                {SITEMAP_MIN_SCORE}점까지 {ptsLeft}점 남음
+              </span>
+            )
+          }
+        />
+        {/* 🔴 「정식 오픈」이라고 쓰지 않는다 — 75점은 «사이트맵에 싣는 기준»이지 «오픈 여부»가 아니다
+            (권반장 2026-09-16 지시 [11]). 사실과 다른 문구는 사장님을 속이는 것이 된다. */}
+        {!reachedIndex && (
+          <p className="mt-1 t-caption" style={{ color: "var(--text-soft)" }}>
+            {SITEMAP_MIN_SCORE}점을 넘어야 네이버·구글에 등록됩니다
+          </p>
+        )}
+      </section>
 
       {/* 점수 올리기 힌트 — ⚠ logo(panel-brand)는 P6 라 갈 곳이 없다. 이 제외를 빼면 먹통 힌트가 된다 */}
-      <section className="rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
+      <section
+        id="rail-tips"
+        className={`editor-fold${tipsOpen ? " is-open" : ""} rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900`}
+      >
         {/* ★ 2026-09-10 — `logo` 제외를 뗐다. 전에는 앵커(panel-brand)가 화면에 없어서
             누르면 먹통이라 숨겨 뒀다. 이제 「디자인」 메뉴에 로고 칸이 실재한다. */}
         {RULES.filter((r) => !data.rulesDone.includes(r.id)).slice(0, 3).map((r) => (
@@ -429,20 +486,37 @@ export function EditUi({ slug }: { slug: string }) {
             ＋{r.pts}점 · <b>{r.label}</b> — {r.hint}
           </button>
         ))}
-        {data.score >= 75 && <p>잘하고 있어요! 이야기를 계속 쌓으면 홈페이지가 강해져요.</p>}
+        {reachedIndex && <p>잘하고 있어요! 이야기를 계속 쌓으면 홈페이지가 강해져요.</p>}
       </section>
 
-      {/* 섹션 목록 — 누르면 그 칸으로 데려간다. 이름은 lib/section-defaults.ts 하나에서 온다 */}
-      <nav aria-label="섹션 목록" className="space-y-1">
-        <p className="t-caption font-semibold" style={{ color: "var(--text)" }}>내 홈페이지 칸</p>
-        {doc.sections.map((sec, i) => (
-          <button
-            key={i} type="button" onClick={() => goToSection(i)}
-            className="block w-full truncate rounded-lg px-2.5 py-1.5 text-left t-caption hover:bg-n-50"
-          >
-            {sectionLabel(sec.type)}
-          </button>
-        ))}
+      {/* 섹션 목록 — 누르면 그 칸으로 데려간다. 이름은 lib/section-defaults.ts 하나에서 온다
+          ★ 2026-09-16 — 폰에서는 이것도 접는다. **왼쪽 칸에서 세로로 가장 긴 덩어리**라
+            이것을 펼쳐 두면 접는 뜻이 절반으로 준다(칸 하나에 약 30px × 보통 6~9칸).
+          ⚠ 「점수 올리기」 단추 «안»에 넣지 않았다 — 칸 목록은 점수와 상관없다.
+            단추 이름이 안에 든 것을 속이면, 그것도 사장님에게 하는 거짓말이다. */}
+      <nav aria-label="섹션 목록">
+        <button
+          type="button"
+          className="editor-fold-btn t-caption font-semibold"
+          style={{ color: "var(--text)" }}
+          aria-expanded={sectionsOpen}
+          aria-controls="rail-sections"
+          onClick={() => setSectionsOpen((v) => !v)}
+        >
+          내 홈페이지 칸 ({doc.sections.length}) {sectionsOpen ? "▴" : "▾"}
+        </button>
+        {/* PC 에서는 위 단추가 숨고 이 제목이 보인다 — 원래 화면 그대로다 */}
+        <p className="editor-fold-label t-caption font-semibold" style={{ color: "var(--text)" }}>내 홈페이지 칸</p>
+        <div id="rail-sections" className={`editor-fold${sectionsOpen ? " is-open" : ""} space-y-1`}>
+          {doc.sections.map((sec, i) => (
+            <button
+              key={i} type="button" onClick={() => goToSection(i)}
+              className="block w-full truncate rounded-lg px-2.5 py-1.5 text-left t-caption hover:bg-n-50"
+            >
+              {sectionLabel(sec.type)}
+            </button>
+          ))}
+        </div>
       </nav>
     </div>
   );
@@ -719,7 +793,17 @@ function LogoBox({ slug, logo, onLogo }: {
  * ⚠ 폰 360px 에서 「완성도 65점/100점」은 한 줄에 들어간다 — 왼쪽 칸은 폰에서 **화면 전체 폭**
  *   (360 − 좌우 여백 32 = 328px)을 쓰고 이 글자는 13px 기준 약 95px 이다. 상단바(60~96px)와 다르다.
  */
-function ScoreMeter({ score }: { score: number }) {
+function ScoreMeter({
+  score,
+  action,
+  note,
+}: {
+  score: number;
+  /** 점수 줄 «오른쪽»에 붙는 것 — 폰에서 여는 단추가 여기 들어온다 (2026-09-16 지시 [11]) */
+  action?: React.ReactNode;
+  /** 막대 «옆»에 붙는 것 — 「75점까지 10점 남음」. 자리가 좁으면 아래로 접힌다 */
+  note?: React.ReactNode;
+}) {
   /* 서버 점수가 이상해도 막대가 틀 밖으로 나가지 않게 0~100 으로 가둔다 */
   const pct = Math.max(0, Math.min(100, Math.round(score)));
 
@@ -732,13 +816,19 @@ function ScoreMeter({ score }: { score: number }) {
 
   return (
     <div data-tour="score-bar">
-      <p className="t-caption" style={{ color: "var(--text)", marginBottom: "var(--s-2)" }}>
-        완성도 <b style={{ color: "var(--brand-ink)" }}>{pct}점/100점</b>
-      </p>
+      {/* ⚠ 점수 줄과 단추를 한 줄에 둔다. 자리가 없으면 **접힌다**(숨기지 않는다) —
+          2026-09-09 의 교훈: 폰에서 「숨긴다」는 안 된다. `.editor-score-head` 는 globals.css. */}
+      <div className="editor-score-head">
+        <p className="t-caption" style={{ color: "var(--text)" }}>
+          완성도 <b style={{ color: "var(--brand-ink)" }}>{pct}점/100점</b>
+        </p>
+        {action}
+      </div>
 
       {/* 틀 — 색은 `bg-n-100`·`bg-green-700` 을 그대로 쓴다. 어두운 화면 처리가 이 두 이름에 걸려 있다
           (globals.css 의 «다크 다리»가 --n-100 을 바꾸고, `.editor-shell .bg-green-700` 을 되돌린다).
           이름을 바꾸면 어두운 화면에서 막대가 사라진다. */}
+      <div className="editor-score-row">
       <div
         role="progressbar"
         aria-label="홈페이지 완성도"
@@ -760,6 +850,8 @@ function ScoreMeter({ score }: { score: number }) {
             willChange: "transform",
           }}
         />
+      </div>
+      {note}
       </div>
     </div>
   );

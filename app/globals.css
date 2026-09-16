@@ -993,6 +993,48 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
     .editor-preview { grid-column: 3; grid-row: 1; }
   }
 
+  /* ══════ 왼쪽 칸 접기 — 폰에서만 (2026-09-16 대표님 지시 [11]) ══════
+     🔴 **무엇이 문제였나:** 1024px 아래에서 왼쪽 칸은 본문 «위»에 가로 전체로 깔린다
+     (위 .editor-body 기본 배치 — 한 칸짜리 격자라 rail 이 첫 줄, main 이 둘째 줄).
+     그래서 폰을 열면 「완성도 + 올릴 것 3줄 + 칸 목록」이 첫 화면을 통째로 먹고,
+     정작 고칠 항목을 보려면 한참 내려야 했다.
+
+     ★ **여는 것은 자바스크립트가 아니라 여기다.** React 상태는 «접힘»이 기본이고,
+       PC 에서는 아래 미디어 규칙이 그 상태를 **무시하고 늘 펼친다.**
+       ⚠ 이렇게 하는 이유: `window.matchMedia` 로 첫 값을 정하면 서버가 그린 화면과 어긋나
+         첫 그리기에 **깜빡인다.** 왼쪽 칸은 화면 맨 위라 그 깜빡임이 바로 보인다.
+
+     ⚠ 기준폭 **1024px** 을 쓴다. 이 화면이 「폰 배치 ↔ PC 배치」로 갈리는 바로 그 폭이다
+       (미리보기 칸이 나타나고, 아래 고정 바가 사라지는 폭 — 위 두 미디어 규칙과 같은 값).
+     ⚠ `display` 로 접는다. `[hidden]` 이나 인라인 style 로 접으면 아래 미디어 규칙이 못 이긴다. */
+  .editor-fold { display: none; }
+  .editor-fold.is-open { display: block; }
+  /* 폰에서는 «여는 단추»가 제목을 대신한다 — 그래서 원래 제목은 감춘다 */
+  .editor-fold-label { display: none; }
+  .editor-fold-btn {
+    display: inline-flex; align-items: center; gap: var(--s-1);
+    /* 🔴 손가락으로 누르는 자리다. 36px 아래로 내려가지 않는다(편집화면 탭과 같은 기준) */
+    min-height: calc(var(--s-6) + var(--s-1));
+  }
+
+  /* 점수 줄 — 「완성도 65점/100점」과 여는 단추를 한 줄에. 자리가 없으면 접힌다(숨기지 않는다) */
+  .editor-score-head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-2);
+  }
+  /* 막대 + 「75점까지 10점 남음」 — 좁으면 글자가 아랫줄로 내려간다 */
+  .editor-score-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2);
+  }
+  .editor-score-row > [role="progressbar"] { flex: 1 1 8rem; min-width: 0; }
+
+  @media (min-width: 1024px) {
+    /* PC — 접는 장치를 통째로 없던 일로 만든다. 예전 화면과 «글자 하나까지» 같아진다 */
+    .editor-fold { display: block; }
+    .editor-fold-btn { display: none; }
+    .editor-fold-label { display: block; }
+  }
+
 
 
   /* ───────────────────────── 테마 카드 ───────────────────────── */
