@@ -4,6 +4,8 @@ import { INQUIRY_CTA_LABEL } from "@/config/industries";
 import { workCount } from "@/lib/stories";
 import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
+import type { ShortT } from "@/lib/shorts";
+import ShortsFeed from "./shorts-feed";
 
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
@@ -21,7 +23,11 @@ export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
   lively:  { bg: "#FFFFFF", ink: "#1D2430", muted: "#6A7383", line: "#E8EBF1", accent: "#E1465A", soft: "#FBE9EC", onAccent: "#FFFFFF" },
 };
 
-type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string };
+/**
+ * ★ `shorts` 는 2026-09-16 에 더했다 — 홈페이지에 걸린 영상 «전부».
+ *   없으면 `undefined` 다(옛 호출부가 안 깨지게). 그때는 영상 섹션이 지금까지처럼 한 편만 그린다.
+ */
+type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string; shorts?: ShortT[] };
 
 /**
  * 강조색 위에 올릴 글자색을 **강조색에서 계산한다.**
@@ -451,11 +457,20 @@ function MenuSec({ s }: { s: Extract<SectionT, { type: "menuPrice" }> }) {
  *   화면의 **70%** 를 넘지 않는다(회장님 지시).
  */
 function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: Ctx }) {
-  // ★ 주소가 없으면 **아무것도 그리지 않는다.** 빈 검은 칸이 남으면 안 된다(회장님 지시)
-  if (!s.url?.trim()) return null;
+  /* ★★ 2026-09-16 — **한 편에서 «피드»로 바꿨다.**
+     `ctx.shorts` 는 홈페이지에 걸린 영상 «전부»다(`lib/shorts.ts`). 그것이 있으면 피드를 그리고,
+     없으면(옛 호출부·미리보기 등) 지금까지처럼 섹션이 들고 있던 한 편만 그린다.
+     ⚠ 섹션 스키마(`url` 한 칸)는 **건드리지 않았다.** 스키마를 고치면 네 곳이 함께 움직여야 한다
+       (불변 규칙 2). 영상 목록은 DB 가 이미 진실을 갖고 있어(`video_out_key`) 스키마를 늘릴 이유가 없다. */
+  const feed = ctx.shorts ?? [];
+  const single = s.url?.trim() ?? "";
+
+  // ★ 보여 줄 것이 하나도 없으면 **아무것도 그리지 않는다.** 빈 검은 칸이 남으면 안 된다(회장님 지시)
+  if (!feed.length && !single) return null;
 
   const ink = PALETTES[ctx.doc.theme.palette]?.ink ?? "#17202B";
   const on = onColor(ink);
+  const title = s.title?.trim() || "사장님 이야기";
 
   return (
     <section
@@ -463,40 +478,57 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
       className="reveal"
       style={{
         background: "var(--s-ink)", color: on,
-        paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)",
+        paddingBlock: "var(--s-8)",
         scrollMarginTop: "var(--bar-h)",
       }}
     >
-      <div className="mx-auto max-w-3xl">
-        {s.title && (
-          <h2 className="t-h2" style={{ marginBottom: "var(--s-5)", color: on, fontFamily: "inherit" }}>
+      <div style={{ paddingInline: "var(--gutter)" }}>
+        <div className="mx-auto max-w-3xl">
+          <h2 className="t-h2" style={{ marginBottom: feed.length ? "var(--s-2)" : "var(--s-5)", color: on, fontFamily: "inherit" }}>
             <span className="mr-2 inline-block" style={{ height: 3, width: 24, transform: "translateY(-4px)", background: "var(--s-accent)" }} />
-            {s.title}
+            {title}
           </h2>
-        )}
-        {/* 높이가 고정된 자리 — 영상이 세로든 가로든 이 안에서 가운데 담긴다 */}
-        <div
-          style={{
-            height: "min(70svh, 560px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            borderRadius: "var(--r-lg)", overflow: "hidden",
-          }}
-        >
-          <video
-            src={s.url}
-            poster={s.poster}
-            controls
-            playsInline
-            /* ⚠ "metadata" 가 아니라 "none" 이다. metadata 면 **영상을 누르지도 않은 손님이**
-               mp4 머리를 받는다. 표지 사진(WebP 한 장)만 받고, 영상 바이트는 재생을 눌러야 흐른다. */
-            preload="none"
-            style={{ maxHeight: "100%", maxWidth: "100%", display: "block" }}
-          />
+          {/* 여러 편일 때만 안내 한 줄 — 손님이 «옆으로 넘길 수 있다»는 걸 알아야 넘긴다 */}
+          {feed.length > 1 && (
+            <p className="t-small" style={{ margin: "0 0 var(--s-5)", color: on, opacity: 0.68 }}>
+              {feed.length}편 · 옆으로 넘겨 보세요. 소리는 영상을 누르면 켜집니다.
+            </p>
+          )}
         </div>
-        {s.caption && (
-          <p className="t-small" style={{ marginTop: "var(--s-4)", color: on, opacity: 0.8 }}>{s.caption}</p>
-        )}
       </div>
+
+      {feed.length > 0 ? (
+        /* ★ 피드는 좌우 여백 «밖»까지 흐른다 — 카드가 화면 가장자리에서 잘려 보여야
+             「더 있다」가 읽힌다. 릴스·틱톡이 전부 이렇게 한다. */
+        <ShortsFeed items={feed} onInk={on} />
+      ) : (
+        <div style={{ paddingInline: "var(--gutter)" }}>
+          <div className="mx-auto max-w-3xl">
+            {/* 옛 길 — 섹션이 들고 있는 한 편. 미리보기·옛 사이트가 이 길로 온다 */}
+            <div
+              style={{
+                height: "min(70svh, 560px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "var(--r-lg)", overflow: "hidden",
+              }}
+            >
+              <video
+                src={single}
+                poster={s.poster}
+                controls
+                playsInline
+                /* ⚠ "metadata" 가 아니라 "none" 이다. metadata 면 **영상을 누르지도 않은 손님이**
+                   mp4 머리를 받는다. 표지 사진(WebP 한 장)만 받고, 영상 바이트는 재생을 눌러야 흐른다. */
+                preload="none"
+                style={{ maxHeight: "100%", maxWidth: "100%", display: "block" }}
+              />
+            </div>
+            {s.caption && (
+              <p className="t-small" style={{ marginTop: "var(--s-4)", color: on, opacity: 0.8 }}>{s.caption}</p>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

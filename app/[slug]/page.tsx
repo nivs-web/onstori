@@ -164,7 +164,7 @@ export default async function SitePage({ params }: Props) {
             채널이 하나도 없으면 아무것도 그리지 않는다. */}
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
-          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug }} />
+          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts }} />
         ))}
         {/* ★ PC 전용 — 스크롤을 내리면 만나는 최종 문의 CTA (2026-09-16, 반장 지시 [3]) */}
         <FinalCta doc={site.doc} cta={site.settings?.ctaChannels as { selected?: string[]; links?: Record<string, string> } | undefined} />

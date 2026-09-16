@@ -1588,3 +1588,124 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 @media (max-width: 639px) {
   .editor-bar-row .btn.btn-xs { padding-inline: var(--s-3); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   홈페이지 안의 «숏폼 피드» — 릴스·쇼츠·틱톡에서 보던 그 느낌 (2026-09-16 대표님 지시)
+
+   ★★ 이 블록은 **손님 사이트 전용**이다. 어드민 토큰(--surface 등)을 쓰지 않고
+     손님 팔레트(--s-ink · --s-accent)와 고정 중립색만 쓴다 — 사장님이 어떤 분위기를
+     골라도 영상 위 글자가 읽혀야 하기 때문이다.
+   ⚠ 레이어 밖에 둔다. 영상 위에 겹치는 요소라 다른 규칙에 지면 글자가 사라진다.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.shorts { position: relative; }
+
+/* 가로로 넘기는 레일. 폰은 손가락으로, PC 는 좌우 화살표로.
+   ⚠ scroll-snap 을 쓴다 — 어중간하게 멈추면 두 카드가 반씩 보여 어느 것도 안 읽힌다. */
+.shorts-rail {
+  display: flex;
+  gap: var(--s-4);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  padding-inline: var(--gutter);
+  padding-block: var(--s-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.shorts-rail::-webkit-scrollbar { display: none; }
+
+.shorts-card { flex: 0 0 auto; scroll-snap-align: center; }
+
+/* 9:16 한 칸. 높이를 먼저 정하고 너비를 비율로 낸다 —
+   ⚠ 반대로 하면 폰 가로폭에 맞춰 세로가 화면을 넘겨 «스크롤이 갇힌다». */
+.shorts-frame {
+  position: relative;
+  height: min(72svh, 620px);
+  aspect-ratio: 9 / 16;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+}
+.shorts-frame video {
+  width: 100%; height: 100%;
+  object-fit: cover;          /* 가로 영상이 섞여 있어도 세로 칸을 꽉 채운다 */
+  display: block;
+  cursor: pointer;
+}
+
+/* 소리 단추 — 오른쪽 위. 릴스와 같은 자리다 */
+.shorts-sound {
+  position: absolute; top: 10px; right: 10px;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff; font-size: 16px; line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+/* 아래 글 — 검은 그라데이션 위에 흰 글자. 어떤 영상이 와도 읽힌다 */
+.shorts-meta {
+  position: absolute; inset-inline: 0; bottom: 0;
+  padding: var(--s-5) var(--s-4) var(--s-4);
+  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0));
+  color: #fff;
+  pointer-events: none;       /* 글 위를 눌러도 «영상 누르기»가 되게 */
+}
+.shorts-cap {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-small);
+  line-height: 1.45;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.shorts-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
+.shorts-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.28);
+  color: #fff;
+  font-size: 12.5px; font-weight: 600; text-decoration: none;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+.shorts-pill:hover { background: rgb(255 255 255 / 0.26); }
+.shorts-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+
+/* 좌우 화살표 — PC 에서만. 폰에서는 손가락이 더 빠르다 */
+.shorts-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px;
+  display: none; place-items: center;
+  border: 0; border-radius: 999px;
+  background: rgb(0 0 0 / 0.45); color: #fff;
+  font-size: 26px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+.shorts-arrow.left { left: calc(var(--gutter) / 2); }
+.shorts-arrow.right { right: calc(var(--gutter) / 2); }
+@media (min-width: 768px) { .shorts-arrow { display: grid; } }
+
+/* 몇 번째 영상인지 — 점 */
+.shorts-dots { display: flex; justify-content: center; gap: 6px; margin-top: var(--s-3); }
+.shorts-dots span {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: currentColor; opacity: 0.28;
+  transition: opacity .2s, width .2s;
+}
+.shorts-dots span.on { opacity: 0.95; width: 18px; }
+
+/* ⚠ 「움직임 줄이기」를 켠 손님에게는 자동재생이 어지럼을 준다.
+   재생 자체는 스크립트가 하므로 CSS 로 막을 수 없다 — 대신 넘김 애니메이션만 끈다. */
+@media (prefers-reduced-motion: reduce) {
+  .shorts-rail { scroll-behavior: auto; }
+  .shorts-dots span { transition: none; }
+}

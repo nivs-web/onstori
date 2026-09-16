@@ -7,6 +7,7 @@ import { forVisitors } from "./phone-privacy";
    `lib/premade.ts` 는 건드리지 않았다 — 09-13 P0 의 자물쇠다. 부르는 줄만 되살린다. (2026-09-16) */
 import { isPremade } from "./premade";
 import { SiteDoc, StoryEntry, type SiteDocT, type StoryEntryT } from "./schema";
+import { loadShorts, type ShortT } from "./shorts";
 import { z } from "zod";
 
 /**
@@ -41,6 +42,12 @@ export type SiteData = {
    *   불변 규칙 7 도 「샘플 사이트에 한해 예시 후기를 넣되 «예시» 표시를 단다」고 정한다.
    */
   sample?: boolean;
+  /**
+   * ★ **홈페이지에 걸린 영상 «전부»** — 숏폼 피드가 쓴다. (2026-09-16 대표님 지시)
+   *   판정은 `story_entries.video_out_key` 하나다(`lib/shorts.ts`). 없으면 빈 배열이다.
+   * ⚠ 이걸 못 읽어도 사이트는 열려야 한다 — `loadShorts` 가 절대 던지지 않는다.
+   */
+  shorts?: ShortT[];
 };
 
 function sb() {
@@ -125,10 +132,13 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
       return parsed.success ? [parsed.data] : [];
     });
 
+    /* ★ 홈페이지에 걸린 영상 전부 — 숏폼 피드용. 실패해도 빈 배열이라 사이트는 그대로 열린다 */
+    const shorts = await loadShorts(client, site.id);
+
     const status = site.status === "active" ? "active" : "trial";
     const logo = (site.settings as { logo?: unknown } | null)?.logo;
     return {
-      slug, doc, stories, status,
+      slug, doc, stories, status, shorts,
       logo: typeof logo === "string" && logo ? logo : undefined,
       settings: (site.settings as Record<string, unknown> | null) ?? {},
       sample: SAMPLE_SLUGS.has(slug),
@@ -210,12 +220,14 @@ export async function getSiteForAdmin(
       return p.success ? [p.data] : [];
     });
 
+    const shorts = await loadShorts(admin, site.id);
     const logo = (site.settings as { logo?: unknown } | null)?.logo;
     return {
       slug,
       /* ⚠ 운영자 화면이라도 번호는 손님 화면과 같은 규칙으로 지운다 — 습관을 가르지 않는다 */
       doc: forVisitors(parsed.data, site.settings),
       stories,
+      shorts,
       status: site.status === "active" ? "active" : "trial",
       realStatus: String(site.status),
       businessName: String(site.business_name ?? ""),

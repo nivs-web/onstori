@@ -102,7 +102,7 @@ export default async function PrivateSitePage({ params }: { params: Promise<{ sl
       >
         <SiteChrome doc={site.doc} businessName={site.doc.businessName} logo={site.logo} />
         {site.doc.sections.map((s, i) => (
-          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug }} />
+          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts }} />
         ))}
       </main>
     </div>
