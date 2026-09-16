@@ -78,6 +78,10 @@ function resolveCtaButtons(
       href = hasQuote ? "#quote" : "";
     }
     if (!href) continue;
+    // ⚠ form_email·form_sms·form_tel 은 셋 다 같은 문의 폼(#quote)으로 보낸다 — 사장님이
+    //   둘을 같이 고르면(예: 「메일문의」+「전화번호 공개형」) 똑같은 버튼이 두 번 나온다.
+    //   같은 도착지(href)는 하나만 남긴다(먼저 고른 것을 살린다) — 죽은 중복 버튼을 만들지 않는다.
+    if (out.some((b) => b.href === href)) continue;
     out.push({ id, label: def.dockLabel, href, external });
   }
   return out;
@@ -288,7 +292,7 @@ function Dock({ buttons }: { buttons: { id: string; label: string; href: string;
         }}
       >
         {buttons.map((b, i) => (
-          <CtaBtn key={b.id} href={b.href} label={b.label} external={b.external} primary={i === lastIdx} />
+          <CtaBtn key={b.id} id={b.id} href={b.href} label={b.label} external={b.external} primary={i === lastIdx} />
         ))}
       </nav>
     </>
@@ -317,7 +321,9 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
       style={{ paddingBlock: "var(--s-8)", paddingInline: "var(--gutter)", background: "var(--s-soft)" }}
     >
       <div className="mx-auto flex max-w-[var(--container)] flex-col items-center text-center" style={{ gap: "var(--s-4)" }}>
-        <p className="t-h2 font-bold" style={{ color: "var(--s-ink)" }}>지금 바로 문의해 보세요</p>
+        {/* ⚠ 2026-09-16 검수 지적 — 지시서엔 「스크롤을 내리면 최종 문의하기로 이어지는 CTA
+            버튼」만 있고 제목 문구는 없다. 지어내지 않는다(규칙 5) — 대표님 문구를 받으면
+            config/cta-channels.ts 에 단일 출처로 넣고 여기서 읽는다. 그 전까지는 버튼만. */}
         <div className="flex flex-wrap items-center justify-center" style={{ gap: "var(--s-3)" }}>
           {buttons.map((b, i) => (
             <a
@@ -326,7 +332,7 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
               {...(b.external ? { target: "_blank", rel: "noreferrer" } : {})}
               className="t-body inline-flex items-center justify-center font-semibold"
               style={{
-                minHeight: "var(--tap)", minWidth: 180, paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)",
+                minHeight: "var(--tap)", minWidth: "var(--btn-min-w)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)",
                 ...(i === lastIdx
                   ? { background: "var(--s-accent)", color: "var(--s-on-accent)" }
                   : { background: "var(--s-bg)", color: "var(--s-ink)" }),
@@ -341,11 +347,17 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
   );
 }
 
-/** Dock 의 버튼 하나 — 주 버튼은 면 색, 보조는 연회색 면(규칙 11: 테두리 아님) */
-function CtaBtn({ href, label, external, primary }: { href: string; label: string; external?: boolean; primary?: boolean }) {
+/**
+ * Dock 의 버튼 하나 — 주 버튼은 면 색, 보조는 연회색 면(규칙 11: 테두리 아님)
+ * ⚠ `call`·`kakao_channel` 은 옛 `ContactButton` 처럼 아이콘 + `aria-label` 을 붙인다
+ *   (2026-09-16 검수 지적 — 회귀 없음이 되려면 보이는 것까지 같아야 한다).
+ */
+function CtaBtn({ id, href, label, external, primary }: { id: string; href: string; label: string; external?: boolean; primary?: boolean }) {
+  const iconKind = id === "call" ? "call" : id === "kakao_channel" ? "kakao" : null;
   return (
     <a
       href={href}
+      aria-label={iconKind ? ARIA[iconKind] : undefined}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
       className="t-body flex flex-1 items-center justify-center font-semibold"
       style={{
@@ -355,6 +367,7 @@ function CtaBtn({ href, label, external, primary }: { href: string; label: strin
           : { background: "var(--s-soft)", color: "var(--s-ink)" }),
       }}
     >
+      {iconKind && ICON[iconKind]}
       {label}
     </a>
   );

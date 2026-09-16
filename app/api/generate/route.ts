@@ -4,7 +4,7 @@ import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
 import { cleanOwnerChannels } from "@/config/owner-channels";
 import {
-  cleanCtaSelection, cleanCtaFormFields, cleanCtaExtraField, ctaNeedsPublicPhone,
+  cleanCtaSelection, cleanCtaFormFields, cleanCtaExtraField, ctaNeedsPublicPhone, CTA_EXTRA_FIELD_MAX,
 } from "@/config/cta-channels";
 import { hasRequired, recordConsents } from "@/lib/consents";
 import { isAdmin } from "@/lib/admin-auth";
@@ -57,7 +57,7 @@ const Input = z.object({
     formFields: z.object({
       name: z.boolean(), phone: z.boolean(), email: z.boolean(), message: z.boolean(),
     }).partial().optional(),
-    extraField: z.string().max(20).optional(),
+    extraField: z.string().max(CTA_EXTRA_FIELD_MAX).optional(),
   }).optional(),
   // 온보딩 5단계 (2026-09-05) — 업종 직접 선택 · 세부 업종명 · 포인트색
   industryId: z.string().max(40).optional(),

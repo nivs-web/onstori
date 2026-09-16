@@ -22,6 +22,10 @@ import { embedPretendard } from "@/lib/logo-embed";
 
 const STEPS = ["상호명", "업종", "가게 정보", "채널 연결", "문의 채널", "분위기", "만들기"] as const;
 
+/** 🔴 2026-09-16 검수 지적으로 끔 — 손님 문의 폼(quote-form.tsx)이 아직 이 값을 안 읽는다.
+ *  화면만 있고 속이 빈 UI 는 「넣었는데 안 됐다」를 만든다(규칙 12 정신). 잇는 업무가 끝나면 켠다. */
+const SHOW_CTA_FORM_BUILDER = false;
+
 async function readJson(r: Response): Promise<Record<string, unknown>> {
   if ((r.headers.get("content-type") ?? "").includes("application/json")) return (await r.json()) as Record<string, unknown>;
   const body = (await r.text()).slice(0, 200);
@@ -962,38 +966,45 @@ export function Wizard() {
             })}
           </div>
           <p className="mt-3 t-caption" style={{ color: "var(--muted)" }}>
-            {ctaSelected.length}/{MAX_CTA_CHANNELS}개 선택 · 하나도 안 고르셔도 됩니다. 나중에 편집화면에서 바꾸실 수 있어요.
+            {ctaSelected.length}/{MAX_CTA_CHANNELS}개 선택 · 하나도 안 고르셔도 됩니다.
           </p>
 
-          {/* 문의 폼 만들기 (선택) — 대표님 원문 그대로 */}
-          <div className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
-            <p className="t-body font-bold">문의하기에 기본 입력받기</p>
-            <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>기본 입력받기만 체크하셔도 됩니다</p>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-              {([
-                ["name", "성함"], ["phone", "연락처"], ["email", "이메일"], ["message", "문의내용"],
-              ] as [keyof CtaFormFields, string][]).map(([key, label]) => (
-                <label key={key} className="flex cursor-pointer items-center" style={{ gap: "var(--s-2)", minHeight: "var(--tap)" }}>
-                  <input
-                    type="checkbox"
-                    checked={ctaFormFields[key]}
-                    onChange={(e) => setCtaFormFields((p) => ({ ...p, [key]: e.target.checked }))}
-                    className="h-5 w-5"
-                  />
-                  <span className="t-small">{label}</span>
-                </label>
-              ))}
+          {/* 🔴 2026-09-16 검수 지적 — 「문의하기에 기본/추가 입력받기」 칸은 값이
+              `sites.settings.ctaChannels.formFields`/`extraField` 에 저장은 되지만, 손님이
+              실제로 보는 문의 폼(components/sections/quote-form.tsx)이 그 값을 아직 읽지 않는다.
+              사장님이 체크해도 손님 화면은 그대로라 「넣었는데 안 됐다」가 된다(규칙 12 정신).
+              그래서 이 화면 블록은 «내린다» — 코드(상태·전송값)는 남기고 렌더만 끈다.
+              quote-form.tsx 가 이 값을 읽어 그리도록 잇는 업무를 마친 뒤 다시 켠다. */}
+          {SHOW_CTA_FORM_BUILDER && (
+            <div className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
+              <p className="t-body font-bold">문의하기에 기본 입력받기</p>
+              <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>기본 입력받기만 체크하셔도 됩니다</p>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                {([
+                  ["name", "성함"], ["phone", "연락처"], ["email", "이메일"], ["message", "문의내용"],
+                ] as [keyof CtaFormFields, string][]).map(([key, label]) => (
+                  <label key={key} className="flex cursor-pointer items-center" style={{ gap: "var(--s-2)", minHeight: "var(--tap)" }}>
+                    <input
+                      type="checkbox"
+                      checked={ctaFormFields[key]}
+                      onChange={(e) => setCtaFormFields((p) => ({ ...p, [key]: e.target.checked }))}
+                      className="h-5 w-5"
+                    />
+                    <span className="t-small">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-5 t-body font-bold">문의하기에 추가 입력받기</p>
+              <input
+                className="field mt-2"
+                value={ctaExtraField}
+                maxLength={CTA_EXTRA_FIELD_MAX}
+                onChange={(e) => setCtaExtraField(e.target.value)}
+                placeholder="예) 가격대, 미용종류, 상품종류, 제품명, 품목, 사양, 견적금액 등등"
+              />
+              <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>추가로 입력받으시고 싶은 게 있으면 넣어주세요</p>
             </div>
-            <p className="mt-5 t-body font-bold">문의하기에 추가 입력받기</p>
-            <input
-              className="field mt-2"
-              value={ctaExtraField}
-              maxLength={CTA_EXTRA_FIELD_MAX}
-              onChange={(e) => setCtaExtraField(e.target.value)}
-              placeholder="예) 가격대, 미용종류, 상품종류, 제품명, 품목, 사양, 견적금액 등등"
-            />
-            <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>추가로 입력받으시고 싶은 게 있으면 넣어주세요</p>
-          </div>
+          )}
 
           {nav({ next: () => setStep(5), canNext: true })}
         </section>
