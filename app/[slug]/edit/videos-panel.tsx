@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -162,6 +162,44 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     const t = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(t);
   }, [load]);
+
+  /**
+   * ★★ **녹화 화면에서 «한 방에 올리기»를 누르고 넘어온 경우** (2026-09-17 지시 [17]).
+   *
+   *   `/{상호}/edit?tab=video&oneshot={영상id}` 로 들어오면 **사장님이 한 번 더 누르지 않아도**
+   *   그 영상의 「한 방에 올리기」가 저절로 돕니다.
+   *
+   * ★ 대표님 원문: 「왜 `/edit` 으로 이동한 다음에 한 방에 올리기를 **또 눌러야** 하는지
+   *   이해할 수 없다.」 — 맞는 말씀이라 **두 번째 누르기를 없앴습니다.**
+   *
+   * ⚠ **왜 녹화 화면 «그 자리»에서 안 올리나:** 녹화 화면은 문자 링크(서명)로 들어오는 곳이라
+   *   **«이 사람이 주인인가»를 모릅니다.** SNS 올리기는 주인만 할 수 있어야 하는데(`loadOwnedSite`),
+   *   서명만으로 올리게 열면 **링크를 받은 누구나 사장님 SNS 에 글을 올릴 수 있게** 됩니다.
+   *   그래서 «주인임이 확인되는 곳»(편집화면)으로 데려와 거기서 저절로 돌립니다.
+   *
+   * ⚠ **딱 한 번만** 돕니다. `ranOneShot` 이 그것을 지킵니다 — 안 그러면 목록이 다시 그려질 때마다
+   *   또 올라갑니다(같은 영상이 SNS 에 여러 번 올라가는 사고).
+   * ⚠ 주소에서 그 표시를 **지웁니다.** 안 지우면 새로고침할 때마다 또 올라갑니다.
+   */
+  const ranOneShot = useRef(false);
+  useEffect(() => {
+    if (ranOneShot.current || !items || !sdReady) return;
+    const want = new URLSearchParams(window.location.search).get("oneshot");
+    if (!want) return;
+    const it = items.find((x) => x.id === want);
+    ranOneShot.current = true;
+    /* 주소를 먼저 지운다 — 올리다 실패해도 새로고침으로 또 올라가지 않게 */
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("oneshot");
+      window.history.replaceState(null, "", u.toString());
+    } catch { /* 주소를 못 고쳐도 위 ranOneShot 이 막는다 */ }
+    /* ⚠ `setErr` 를 쓰면 **안 보인다** — 그 메시지는 «그 영상 줄 옆»에 붙는데, 못 찾은 영상에는
+       붙을 줄이 없다(2026-09-17 실측으로 잡았다). 목록 위에 뜨는 `loadErr` 를 쓴다. */
+    if (!it) { setLoadErr("방금 찍으신 영상을 목록에서 못 찾았어요. 아래 목록에서 직접 [⚡ 한 방에 올리기] 를 눌러 주세요."); return; }
+    void oneShot(it);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, sdReady]);
 
   /* ★ 「한 방 등록」 기본 설정을 읽어 온다. 못 읽어도 기본값으로 돈다 — 화면이 멈추지 않는다 */
   useEffect(() => {
@@ -524,7 +562,11 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const tabs = (
     /* ★ 2026-09-12 — `panel-video` 를 `config/tours.ts` 에 **먼저 등록하고** 여기 붙였다.
        완성도 「첫 영상 찍기」 힌트가 이 자리로 데려온다(규칙 3·12). */
-    <div className="flex gap-2" data-tour="panel-video">
+    /* ★ `id="video-list"` — 녹화 화면이 `#video-list` 로 **이 자리까지** 데려온다 (2026-09-17 지시 [17]).
+       대표님: 「여기로 이동하면 «이건 뭐지?» 라고 느끼지 않겠니?」 — 느끼십니다. 그래서 앵커를 답니다.
+       ⚠ `data-tour` 는 그대로 둔다. 그건 투어·완성도 힌트의 이름이고(규칙 3), 이 `id` 는 스크롤용이다.
+         둘은 목적이 달라 한 자리에 같이 있어도 된다. */
+    <div id="video-list" className="flex gap-2" data-tour="panel-video" style={{ scrollMarginTop: "var(--s-8)" }}>
       {([["list", "내 영상"], ["sns", "SNS 연결"]] as const).map(([id, label]) => (
         <button key={id} type="button" onClick={() => setView(id)}
           className={`rounded-full px-4 py-2 t-caption font-semibold ${

@@ -503,6 +503,9 @@ export function RecClient({ slug, k, businessName, onDone }: {
   /** 실제로 몇 장을 그렸나 — 느린 폰을 «재서» 안다(권반장 지시). 로그에만 쓴다 */
   const relayFrames = useRef(0);
 
+  /** 방금 저장된 영상의 번호 (2026-09-17 지시 [17]) — 마지막 화면의 올리기 버튼이 쓴다 */
+  const [savedId, setSavedId] = useState<string | null>(null);
+
   useEffect(() => () => { stopStream(); }, []);
   useEffect(() => { if (liveRef.current && streamRef.current) liveRef.current.srcObject = streamRef.current; }, [screen]);
   /* ★ 「어느 쪽으로 찍을까요?」 화면에 들어오면 **권한 상태를 미리 읽는다.**
@@ -1057,14 +1060,14 @@ export function RecClient({ slug, k, businessName, onDone }: {
         throw new Error(sd.error ?? "저장 실패");
       }
       stopStream();
+      /* ★ 방금 저장된 영상의 번호 — 「한 방에 올리기」가 이것으로 그 영상을 집는다 (지시 [17]).
+         ⚠ 못 읽어도 멈추지 않는다. 그때는 올리기 버튼 대신 「홈페이지 관리로」만 보여 준다. */
+      let entryId: string | null = null;
+      try { entryId = String(((await s.json()) as { id?: string }).id ?? "") || null; } catch { entryId = null; }
+      setSavedId(entryId);
       /* ★ 가입 관문이면 여기서 그쪽으로 넘긴다 — 「보냈어요」 화면을 띄우지 않는다.
          ⚠ `id` 를 못 읽어도 넘긴다. 영상은 이미 저장됐고, 「홈페이지에 걸기」만 못 할 뿐이다. */
-      if (onDone) {
-        let entryId: string | null = null;
-        try { entryId = String(((await s.json()) as { id?: string }).id ?? "") || null; } catch { entryId = null; }
-        onDone(entryId);
-        return;
-      }
+      if (onDone) { onDone(entryId); return; }
       setScreen("done");
     } catch (e) {
       setErr(e instanceof PutFail ? await explainPut(e) : e instanceof Error ? e.message : "보내지 못했어요");
@@ -1396,8 +1399,31 @@ export function RecClient({ slug, k, businessName, onDone }: {
                 자막 워커도, 글 다듬기도, 그 문자도 **아직 없다.** 오지 않는 문자를 약속하면
                 사장님은 고장으로 여긴다. 지금 진짜 되는 것만 말한다.
                 ⚠ 자막·채널 발행이 실제로 도는 날 이 문구를 되살려라. 그전에는 안 된다. */}
-            <p className="mt-3 max-w-xs t-small leading-relaxed opacity-80">영상이 저장됐어요. <b>홈페이지 관리</b>에서 이 영상을 홈페이지에 걸 수 있습니다.</p>
-            <a href={`/${slug}/edit`} className="btn-lime mt-8">홈페이지 관리로</a>
+            {/* ★★ 2026-09-17 지시 [17] — **여기서 바로 올릴 수 있어야 한다.**
+                대표님: 「왜 /edit 으로 이동한 다음에 한 방에 올리기를 «또» 눌러야 하는지 이해할 수 없다.」
+                ⇒ 한 번만 누르시면 됩니다. 넘어간 화면에서 **저절로** 올라갑니다.
+                ⚠ 여기(녹화 화면)는 문자 링크로 들어오는 곳이라 «주인인지»를 모릅니다. 서명만으로
+                  SNS 에 올리게 열면 **링크를 받은 누구나** 사장님 SNS 에 글을 올릴 수 있게 됩니다.
+                  그래서 주인임이 확인되는 편집화면으로 데려가 거기서 저절로 돌립니다. */}
+            <p className="mt-3 max-w-xs t-small leading-relaxed opacity-80">영상이 저장됐어요. 이대로 <b>홈페이지와 SNS 에 한 번에</b> 올릴 수 있어요.</p>
+            {savedId ? (
+              <>
+                <a href={`/${slug}/edit?tab=video&oneshot=${encodeURIComponent(savedId)}#video-list`} className="btn-lime mt-8 w-full max-w-xs !py-4 !t-body">
+                  ⚡ 한 방에 올리기
+                </a>
+                <a href={`/${slug}/edit?tab=video#video-list`} className="mt-3 w-full max-w-xs rounded-2xl border border-white/30 py-3 t-small font-semibold">
+                  세부내용 수정해서 올리기
+                </a>
+              </>
+            ) : (
+              /* 번호를 못 읽은 경우 — 영상은 저장됐다. 올리기만 손으로 하시면 된다 */
+              <a href={`/${slug}/edit?tab=video#video-list`} className="btn-lime mt-8">홈페이지 관리로</a>
+            )}
+            {/* 🔴 틱톡만은 한 번 더 고르셔야 합니다 — 우리 기술이 아니라 틱톡 규정입니다.
+                미리 골라 두면 심사에서 떨어집니다(lib/sns/tiktok.ts 의 canPrefill:false). */}
+            <p className="mt-4 max-w-xs t-caption leading-relaxed opacity-60">
+              틱톡에 올리실 때는 <b>「누가 볼 수 있나요?」</b>를 한 번 더 고르셔야 해요. 틱톡 규정입니다.
+            </p>
             <button type="button" onClick={() => { setBlob(null); setBlobUrl(""); setSec(0); setQ(null); setCustom(""); setScreen("ask"); }} className="mt-4 t-small underline opacity-70">하나 더 녹화하기</button>
           </section>
         )}
