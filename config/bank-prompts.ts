@@ -174,6 +174,16 @@ export function variationsFor(role: string) {
   return role === "hero" ? HERO_VARIATIONS : VARIATIONS;
 }
 
+/**
+ * 이 업종에 «전용 씬»이 있는지 — 없으면 buildPrompt 가 조용히 INDUSTRY_SCENES.interior 로
+ * 떨어진다. 학원·레슨·운동처럼 시공이 아닌 업종에 인테리어(아파트) 프롬프트를 그대로 보여주면
+ * 사장님이 그걸 복사해 ChatGPT 에 넣었을 때 «학원인데 아파트 거실 사진»이 나온다
+ * (2026-09-16 리뷰 지적). 호출부는 이 값이 false 면 프롬프트 자체를 감춰야 한다.
+ */
+export function hasScenesFor(industryId: string): boolean {
+  return industryId in INDUSTRY_SCENES;
+}
+
 export function buildPrompt(industryId: string, mood: string, role: string, sceneIdx: number, varIdx: number) {
   const scenes = INDUSTRY_SCENES[industryId] ?? INDUSTRY_SCENES.interior;
   const scene = scenes[sceneIdx % scenes.length];

@@ -882,7 +882,11 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                 {s.image && /* eslint-disable-next-line @next/next/no-img-element */ <img src={s.image} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" />}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <label className="inline-block cursor-pointer rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
-                    {uploading ? "올리는 중…" : "내 사진으로 교체 (+15점)"}
+                    {/* ⚠ 2026-09-16 리뷰 지적 A — 점수 표기를 뺐다. 완성도 15점(photo_real)의 판정은
+                        lib/score.ts 의 「이야기 사진 3장」이라 첫 화면 사진을 바꿔도 점수는 오르지 않는다
+                        (규칙 12 — 판정·화면·힌트 셋이 일치해야 한다). 점수를 붙이고 싶으면 그 절차를
+                        따로 밟아야 한다 — 이 업무 범위 밖. */}
+                    {uploading ? "올리는 중…" : "내 사진으로 교체"}
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSectionImage(i, e.target.files[0])} />
                   </label>
                   <span className="text-[11px] text-[var(--text-soft)]">권장 1600×900 이상 · JPG/PNG · {MAX_UPLOAD_LABEL} 이하</span>
@@ -905,7 +909,11 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                       </button>
                     </div>
                     {heroBank.urls.length === 0 && !heroBank.loading && (
-                      <p className="text-[12px] leading-relaxed text-[var(--text-soft)]">지금 보여드릴 사진이 없어요. 아래 문장으로 직접 만들어 올려 주세요.</p>
+                      <p className="text-[12px] leading-relaxed text-[var(--text-soft)]">
+                        {heroBank.prompt
+                          ? "지금 보여드릴 사진이 없어요. 아래 문장으로 직접 만들어 올려 주세요."
+                          : "지금 보여드릴 사진이 없어요. 위쪽 「내 사진으로 교체」로 직접 올려 주세요."}
+                      </p>
                     )}
                     <div className="grid grid-cols-3 gap-2">
                       {heroBank.urls.map((url) => (
@@ -914,19 +922,25 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                           className="aspect-video w-full cursor-pointer rounded-lg object-cover ring-1 ring-n-200 hover:ring-2 hover:ring-accent" />
                       ))}
                     </div>
-                    <div className="border-t border-n-200 pt-3">
-                      <p className="mb-1 t-caption font-semibold text-[var(--text-soft)]">이 사진은 이렇게 만들어졌어요 (영어 프롬프트)</p>
-                      <textarea readOnly rows={2} value={heroBank.prompt} onFocus={(e) => e.target.select()}
-                        className={inp + " resize-none"} />
-                      <button type="button" onClick={copyHeroPrompt}
-                        className="mt-2 rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
-                        {heroBank.copied ? "복사했어요" : "프롬프트 복사하기"}
-                      </button>
-                      <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-soft)]">
-                        마음에 드는 사진이 없으시면, 위 문장을 복사해 ChatGPT·Gemini 에서 직접 만들어
-                        올려 주세요. 세부 업종은 다시 고르기가 안 될 수 있습니다.
-                      </p>
-                    </div>
+                    {/* ⚠ 2026-09-16 리뷰 지적 C·D — heroBank.prompt 가 없으면(업종에 전용 씬이 없어
+                        서버가 비워 보냄) 이 블록을 통째로 감춘다. 「이 사진은 이렇게 만들어졌어요」는
+                        사실이 아니다(사진과 프롬프트가 1:1이 아니다) — 「비슷한 사진을 직접 만들 때
+                        쓰는 문장」으로 고쳤다. 대표님이 다른 문구를 원하시면 바꿀 수 있다(결과 보고 참고). */}
+                    {heroBank.prompt && (
+                      <div className="border-t border-n-200 pt-3">
+                        <p className="mb-1 t-caption font-semibold text-[var(--text-soft)]">비슷한 사진을 직접 만들 때 쓰는 영어 문장</p>
+                        <textarea readOnly rows={2} value={heroBank.prompt} onFocus={(e) => e.target.select()}
+                          className={inp + " resize-none"} />
+                        <button type="button" onClick={copyHeroPrompt}
+                          className="mt-2 rounded-full border border-n-300 px-4 py-1.5 t-caption font-semibold">
+                          {heroBank.copied ? "복사했어요" : "프롬프트 복사하기"}
+                        </button>
+                        <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-soft)]">
+                          마음에 드는 사진이 없으시면, 위 문장을 복사해 ChatGPT·Gemini 에서 직접 만들어
+                          올려 주세요. 세부 업종은 다시 고르기가 안 될 수 있습니다.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
