@@ -305,6 +305,22 @@ export default async function Home() {
         <section id="pricing" className="surface-50 section reveal">
           <div className="wrap grid lg:grid-cols-[1.1fr_1fr]" style={{ gap: "var(--s-6)" }}>
             <div className="surface-900" style={{ borderRadius: "var(--r-lg)", padding: "var(--s-6)" }}>
+              {/* ★★ 2026-09-17 — **상품 그림 한 장** (권반장 지시 [27]).
+                  🔴 토스 공지 20057 「상품 관련 검수」 원문: **「상품 이미지가 없거나 … 하지 않도록
+                    점검해 주세요.」** 이 카드에는 글자와 체크 목록뿐이라 그림이 한 장도 없었다.
+                  ★ **없는 기능을 그린 그림을 쓰지 않았다.** 실제로 만들어진 홈페이지를 찍어 둔
+                    사진(`sites.settings.shots.phone`)이다 — 이 상품이 «실제로 주는 것» 그 자체다.
+                  ⚠ 사진이 아직 없는 경우(스크린샷 촬영 전)에는 **아무것도 안 그린다.**
+                    빈 네모를 그리면 그게 바로 공지가 말하는 「이미지 오류」다.
+                  ⚠ 글은 한 글자도 안 바꿨다 — 그림만 더하는 일이다(지시 [27]). */}
+              {heroSite?.phone && (
+                <figure className="flex justify-center" style={{ margin: 0, marginBottom: "var(--s-5)" }}>
+                  <span className="phone-frame phone-shot">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={heroSite.phone} alt="온스토리 정회원 월 구독으로 만들어지는 홈페이지 화면" width={180} height={366} />
+                  </span>
+                </figure>
+              )}
               <p className="chip chip-accent">가장 많이 선택</p>
               <h2 className="t-h2" style={{ marginTop: "var(--s-4)" }}>
                 정회원 <span style={{ color: "var(--accent)" }}>{COPY.priceOnly}</span>
