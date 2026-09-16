@@ -55,6 +55,9 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       { href: "/admin/pages", label: "온스토리 홈페이지", desc: "첫 페이지 섹션 보이기·가리기", ready: true },
       /* ★ 2026-09-11 — 「100건도 안 썼는데 $10 이 사라졌다」를 알아채는 자리(회장님 요청) */
       { href: "/admin/sns", label: "SNS 발행 현황", desc: "채널별 올린 건수·실패·추정 비용", ready: true },
+      /* ★ 2026-09-16 대표님 지시로 신설 — 「아이디어가 생기면 설명하고 검토하고 기획하는 공간」.
+         글은 DB 가 아니라 config/ideas.ts 에 있다(마이그레이션이 필요 없다) */
+      { href: "/admin/ideas", label: "아이디어 뱅크", desc: "기능 아이디어 · 상태등 5종 · 예상 토큰비 · 구체 계획", ready: true },
       { href: "/admin/movies", label: "무비 주문", desc: "히어로 무비 제작 보드 (P6)", ready: false },
     ],
   },

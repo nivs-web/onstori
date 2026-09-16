@@ -19,6 +19,8 @@ import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
+import { ChannelsPanel } from "./channels-panel";
+import { cleanOwnerChannels } from "@/config/owner-channels";
 import { VideosPanel } from "./videos-panel";
 import { WeeklyPanel } from "./weekly-panel";
 import { LogoutButton } from "@/app/my/ui";
@@ -88,6 +90,9 @@ export function EditUi({ slug }: { slug: string }) {
   const [newCount, setNewCount] = useState(0);
   /** 알림 수신처 — draft 가 아니라 sites.settings 라서 doc 이 아니라 여기가 들고 있는다 */
   const [notify, setNotify] = useState({ phone: "", email: "" });
+  /** 이미 운영 중인 채널 — 역시 draft 가 아니라 sites.settings.channels 다 (반장 지시 [7]).
+   *  ⚠ notify 와 같은 방식: 자체 state 로 들고 있어야 자동저장 effect(아래)가 변화를 알아챈다. */
+  const [channels, setChannels] = useState<Record<string, string>>({});
 
   /** 미리보기 — 편집 중인 섹션(스크롤 위치), 자동저장 상태, PC/폰 판정, 폰 시트 열림 여부.
    *  editor-preview-2026-09-05.md 4장. */
@@ -153,8 +158,9 @@ export function EditUi({ slug }: { slug: string }) {
       .then((res) => {
         if (res.ok) {
           setData(res.d); setDoc(res.d.draft);
-          const n = (res.d.settings as { notify?: { phone?: string; email?: string } } | null)?.notify;
-          setNotify({ phone: n?.phone ?? "", email: n?.email ?? "" });
+          const s = res.d.settings as { notify?: { phone?: string; email?: string }; channels?: Record<string, string> } | null;
+          setNotify({ phone: s?.notify?.phone ?? "", email: s?.notify?.email ?? "" });
+          setChannels(cleanOwnerChannels(s?.channels));
         }
         else setDenied({ signedIn: res.signedIn, notFound: res.notFound });
       })
@@ -205,7 +211,8 @@ export function EditUi({ slug }: { slug: string }) {
     if (opts.silent) setAutoStatus("saving");
     const r = await fetch("/api/site/update", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug, anonId: anon(), draft: doc,
-        settings: { phone: phoneOf(doc), address: addressOf(doc), hours: hoursOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
+        settings: { phone: phoneOf(doc), address: addressOf(doc), hours: hoursOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() },
+          channels: cleanOwnerChannels(channels) } }) });
     const d = await r.json();
     setBusy("");
     if (!r.ok) {
@@ -236,7 +243,7 @@ export function EditUi({ slug }: { slug: string }) {
     const t = setTimeout(() => { void autoSave(); }, 2000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, notify, dirty, busy]);
+  }, [doc, notify, channels, dirty, busy]);
 
   // 창을 벗어날 때(다른 탭으로 전환·최소화)도 붙잡는다
   useEffect(() => {
@@ -246,7 +253,7 @@ export function EditUi({ slug }: { slug: string }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, doc, notify]);
+  }, [dirty, busy, doc, notify, channels]);
 
   /** 메뉴를 옮기기 전에 편집 중이던 내용을 붙잡는다(자동저장 타이머를 기다리지 않는다) */
   function switchMenu(next: EditorMenuId) {
@@ -404,14 +411,14 @@ export function EditUi({ slug }: { slug: string }) {
     );
   }
 
-  /* ── 왼쪽 칸 — 완성도 막대 · 점수 힌트 · 섹션 목록 (S2⑥) ──
+  /* ── 왼쪽 칸 — 완성도(숫자+막대) · 점수 힌트 · 섹션 목록 (S2⑥) ──
      ⚠ 완성도 막대와 힌트는 **없어진 게 아니라 자리를 옮겼다.** 전에는 상단 헤더와
-       본문 위에 있었다. 앵커 score-bar 는 상단바로 갔다(shell.tsx). */
+       본문 위에 있었다.
+     ★ 2026-09-16 대표님 — **앵커 score-bar 가 상단바에서 다시 여기로 돌아왔다.**
+       숫자(상단바)와 막대(여기)가 따로 놀던 것을 ScoreMeter 하나로 합쳤다. 아래 주석 참조. */
   const rail = (
     <div className="space-y-4">
-      <div className="h-1.5 overflow-hidden rounded-full bg-n-100">
-        <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${data.score}%` }} />
-      </div>
+      <ScoreMeter score={data.score} />
 
       {/* 점수 올리기 힌트 — ⚠ logo(panel-brand)는 P6 라 갈 곳이 없다. 이 제외를 빼면 먹통 힌트가 된다 */}
       <section className="rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
@@ -479,7 +486,8 @@ export function EditUi({ slug }: { slug: string }) {
     <EditorShell
       slug={slug}
       businessName={data.businessName}
-      score={data.score}
+      /* ⚠ 2026-09-16 — `score` 는 더 이상 껍데기로 내려보내지 않는다.
+         점수는 `rail` 안의 ScoreMeter 가 직접 그린다(상단바에서 잘리던 문제). */
       menu={menu}
       onMenu={switchMenu}
       newCount={newCount}
@@ -559,6 +567,13 @@ export function EditUi({ slug }: { slug: string }) {
       ) : menu === "link" ? (
         <>
           <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
+          {/* ★★ 2026-09-16 — 「이미 운영 중인 채널」(반장 지시 [7]). 가입 4단계가 이미
+              「수정하기에서 언제든 자유롭게 변경할 수 있습니다」라고 약속해 놓고 그 화면이
+              없었다 — 여기가 그 화면이다. 저장은 draft 가 아니라 sites.settings.channels 라
+              위 channels state 를 통해 doSave 가 함께 보낸다(notify 와 같은 방식). */}
+          <div className="mt-8 border-t border-n-200 pt-6">
+            <ChannelsPanel value={channels} onChange={(v) => { setChannels(v); setDirty(true); }} />
+          </div>
           {/* ★★ 2026-09-12 — 「주 1회 촬영 알림」(회장님 지시 8). 「연결」 메뉴에 둔다 —
               전화·카톡 버튼과 같은 «어디로 연락이 오가나»의 자리라 결이 맞는다.
               ⚠ 이 설정을 크론(/api/cron/weekly)이 매시 정각에 읽는다. */}
@@ -679,6 +694,78 @@ function LogoBox({ slug, logo, onLogo }: {
   );
 }
 
+/**
+ * ★★ 완성도 계기판 — 「완성도 65점/100점」 **바로 아래** 차오르는 막대 (2026-09-16 대표님 지시)
+ *
+ * ⚠ **무엇이 이상했나 (원인 셋).**
+ *   ① **숫자와 막대가 서로 다른 파일·다른 자리에 있었다.** 숫자는 상단바(shell.tsx 의 `.editor-ident`),
+ *      막대는 여기 왼쪽 칸이었다. 폰에서는 그 사이에 «탭 메뉴 줄 하나 + 본문 여백»이 끼어
+ *      숫자와 막대가 60px 넘게 떨어져 **한 쌍으로 보이지 않았다.**
+ *   ② **막대에 이름표가 없고 6px(h-1.5) 뿐이었다.** 라벨 없는 실선 하나라 「그래프」가 아니라
+ *      «구분선»으로 보인다. 대표님이 「막대그래프가 떠야 하는데 이상해」라고 하신 것이 이 모습이다.
+ *   ③ **차오르는 애니메이션이 아예 일어나지 않았다.** `transition-all` 이 붙어 있었지만 처음 그릴 때부터
+ *      `width` 가 최종값(65%)이라 브라우저가 «변화»를 볼 일이 없었다. 게다가 width 애니메이션은
+ *      globals.css 가 금지한다(「움직이는 건 transform 과 opacity 만」).
+ *
+ * ★ **고친 방법.** 숫자와 막대를 이 부품 하나로 합치고, 둘 사이를 var(--s-2) 로 좁혔다.
+ *   차오르기는 `transform: scaleX()` 로 한다 — 0 으로 그린 «다음» 프레임에 실제 점수로 올려야
+ *   브라우저가 변화로 보고 굴려 준다.
+ *
+ * ★ 둥근 모서리는 **바깥 틀**이 가진다. 안쪽을 늘렸다 줄이면 모서리까지 같이 늘어나 찌그러지므로,
+ *   틀이 `overflow:hidden` 으로 깎아 준다.
+ *
+ * ★ `prefers-reduced-motion` 은 **여기서 따로 막지 않는다.** globals.css 맨 아래 전역 규칙이
+ *   모든 transition 을 .01ms 로 만든다(!important). 두 곳에서 막으면 언젠가 어긋난다.
+ *
+ * ⚠ 폰 360px 에서 「완성도 65점/100점」은 한 줄에 들어간다 — 왼쪽 칸은 폰에서 **화면 전체 폭**
+ *   (360 − 좌우 여백 32 = 328px)을 쓰고 이 글자는 13px 기준 약 95px 이다. 상단바(60~96px)와 다르다.
+ */
+function ScoreMeter({ score }: { score: number }) {
+  /* 서버 점수가 이상해도 막대가 틀 밖으로 나가지 않게 0~100 으로 가둔다 */
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
+
+  /* 0 에서 시작해 **첫 그리기 다음 프레임**에 실제 점수로 올린다(원인 ③) */
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(pct));
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
+
+  return (
+    <div data-tour="score-bar">
+      <p className="t-caption" style={{ color: "var(--text)", marginBottom: "var(--s-2)" }}>
+        완성도 <b style={{ color: "var(--brand-ink)" }}>{pct}점/100점</b>
+      </p>
+
+      {/* 틀 — 색은 `bg-n-100`·`bg-green-700` 을 그대로 쓴다. 어두운 화면 처리가 이 두 이름에 걸려 있다
+          (globals.css 의 «다크 다리»가 --n-100 을 바꾸고, `.editor-shell .bg-green-700` 을 되돌린다).
+          이름을 바꾸면 어두운 화면에서 막대가 사라진다. */}
+      <div
+        role="progressbar"
+        aria-label="홈페이지 완성도"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        aria-valuetext={`100점 중 ${pct}점`}
+        className="overflow-hidden rounded-full bg-n-100"
+        style={{ height: "var(--s-3)" }}
+      >
+        <div
+          className="h-full bg-green-700"
+          style={{
+            transformOrigin: "left",
+            transform: `scaleX(${shown / 100})`,
+            /* --dur-2(200ms)는 «차오른다»기보다 «툭» 나타난다. 대표님이 원하신 건 부드럽게 차오르는
+               모습이라 같은 변수의 4배를 쓴다. 새 숫자를 만들지 않으려고 calc 로 곱했다. */
+            transition: "transform calc(var(--dur-2) * 4) var(--ease)",
+            willChange: "transform",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function AutoSaveStatus({ status, onRetry }: { status: "idle" | "saving" | "saved" | "error"; onRetry: () => void }) {
   if (status === "idle") return null;
   if (status === "saving") return <p className="text-[11px] text-[var(--text-soft)]">저장 중…</p>;
@@ -722,6 +809,27 @@ function addressOf(doc: SiteDocT): string | null {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">{label}</span>{children}</label>;
+}
+
+/**
+ * 섹션 제목 = **손님 사이트 상단 메뉴에 뜨는 그 글자다** (`components/sections/nav.ts` 의
+ * SECTION_ANCHORS 가 이 값을 그대로 메뉴 이름으로 쓴다). 그래서 «제목» 입력칸은 전부
+ * 이 하나로 통일한다 — 2026-09-16 대표님 지시 ②(메뉴명을 사장님이 직접 바꿀 수 있게).
+ *
+ * 🔴 **막지 않고 경고만 한다.** 2026-09-15 에 AI 가 만든 40자짜리 제목이 메뉴에 그대로
+ *   박힌 사고가 있었다(`lib/generate.ts` 의 aboutTitle·storyFeedTitle 주석 참고).
+ *   사장님이 손으로 길게 넣어도 같은 사고가 나므로, 여기서도 8자를 넘기면 알려준다.
+ *   저장 자체를 막지는 않는다 — 짧은 메뉴 이름이 아니라 긴 제목을 원하실 수도 있다.
+ */
+const MENU_TITLE_WARN = 8;
+function TitleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const long = value.trim().length > MENU_TITLE_WARN;
+  return (
+    <Field label="제목 (메뉴에도 이 이름이 떠요)">
+      <input className={inp} value={value} maxLength={40} onChange={(e) => onChange(e.target.value)} />
+      {long && <p className="mt-1 t-caption text-accent-ink">메뉴에서는 잘려 보일 수 있어요 — {MENU_TITLE_WARN}자 이내를 권해요.</p>}
+    </Field>
+  );
 }
 /**
  * 입력칸 공통 — **폭은 여기 넣지 않는다.**
@@ -949,7 +1057,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "about": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">소개</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="내용"><textarea className={inp} rows={5} value={s.body} maxLength={600} onChange={(e) => patchSection(i, { body: e.target.value })} /></Field>
               <div>
                 <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">소개 사진 {s.image ? "" : "(없음)"}</span>
@@ -967,6 +1075,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "processSteps": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">진행 과정</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.steps.map((st, j) => (
                 <div key={j} className="flex items-center gap-2">
                   <input className={inpNarrow} value={st.name} maxLength={20}
@@ -989,6 +1098,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "quoteForm": return (
             <section data-tour="sec-form" className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">문의 받기</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
                 <Field label="전화번호 (선택 — 홈페이지에는 공개되지 않아요)">
@@ -1009,6 +1119,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "map": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">오시는 길</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="주소"><input className={inp} value={s.address} maxLength={120} onChange={(e) => patchSection(i, { address: e.target.value })} /></Field>
               <Field label="안내 (선택)"><input className={inp} value={s.note ?? ""} maxLength={120} onChange={(e) => patchSection(i, { note: e.target.value })} /></Field>
             </section>
@@ -1016,13 +1127,14 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "hoursCard": return (
             <section data-tour="set-hours" className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">영업시간</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="영업시간 (줄바꿈 가능)"><textarea className={inp} rows={3} value={s.hours} maxLength={200} onChange={(e) => patchSection(i, { hours: e.target.value })} /></Field>
             </section>
           );
           case "storyFeed": return (
             <section className="rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">이야기 코너</h2>
-              <Field label="코너 제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
             </section>
           );
           case "gallery": {
@@ -1033,7 +1145,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
             return (
               <section className="space-y-3 rounded-2xl border border-n-200 p-4">
                 <h2 className="t-small font-bold">사진 갤러리</h2>
-                <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+                <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
                 <div className="flex flex-wrap gap-2">
                   {s.photos.map((p, j) => (
                     <div key={`${p}-${j}`}>
@@ -1062,7 +1174,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "reviews": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">고객 이야기</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex gap-2">
@@ -1094,7 +1206,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "portfolioGallery": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">시공 사례</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex items-start gap-3">
@@ -1132,7 +1244,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "menuPrice": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">메뉴판</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex gap-2">
@@ -1170,7 +1282,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                   표지 사진이 없어요. 손님에게는 영상의 첫 장면이 먼저 보입니다.
                 </p>
               )}
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="영상 아래 한 줄 (선택)"><input className={inp} value={s.caption ?? ""} maxLength={120} placeholder="예: 20년째 같은 자리에서 합니다"
                 onChange={(e) => patchSection(i, { caption: e.target.value || undefined })} /></Field>
               <p className="t-caption leading-relaxed text-[var(--text-soft)]">

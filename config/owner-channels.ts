@@ -43,9 +43,20 @@ export type OwnerChannelDef = {
   hint: string;
   /** 입력칸에 흐리게 보이는 예시 */
   placeholder: string;
-  /** 위젯 원 안의 글자 — 그림 파일을 안 쓴다(아래 주석 참고) */
+  /**
+   * 원 안의 **예비 글자**.
+   * ⚠ 2026-09-16 부터 손님 홈페이지 위젯은 이 글자를 안 쓴다 — **진짜 로고를 SVG 로 그린다**
+   *   (`components/sections/channel-widget.tsx` 의 `LOGO`). 대표님 지시: 「왜 로고 안 넣어?」
+   * ★ 그래도 이 칸을 지우지 않는 이유 둘:
+   *   ① `app/new/wizard.tsx` 의 입력칸 옆 미리보기가 아직 이 글자를 쓴다
+   *   ② 새 채널을 여기에 더했는데 로고를 아직 안 그렸을 때 **위젯이 이 글자로 떨어진다**
+   */
   mark: string;
-  /** 위젯 원 색 */
+  /**
+   * 위젯 원의 **바탕**.
+   * ⚠ 「색 하나」가 아니라 **CSS `background` 값**이다 — 인스타그램은 그라데이션이다.
+   *   글자·선 위에 올릴 색을 고르지 마라. 이 위에는 **흰색**이 올라간다.
+   */
   color: string;
 };
 
@@ -67,7 +78,9 @@ export const OWNER_CHANNELS: OwnerChannelDef[] = [
     label: "인스타그램",
     hint: "연결할 인스타그램 주소를 입력해 주세요.",
     placeholder: "https://instagram.com/내계정",
-    mark: "IG", color: "#E1306C",
+    /* ★ 인스타만 그라데이션이다 — 인스타를 인스타로 보이게 하는 건 사실상 이 색 띠 하나다.
+       ⚠ 공식 색표를 그대로 옮긴 것이 아니라 **비슷하게 잡은 3단**이다(노랑→분홍→보라). */
+    mark: "IG", color: "linear-gradient(135deg,#F9CE34 0%,#EE2A7B 55%,#6228D7 100%)",
   },
   {
     id: "naverBlog",

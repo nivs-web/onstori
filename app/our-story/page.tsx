@@ -4,7 +4,9 @@ import Image from "next/image";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { BIZ } from "@/config/company";
 import { COPY } from "@/lib/trial";
-import { CHANNELS_LINE_MARKED, LIVE_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
+/* ⚠ SNS 한 줄은 `/admin/copy` 저장값이 이긴다 (2026-09-16 지시 [9]) */
+import { LIVE_COUNT, KEEP_AFTER_CANCEL } from "@/config/channels";
+import { readConfig } from "@/lib/admin-config";
 import { TRIAL_DAYS } from "@/lib/trial";
 
 export const metadata: Metadata = { title: "온스토리", description: "홈페이지는 있는데 손님이 없는 가게가 너무 많았습니다. 온스토리를 만든 이유." };
@@ -12,7 +14,8 @@ export const metadata: Metadata = { title: "온스토리", description: "홈페�
 /** 온스토리 — 레멘토 Our story 구조: 창업자 편지 → 이정표 → 비교표 → 원칙 (기획1 /mainplan #ourstory).
  * 2026-09-06: /compare 메뉴를 내리고 그 11행 비교표를 #compare 로 옮겨 왔다. */
 /** 11행 비교표 — 2026-09-06 /compare 페이지에서 옮겨 왔다. 타사 화면·문구 복제 없음, 기능 개념만 비교. */
-const COMPARE_ROWS = [
+function compareRows(snsLine: string) {
+  return [
   ["만드는 데 걸리는 시간", "2~6주, 미팅 3~5회", "3분 (상호명·업종·색만)"],
   ["비용", "제작 50~300만원 + 유지비", `${TRIAL_DAYS}일 무료 → ${COPY.priceLine}`],
   ["만든 뒤", "끝. 수정은 건당 비용", "매주 질문 → 새 이야기가 쌓임"],
@@ -20,12 +23,13 @@ const COMPARE_ROWS = [
   ["글쓰기", "사장님 또는 외주 작가", "없음 — 말하면 글이 됨"],
   ["영상", "별도 견적 (편당 30만원~)", "매주 자막 영상 포함"],
   /* ★ 비교표에서 「6곳」만 적으면 제작업체와의 차이를 부풀린 것이 된다 (2026-09-13) */
-  ["SNS 발행", "없음", `${CHANNELS_LINE_MARKED} — 지금 ${LIVE_COUNT}곳`],
+  ["SNS 발행", "없음", `${snsLine} — 지금 ${LIVE_COUNT}곳`],
   ["검색 노출", "등록은 해 주지만 새 페이지가 안 생김", "이야기마다 새 페이지 — 검색 면적이 늘어남"],
   ["사진", "스톡 사진", "사장님 사진 우선 + 업종별 이미지뱅크"],
   ["소유권", "업체 서버·업체 계정인 경우 많음", "홈페이지·영상·기록 전부 사장님 것"],
   ["해지", "위약금·자료 반출 어려움", "언제든, 자료 전부 반출"],
-];
+  ];
+}
 
 /** 편지 마무리 — 빈 줄이 곧 호흡이라 문자열로 두고 white-space: pre-line 으로 살린다 */
 const CLOSING = `홈페이지는 빈 집입니다.
@@ -37,7 +41,9 @@ const CLOSING = `홈페이지는 빈 집입니다.
 
 사장님의 이야기를 들려주세요.`;
 
-export default function OurStory() {
+export default async function OurStory() {
+  const cfg = await readConfig();
+  const COMPARE_ROWS = compareRows(cfg.snsLine);
   const milestones = [
     ["2000.04", "닙스닷컴(nivs.com)으로 사업 시작 — 웹 에이전시 스타트업 · 인터넷 사업 컨설팅 전문"],
     ["2003.02", "사업 확장 및 일본 도쿄 진출 — 도쿄에서 다수의 웹 컨설팅 및 웹사이트 개발 진행"],

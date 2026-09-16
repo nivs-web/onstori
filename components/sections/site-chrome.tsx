@@ -6,6 +6,8 @@ import type { SiteDocT } from "@/lib/schema";
    이 파일은 "use client" 다 — 잎 모듈(./nav)에서만 가져온다(2026-09-10 실측). */
 import { contactOf, SECTION_ANCHORS } from "./nav";
 import { ICON, ARIA } from "./connect-widget";
+// 문의 버튼 글자의 단일 출처 (대표 결정 R-0001) — 다시 타이핑하지 않는다.
+import { INQUIRY_CTA_LABEL } from "@/config/industries";
 
 /**
  * 손님 사이트 크롬 — 상단 바 + 햄버거 시트 + 하단 고정 바 (docs/specs/mobile-ux.md · docs/DESIGN.md).
@@ -124,7 +126,7 @@ function TopBar({
               className="t-small inline-flex items-center justify-center font-semibold"
               style={{ minHeight: "var(--tap)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
             >
-              견적 문의
+              {INQUIRY_CTA_LABEL}
             </a>
           ) : tel ? (
             <a
@@ -212,7 +214,7 @@ function TopBar({
 }
 
 /**
- * 하단 고정 바 64px — [전화][카톡][견적 문의]. 견적만 주 버튼이다.
+ * 하단 고정 바 64px — [전화][카톡][문의하기]. 문의만 주 버튼이다.
  * ⚠ 이 바가 있으면 플로팅 버튼을 따로 두지 않는다 — 겹친다 (지시서 2-4).
  */
 function Dock({ tel, kakaoUrl, hasQuote }: { tel: string; kakaoUrl: string; hasQuote: boolean }) {
@@ -247,7 +249,7 @@ function Dock({ tel, kakaoUrl, hasQuote }: { tel: string; kakaoUrl: string; hasQ
               background: "var(--s-accent)", color: "var(--s-on-accent)",
             }}
           >
-            견적 문의
+            {INQUIRY_CTA_LABEL}
           </a>
         )}
       </nav>
