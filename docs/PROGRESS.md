@@ -1,5 +1,32 @@
 # PROGRESS.md — 작업 인수인계
 
+## 2026-09-16 낮 — 권반장 지시 [8]·[9]·[10] 세 건
+
+**커밋** `8fc5f3b` · `fb896e6` · `9f73ff4` · `7cfc338` · `ceec1f4` · `e81f789`
+**검사** `npm run check` **0** · `npx tsc --noEmit` **0** · `npm run build` **0**
+
+> 보고서 세 장: `docs/AI/완료/지시-08-사이트맵-예시제외.md` · `지시-09-카피관리-배선.md` · `지시-10-도메인연결-검토.md`
+
+### 다음 창이 꼭 알아야 할 것 다섯
+
+1. 🔴 **`sites` 표에 `sample` 칸은 «없다».** 예시 여부의 단일 출처는 `lib/sites.ts` 의 `SAMPLE_SLUGS` 다.
+   조회 `select` 에 없는 칸을 적으면 `app/sitemap.ts` 의 `catch` 가 400 을 삼켜 **사이트맵이 통째로 빈다.**
+2. 🔴 **`config/faq.ts` 는 이제 상수가 아니라 함수다** — `faqGroups(snsLine)` · `faqFeatured(snsLine)`.
+   **기본값을 일부러 안 뒀다.** 새 화면이 생기면 `tsc` 가 배선 누락을 대신 잡는다.
+3. 🔴 **`readConfig()` 를 읽는 화면을 새로 만들면 `app/api/admin/config/route.ts` 의
+   `revalidatePath` 목록에도 반드시 더한다.** 안 그러면 저장하고 **한 시간** 옛 글자가 나간다.
+4. 🔴 **`/how-it-works` 1단계에 `${COPY.trialShort}` 가 글자 그대로 손님에게 보인다**
+   (`app/how-it-works/page.tsx:15` — 그 줄만 백틱이 아니라 큰따옴표). **대표님 허락 대기 중이다. 마음대로 고치지 마라.**
+5. 🔴 **Vercel 요금제가 Hobby 인지 Pro 인지 아무도 모른다.** Hobby 면 상업적 사용이 약관 위반이다.
+   도메인 연결 일은 **그 확인 전에는 시작하지 않는다.** (`docs/WAITING.md`)
+
+### 안 건드린 것
+
+`app/new/wizard.tsx` · `app/[slug]/edit/*` — T-0022·T-0024 가 아직 잡고 있다(권반장 09-16 경고).
+그래서 `copyright` 배선과 「내 도메인 연결」 약속 문구 수정이 **병합 대기**로 남았다.
+
+---
+
 ## 2026-09-16 새벽 — 로고 만들기 전면 개편 (권반장 지시 [5])
 
 > 이 문서에 적힌 요금·기간 숫자는 **작성 당시 값**이다. 지금 값은 `lib/trial.ts` 가 진실이다.
