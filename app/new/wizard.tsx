@@ -18,6 +18,10 @@ import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
 import { LogoPicker, type LogoChoice } from "./logo-picker";
 import { embedPretendard } from "@/lib/logo-embed";
+/* ★★ 2026-09-16 대표님 — 「동영상을 안 찍을 사업자는 가입도 하지 말아라.」(지시 [13])
+   ⚠ 관문을 끄고 켜는 것은 **오직 이 스위치 하나**다. 여기 말고 다른 곳에 조건을 만들지 마라. */
+import { REQUIRE_VIDEO_TO_FINISH, ATTACH_FIRST_VIDEO_TO_SITE } from "@/config/onboarding";
+import { RecClient } from "@/app/rec/[slug]/rec-client";
 
 /* ─────────────────────────── 공용 ─────────────────────────── */
 
@@ -25,7 +29,19 @@ import { embedPretendard } from "@/lib/logo-embed";
    신설되며 병합 충돌이 났다(T-0021·T-0022, CTO 사이클 9 — T-0027 흡수). 둘 다 살려
    순서대로 이어 붙인다 — 7단계 → 8단계.
    ⚠ 단계를 밀 때는 STEPS 배열·아래 step===N 조건·setStep(N) 이 전부 같이 맞아야 한다. */
-const STEPS = ["상호명", "업종", "가게 정보", "사진", "채널 연결", "문의 채널", "분위기", "만들기"] as const;
+/* ★★ 2026-09-16 — 마지막에 「영상」이 붙는다(지시 [13]).
+   ⚠ **스위치가 꺼지면 그 칸이 아예 없어야 한다.** 남겨 두면 진행 바가 「8/9」에서 끝나
+     사장님이 「한 단계가 사라졌다」고 느낀다. 그래서 배열 자체를 갈라 만든다. */
+const BASE_STEPS = ["상호명", "업종", "가게 정보", "사진", "채널 연결", "문의 채널", "분위기", "만들기"] as const;
+const STEPS: readonly string[] = REQUIRE_VIDEO_TO_FINISH ? [...BASE_STEPS, "영상"] : BASE_STEPS;
+
+/** 「만들기」 단계 번호 — 배열을 늘려도 여기가 따라간다(손으로 7 을 적지 않는다) */
+const STEP_MAKE = BASE_STEPS.length - 1;   // 7
+/** 「영상 관문」 단계 번호. 스위치가 꺼져 있으면 아무도 이 번호로 안 간다 */
+const STEP_VIDEO = BASE_STEPS.length;      // 8
+
+/** 관문을 끝내지 못한 채 닫으셨을 때 이어서 하려고 남기는 자리 (지시 [13] 「저장하고 중단」) */
+const RESUME_KEY = "onstori:videoGate";
 
 /** 🔴 2026-09-16 검수 지적으로 끔 — 손님 문의 폼(quote-form.tsx)이 아직 이 값을 안 읽는다.
  *  화면만 있고 속이 빈 UI 는 「넣었는데 안 됐다」를 만든다(규칙 12 정신). 잇는 업무가 끝나면 켠다. */
@@ -94,6 +110,18 @@ export function Wizard() {
   const pickedQuestion = useMemo(() => QUESTIONS.find((q) => q.id === params.get("q")) ?? null, [params]);
 
   const [step, setStep] = useState(0);
+
+  /* ★★ 영상 관문 (2026-09-16 지시 [13]) ──────────────────────────────
+   *   `gate`  — 관문 안에서 어느 화면인가. "intro" 설명 · "rec" 녹화 · "saving" 홈페이지에 거는 중
+   *   `gateSite` — 방금 만든 홈페이지. 녹화 화면이 `slug`·`k`·상호를 요구한다
+   *   `gateErr` — 링크를 못 받았을 때. **막다른 길이 되면 안 된다**(지시)
+   * ⚠ 관문은 «만든 뒤»에 온다. 녹화가 `slug` 가 DB 에 있어야 돌기 때문이다
+   *   (`/api/story/upload-url` 이 서명과 사이트 존재를 함께 본다).
+   */
+  const [gate, setGate] = useState<"intro" | "rec" | "saving">("intro");
+  const [gateWhy, setGateWhy] = useState(false);
+  const [gateSite, setGateSite] = useState<{ slug: string; k: string; name: string } | null>(null);
+  const [gateErr, setGateErr] = useState("");
   // 1
   const [name, setName] = useState("");
   const [placeOn, setPlaceOn] = useState<boolean | null>(null);
@@ -199,6 +227,32 @@ export function Wizard() {
   useEffect(() => {
     fetch("/api/place-search?q=").then(readJson).then((d) => setPlaceOn(!!d.available)).catch(() => setPlaceOn(false));
     Promise.resolve().then(() => sbBrowser().auth.getUser()).then(({ data }) => setSignedIn(!!data.user)).catch(() => setSignedIn(false));
+  }, []);
+
+  /**
+   * ★★ 영상 관문 «이어서 하기» (2026-09-16 지시 [13]).
+   *   [저장하고 중단]을 누르셨거나 창을 닫으셨다가 다시 `/new` 로 오시면
+   *   **그 단계부터** 이어진다 — 처음부터 다시 만들게 하지 않는다.
+   *
+   * ⚠ 홈페이지는 이미 있다. 그래서 여기서 `create()` 를 다시 부르면 **409(이미 있음)** 가 난다.
+   *   부르지 않고 **관문만** 연다.
+   * ⚠ 하루가 지나면 지운다 — 그보다 오래됐으면 사장님이 «가입»이 아니라 «새로 만들기»를
+   *   하러 오셨을 가능성이 높다. 그때 옛 홈페이지 관문에 가두면 안 된다.
+   * ⚠ 스위치가 꺼져 있으면 **자리도 지운다.** 관문이 없는데 표시만 남으면 다음에 켰을 때
+   *   엉뚱한 사이트로 데려간다.
+   */
+  useEffect(() => {
+    let saved: { slug?: string; name?: string; at?: number } | null = null;
+    try { saved = JSON.parse(localStorage.getItem(RESUME_KEY) ?? "null"); } catch { saved = null; }
+    if (!saved?.slug) return;
+    const stale = !saved.at || Date.now() - saved.at > 86_400_000;
+    if (!REQUIRE_VIDEO_TO_FINISH || stale) { try { localStorage.removeItem(RESUME_KEY); } catch {} return; }
+    const nm = saved.name || saved.slug;
+    setResult({ url: `https://onstori.com/${saved.slug}`, slug: saved.slug });
+    setName((v) => v || nm);
+    void openGate(saved.slug, nm);
+    setStep(STEP_VIDEO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function searchPlace() {
@@ -347,6 +401,56 @@ export function Wizard() {
     return () => { alive = false; clearTimeout(t); };
   }, [slug]);
 
+  /**
+   * ★★ 영상 관문 열기 — 녹화에 필요한 **서명 링크(k)** 를 받아 온다 (2026-09-16 지시 [13]).
+   *
+   * ⚠ **문자·메일을 보내지 않는다.** `probe: true` 는 «물어보기만 하는 길»이라
+   *   그 라우트가 아무것도 발송하지 않는다(`app/api/story/send-link` 머리말).
+   *   🔴 `mode` 를 실어 보내면 **진짜 문자가 나간다.** 절대 넣지 마라 — 건당 요금이 붙는다.
+   * ⚠ 링크는 **주 단위로 만료**된다. 그래서 이어서 할 때마다 여기서 새로 받는다 —
+   *   저장해 둔 옛 `k` 를 다시 쓰면 「이 링크는 만료됐어요」가 뜬다.
+   * ⚠ 못 받아도 **막다른 길이 되면 안 된다**(지시). 이유를 화면에 적고 다시 시도하게 둔다.
+   */
+  async function openGate(gslug: string, gname: string) {
+    setGateErr(""); setGate("intro");
+    try {
+      const r = await fetch("/api/story/send-link", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: gslug, anonId: anonId() || undefined, probe: true }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { link?: string; error?: string };
+      const k = d.link ? new URL(d.link).searchParams.get("k") : null;
+      if (!r.ok || !k) throw new Error(d.error ?? "녹화 링크를 받지 못했어요");
+      setGateSite({ slug: gslug, k, name: gname });
+    } catch (e) {
+      setGateSite(null);
+      setGateErr(e instanceof Error ? e.message : "녹화 링크를 받지 못했어요");
+    }
+  }
+
+  /**
+   * ★★ 영상이 저장된 뒤 — 「홈페이지에 걸고」 관문을 닫는다.
+   *
+   * ★ 대표님(2026-09-16): 「관문에서 찍은 첫 영상은 **홈페이지에만 걸고** SNS 발행은 기본 꺼짐.」
+   *   ⚠ SNS 는 이 코드와 **무관하게** 안 나간다 — 보내는 길은 편집화면의 [올리기] 하나뿐이다
+   *     (`config/onboarding.ts` 의 `ATTACH_FIRST_VIDEO_TO_SITE` 주석에 근거를 적어 두었다).
+   * ⚠ 거는 데 실패해도 **가입은 끝난다.** 영상은 이미 저장돼 있고, 사장님은
+   *   「홈페이지 관리 > 영상」에서 손으로 거실 수 있다. 여기서 막으면 60초가 인질이 된다.
+   */
+  async function finishGate(entryId: string | null) {
+    setGate("saving");
+    if (ATTACH_FIRST_VIDEO_TO_SITE && entryId && gateSite) {
+      try {
+        await fetch("/api/site/video", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: gateSite.slug, anonId: anonId() || undefined, entryId, publishNow: true }),
+        });
+      } catch { /* 걸기는 실패해도 가입을 막지 않는다 */ }
+    }
+    try { localStorage.removeItem(RESUME_KEY); } catch {}
+    setState("done");
+  }
+
   /* 만들기 — 가짜 진행률(30초 곡선) + 실제 완료 시 100% */
   async function create() {
     setState("loading"); setErrMsg(""); setAlreadyHasSite(false); setProgress(1); setStage("copy");
@@ -431,6 +535,18 @@ export function Wizard() {
       try { if (pickedQuestion) localStorage.setItem("onstori:firstQuestion", pickedQuestion.id); } catch {}
       clearInterval(tick); setProgress(100); setStage("finish");
       setResult({ url: String(d.url), slug: String(d.slug) });
+
+      /* ★★ 2026-09-16 지시 [13] — **여기서 갈린다.**
+         · 스위치가 꺼져 있으면 예전 그대로 「완성됐어요」로 간다
+         · 켜져 있으면 **영상 관문**으로 간다. 홈페이지는 이미 만들어져 있지만,
+           사장님께 「완성됐다」고 말하지 않는다 — 그것이 이 지시의 전부다. */
+      if (REQUIRE_VIDEO_TO_FINISH) {
+        const nm = name.trim() || String(d.slug);
+        try { localStorage.setItem(RESUME_KEY, JSON.stringify({ slug: String(d.slug), name: nm, at: Date.now() })); } catch {}
+        void openGate(String(d.slug), nm);
+        setTimeout(() => setStep(STEP_VIDEO), 600);
+        return;
+      }
       setTimeout(() => setState("done"), 600);
     } catch (e) {
       clearInterval(tick);
@@ -495,8 +611,135 @@ export function Wizard() {
   };
   const stageText = STAGE_TEXT[stage];
 
+  /* ══════ 영상 관문 (2026-09-16 지시 [13]) ══════
+     🔴 **건너뛰기 버튼이 없다. 그게 이 일의 전부다.**
+        대신 [저장하고 중단]을 둔다 — 찍은 것이 날아가면 안 되고, 다시 들어오면 이어진다. */
+  if (step === STEP_VIDEO) {
+    /* 녹화 화면은 **자기 화면을 통째로** 그린다(`<main className="rec-shell">`).
+       가입 껍데기 «안»에 넣으면 <main> 이 겹쳐 잘못된 문서가 된다. 그래서 통째로 바꿔 끼운다. */
+    if (gate === "rec" && gateSite) {
+      return (
+        <RecClient
+          slug={gateSite.slug}
+          k={gateSite.k}
+          businessName={gateSite.name}
+          onDone={(entryId) => void finishGate(entryId)}
+        />
+      );
+    }
+    return shell(
+      gate === "saving" ? (
+        <section className="mt-10 text-center">
+          <h1 className="t-h1">홈페이지에 거는 중이에요</h1>
+          <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--text)" }}>
+            방금 찍으신 영상을 첫 화면 바로 아래에 걸고 있어요. 잠깐이면 됩니다.
+          </p>
+        </section>
+      ) : (
+        <section className="mt-8">
+          <h1 className="t-h1">마지막입니다. 60초만 찍어 주세요.</h1>
+
+          <div className="card" style={{ marginTop: "var(--s-5)", padding: "var(--s-5)" }}>
+            <p className="t-body" style={{ color: "var(--text)" }}>
+              온스토리는 홈페이지를 만드는 곳이 아닙니다.<br />
+              사장님의 60초를 <b>«여러 곳에 한 번에»</b> 퍼뜨리는 곳입니다.<br />
+              그래서 영상 한 편이 있어야 홈페이지가 완성됩니다.
+            </p>
+
+            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
+              <b>얼굴이 나오지 않아도 됩니다.</b>
+            </p>
+            <ul className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
+              <li>· 가게 안을 천천히 비추셔도 됩니다</li>
+              <li>· 대표 상품 하나만 찍으셔도 됩니다</li>
+              <li>· 하늘, 빈 컵, 화분 — 무엇을 찍으셔도 괜찮습니다</li>
+            </ul>
+
+            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
+              <b>말씀도 한 마디면 충분합니다.</b><br />
+              「안녕하세요, {name.trim() || gateSite?.name || "○○○"}입니다. 찾아와 주셔서 고맙습니다.」
+            </p>
+
+            <p className="t-body" style={{ marginTop: "var(--s-4)", color: "var(--text)" }}>
+              60초를 다 채우지 않으셔도 됩니다. <b>10초도 괜찮습니다.</b>
+            </p>
+          </div>
+
+          {/* ⚠ 링크를 못 받았을 때 — **막다른 길이 되면 안 된다**(지시).
+              무엇을 하면 되는지 화면이 말한다. 「저장하고 중단」도 그대로 살아 있다. */}
+          {gateErr && (
+            <div className="card" style={{ marginTop: "var(--s-4)", padding: "var(--s-4)" }}>
+              <p className="t-small font-bold" style={{ color: "var(--danger)" }}>녹화 화면을 열지 못했어요</p>
+              <p className="t-small" style={{ marginTop: "var(--s-2)", color: "var(--text)" }}>
+                {gateErr} — 홈페이지는 이미 만들어졌어요. 아래 [다시 시도]를 눌러 보시고,
+                그래도 안 되면 [저장하고 중단]을 누르셨다가 나중에 이어서 하셔도 됩니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => { if (result) void openGate(result.slug, name.trim() || result.slug); }}
+                className="btn btn-secondary w-full" style={{ marginTop: "var(--s-3)" }}
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setGate("rec")}
+            disabled={!gateSite}
+            className="btn btn-primary w-full disabled:opacity-40"
+            style={{ marginTop: "var(--s-5)" }}
+          >
+            {gateSite ? "지금 찍기" : "녹화 화면을 준비하는 중…"}
+          </button>
+
+          {/* 「왜 꼭 찍어야 하나요?」 — 🔴 지금 **진짜 나가는 곳만** 적는다.
+              `config/channels.ts` 에서 `live` 인 곳은 인스타 릴스·틱톡 둘뿐이다.
+              ⚠ 「6곳」이라고 쓰면 그 자리에서 거짓말이 된다(권반장 지시). */}
+          <button
+            type="button"
+            onClick={() => setGateWhy((v) => !v)}
+            aria-expanded={gateWhy}
+            className="btn btn-text w-full"
+            style={{ marginTop: "var(--s-2)" }}
+          >
+            왜 꼭 찍어야 하나요? {gateWhy ? "▴" : "▾"}
+          </button>
+          {gateWhy && (
+            <div className="card" style={{ marginTop: "var(--s-2)", padding: "var(--s-4)" }}>
+              <p className="t-small leading-relaxed" style={{ color: "var(--text)" }}>
+                찍으신 영상은 <b>사장님 홈페이지 첫 화면 바로 아래</b>에 걸립니다.<br />
+                그리고 <b>인스타 릴스·틱톡</b>에 올릴 수 있게 준비됩니다 —
+                올릴지 말지는 <b>사장님이 «홈페이지 관리»에서 직접 고르십니다.</b>
+                <b> 저희가 마음대로 올리지 않습니다.</b><br />
+                유튜브 쇼츠·쓰레드·X·페이스북은 아직 준비 중입니다.<br />
+                영상이 없으면 <b>매주 오는 질문도, 쌓이는 이야기도 시작되지 않습니다</b> —
+                그게 온스토리의 전부라서, 안 찍으시면 받으실 것이 홈페이지 한 장뿐입니다.
+              </p>
+            </div>
+          )}
+
+          {/* 🔴 [나중에 하기]가 «아니다». 찍은 것을 지키려는 자리다 —
+              여기서 나가도 다시 들어오면 **이 단계부터** 이어진다(RESUME_KEY). */}
+          <button
+            type="button"
+            onClick={() => { if (result) location.href = `/${result.slug}/edit`; }}
+            className="btn btn-text w-full"
+            style={{ marginTop: "var(--s-4)" }}
+          >
+            저장하고 중단
+          </button>
+          <p className="t-caption" style={{ marginTop: "var(--s-2)", textAlign: "center", color: "var(--muted)" }}>
+            지금까지 하신 것은 저장돼 있어요. 다시 오시면 여기서부터 이어집니다.
+          </p>
+        </section>
+      ),
+    );
+  }
+
   /* 마지막(8번째) 단계 — 만드는 중 / 완료 */
-  if (step === 7) {
+  if (step === STEP_MAKE) {
     return shell(
       <>
         {state === "done" && result ? (
@@ -532,7 +775,7 @@ export function Wizard() {
             <h1 className="t-h1">잠깐 멈췄어요</h1>
             <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--danger)" }}>{errMsg}</p>
             <button type="button" onClick={create} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>다시 만들기</button>
-            <button type="button" onClick={() => setStep(6)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
+            <button type="button" onClick={() => setStep(STEP_MAKE - 1)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
           </section>
           )
         ) : (
@@ -1225,7 +1468,7 @@ export function Wizard() {
           </div>
 
           {nav({
-            next: () => { setStep(7); void create(); },
+            next: () => { setStep(STEP_MAKE); void create(); },
             canNext: agreeTerms && agreePrivacy,
             label: "홈페이지 만들기 — 무료",
           })}

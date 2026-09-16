@@ -4,7 +4,9 @@ import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
-import { videoSection } from "@/lib/section-defaults";
+import { videoSection, attachVideo } from "@/lib/section-defaults";
+import { applyPublish } from "@/lib/publish-site";
+import type { SiteDocT } from "@/lib/schema";
 import { trialInfo } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +16,16 @@ const Input = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,30}$/),
   anonId: z.string().max(64).optional(),
   entryId: z.string().uuid(),
+  /**
+   * ★★ 2026-09-16 — **가입 관문 전용**(지시 [13]). 켜면 섹션을 돌려주는 데서 그치지 않고
+   *   서버가 `draft` 에 직접 끼워 넣고 **발행까지** 한다.
+   *
+   * ⚠ 평소에는 **절대 쓰지 마라.** 아래 §「서버가 draft 를 고치지 않는다」가 그 이유다 —
+   *   편집화면이 열려 있으면 그 화면의 낡은 doc 이 2초 뒤 이것을 덮어쓴다.
+   *   **가입 관문에는 편집화면이 없다.** 그래서 거기서만 안전하다.
+   * ⚠ 발행은 `applyPublish` 하나로만 한다(불변 규칙 5) — 스냅샷·캐시·점수가 함께 간다.
+   */
+  publishNow: z.boolean().default(false),
 });
 
 /**
@@ -35,7 +47,7 @@ const Input = z.object({
 export async function POST(req: Request) {
   const parsed = Input.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청이에요" }, { status: 400 });
-  const { slug, anonId, entryId } = parsed.data;
+  const { slug, anonId, entryId, publishNow } = parsed.data;
 
   const r = await loadOwnedSite(slug, anonId);
   if ("error" in r) {
@@ -139,6 +151,28 @@ export async function POST(req: Request) {
     caption: caption || undefined,
   });
 
-  console.log(JSON.stringify({ evt: "video_attached", slug, entryId, poster: !!poster }));
-  return NextResponse.json({ section });
+  /* ★★ 가입 관문(지시 [13]) — 편집화면이 없는 자리라 **서버가 끼워 넣고 발행까지** 한다.
+     ⚠ 실패해도 **영상은 이미 저장돼 있다.** 그러니 던지지 않고 섹션만 돌려준다 —
+       사장님은 「홈페이지 관리 > 영상」에서 손으로 거실 수 있다. 60초를 날리지 않는다.
+     ⚠ `story_entries.visible` 은 **여전히 안 건드린다**(위 주석). 그래서 완성도
+       `story_1`(10점)이 안 붙고, 가입 직후 점수가 70점 그대로다 — 지시 [15] 의 숫자다. */
+  let published = false;
+  if (publishNow) {
+    try {
+      const doc = r.site.draft as SiteDocT | null;
+      if (doc?.sections) {
+        const next = attachVideo(doc, section);
+        const { error: dErr } = await sb.from("sites").update({ draft: next }).eq("id", r.site.id);
+        if (dErr) throw new Error(dErr.message);
+        const pub = await applyPublish({ id: r.site.id as string, slug, published: r.site.published }, next, new URL(req.url).origin);
+        published = pub.ok;
+        if (!pub.ok) console.error(JSON.stringify({ evt: "video_onboard_publish_failed", slug, err: pub.error.slice(0, 160) }));
+      }
+    } catch (e) {
+      console.error(JSON.stringify({ evt: "video_onboard_attach_failed", slug, entryId, err: String(e).slice(0, 160) }));
+    }
+  }
+
+  console.log(JSON.stringify({ evt: "video_attached", slug, entryId, poster: !!poster, publishNow, published }));
+  return NextResponse.json({ section, published });
 }

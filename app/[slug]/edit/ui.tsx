@@ -6,7 +6,9 @@ import Link from "next/link";
 import { RULES } from "@/config/completeness";
 import { MAX_UPLOAD_LABEL } from "@/config/limits";
 import type { SiteDocT, SectionT } from "@/lib/schema";
-import { ADDABLE_SECTIONS, sectionDefault, type AddableType } from "@/lib/section-defaults";
+/* ⚠ `attachVideo` 는 2026-09-16 에 이 파일에서 `lib/section-defaults.ts` 로 옮겼다 —
+   가입 관문(지시 [13])이 서버에서 같은 규칙을 써야 해서다. 여기에 다시 만들지 마라. */
+import { ADDABLE_SECTIONS, sectionDefault, attachVideo, type AddableType } from "@/lib/section-defaults";
 import { InboxTab, type InboxRes, type NotifyChannels } from "./inbox-tab";
 import { PreviewPane } from "./preview-pane";
 import dynamic from "next/dynamic";
@@ -663,17 +665,6 @@ export function EditUi({ slug }: { slug: string }) {
       )}
     </EditorShell>
   );
-}
-
-/**
- * 영상 섹션을 doc 에 끼운다 — **히어로 바로 다음** 자리다(회장님 지시).
- * ⚠ 이미 걸린 영상이 있으면 **바꾼다**(V-1 은 한 편만). 두 개가 쌓이지 않게 먼저 걷어낸다.
- */
-function attachVideo(doc: SiteDocT, section: SectionT): SiteDocT {
-  const rest = doc.sections.filter((s) => s.type !== "video");
-  const heroAt = rest.findIndex((s) => s.type === "hero");
-  const at = heroAt >= 0 ? heroAt + 1 : 0;
-  return { ...doc, sections: [...rest.slice(0, at), section, ...rest.slice(at)] };
 }
 
 /** 섹션 이름 — 목록은 lib/section-defaults.ts 하나에서 온다. hero 만 거기 없다(더할 수 없는 칸이라) */

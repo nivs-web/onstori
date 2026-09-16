@@ -379,7 +379,16 @@ async function capturePoster(blob: Blob, recordedSec: number): Promise<Blob | nu
   }
 }
 
-export function RecClient({ slug, k, businessName }: { slug: string; k: string; businessName: string }) {
+/**
+ * ★★ 2026-09-16 — `onDone` 은 **가입 관문**(지시 [13])이 넘긴다.
+ *   그 자리에서는 「보냈어요 → 홈페이지 관리로」가 아니라 **가입을 마저 끝내야** 한다.
+ * ⚠ 안 넘기면(문자 링크로 들어온 평소 길) **예전과 글자 하나까지 같게** 동작한다.
+ */
+export function RecClient({ slug, k, businessName, onDone }: {
+  slug: string; k: string; businessName: string;
+  /** 영상이 저장된 뒤 부른다. `entryId` 는 「홈페이지에 걸기」에 쓴다 */
+  onDone?: (entryId: string | null) => void;
+}) {
   const [screen, setScreen] = useState<Screen>("greet");
   const [q, setQ] = useState<Question | null>(null);
   const [custom, setCustom] = useState("");
@@ -873,6 +882,14 @@ export function RecClient({ slug, k, businessName }: { slug: string; k: string; 
         throw new Error(sd.error ?? "저장 실패");
       }
       stopStream();
+      /* ★ 가입 관문이면 여기서 그쪽으로 넘긴다 — 「보냈어요」 화면을 띄우지 않는다.
+         ⚠ `id` 를 못 읽어도 넘긴다. 영상은 이미 저장됐고, 「홈페이지에 걸기」만 못 할 뿐이다. */
+      if (onDone) {
+        let entryId: string | null = null;
+        try { entryId = String(((await s.json()) as { id?: string }).id ?? "") || null; } catch { entryId = null; }
+        onDone(entryId);
+        return;
+      }
       setScreen("done");
     } catch (e) {
       setErr(e instanceof PutFail ? await explainPut(e) : e instanceof Error ? e.message : "보내지 못했어요");

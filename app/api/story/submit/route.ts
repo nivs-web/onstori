@@ -4,6 +4,7 @@ import { verifyStoryLink } from "@/lib/story-link";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
+import { recomputeScore } from "@/lib/score";
 
 /**
  * 녹화 제출 — story_entries 에 '업로드됨' 행을 남긴다 (기획1 /mainplan #rec).
@@ -63,11 +64,31 @@ export async function POST(req: Request) {
   if (site.status === "expired" || site.status === "suspended") return NextResponse.json({ error: "홈페이지가 정지 상태예요. 정기결제를 시작하시면 바로 다시 녹화하실 수 있어요" }, { status: 402 });
 
   const base = { site_id: site.id, entry_type: "work", title: question.slice(0, 60), entry_date: new Date().toISOString().slice(0, 10), visible: false };
+
+  /* ★★ 2026-09-16 — **점수를 여기서 다시 센다.** (지시 [13] 을 만들다 찾은 것)
+   *
+   * 🔴 **전에는 안 셌다.** 완성도 「첫 영상」(10점)의 판정은 `story_entries.video_key` 가
+   *   하나라도 있나인데(`lib/score.ts`), 그 판정을 **부르는 곳이 이 길에 없었다.**
+   *   ⇒ 사장님이 영상을 찍어도 점수가 그대로였고, 나중에 «다른 일»(저장·발행·로고)을
+   *     했을 때에야 10점이 뒤늦게 붙었다. 「시키는 대로 했는데 안 오른다」 —
+   *     CLAUDE.md 규칙 12 가 경계하는 바로 그 모양이다.
+   *   ⚠ 점수 «규칙»은 한 글자도 안 고쳤다. 이미 있던 규칙이 **실제로 켜지게** 한 것뿐이다.
+   *
+   * ⚠ 점수 계산이 실패해도 **녹화는 성공이다.** 60초를 날리지 않는다 —
+   *   영상은 이미 저장소와 DB 에 들어갔고, 점수는 다음 저장 때 어차피 다시 계산된다.
+   */
+  async function scoreQuietly(): Promise<number | null> {
+    try { return (await recomputeScore(site!.id as string))?.score ?? null; }
+    catch (e) { console.warn(JSON.stringify({ evt: "story_score_failed", slug, err: String(e).slice(0, 160) })); return null; }
+  }
+
   const full = await sb.from("story_entries").insert({ ...base, body: "", question, video_key: key, media_status: "uploaded", photos: [] }).select("id").single();
-  if (!full.error) return NextResponse.json({ ok: true, id: full.data.id });
+  if (!full.error) return NextResponse.json({ ok: true, id: full.data.id, score: await scoreQuietly() });
 
   // 마이그레이션 전 폴백
   const min = await sb.from("story_entries").insert({ ...base, body: `[녹화 업로드됨 · ${mode} · ${source} · ${durationSec ?? "?"}s · ${questionId ?? ""}] ${key}`, photos: [] }).select("id").single();
   if (min.error) return NextResponse.json({ error: "저장 실패" }, { status: 500 });
-  return NextResponse.json({ ok: true, id: min.data.id, fallback: true });
+  /* ⚠ 폴백 길에는 `video_key` 칸이 없다 — 점수의 「첫 영상」은 여기서 안 붙는 것이 «맞다».
+     그래도 다시 세 둔다: 다른 규칙이 그 사이 바뀌었을 수 있고, 세는 비용이 거의 없다. */
+  return NextResponse.json({ ok: true, id: min.data.id, fallback: true, score: await scoreQuietly() });
 }

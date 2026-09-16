@@ -1,5 +1,5 @@
 import { TEMPLATE_WORDS } from "@/config/industries";
-import type { SectionT } from "@/lib/schema";
+import type { SectionT, SiteDocT } from "@/lib/schema";
 
 /**
  * 섹션 추가 시 타입별 기본값 팩토리 (P3 에디터 전용).
@@ -66,6 +66,21 @@ export function sectionDefault(type: AddableType, photoUrl?: string, template?: 
  * ⚠ `poster` 는 없을 수 있다(표지 뽑기 실패). 그때는 넣지 않는다 — 빈 문자열을 넣으면
  *   브라우저가 «없는 사진»을 받으러 가서 404 를 한 번 낸다.
  */
+/**
+ * 영상 섹션을 doc 에 끼운다 — **히어로 바로 다음** 자리다(회장님 지시).
+ * ⚠ 이미 걸린 영상이 있으면 **바꾼다**(V-1 은 한 편만). 두 개가 쌓이지 않게 먼저 걷어낸다.
+ *
+ * ★ 2026-09-16 — `app/[slug]/edit/ui.tsx` 안에 있던 것을 여기로 옮겼다.
+ *   가입 관문(지시 [13])이 **서버에서** 같은 일을 해야 하는데, 그때 이 규칙이 두 벌이 되면
+ *   언젠가 반드시 어긋난다(한쪽만 「히어로 다음」이 아니게 된다).
+ */
+export function attachVideo(doc: SiteDocT, section: SectionT): SiteDocT {
+  const rest = doc.sections.filter((s) => s.type !== "video");
+  const heroAt = rest.findIndex((s) => s.type === "hero");
+  const at = heroAt >= 0 ? heroAt + 1 : 0;
+  return { ...doc, sections: [...rest.slice(0, at), section, ...rest.slice(at)] };
+}
+
 export function videoSection(v: { url: string; poster?: string; caption?: string }): SectionT {
   return {
     type: "video",
