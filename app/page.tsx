@@ -50,6 +50,41 @@ export default async function Home() {
 
       {/* ── 히어로 ── 주 버튼 1개 · 리드 1줄 · 스크롤 힌트 없음 */}
       <section className="surface-0">
+        {/* ★ REC 점의 규칙만 여기 둔다. globals.css 는 클코님 구역이라 손대지 않는다(이 화면 전용 규칙이기도 하다).
+            🔴 prefers-reduced-motion 을 반드시 존중한다 — 깜빡임은 멈추고 «켜진 상태»로 남는다.
+               (globals.css 끝에 전역 차단이 이미 있지만, 이 점만은 여기서 한 번 더 못박는다) */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+.rec-dot .rec-dot-core {
+  /* 🔴 어두운 초록 버튼 위에서 --danger 원본은 가라앉아 잘 안 보인다.
+     새 색을 지어내지 않고 같은 변수를 흰색과 섞어 띄운다(다크 모드에서도 --danger 가 따라 바뀐다). */
+  fill: color-mix(in srgb, var(--danger) 72%, white);
+  /* 느리게 — 1.8초 한 바퀴. opacity 만 움직인다(크기·위치를 건드리면 글자가 흔들려 보인다) */
+  animation: rec-blink 1800ms var(--ease-ui) infinite;
+}
+@keyframes rec-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot .rec-dot-core { animation: none; opacity: 1; }
+}
+/* ⚠ 문구는 한 글자도 바꾸지 않는다(지시). 대신 좁은 폰에서는 이 버튼 «하나만» 두 줄로 접는다 —
+   원래도 360px 폰에서는 한 줄이 아슬아슬했고, 점이 더해지면 넘친다.
+   body 가 overflow-x:hidden 이라 그냥 두면 가로 스크롤 대신 글자 끝이 «잘려» 보인다. */
+@media (max-width: 400px) {
+  .btn-rec {
+    white-space: normal;
+    text-align: center;
+    line-height: var(--lh-body);
+    padding-block: var(--s-3);
+    padding-inline: var(--s-4);
+  }
+}
+`,
+          }}
+        />
         <div
           className="wrap grid items-center lg:grid-cols-[1.3fr_1fr]"
           style={{ gap: "var(--s-7)", paddingTop: "var(--s-7)", paddingBottom: "var(--s-8)" }}
@@ -68,7 +103,23 @@ export default async function Home() {
               ))}
             </ul>
             <div className="flex flex-wrap items-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-4)" }}>
-              <Link href="/new" className="btn btn-primary">녹화를 시도해보세요 · 60초면 됩니다</Link>
+              <Link href="/new" className="btn btn-primary btn-rec">
+                {/* ★ 방송 녹화 버튼 모양 — 바깥 테두리 원 + 안쪽 빨간 점.
+                    ⚠ 이미지 파일을 부르지 않는다. 첫 화면에 그림 한 장을 더 기다리게 만들 값이 없다.
+                    ⚠ 크기는 글자(--t-body)에 매어 둔다. 글자가 커지면 점도 같이 커진다.
+                    접근성: 글자가 이미 「녹화」라고 말하므로 아이콘은 aria-hidden — 두 번 읽히지 않게. */}
+                <svg
+                  className="rec-dot"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  style={{ width: "calc(var(--t-body) * 1.2)", height: "calc(var(--t-body) * 1.2)", flex: "0 0 auto" }}
+                >
+                  <circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.5" />
+                  <circle className="rec-dot-core" cx="12" cy="12" r="5.75" />
+                </svg>
+                녹화를 시도해보세요 · 60초면 됩니다
+              </Link>
               <Link href="/how-it-works" className="btn btn-text">작동방식 보기 →</Link>
             </div>
             <dl className="grid grid-cols-3 text-center" style={{ marginTop: "var(--s-6)", gap: "var(--s-3)", maxWidth: "28rem" }}>

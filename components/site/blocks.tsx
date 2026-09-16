@@ -25,18 +25,72 @@ export function FaqList({ items, id }: { items: FaqItem[]; id?: string }) {
   );
 }
 
+/* ════════ 채널 로고 (2026-09-16 복구) ════════ */
+
 /**
- * 채널 띠 — **글자만.** 로고를 쓰지 않는다. (2026-09-11)
+ * 🔴 **로고를 끄는 스위치 — 여기 한 줄이 전부다.**
  *
- * ★★ 유튜브 브랜드 규칙: 로고를 쓰면 **반드시 유튜브로 가는 링크**여야 하고,
- *   **우리 앱 이름 옆에 나란히 두면 안 된다.** 전에는 로고가 `<span>` 안에 있어
- *   링크가 아니었고(규칙 위반), 우리 서비스 이름과 같은 띠에 놓여 있었다.
- * ★ 다른 SNS 도 같은 부류의 규칙이 있다(메타·틱톡 모두 «허가 없이 나란히 두어
- *   제휴처럼 보이게 하지 말 것»을 요구한다). **가장 안전한 것은 로고를 안 쓰는 것**이라
- *   여섯 곳 전부 글자로만 적는다. 로고를 되살리려면 각 사 브랜드 가이드를 먼저 확인해야 한다.
+ * ⚠ 2026-09-11 커밋 `f7d99ae`(「유튜브 로고 제거」)에서 사고가 났다. 유튜브 심사 때문에
+ *   **유튜브 하나만** 빼려던 것이었는데, 아이콘을 그리는 함수(`ChannelMark`)를 통째로 지워
+ *   **인스타·쓰레드·X 로고까지 같이 사라졌다.** 대표님이 「왜 로고가 없냐」고 물으신 것이 이것이다.
+ *
+ * ★ 그래서 되살리기 전에 «끄는 방법»부터 만들어 둔다. 심사에서 지적이 오면
+ *   아래 배열에 `"youtube"` 한 낱말만 넣어라 — 유튜브 로고만 조용히 사라지고 글자는 남는다.
+ *   **다시는 함수를 지우지 마라.** 지우면 남의 로고까지 같이 죽는다.
+ *
+ * ⚠ 되살릴 때 알고 있어야 할 위험(2026-09-11 에 적혀 있던 그대로 남긴다):
+ *   유튜브 브랜드 규칙은 로고를 쓰면 **유튜브로 가는 링크**일 것을 요구하고,
+ *   메타·틱톡도 «허가 없이 나란히 두어 제휴처럼 보이게 하지 말 것»을 요구한다.
+ *   여기 로고들은 링크가 아니라 «어디로 나가는지 알려주는 표시»다 — 심사에서 걸리면
+ *   그 채널 id 를 아래에 넣는 것으로 끝낸다.
+ *
+ * ★ 이 스위치의 «제자리»는 `config/channels.ts` 의 각 항목(`icon: false`)이다.
+ *   이번 작업은 그 파일을 고칠 권한이 없어 여기에 뒀다 — 옮길 때 이 주석도 같이 옮겨라.
  */
-/* ★ 띠에 나열된 여섯 개가 **똑같이 되는 것처럼** 보였다 (2026-09-13 박팀장 지적).
-   제목에 «지금 몇 곳»을 적고, 아래 목록은 안 되는 곳을 흐리게 + (준비 중) 으로 구분한다. */
+export const CHANNEL_ICONS_OFF: readonly string[] = [];
+
+/**
+ * 채널 아이콘 — `config/channels.ts` 의 id 로 고른다.
+ *
+ * ⚠ 각 사의 브랜드 색은 **그 회사 자산**이라 토큰으로 바꾸지 않는다.
+ *   토큰은 온스토리 화면의 색을 정하는 것이지 남의 로고 색을 정하는 게 아니다.
+ * ⚠ 검은 로고(X·쓰레드·틱톡)는 **어두운 바탕(푸터)에서 안 보인다.** `onDark` 로 흰색으로 뒤집는다.
+ * ★ `live: false`(준비 중)면 흐리게 그린다 — 「되는 곳/안 되는 곳」이 눈에 보여야 한다(2026-09-13 원칙).
+ */
+export function ChannelIcon({ id, live = true, onDark = false, size = 18 }: { id: string; live?: boolean; onDark?: boolean; size?: number }) {
+  if (CHANNEL_ICONS_OFF.includes(id)) return null;
+  const s = { width: size, height: size, style: { opacity: live ? 1 : 0.45, flex: "none" }, "aria-hidden": true } as const;
+  /* 단색 로고(X·쓰레드·틱톡)의 색 — 어두운 바탕에서는 뒤집는다.
+     ★ 검정은 «그 회사가 정한 로고 색»이라 그대로 두고, 뒤집은 흰색은 «우리가 정한 것»이라 토큰을 쓴다. */
+  const ink = onDark ? "var(--n-0)" : "#000000";
+  switch (id) {
+    case "youtube": return <svg {...s} viewBox="0 0 24 24" fill="#FF0000"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-4.8.5-4.8s0-2.9-.5-4.8zM9.8 15.1V8.9L15.8 12l-6 3.1z" /></svg>;
+    case "instagram": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke="#C13584" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#C13584" /></svg>;
+    case "threads": return <svg {...s} viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="2"><path d="M12 3c-5 0-8 3.5-8 9s3 9 8 9c4 0 6.5-2 6.5-5 0-2.5-2-4-5-4-2.5 0-4 1.2-4 3s1.5 2.7 3.2 2.7c2 0 3.3-1.3 3.5-4.2.2-3-1.5-5-4.5-5" /></svg>;
+    case "x": return <svg {...s} viewBox="0 0 24 24" fill={ink}><path d="M18.9 2H22l-7.4 8.5L23 22h-6.8l-5.3-6.9L4.8 22H1.7l7.9-9L1 2h7l4.8 6.3L18.9 2zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20z" /></svg>;
+    /* ★ 틱톡·페이스북은 2026-09-11 에 지워진 그 함수에 **원래 없었다**(그때 목록에 네이버가 있었다).
+       되찾을 원본이 없어 같은 규격(24×24 · 단색 · 인라인)으로 새로 그렸다. */
+    case "tiktok": return <svg {...s} viewBox="0 0 24 24" fill={ink}><path d="M16.5 3c.3 2.1 1.5 3.4 3.5 3.6v2.6c-1.3.1-2.5-.3-3.6-1v5.9c0 3.9-3.3 6.5-6.7 5.7-2.6-.6-4.2-2.9-4.2-5.5 0-3 2.4-5.4 5.4-5.4.3 0 .5 0 .8.1v2.8c-.3-.1-.5-.1-.8-.1-1.5 0-2.7 1.3-2.6 2.8.1 1.3 1.2 2.4 2.5 2.5 1.6.1 2.9-1.1 2.9-2.7V3h2.8z" /></svg>;
+    case "facebook": return <svg {...s} viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z" /></svg>;
+    /* ⚠ 모르는 id 면 **아무것도 그리지 않는다.** 엉뚱한 표시를 그리면 손님이 그 채널로 착각한다. */
+    default: return null;
+  }
+}
+
+/**
+ * 채널 이름 + «(준비 중)» — 표기는 `config/channels.ts` 의 `CHANNELS_LINE_MARKED` 와 **같은 형식**이다.
+ * ⚠ 아이콘만 흐리게 하면 «디자인이 흐린 것»으로 보인다. 글자로도 말해야 사실 표시가 된다.
+ */
+export function channelLabel(c: { name: string; live: boolean }) {
+  return c.live ? c.name : `${c.name}(준비 중)`;
+}
+
+/**
+ * 채널 띠 — 로고 + 이름. (2026-09-16 로고 복구 — 위 `CHANNEL_ICONS_OFF` 주석을 먼저 읽어라)
+ *
+ * ★ 띠에 나열된 여섯 개가 **똑같이 되는 것처럼** 보였다 (2026-09-13 박팀장 지적).
+ *   제목에 «지금 몇 곳»을 적고, 아래 목록은 안 되는 곳을 **흐리게 + (준비 중)** 으로 구분한다.
+ */
 export function ChannelStrip({ title = `한 번 말하면 ${CHANNEL_COUNT}곳에 퍼지는 자동화 엔진 — 지금 ${LIVE_COUNT}곳` }: { title?: string }) {
   return (
     <section className="surface-50" style={{ borderBlock: "1px solid var(--n-200)" }}>
@@ -49,9 +103,10 @@ export function ChannelStrip({ title = `한 번 말하면 ${CHANNEL_COUNT}곳에
           <span
             key={c.id}
             className="t-small flex items-center font-bold"
-            style={{ gap: "var(--s-2)", color: "var(--n-800)" }}
+            style={{ gap: "var(--s-2)", color: c.live ? "var(--n-800)" : "var(--text-soft)" }}
           >
-            {c.name}
+            <ChannelIcon id={c.id} live={c.live} />
+            {channelLabel(c)}
           </span>
         ))}
       </div>

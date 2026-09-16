@@ -169,13 +169,28 @@ export default async function SitePage({ params }: Props) {
         {/* ★ PC 전용 — 스크롤을 내리면 만나는 최종 문의 CTA (2026-09-16, 반장 지시 [3]) */}
         <FinalCta doc={site.doc} cta={site.settings?.ctaChannels as { selected?: string[]; links?: Record<string, string> } | undefined} />
         <footer className="t-caption text-center" style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-7)", color: "var(--s-muted)" }}>
-          © {new Date().getFullYear()}{" "}
-          {/* 숨은 에디터 진입로 — 손님에겐 그냥 글자로 보여야 하므로 커서·밑줄·색을 바꾸지 않는다.
-              /edit 은 robots noindex 라 색인되지 않지만 nofollow 도 붙인다.
+          {/* ★★ 숨은 에디터 진입로 — 2026-09-16 대표님 지시로 **「© 연도 + 상호」 줄 전체**가 문이 됐다.
+              왜 넓혔나: 사장님이 자기 홈페이지를 고치러 올 때 여기가 «유일한» 문인데, 전에는
+              상호 글자만 눌렸다. 폰에서 손가락이 자꾸 빗나가 「안 눌린다」는 말이 나왔다.
+              ★ 「모든 서브 사이트 공통」이라는 지시는 이 한 곳만 고치면 그대로 지켜진다 —
+                 손님 사이트는 상호가 무엇이든 전부 이 파일 하나로 그려진다.
+
+              ⚠ 손님에게는 **그냥 글자로 보여야 한다.** 밑줄·기본 글자색·커서를 바꾸지 않는다.
+                 손님이 「여기 뭐가 있나」 하고 눌러 로그인 창을 만나는 것 자체가 사고다.
+              ★ 딱 하나만 허락한다 — **마우스를 올렸을 때만** 색이
+                 var(--s-muted) → var(--s-ink) 로 또렷해진다. 팔레트가 밝든 어둡든
+                 «흐린 글자 → 본문 글자»라 어느 사이트에서도 과하지 않고, 새 색을 만들지 않는다.
+                 폰·태블릿에는 hover 가 없으니 **손님 대부분의 화면은 지금과 한 픽셀도 다르지 않다.**
+              ⚠ 커서는 그대로 두었다(cursor: inherit). 손가락 모양이 뜨면 «누르는 곳»이라고
+                 광고하는 셈이라, 색보다 훨씬 크게 티가 난다.
+
+              /edit 은 robots noindex 라 색인되지 않지만 nofollow 도 붙인다. tabIndex={-1} 은
+              키보드 Tab 으로도 걸리지 않게 한다 — 이 둘을 빼지 마라.
               권한 확인은 에디터가 한다(edit/ui.tsx "수정 권한이 없어요"). 여기선 열어만 준다. */}
           <Link href={`/${slug}/edit`} rel="nofollow" tabIndex={-1}
-                className="no-underline" style={{ color: "inherit", cursor: "inherit" }}>
-            {site.doc.businessName}
+                className="no-underline text-[var(--s-muted)] hover:text-[var(--s-ink)]"
+                style={{ cursor: "inherit" }}>
+            © {new Date().getFullYear()} {site.doc.businessName}
           </Link>{" "}
           ·{" "}
           <a href="https://onstori.com" className="tap-row underline underline-offset-2" style={{ display: "inline-flex" }}>Made with 온스토리</a>

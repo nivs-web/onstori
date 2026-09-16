@@ -13,7 +13,11 @@ import { useEffect, useRef } from "react";
  * 여기 JS 가 하는 일은 두 가지뿐이다:
  *   ① 사진이 실제로 얼마나 긴지 재서 "얼마나 밀지"(--tc-shift)를 정한다.
  *      사진마다 길이가 달라 고정값을 쓰면 짧은 사이트는 흰 바닥이, 긴 사이트는 아랫부분이 안 보인다.
- *   ② 손가락 화면에서 카드가 보이면 한 번만 재생시킨다(hover 가 없으니까).
+ *   ② 카드가 화면에 들어오면 재생을 시작시킨다(.tcard-play).
+ *      ★ 2026-09-16 — 전에는 «손가락 화면에서만» 했다. 마우스가 있는 화면은 hover 가
+ *        시켰기 때문이다. 지금은 미리보기가 저절로 **왕복**하므로(대표님 지시) 마우스가 있든
+ *        없든 똑같이 여기서 시작한다. ⚠ 그래도 «보이면» 시작하는 건 그대로다 —
+ *        화면 밖 카드 여섯 장을 처음부터 돌릴 이유가 없다(폰 배터리).
  */
 
 export type ThemeCardProps = {
@@ -54,11 +58,12 @@ export function ThemeCard({ href, name, tag, pc, phone }: ThemeCardProps) {
     return () => ro.disconnect();
   }, []);
 
-  // ② 손가락 화면에서는 hover 가 없다 — 화면에 들어오면 한 번만 재생
+  // ② 화면에 들어오면 왕복 재생을 시작한다 (기기 종류를 가리지 않는다)
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (window.matchMedia("(hover: hover)").matches) return;
+    // 🔴 움직임을 줄여 달라고 한 분에게는 아예 시작하지 않는다. (CSS 에도 같은 차단이 있다 —
+    //    설정을 도중에 켜는 분도 있어서 두 군데 모두 막는다)
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
