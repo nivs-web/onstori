@@ -2,6 +2,10 @@ import { promises as fs } from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { forVisitors } from "./phone-privacy";
+/* ⚠ 5eaaf47(`/g/` 폐기) 에서 이 줄이 «함께» 지워졌다 — 그 커밋이 없앤 것은 「보이기」 판정이었는데,
+   260 줄의 「쉬는 화면 vs 없는 주소」 판정은 남아 있어 `main` 이 타입 검사에서 깨져 있었다.
+   `lib/premade.ts` 는 건드리지 않았다 — 09-13 P0 의 자물쇠다. 부르는 줄만 되살린다. (2026-09-16) */
+import { isPremade } from "./premade";
 import { SiteDoc, StoryEntry, type SiteDocT, type StoryEntryT } from "./schema";
 import { z } from "zod";
 
