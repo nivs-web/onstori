@@ -18,6 +18,8 @@ import { MEMBERSHIP_PRICE, type TrialInfo } from "@/lib/trial";
 import { isValidPhone } from "@/lib/phone";
 import { StoryLinkButton } from "./story-link";
 import { WidgetsPanel } from "./widgets-panel";
+import { ChannelsPanel } from "./channels-panel";
+import { cleanOwnerChannels } from "@/config/owner-channels";
 import { VideosPanel } from "./videos-panel";
 import { WeeklyPanel } from "./weekly-panel";
 import { LogoutButton } from "@/app/my/ui";
@@ -87,6 +89,9 @@ export function EditUi({ slug }: { slug: string }) {
   const [newCount, setNewCount] = useState(0);
   /** 알림 수신처 — draft 가 아니라 sites.settings 라서 doc 이 아니라 여기가 들고 있는다 */
   const [notify, setNotify] = useState({ phone: "", email: "" });
+  /** 이미 운영 중인 채널 — 역시 draft 가 아니라 sites.settings.channels 다 (반장 지시 [7]).
+   *  ⚠ notify 와 같은 방식: 자체 state 로 들고 있어야 자동저장 effect(아래)가 변화를 알아챈다. */
+  const [channels, setChannels] = useState<Record<string, string>>({});
 
   /** 미리보기 — 편집 중인 섹션(스크롤 위치), 자동저장 상태, PC/폰 판정, 폰 시트 열림 여부.
    *  editor-preview-2026-09-05.md 4장. */
@@ -152,8 +157,9 @@ export function EditUi({ slug }: { slug: string }) {
       .then((res) => {
         if (res.ok) {
           setData(res.d); setDoc(res.d.draft);
-          const n = (res.d.settings as { notify?: { phone?: string; email?: string } } | null)?.notify;
-          setNotify({ phone: n?.phone ?? "", email: n?.email ?? "" });
+          const s = res.d.settings as { notify?: { phone?: string; email?: string }; channels?: Record<string, string> } | null;
+          setNotify({ phone: s?.notify?.phone ?? "", email: s?.notify?.email ?? "" });
+          setChannels(cleanOwnerChannels(s?.channels));
         }
         else setDenied({ signedIn: res.signedIn, notFound: res.notFound });
       })
@@ -204,7 +210,8 @@ export function EditUi({ slug }: { slug: string }) {
     if (opts.silent) setAutoStatus("saving");
     const r = await fetch("/api/site/update", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug, anonId: anon(), draft: doc,
-        settings: { phone: phoneOf(doc), address: addressOf(doc), hours: hoursOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() } } }) });
+        settings: { phone: phoneOf(doc), address: addressOf(doc), hours: hoursOf(doc), notify: { phone: notify.phone.trim(), email: notify.email.trim() },
+          channels: cleanOwnerChannels(channels) } }) });
     const d = await r.json();
     setBusy("");
     if (!r.ok) {
@@ -235,7 +242,7 @@ export function EditUi({ slug }: { slug: string }) {
     const t = setTimeout(() => { void autoSave(); }, 2000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, notify, dirty, busy]);
+  }, [doc, notify, channels, dirty, busy]);
 
   // 창을 벗어날 때(다른 탭으로 전환·최소화)도 붙잡는다
   useEffect(() => {
@@ -245,7 +252,7 @@ export function EditUi({ slug }: { slug: string }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, doc, notify]);
+  }, [dirty, busy, doc, notify, channels]);
 
   /** 메뉴를 옮기기 전에 편집 중이던 내용을 붙잡는다(자동저장 타이머를 기다리지 않는다) */
   function switchMenu(next: EditorMenuId) {
@@ -559,6 +566,13 @@ export function EditUi({ slug }: { slug: string }) {
       ) : menu === "link" ? (
         <>
           <WidgetsPanel doc={doc} setDoc={(d) => { setDoc(d); setDirty(true); }} onGoToAnchor={goToAnchor} />
+          {/* ★★ 2026-09-16 — 「이미 운영 중인 채널」(반장 지시 [7]). 가입 4단계가 이미
+              「수정하기에서 언제든 자유롭게 변경할 수 있습니다」라고 약속해 놓고 그 화면이
+              없었다 — 여기가 그 화면이다. 저장은 draft 가 아니라 sites.settings.channels 라
+              위 channels state 를 통해 doSave 가 함께 보낸다(notify 와 같은 방식). */}
+          <div className="mt-8 border-t border-n-200 pt-6">
+            <ChannelsPanel value={channels} onChange={(v) => { setChannels(v); setDirty(true); }} />
+          </div>
           {/* ★★ 2026-09-12 — 「주 1회 촬영 알림」(회장님 지시 8). 「연결」 메뉴에 둔다 —
               전화·카톡 버튼과 같은 «어디로 연락이 오가나»의 자리라 결이 맞는다.
               ⚠ 이 설정을 크론(/api/cron/weekly)이 매시 정각에 읽는다. */}
@@ -795,6 +809,27 @@ function addressOf(doc: SiteDocT): string | null {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">{label}</span>{children}</label>;
 }
+
+/**
+ * 섹션 제목 = **손님 사이트 상단 메뉴에 뜨는 그 글자다** (`components/sections/nav.ts` 의
+ * SECTION_ANCHORS 가 이 값을 그대로 메뉴 이름으로 쓴다). 그래서 «제목» 입력칸은 전부
+ * 이 하나로 통일한다 — 2026-09-16 대표님 지시 ②(메뉴명을 사장님이 직접 바꿀 수 있게).
+ *
+ * 🔴 **막지 않고 경고만 한다.** 2026-09-15 에 AI 가 만든 40자짜리 제목이 메뉴에 그대로
+ *   박힌 사고가 있었다(`lib/generate.ts` 의 aboutTitle·storyFeedTitle 주석 참고).
+ *   사장님이 손으로 길게 넣어도 같은 사고가 나므로, 여기서도 8자를 넘기면 알려준다.
+ *   저장 자체를 막지는 않는다 — 짧은 메뉴 이름이 아니라 긴 제목을 원하실 수도 있다.
+ */
+const MENU_TITLE_WARN = 8;
+function TitleField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const long = value.trim().length > MENU_TITLE_WARN;
+  return (
+    <Field label="제목 (메뉴에도 이 이름이 떠요)">
+      <input className={inp} value={value} maxLength={40} onChange={(e) => onChange(e.target.value)} />
+      {long && <p className="mt-1 t-caption text-accent-ink">메뉴에서는 잘려 보일 수 있어요 — {MENU_TITLE_WARN}자 이내를 권해요.</p>}
+    </Field>
+  );
+}
 /**
  * 입력칸 공통 — **폭은 여기 넣지 않는다.**
  *
@@ -927,7 +962,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "about": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">소개</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="내용"><textarea className={inp} rows={5} value={s.body} maxLength={600} onChange={(e) => patchSection(i, { body: e.target.value })} /></Field>
               <div>
                 <span className="mb-1 block t-caption font-semibold text-[var(--text-soft)]">소개 사진 {s.image ? "" : "(없음)"}</span>
@@ -945,6 +980,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "processSteps": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">진행 과정</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.steps.map((st, j) => (
                 <div key={j} className="flex items-center gap-2">
                   <input className={inpNarrow} value={st.name} maxLength={20}
@@ -967,6 +1003,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "quoteForm": return (
             <section data-tour="sec-form" className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">문의 받기</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="안내 문장"><input className={inp} value={s.sub ?? ""} maxLength={120} onChange={(e) => patchSection(i, { sub: e.target.value })} /></Field>
               <div data-tour="set-contact">
                 <Field label="전화번호 (선택 — 홈페이지에는 공개되지 않아요)">
@@ -987,6 +1024,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "map": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">오시는 길</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="주소"><input className={inp} value={s.address} maxLength={120} onChange={(e) => patchSection(i, { address: e.target.value })} /></Field>
               <Field label="안내 (선택)"><input className={inp} value={s.note ?? ""} maxLength={120} onChange={(e) => patchSection(i, { note: e.target.value })} /></Field>
             </section>
@@ -994,13 +1032,14 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "hoursCard": return (
             <section data-tour="set-hours" className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">영업시간</h2>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="영업시간 (줄바꿈 가능)"><textarea className={inp} rows={3} value={s.hours} maxLength={200} onChange={(e) => patchSection(i, { hours: e.target.value })} /></Field>
             </section>
           );
           case "storyFeed": return (
             <section className="rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">이야기 코너</h2>
-              <Field label="코너 제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
             </section>
           );
           case "gallery": {
@@ -1011,7 +1050,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
             return (
               <section className="space-y-3 rounded-2xl border border-n-200 p-4">
                 <h2 className="t-small font-bold">사진 갤러리</h2>
-                <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+                <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
                 <div className="flex flex-wrap gap-2">
                   {s.photos.map((p, j) => (
                     <div key={`${p}-${j}`}>
@@ -1040,7 +1079,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "reviews": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">고객 이야기</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex gap-2">
@@ -1072,7 +1111,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "portfolioGallery": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">시공 사례</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex items-start gap-3">
@@ -1110,7 +1149,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
           case "menuPrice": return (
             <section className="space-y-3 rounded-2xl border border-n-200 p-4">
               <h2 className="t-small font-bold">메뉴판</h2>
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               {s.items.map((it, j) => (
                 <div key={j} className="space-y-2 rounded-xl bg-n-50 p-3">
                   <div className="flex gap-2">
@@ -1148,7 +1187,7 @@ function ContentTab({ doc, slug, patchSection, setDoc, notify, setNotify, channe
                   표지 사진이 없어요. 손님에게는 영상의 첫 장면이 먼저 보입니다.
                 </p>
               )}
-              <Field label="제목"><input className={inp} value={s.title} maxLength={40} onChange={(e) => patchSection(i, { title: e.target.value })} /></Field>
+              <TitleField value={s.title} onChange={(v) => patchSection(i, { title: v })} />
               <Field label="영상 아래 한 줄 (선택)"><input className={inp} value={s.caption ?? ""} maxLength={120} placeholder="예: 20년째 같은 자리에서 합니다"
                 onChange={(e) => patchSection(i, { caption: e.target.value || undefined })} /></Field>
               <p className="t-caption leading-relaxed text-[var(--text-soft)]">
