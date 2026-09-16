@@ -215,6 +215,7 @@
   --tap: 48px;                   /* 최소 터치 목표 */
   --bar-h: 56px;                 /* 상단 바 */
   --dock-h: 64px;                /* 손님 사이트 하단 고정 바 */
+  --btn-min-w: 180px;            /* PC 최종 CTA 버튼 최소 너비 (site-chrome.tsx FinalCta) */
   /* 하단 고정 바가 푸터를 가리지 않게 <main> 이 비워 두는 자리.
      하단 바는 폰 전용이라 PC 에서는 0 이다 (아래 미디어 쿼리). */
   --dock-pad: calc(var(--dock-h) + env(safe-area-inset-bottom));

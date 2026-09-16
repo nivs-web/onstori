@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { localBusinessJsonLd } from "@/lib/jsonld";
 import { getSiteBySlug, getPausedSite } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
-import { SiteChrome } from "@/components/sections/site-chrome";
+import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 
@@ -157,14 +157,17 @@ export default async function SitePage({ params }: Props) {
           fontFamily: "var(--font-body)",
         }}
       >
-        {/* 상단 바(로고·햄버거)와 하단 고정 바 — 미리보기 셸과 같은 컴포넌트를 쓴다 */}
-        <SiteChrome doc={site.doc} businessName={site.doc.businessName} logo={site.logo} />
+        {/* 상단 바(로고·햄버거)와 하단 고정 바 — 미리보기 셸과 같은 컴포넌트를 쓴다.
+            ⚠ `cta` 는 settings.ctaChannels 다 — settings.channels(owner-channels, SEO 용)와 다른 칸이다. */}
+        <SiteChrome doc={site.doc} businessName={site.doc.businessName} logo={site.logo} cta={site.settings?.ctaChannels as { selected?: string[]; links?: Record<string, string> } | undefined} />
         {/* ★ 떠 있는 채널 위젯 — 사장님이 «직접 넣은» 채널만 뜬다(2026-09-15 대표님 지시).
             채널이 하나도 없으면 아무것도 그리지 않는다. */}
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug }} />
         ))}
+        {/* ★ PC 전용 — 스크롤을 내리면 만나는 최종 문의 CTA (2026-09-16, 반장 지시 [3]) */}
+        <FinalCta doc={site.doc} cta={site.settings?.ctaChannels as { selected?: string[]; links?: Record<string, string> } | undefined} />
         <footer className="t-caption text-center" style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-7)", color: "var(--s-muted)" }}>
           {/* ★★ 숨은 에디터 진입로 — 2026-09-16 대표님 지시로 **「© 연도 + 상호」 줄 전체**가 문이 됐다.
               왜 넓혔나: 사장님이 자기 홈페이지를 고치러 올 때 여기가 «유일한» 문인데, 전에는

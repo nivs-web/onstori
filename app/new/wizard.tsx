@@ -13,6 +13,7 @@ import { PHOTO_LIMITS, photoLimitLabel } from "@/config/limits";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
 import { OWNER_CHANNELS, isUsableChannelUrl } from "@/config/owner-channels";
+import { CTA_CHANNELS, MAX_CTA_CHANNELS, CTA_FORM_DEFAULT, CTA_EXTRA_FIELD_MAX, type CtaFormFields } from "@/config/cta-channels";
 import { sbBrowser } from "@/lib/supabase/browser";
 import { Logo } from "@/components/site/logo";
 import { LogoPicker, type LogoChoice } from "./logo-picker";
@@ -20,9 +21,15 @@ import { embedPretendard } from "@/lib/logo-embed";
 
 /* ─────────────────────────── 공용 ─────────────────────────── */
 
-/* ★ 「사진」이 3단계(가게 정보) 뒤에 신설됐다(반장-지시 [2], 2026-09-16) — 6단계 → 7단계.
+/* ★ 「사진」(반장-지시 [2])과 「문의 채널」(반장-지시 [3])이 같은 자리(3단계 뒤)에 각각
+   신설되며 병합 충돌이 났다(T-0021·T-0022, CTO 사이클 9 — T-0027 흡수). 둘 다 살려
+   순서대로 이어 붙인다 — 7단계 → 8단계.
    ⚠ 단계를 밀 때는 STEPS 배열·아래 step===N 조건·setStep(N) 이 전부 같이 맞아야 한다. */
-const STEPS = ["상호명", "업종", "가게 정보", "사진", "채널 연결", "분위기", "만들기"] as const;
+const STEPS = ["상호명", "업종", "가게 정보", "사진", "채널 연결", "문의 채널", "분위기", "만들기"] as const;
+
+/** 🔴 2026-09-16 검수 지적으로 끔 — 손님 문의 폼(quote-form.tsx)이 아직 이 값을 안 읽는다.
+ *  화면만 있고 속이 빈 UI 는 「넣었는데 안 됐다」를 만든다(규칙 12 정신). 잇는 업무가 끝나면 켠다. */
+const SHOW_CTA_FORM_BUILDER = false;
 
 async function readJson(r: Response): Promise<Record<string, unknown>> {
   if ((r.headers.get("content-type") ?? "").includes("application/json")) return (await r.json()) as Record<string, unknown>;
@@ -154,7 +161,16 @@ export function Wizard() {
   const [photos, setPhotos] = useState<File[]>([]);
   /** 16번째를 고르려 할 때 「15장까지예요」를 보여 주는 자리. 빈 문자열이면 안 보인다 */
   const [photoNotice, setPhotoNotice] = useState("");
-  // 5
+  // 5 — 문의 채널(CTA) (2026-09-16 신설, 반장 지시 [3])
+  /**
+   * ★ 손님이 사장님께 «연락하는» 버튼. `channels`(위, 사장님이 «이미 갖고 있는» 채널)와 다르다.
+   * 🔴 최대 `MAX_CTA_CHANNELS`(2)개 — config/cta-channels.ts 가 단일 출처다.
+   */
+  const [ctaSelected, setCtaSelected] = useState<string[]>([]);
+  const [ctaLinks, setCtaLinks] = useState<Record<string, string>>({});
+  const [ctaFormFields, setCtaFormFields] = useState<CtaFormFields>(CTA_FORM_DEFAULT);
+  const [ctaExtraField, setCtaExtraField] = useState("");
+  // 6
   const [tone, setTone] = useState<Tone>("light");
   const [accent, setAccent] = useState(ACCENTS[0].id);
 
@@ -252,6 +268,21 @@ export function Wizard() {
     [channels],
   );
 
+  /* ★ 문의 채널(CTA) 주소만 걸러 서버에 보낸다 — 서버(cleanCtaSelection)도 같은 규칙으로 한 번 더 거른다 */
+  const usableCtaLinks = useMemo(
+    () => Object.fromEntries(Object.entries(ctaLinks).filter(([, v]) => isUsableChannelUrl(v))),
+    [ctaLinks],
+  );
+
+  /** 🔴 최대 2개 — 이미 찼는데 새 항목을 더 고르면 조용히 무시한다(막지 않되 늘리지도 않는다) */
+  function toggleCta(id: string) {
+    setCtaSelected((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_CTA_CHANNELS) return prev;
+      return [...prev, id];
+    });
+  }
+
   const can3 = oneLiner.trim().length >= 2 && isValidPhone(phone) && emailOk && slugOk !== false;
 
   /* 3단계에 들어오면 **비어 있는 주소 3개**를 미리 받아 둔다.
@@ -340,6 +371,11 @@ export function Wizard() {
         /* ★ 채널 주소 — **쓸 만한 것만** 보낸다. 서버도 같은 규칙으로 한 번 더 거른다.
            ⚠ 빈 객체면 아예 안 보낸다 — 빈 칸을 만들어 두면 「넣었는데 안 됐다」와 구별이 안 된다. */
         ...(Object.keys(usableChannels).length ? { channels: usableChannels } : {}),
+        /* ★ 문의 채널(CTA) — 하나도 안 고르셨으면 아예 안 보낸다(config/cta-channels.ts 참고).
+           서버가 개수(최대 2개)·주소 모양을 다시 검사한다 — 화면 값을 그대로 믿지 않는다. */
+        ...(ctaSelected.length
+          ? { cta: { selected: ctaSelected, links: usableCtaLinks, formFields: ctaFormFields, extraField: ctaExtraField.trim() || undefined } }
+          : {}),
         /* ★ 동의는 서버가 다시 검사한다 — 화면 값을 믿지 않는다(불변 규칙 4의 정신)
            ⚠ `marketing: false` 를 **일부러 보낸다.** 묻지 않았으니 「동의 못 받았다」가 사실이고,
              그 사실이 기록에 남아야 나중에 「동의받았다」고 오해할 여지가 없다(2026-09-13). */
@@ -459,8 +495,8 @@ export function Wizard() {
   };
   const stageText = STAGE_TEXT[stage];
 
-  /* 6단계 — 만드는 중 / 완료 */
-  if (step === 6) {
+  /* 마지막(8번째) 단계 — 만드는 중 / 완료 */
+  if (step === 7) {
     return shell(
       <>
         {state === "done" && result ? (
@@ -496,7 +532,7 @@ export function Wizard() {
             <h1 className="t-h1">잠깐 멈췄어요</h1>
             <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--danger)" }}>{errMsg}</p>
             <button type="button" onClick={create} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>다시 만들기</button>
-            <button type="button" onClick={() => setStep(5)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
+            <button type="button" onClick={() => setStep(6)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
           </section>
           )
         ) : (
@@ -1022,8 +1058,116 @@ export function Wizard() {
         </section>
       )}
 
-      {/* 6 분위기 */}
+      {/* ★★★ 6 문의 채널(CTA) — 2026-09-16 신설, 반장 지시 [3] «이번 묶음의 본체».
+          ⚠ **최대 2개.** 위 5단계(채널 연결·SEO용 사장님 채널)와는 다른 것이다 —
+            여기는 «손님이 사장님께 연락하는» 버튼(하단 고정 바·최종 CTA)이다.
+          ⚠ 문구는 대표님 원문을 그대로 옮겼다 — 지어내지 않는다.
+          ⚠ 병합 충돌로 «사진»(반장-지시 [2])이 앞에 끼어들며 4→5로 밀렸다(CTO 사이클 9 — T-0027 흡수). */}
       {step === 5 && (
+        <section className="mt-6">
+          <h1 className="font-display t-h1 leading-snug">
+            고객 문의는 어디로 받으시겠습니까?
+            <span className="ml-2 align-middle t-small font-medium" style={{ color: "var(--muted)" }}>선택</span>
+          </h1>
+          <p className="mt-3 t-body">
+            고객 문의는 매장을 방문하는 손님과도 같습니다
+          </p>
+          <p className="mt-3 t-small" style={{ color: "var(--muted)" }}>
+            어디로 연락을 오게 하시겠습니까?<br />
+            여러 개 채널을 추가하셔야 고객들이 편안한 채널로 연락을 주십니다<br />
+            전화나 문자를 부끄러워하고 카톡이 편한 고객이 있을 수도 있습니다
+          </p>
+          <p className="mt-4 rounded-xl px-4 py-3 t-small font-semibold" style={{ background: "var(--green-50)", color: "var(--forest)" }}>
+            다양한 홍보를 통해서 모인 고객의 최종 문의처를 어디로 모이게 하시겠습니까? ({MAX_CTA_CHANNELS}개까지 선택 가능)
+          </p>
+
+          <div className="mt-6 space-y-3">
+            {CTA_CHANNELS.map((c) => {
+              const on = ctaSelected.includes(c.id);
+              const full = !on && ctaSelected.length >= MAX_CTA_CHANNELS;
+              return (
+                <div key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCta(c.id)}
+                    disabled={full}
+                    className="w-full rounded-2xl border p-4 text-left disabled:opacity-40"
+                    style={{
+                      borderColor: on ? "var(--green-700)" : "var(--n-200)",
+                      background: on ? "var(--green-50)" : "var(--n-0)",
+                      minHeight: "var(--tap)",
+                    }}
+                  >
+                    <p className="t-body font-bold" style={{ color: on ? "var(--green-700)" : "var(--n-900)" }}>
+                      {on ? "✓ " : ""}{c.label}
+                    </p>
+                    <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>{c.hint}</p>
+                  </button>
+                  {/* 골랐고 주소가 필요한 항목이면 바로 아래에 입력칸을 편다 */}
+                  {on && c.kind === "url" && (
+                    <input
+                      className="field mt-2"
+                      value={ctaLinks[c.id] ?? ""}
+                      maxLength={300}
+                      inputMode="url"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      placeholder={c.placeholder}
+                      onChange={(e) => setCtaLinks((p) => ({ ...p, [c.id]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 t-caption" style={{ color: "var(--muted)" }}>
+            {ctaSelected.length}/{MAX_CTA_CHANNELS}개 선택 · 하나도 안 고르셔도 됩니다.
+          </p>
+
+          {/* 🔴 2026-09-16 검수 지적 — 「문의하기에 기본/추가 입력받기」 칸은 값이
+              `sites.settings.ctaChannels.formFields`/`extraField` 에 저장은 되지만, 손님이
+              실제로 보는 문의 폼(components/sections/quote-form.tsx)이 그 값을 아직 읽지 않는다.
+              사장님이 체크해도 손님 화면은 그대로라 「넣었는데 안 됐다」가 된다(규칙 12 정신).
+              그래서 이 화면 블록은 «내린다» — 코드(상태·전송값)는 남기고 렌더만 끈다.
+              quote-form.tsx 가 이 값을 읽어 그리도록 잇는 업무를 마친 뒤 다시 켠다. */}
+          {SHOW_CTA_FORM_BUILDER && (
+            <div className="mt-8 rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
+              <p className="t-body font-bold">문의하기에 기본 입력받기</p>
+              <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>기본 입력받기만 체크하셔도 됩니다</p>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                {([
+                  ["name", "성함"], ["phone", "연락처"], ["email", "이메일"], ["message", "문의내용"],
+                ] as [keyof CtaFormFields, string][]).map(([key, label]) => (
+                  <label key={key} className="flex cursor-pointer items-center" style={{ gap: "var(--s-2)", minHeight: "var(--tap)" }}>
+                    <input
+                      type="checkbox"
+                      checked={ctaFormFields[key]}
+                      onChange={(e) => setCtaFormFields((p) => ({ ...p, [key]: e.target.checked }))}
+                      className="h-5 w-5"
+                    />
+                    <span className="t-small">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-5 t-body font-bold">문의하기에 추가 입력받기</p>
+              <input
+                className="field mt-2"
+                value={ctaExtraField}
+                maxLength={CTA_EXTRA_FIELD_MAX}
+                onChange={(e) => setCtaExtraField(e.target.value)}
+                placeholder="예) 가격대, 미용종류, 상품종류, 제품명, 품목, 사양, 견적금액 등등"
+              />
+              <p className="mt-1 t-caption" style={{ color: "var(--muted)" }}>추가로 입력받으시고 싶은 게 있으면 넣어주세요</p>
+            </div>
+          )}
+
+          {nav({ next: () => setStep(6), canNext: true })}
+        </section>
+      )}
+
+      {/* 7 분위기 */}
+      {step === 6 && (
         <section className="mt-6">
           <h1 className="font-display t-h1 leading-snug">분위기를 골라 주세요</h1>
           <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>바탕은 다크/화이트, 포인트색은 8가지. 미리보기를 보고 고르세요.</p>
@@ -1081,7 +1225,7 @@ export function Wizard() {
           </div>
 
           {nav({
-            next: () => { setStep(6); void create(); },
+            next: () => { setStep(7); void create(); },
             canNext: agreeTerms && agreePrivacy,
             label: "홈페이지 만들기 — 무료",
           })}
