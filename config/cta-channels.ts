@@ -21,9 +21,13 @@
  *   함께 켜야 한다 — 안 켜면 `lib/phone-privacy.ts` 가 손님에게 나가는 문서에서 번호를 지워
  *   **버튼은 있는데 눌러도 번호가 없는** 죽은 버튼이 된다(불변 규칙 12 의 정신 — 판정·화면·
  *   힌트가 어긋나면 안 된다). `app/api/generate/route.ts` 가 이 둘을 함께 켠다.
+ *
+ * ⚠ **문의 버튼 글자는 `config/industries.ts` 의 `INQUIRY_CTA_LABEL` 단일 출처다(대표 결정 R-0001,
+ *   2026-09-13 — 「전부 다 문의하기 버튼으로 통일해」). 여기서 "문의하기" 를 새로 타이핑하지 않는다.**
  */
 
 import { isUsableChannelUrl } from "@/config/owner-channels";
+import { INQUIRY_CTA_LABEL } from "@/config/industries";
 
 export type CtaChannelKind =
   | "none" // 이미 3단계에서 받은 전화·이메일을 그대로 쓴다 — 추가 입력이 없다
@@ -55,21 +59,21 @@ export const CTA_CHANNELS: CtaChannelDef[] = [
     label: "문의하기 (메일문의)",
     hint: "이메일 주소로 — 기본 셋팅은 입력하신 메일로 자동 발송됩니다",
     kind: "none",
-    dockLabel: "문의하기",
+    dockLabel: INQUIRY_CTA_LABEL,
   },
   {
     id: "form_sms",
     label: "문의하기 (전화번호 비공개)",
     hint: "사장님 전화번호는 공개하지 않지만 문의는 문자로 받으실 수 있습니다",
     kind: "none",
-    dockLabel: "문의하기",
+    dockLabel: INQUIRY_CTA_LABEL,
   },
   {
     id: "form_tel",
     label: "문의하기 (전화번호 공개형)",
     hint: "사장님 전화번호를 공개하고 싶으신 분들을 위한 선택입니다",
     kind: "none",
-    dockLabel: "문의하기",
+    dockLabel: INQUIRY_CTA_LABEL,
     requiresPublicPhone: true,
   },
   {

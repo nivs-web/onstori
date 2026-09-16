@@ -7,6 +7,8 @@ import type { SiteDocT } from "@/lib/schema";
 import { contactOf, SECTION_ANCHORS } from "./nav";
 import { ICON, ARIA } from "./connect-widget";
 import { findCtaChannel } from "@/config/cta-channels";
+// ★ 문의 버튼 글자는 여기서 새로 타이핑하지 않는다 — 단일 출처는 `INQUIRY_CTA_LABEL`(대표 결정 R-0001).
+import { INQUIRY_CTA_LABEL } from "@/config/industries";
 
 /** 위저드·설정에서 넘어오는 CTA 선택값 — sites.settings.ctaChannels (config/cta-channels.ts 참고) */
 export type CtaSettings = { selected?: string[]; links?: Record<string, string> } | null | undefined;
@@ -40,6 +42,12 @@ export function SiteChrome({ doc, businessName, logo, cta }: { doc: SiteDocT; bu
   );
 }
 
+/** Dock·FinalCta 가 그릴 버튼 하나 — `primary` 를 여기서 «미리» 정해 넘긴다.
+ *  ⚠ 2026-09-16 검수 지적 — Dock·FinalCta 가 각자 「마지막 것이 주 버튼」이라고 추측하면
+ *    레거시 사이트(견적 폼 없이 전화·카톡만 있는 사이트)에서 전화·카톡이 엉뚱하게 초록 주
+ *    버튼이 된다. 주 버튼 여부는 **이 함수 하나**만 정한다(판정이 흩어지면 규칙 12 가 깨진다). */
+type CtaButton = { id: string; label: string; href: string; external?: boolean; primary: boolean };
+
 /**
  * 문의 채널(CTA) 선택 → 실제로 그릴 버튼 목록. (2026-09-16, 반장 지시 [3])
  *
@@ -51,18 +59,23 @@ export function SiteChrome({ doc, businessName, logo, cta }: { doc: SiteDocT; bu
  */
 function resolveCtaButtons(
   { tel, kakaoUrl, hasQuote, cta }: { tel: string; kakaoUrl: string; hasQuote: boolean; cta?: CtaSettings },
-): { id: string; label: string; href: string; external?: boolean }[] {
+): CtaButton[] {
   const selected = cta?.selected ?? [];
   if (selected.length === 0) {
-    // 레거시 — CTA 선택 이전에 만들어진 사이트는 예전 그대로 [전화][카톡][견적 문의]
-    const legacy: { id: string; label: string; href: string; external?: boolean }[] = [];
-    if (tel) legacy.push({ id: "call", label: "전화", href: `tel:${tel}` });
-    if (kakaoUrl) legacy.push({ id: "kakao_channel", label: "카톡", href: kakaoUrl, external: true });
-    if (hasQuote) legacy.push({ id: "form_email", label: "견적 문의", href: "#quote" });
+    // 레거시 — CTA 선택 이전에 만들어진 사이트는 예전 그대로 [전화][카톡][문의하기].
+    // ⚠ 주 버튼(면 색)은 옛 화면과 똑같이 «견적 폼이 있을 때 그 버튼 하나뿐» 이다.
+    //   전화·카톡은 옛 코드(`ContactButton`)에서도 주 버튼이었던 적이 한 번도 없다 — 추측하지 않는다.
+    const legacy: CtaButton[] = [];
+    if (tel) legacy.push({ id: "call", label: findCtaChannel("call")!.dockLabel, href: `tel:${tel}`, primary: false });
+    // ⚠ "카톡"은 옛 화면 그대로 둔다 — config 의 dockLabel("카카오톡")로 바꾸면 이미 발행된
+    //   옛 사이트 전부의 글자가 재발행 없이 조용히 바뀐다(회귀 금지, 규칙 12 정신).
+    if (kakaoUrl) legacy.push({ id: "kakao_channel", label: "카톡", href: kakaoUrl, external: true, primary: false });
+    // 🔴 견적 문의 버튼의 글자는 대표 결정 R-0001 로 "문의하기" 로 통일됐다 — 새로 타이핑하지 않는다.
+    if (hasQuote) legacy.push({ id: "form_email", label: INQUIRY_CTA_LABEL, href: "#quote", primary: true });
     return legacy;
   }
   const links = cta?.links ?? {};
-  const out: { id: string; label: string; href: string; external?: boolean }[] = [];
+  const out: CtaButton[] = [];
   for (const id of selected) {
     const def = findCtaChannel(id);
     if (!def) continue;
@@ -82,8 +95,12 @@ function resolveCtaButtons(
     //   둘을 같이 고르면(예: 「메일문의」+「전화번호 공개형」) 똑같은 버튼이 두 번 나온다.
     //   같은 도착지(href)는 하나만 남긴다(먼저 고른 것을 살린다) — 죽은 중복 버튼을 만들지 않는다.
     if (out.some((b) => b.href === href)) continue;
-    out.push({ id, label: def.dockLabel, href, external });
+    out.push({ id, label: def.dockLabel, href, external, primary: false });
   }
+  // 🔴 주 버튼 — 대표님 원문 「1개면 큰 버튼, 2개면 지금 모바일 디자인」.
+  //   1개: 그 하나가 주 버튼. 2개: 나중에 고른(=마지막) 것이 주 버튼.
+  if (out.length === 1) out[0].primary = true;
+  else if (out.length >= 2) out[out.length - 1].primary = true;
   return out;
 }
 
@@ -269,10 +286,10 @@ function TopBar({
  * ⚠ 이 바가 있으면 플로팅 버튼을 따로 두지 않는다 — 겹친다 (지시서 2-4).
  *   `components/sections/channel-widget.tsx` 가 바로 **그 위** 자리(`bottom: dock-h + …`)에 뜬다.
  */
-function Dock({ buttons }: { buttons: { id: string; label: string; href: string; external?: boolean }[] }) {
+function Dock({ buttons }: { buttons: CtaButton[] }) {
   if (buttons.length === 0) return null;
-  // 마지막 버튼(가장 나중에 고른 것)만 주 버튼(면 색)으로. 나머지는 보조(테두리 아님 — 규칙 11: 연회색 면).
-  const lastIdx = buttons.length - 1;
+  // 어느 것이 주 버튼(면 색)인지는 `resolveCtaButtons` 가 이미 정해 왔다(`b.primary`).
+  // 여기서 「마지막 것」이라고 다시 추측하지 않는다 — 그러면 레거시 사이트가 어긋난다.
   return (
     <>
       {/* ⚠ 여기에 스페이서 <div> 를 두면 안 된다. SiteChrome 은 문서 **맨 앞**에 그려지므로
@@ -291,8 +308,8 @@ function Dock({ buttons }: { buttons: { id: string; label: string; href: string;
           backdropFilter: "blur(8px)",
         }}
       >
-        {buttons.map((b, i) => (
-          <CtaBtn key={b.id} id={b.id} href={b.href} label={b.label} external={b.external} primary={i === lastIdx} />
+        {buttons.map((b) => (
+          <CtaBtn key={b.id} id={b.id} href={b.href} label={b.label} external={b.external} primary={b.primary} />
         ))}
       </nav>
     </>
@@ -304,16 +321,15 @@ function Dock({ buttons }: { buttons: { id: string; label: string; href: string;
  * 대표님 원문: 「PC: 스크롤을 내리면 최종 문의하기로 이어지는 CTA 버튼」
  * ⚠ 하단 고정 바는 폰 전용(`md:hidden`)이라 PC 에는 늘 떠 있는 바가 없다 — 그래서 이 블록을
  *   본문 맨 끝(푸터 바로 앞)에 둔다. 스크롤해서 내려오면 «자연히» 만난다.
- * ⚠ 손님 사이트 페이지(3곳: `app/[slug]/page.tsx` · `app/x/[slug]/page.tsx`)가 각자 부른다 —
- *   `preview-client.tsx`(에디터 미리보기)는 settings 를 안 받으므로 부르지 않는다
- *   (채널 위젯도 같은 이유로 미리보기에 없다 — 기존 관례를 따른다).
+ * ⚠ 2026-09-16 검수 지적 — 주석이 사실과 달랐다. **지금은 `app/[slug]/page.tsx` 한 곳만 부른다.**
+ *   `/x/{상호}`(보관실)는 이번에 settings 배선을 되돌려서 아직 안 부르고, `preview-client.tsx`
+ *   (에디터 미리보기)는 settings 를 안 받아서 아직 없다(채널 위젯도 같은 이유로 미리보기에 없다).
  */
 export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
   const { tel, kakaoUrl } = contactOf(doc);
   const hasQuote = doc.sections.some((s) => s.type === "quoteForm");
   const buttons = resolveCtaButtons({ tel, kakaoUrl, hasQuote, cta });
   if (buttons.length === 0) return null;
-  const lastIdx = buttons.length - 1;
   return (
     <section
       aria-label="최종 문의"
@@ -325,7 +341,7 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
             버튼」만 있고 제목 문구는 없다. 지어내지 않는다(규칙 5) — 대표님 문구를 받으면
             config/cta-channels.ts 에 단일 출처로 넣고 여기서 읽는다. 그 전까지는 버튼만. */}
         <div className="flex flex-wrap items-center justify-center" style={{ gap: "var(--s-3)" }}>
-          {buttons.map((b, i) => (
+          {buttons.map((b) => (
             <a
               key={b.id}
               href={b.href}
@@ -333,7 +349,7 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
               className="t-body inline-flex items-center justify-center font-semibold"
               style={{
                 minHeight: "var(--tap)", minWidth: "var(--btn-min-w)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)",
-                ...(i === lastIdx
+                ...(b.primary
                   ? { background: "var(--s-accent)", color: "var(--s-on-accent)" }
                   : { background: "var(--s-bg)", color: "var(--s-ink)" }),
               }}
@@ -348,7 +364,12 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
 }
 
 /**
- * Dock 의 버튼 하나 — 주 버튼은 면 색, 보조는 연회색 면(규칙 11: 테두리 아님)
+ * Dock 의 버튼 하나 — 주 버튼은 면 색, 보조는 연회색 면(규칙 11: 「보조 버튼은 테두리가
+ * 아니라 연회색 면이다」). ⚠ **레거시(견적 폼 없는 옛 사이트) 전화·카톡도 이 규칙을 그대로
+ * 받는다 — 의도한 결정이다.** 옛 `ContactButton` 은 디자인 시스템 v5(2026-09-07) 이전에
+ * 만들어져 테두리를 썼는데, 그건 지금 규칙 11 위반이다. 이미 발행된 옛 사이트의 보조 버튼이
+ * 재발행 없이 「테두리 → 연회색 면」으로 바뀌는 게 이번 변경의 실제 효과다 — 글자·주 버튼
+ * 지정은 그대로 두고 모양만 현재 규칙에 맞춘다(결과 보고서에 남긴다).
  * ⚠ `call`·`kakao_channel` 은 옛 `ContactButton` 처럼 아이콘 + `aria-label` 을 붙인다
  *   (2026-09-16 검수 지적 — 회귀 없음이 되려면 보이는 것까지 같아야 한다).
  */
