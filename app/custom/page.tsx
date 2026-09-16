@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
-import { CUSTOM_PRODUCTS, priceLabel, daysLabel, VAT_NOTE } from "@/config/custom-products";
+import { notFound } from "next/navigation";
+import { CUSTOM_PRODUCTS, priceLabel, daysLabel, VAT_NOTE, CUSTOM_PAGE_OPEN } from "@/config/custom-products";
 import { BIZ } from "@/config/company";
 
 export const metadata: Metadata = {
@@ -24,6 +25,12 @@ export const metadata: Metadata = {
  * ★ 사업자정보는 `SiteFooter` 가 이미 그린다(`config/company.ts` 의 `BIZ`).
  */
 export default function CustomPage() {
+  /* 🔴 **2026-09-17 대표님 지시 [26] — 토스 구독 심사가 끝날 때까지 숨긴다.**
+     심사관이 49만원짜리 상품을 보면 「최고가가 구독료라면서요?」로 걸린다.
+     ⚠ 화면을 지우지 않는다. 스위치(`config/custom-products.ts`) 하나로 되살아난다.
+     ⚠ `notFound()` 라 **404** 다 — 검색에도 안 올라간다(`noindex` 보다 확실하다). */
+  if (!CUSTOM_PAGE_OPEN) notFound();
+
   return (
     <main className="min-h-svh surface-0">
       <PromoBar />
