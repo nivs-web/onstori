@@ -9,6 +9,7 @@ import { QUESTIONS } from "@/config/questions";
 import { TRIAL_DAYS, COPY } from "@/lib/trial";
 import { isValidPhone, formatPhone } from "@/lib/phone";
 import { PHONE_PRIVATE_NOTICE, WEEKLY_NOTICE, WEEKLY_CHANNEL_HINT } from "@/lib/weekly";
+import { PHOTO_LIMITS, photoLimitLabel } from "@/config/limits";
 /* ★ 받침에 맞는 조사 — 세부 업종 109개 중 57개가 「…를 해요」로 깨져 있었다(2026-09-13 박팀장) */
 import { josa } from "@/lib/sns/status-say";
 import { OWNER_CHANNELS, isUsableChannelUrl } from "@/config/owner-channels";
@@ -19,7 +20,9 @@ import { embedPretendard } from "@/lib/logo-embed";
 
 /* ─────────────────────────── 공용 ─────────────────────────── */
 
-const STEPS = ["상호명", "업종", "가게 정보", "채널 연결", "분위기", "만들기"] as const;
+/* ★ 「사진」이 3단계(가게 정보) 뒤에 신설됐다(반장-지시 [2], 2026-09-16) — 6단계 → 7단계.
+   ⚠ 단계를 밀 때는 STEPS 배열·아래 step===N 조건·setStep(N) 이 전부 같이 맞아야 한다. */
+const STEPS = ["상호명", "업종", "가게 정보", "사진", "채널 연결", "분위기", "만들기"] as const;
 
 async function readJson(r: Response): Promise<Record<string, unknown>> {
   if ((r.headers.get("content-type") ?? "").includes("application/json")) return (await r.json()) as Record<string, unknown>;
@@ -142,6 +145,15 @@ export function Wizard() {
    *   구조화 데이터의 `sameAs` 를 만든다. 이름을 바꾸면 검색 연결이 조용히 끊긴다.
    */
   const [channels, setChannels] = useState<Record<string, string>>({});
+  // 3.5 — 사진 올리기 (반장-지시 [2], 2026-09-16 신설)
+  /**
+   * ★ 파일 자체를 들고 있다가 **홈페이지가 만들어진 뒤**(create() 안에서) 올린다.
+   * ⚠ 아직 site 가 없어서 지금은 업로드할 수 없다 — `/api/site/upload` 는 slug 소유를 확인한다.
+   *   그래서 이 단계에서 「다음」은 즉시 넘어가고(파일은 메모리에만 있음), 실제 전송은 만들기 때 한다.
+   */
+  const [photos, setPhotos] = useState<File[]>([]);
+  /** 16번째를 고르려 할 때 「15장까지예요」를 보여 주는 자리. 빈 문자열이면 안 보인다 */
+  const [photoNotice, setPhotoNotice] = useState("");
   // 5
   const [tone, setTone] = useState<Tone>("light");
   const [accent, setAccent] = useState(ACCENTS[0].id);
@@ -198,6 +210,27 @@ export function Wizard() {
     setPicked(p); /* ★ 고른 것을 남긴다 — 이게 없어서 「아무 반응이 없다」로 보였다 */
   }
 
+
+  /** 사진 미리보기 — 브라우저 안에서만 보이는 임시 주소. 사진이 바뀌면 옛 주소를 반드시 반납한다 */
+  const photoPreviews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
+  useEffect(() => () => { photoPreviews.forEach((u) => URL.revokeObjectURL(u)); }, [photoPreviews]);
+
+  /** ⚠ 16번째는 «고르기 전»에 막는다 — 이미 15장이면 더 고를 수 없게 버튼을 숨긴다(아래 JSX).
+   *   그래도 한 번에 여러 장을 고르면 넘칠 수 있어 여기서도 자른다. */
+  function addPhotos(files: FileList | null) {
+    if (!files || !files.length) return;
+    setPhotos((prev) => {
+      const room = PHOTO_LIMITS.onboarding - prev.length;
+      if (room <= 0) { setPhotoNotice(`사진은 ${PHOTO_LIMITS.onboarding}장까지예요`); return prev; }
+      const picked = Array.from(files).slice(0, room);
+      setPhotoNotice(files.length > picked.length ? `사진은 ${PHOTO_LIMITS.onboarding}장까지예요` : "");
+      return [...prev, ...picked];
+    });
+  }
+  function removePhoto(i: number) {
+    setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+    setPhotoNotice("");
+  }
 
   const can1 = name.trim().length >= 1;
   const can2 = !!sub;
@@ -327,6 +360,30 @@ export function Wizard() {
         // 여기부터는 추정이 아니다 — 생성 응답을 이미 받았다
         if (logo.file || logo.svg) { setProgress(95); setStage("logo"); await fetch("/api/site/logo", { method: "POST", body: fd }); }
       } catch {}
+      /* ★ 사진 올리기(반장-지시 [2]) — «올리는 중에도 다음으로, 실패해도 조용히».
+         홈페이지는 이미 만들어졌으니(위에서 응답을 받음) 여기서 무슨 일이 있어도 화면은 완료로 간다.
+         ⚠ 한 장이 실패해도 나머지는 올린다 — Promise.all 이 아니라 개별 try/catch. */
+      try {
+        if (photos.length) {
+          setStage("photo");
+          const urls = (await Promise.all(photos.map(async (f) => {
+            try {
+              const fd = new FormData();
+              fd.set("slug", String(d.slug)); if (aid) fd.set("anonId", aid); fd.set("file", f);
+              const ur = await fetch("/api/site/upload", { method: "POST", body: fd });
+              const ud = await readJson(ur);
+              return ur.ok ? String(ud.url) : null;
+            } catch { return null; }
+          }))).filter((u): u is string => !!u);
+          // 갤러리·소개 섹션에 반영 — 이미지뱅크 사진보다 사장님 사진이 먼저 오게(app/api/site/photos)
+          if (urls.length) {
+            await fetch("/api/site/photos", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ slug: String(d.slug), anonId: aid || undefined, urls }),
+            }).catch(() => {});
+          }
+        }
+      } catch {}
       try { if (pickedQuestion) localStorage.setItem("onstori:firstQuestion", pickedQuestion.id); } catch {}
       clearInterval(tick); setProgress(100); setStage("finish");
       setResult({ url: String(d.url), slug: String(d.slug) });
@@ -394,8 +451,8 @@ export function Wizard() {
   };
   const stageText = STAGE_TEXT[stage];
 
-  /* 5단계 — 만드는 중 / 완료 */
-  if (step === 5) {
+  /* 6단계 — 만드는 중 / 완료 */
+  if (step === 6) {
     return shell(
       <>
         {state === "done" && result ? (
@@ -431,7 +488,7 @@ export function Wizard() {
             <h1 className="t-h1">잠깐 멈췄어요</h1>
             <p className="t-body" style={{ marginTop: "var(--s-3)", color: "var(--danger)" }}>{errMsg}</p>
             <button type="button" onClick={create} className="btn btn-primary" style={{ marginTop: "var(--s-5)" }}>다시 만들기</button>
-            <button type="button" onClick={() => setStep(4)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
+            <button type="button" onClick={() => setStep(5)} className="btn btn-text w-full" style={{ marginTop: "var(--s-3)" }}>이전 단계로</button>
           </section>
           )
         ) : (
@@ -789,13 +846,92 @@ export function Wizard() {
         </section>
       )}
 
-      {/* ★★★ 4 채널 연결 — 2026-09-15 대표님 지시로 신설.
+      {/* ★★ 4 사진 올리기 — 반장-지시 [2](2026-09-16 신설). 문구는 대표님 원문, 한 글자도 안 고쳤다.
+          ⚠ **아직 site 가 없어 지금은 업로드할 수 없다** — 파일은 메모리에만 들고 있다가
+            create() 안에서(홈페이지가 만들어진 뒤) 올린다. 위 photos state 선언부 주석 참고.
+          ⚠ 사진이 없어도 다음이 눌려야 한다(회장님 원문 「사진이 없어도 다음 단계로 진행할 수
+            있습니다») — 그래서 [건너뛰기]와 [다음]을 **같은 크기**로 나란히 둔다(반장-지시 [2]). */}
+      {step === 3 && (
+        <section className="mt-6">
+          <h1 className="font-display t-h1 leading-snug">홈페이지에 들어갈 추가 사진을 올려주세요</h1>
+          <p className="mt-3 t-body">
+            꼭 잘 나온 사진이 아니어도 됩니다<br />
+            사장님의 사업을 대표하는 사진이면 됩니다<br />
+            명함, 카달로그, 간판, 실내 인테리어, 매장 사진, 메뉴판, 시공사례, 제품 등<br />
+            어떤 사진이든 올려주세요.
+          </p>
+          <p className="mt-3 t-small" style={{ color: "var(--muted)" }}>
+            사진이 없어도 다음 단계로 진행할 수 있습니다<br />
+            사진이 있으면 보다 완성도 높은 홈페이지가 완성됩니다
+          </p>
+
+          {/* 16번째는 «고르기 전»에 막는다(15장이면 + 타일이 사라짐) — 그래도 한 번에 여러 장을
+              골라 넘치면 addPhotos() 가 잘라내고 이 안내를 띄운다 */}
+          {photoNotice && (
+            <p className="mt-4 rounded-xl px-4 py-3 t-small" style={{ background: "var(--green-50)", color: "var(--n-800)" }}>{photoNotice}</p>
+          )}
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            {photos.map((_, i) => (
+              <div key={i} className="relative h-24 w-24">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoPreviews[i]} alt="" className="h-24 w-24 rounded-lg object-cover" />
+                <button
+                  type="button"
+                  aria-label="사진 빼기"
+                  onClick={() => removePhoto(i)}
+                  className="absolute flex items-center justify-center leading-none"
+                  style={{ right: -6, top: -6, width: 24, height: 24, borderRadius: "var(--r-full)", background: "var(--n-900)", color: "var(--n-0)" }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {photos.length < PHOTO_LIMITS.onboarding && (
+              <label
+                className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed t-h2"
+                style={{ borderColor: "var(--n-300)", color: "var(--n-300)" }}
+              >
+                ＋
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }}
+                />
+              </label>
+            )}
+          </div>
+          <p className="mt-3 t-caption" style={{ color: "var(--muted)" }}>{photos.length}/{PHOTO_LIMITS.onboarding}장 · {photoLimitLabel("onboarding")}</p>
+
+          {/* ⚠ nav() 공용 컴포넌트를 안 쓴다 — 그건 주 버튼이 하나다. 여기는 [건너뛰기]·[다음]이
+              «같은 크기»여야 한다(반장-지시 [2]). 둘의 동작은 같다 — 사진 유무와 무관하게 다음으로. */}
+          <div
+            className="fixed inset-x-0 bottom-0 z-20"
+            style={{
+              background: "color-mix(in srgb, var(--n-0) 95%, transparent)",
+              borderTop: "1px solid var(--n-200)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <div className="mx-auto flex max-w-2xl items-center" style={{ gap: "var(--s-2)", paddingInline: "var(--gutter)", paddingBlock: "var(--s-2)" }}>
+              <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} className="btn btn-text">← 뒤로</button>
+              <button type="button" onClick={() => setStep(4)} className="btn btn-secondary flex-1">건너뛰기</button>
+              <button type="button" onClick={() => setStep(4)} className="btn btn-primary flex-1">다음 →</button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ★★★ 5 채널 연결 — 2026-09-15 대표님 지시로 신설.
           ⚠ **이 단계는 위젯이 아니라 «SEO 엔진»이다.** 여기서 받은 주소가 구조화 데이터의
             `sameAs` 가 되어 「이 홈페이지 = 저 네이버 플레이스와 같은 업체」를 검색엔진에 알린다.
             경쟁사 홈ON 이 네이버 상단에 뜨는 가장 큰 이유가 그것이었다
             (`fable51plandept/AI_Context/BANJANG/SEO-홈온-분석-2026-09-15.md`).
           ⚠ **전부 선택이다.** 하나도 안 넣어도 [다음]이 눌린다 — 여기서 막으면 가입이 끊긴다. */}
-      {step === 3 && (
+      {step === 4 && (
         <section className="mt-6">
           <h1 className="font-display t-h1 leading-snug">
             채널 연결을 해보시겠습니까?
@@ -865,12 +1001,12 @@ export function Wizard() {
             하나도 넣지 않으셔도 됩니다. 나중에 편집화면에서 언제든 추가하실 수 있어요.
           </p>
 
-          {nav({ next: () => setStep(4), canNext: true })}
+          {nav({ next: () => setStep(5), canNext: true })}
         </section>
       )}
 
-      {/* 5 분위기 */}
-      {step === 4 && (
+      {/* 6 분위기 */}
+      {step === 5 && (
         <section className="mt-6">
           <h1 className="font-display t-h1 leading-snug">분위기를 골라 주세요</h1>
           <p className="mt-2 t-small" style={{ color: "var(--muted)" }}>바탕은 다크/화이트, 포인트색은 8가지. 미리보기를 보고 고르세요.</p>
@@ -928,7 +1064,7 @@ export function Wizard() {
           </div>
 
           {nav({
-            next: () => { setStep(5); void create(); },
+            next: () => { setStep(6); void create(); },
             canNext: agreeTerms && agreePrivacy,
             label: "홈페이지 만들기 — 무료",
           })}
