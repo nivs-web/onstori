@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 import type { Question } from "@/config/questions";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
+/* ★★ 2026-09-17 — 녹화를 «캔버스 중계»로 (지시 [16]). 세로 100% 보장.
+   ⚠ 끄고 켜는 것은 `config/recording.ts` 하나다. 여기에 조건을 또 만들지 마라. */
+import { CANVAS_RELAY, RELAY_W, RELAY_H, RELAY_FPS, RELAY_MEASURE } from "@/config/recording";
 
 /**
  * 60초 녹화 화면 — 레멘토 web.remento.co 14화면을 9화면으로 (기획1 /mainplan #rec).
@@ -489,6 +492,17 @@ export function RecClient({ slug, k, businessName, onDone }: {
   /** 녹화 초의 «지금 값». rec.onstop 은 startRec 시점의 sec(0)을 붙잡고 있어 state 로는 못 읽는다 */
   const secRef = useRef(0);
 
+  /* ★★ 캔버스 중계 (2026-09-17 지시 [16]) — 여기 넷이 한 벌이다.
+     ⚠ `relayStop` 은 «반드시» 불러야 한다. 안 부르면 `requestAnimationFrame` 이 영원히 돌아
+       배터리를 먹고, 캔버스 트랙도 안 닫힌다. 아래 세 곳에서 부른다 —
+       녹화가 멈출 때 · 카메라를 끌 때(stopStream) · 화면이 사라질 때(useEffect 정리). */
+  const relayCanvas = useRef<HTMLCanvasElement | null>(null);
+  const relayVideo = useRef<HTMLVideoElement | null>(null);
+  const relayStream = useRef<MediaStream | null>(null);
+  const relayRaf = useRef<number | null>(null);
+  /** 실제로 몇 장을 그렸나 — 느린 폰을 «재서» 안다(권반장 지시). 로그에만 쓴다 */
+  const relayFrames = useRef(0);
+
   useEffect(() => () => { stopStream(); }, []);
   useEffect(() => { if (liveRef.current && streamRef.current) liveRef.current.srcObject = streamRef.current; }, [screen]);
   /* ★ 「어느 쪽으로 찍을까요?」 화면에 들어오면 **권한 상태를 미리 읽는다.**
@@ -499,8 +513,81 @@ export function RecClient({ slug, k, businessName, onDone }: {
   const questionText = q?.text ?? custom.trim();
 
   function stopStream() {
+    relayStop();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+  }
+
+  /**
+   * ★★ **캔버스 중계 시작** — 카메라 그림을 «고정 9:16 캔버스»에 그리고 그 캔버스를 돌려준다.
+   *   (2026-09-17 지시 [16] · 대표님 「세로로 찍었는데 가로로 저장된다」)
+   *
+   * ★ 왜 이것이 확실한가: **캔버스 크기는 우리가 정하고 절대 안 바뀐다.** 찍는 도중에 폰을
+   *   돌려 카메라 스트림이 720×1280 → 1280×720 으로 갈아타도, 우리는 그 그림을 «잘라서»
+   *   같은 캔버스에 그린다. `MediaRecorder` 가 보는 크기는 **처음부터 끝까지 하나**다.
+   *
+   * ⚠ **소리를 반드시 옮겨 붙인다.** `captureStream()` 에는 소리가 없다.
+   *   빠뜨리면 **무음 영상**이 된다 — 우리가 파는 것이 「사장님 목소리」인데 그게 사라진다.
+   * ⚠ 실패하면 **`null` 을 돌려준다.** 부르는 쪽이 원래 스트림으로 조용히 되돌아간다 —
+   *   중계가 안 된다고 «녹화 자체»가 안 되면 그게 훨씬 나쁘다.
+   */
+  async function relayStart(src: MediaStream): Promise<MediaStream | null> {
+    try {
+      const vid = document.createElement("video");
+      vid.srcObject = src;
+      vid.muted = true;              // ⚠ 안 하면 폰에서 자기 목소리가 스피커로 되울린다
+      vid.playsInline = true;
+      await vid.play();
+
+      const cv = document.createElement("canvas");
+      cv.width = RELAY_W; cv.height = RELAY_H;
+      const ctx = cv.getContext("2d", { alpha: false });
+      if (!ctx) return null;
+      /* 첫 프레임이 그려지기 전에도 검은 화면이 나가게 — 흰 깜빡임을 막는다 */
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, RELAY_W, RELAY_H);
+
+      relayCanvas.current = cv;
+      relayVideo.current = vid;
+      relayFrames.current = 0;
+
+      const want = RELAY_W / RELAY_H;   // 0.5625
+      const draw = () => {
+        const vw = vid.videoWidth, vh = vid.videoHeight;
+        if (vw && vh) {
+          /* ⚠ **찌그러뜨리지 않는다. 잘라낸다.** 가운데를 9:16 으로 오려 담는다 —
+             늘리면 사장님 얼굴이 길쭉해지고, 그건 손님이 바로 알아본다. */
+          const have = vw / vh;
+          let sx = 0, sy = 0, sw = vw, sh = vh;
+          if (have > want) { sw = vh * want; sx = (vw - sw) / 2; }   // 가로가 넓다 → 좌우를 자른다
+          else { sh = vw / want; sy = (vh - sh) / 2; }               // 세로가 길다 → 위아래를 자른다
+          ctx.drawImage(vid, sx, sy, sw, sh, 0, 0, RELAY_W, RELAY_H);
+          relayFrames.current += 1;
+        }
+        relayRaf.current = requestAnimationFrame(draw);
+      };
+      relayRaf.current = requestAnimationFrame(draw);
+
+      const out = cv.captureStream(RELAY_FPS);
+      /* 🔴 소리 — 이 줄이 없으면 무음이 된다 */
+      src.getAudioTracks().forEach((t) => out.addTrack(t));
+      relayStream.current = out;
+      return out;
+    } catch (e) {
+      console.warn(JSON.stringify({ evt: "relay_start_failed", err: String(e).slice(0, 160) }));
+      relayStop();
+      return null;
+    }
+  }
+
+  /** 캔버스 중계 정리 — 그리기를 멈추고 캔버스 트랙만 닫는다.
+   *  ⚠ **카메라 트랙은 여기서 안 닫는다.** 그건 `stopStream()` 이 할 일이다 —
+   *    여기서 같이 닫으면 [다시 찍기]를 눌렀을 때 카메라가 꺼져 있다. */
+  function relayStop() {
+    if (relayRaf.current !== null) { cancelAnimationFrame(relayRaf.current); relayRaf.current = null; }
+    relayStream.current?.getVideoTracks().forEach((t) => t.stop());
+    relayStream.current = null;
+    if (relayVideo.current) { relayVideo.current.srcObject = null; relayVideo.current = null; }
+    relayCanvas.current = null;
   }
 
   /** 카메라 권한이 지금 어떤 상태인가 — 'granted'(항상 허용) · 'prompt'(물어봄) · 'denied'(막힘).
@@ -742,14 +829,26 @@ export function RecClient({ slug, k, businessName, onDone }: {
   function startCountdown() {
     setScreen("count"); setCount(3);
     let c = 3;
-    const t = setInterval(() => { c -= 1; setCount(c); if (c <= 0) { clearInterval(t); startRec(); } }, 1000);
+    const t = setInterval(() => { c -= 1; setCount(c); if (c <= 0) { clearInterval(t); void startRec(); } }, 1000);
   }
 
-  function startRec() {
-    const stream = streamRef.current;
+  async function startRec() {
+    const camera = streamRef.current;
     /* ⚠ 여기서 그냥 return 하면 카운트다운 화면에 «●»만 남고 빠져나갈 길이 없다.
        폰 카메라로 들어온 뒤 [다시 찍기]를 누르면 실제로 그렇게 됐다(2026-09-10 반증 검사). */
-    if (!stream) { setErr("카메라가 꺼졌어요. 한 번만 다시 켜 주세요."); setBlock("perm"); setScreen("error"); return; }
+    if (!camera) { setErr("카메라가 꺼졌어요. 한 번만 다시 켜 주세요."); setBlock("perm"); setScreen("error"); return; }
+
+    /* ★★ **캔버스 중계** (2026-09-17 지시 [16]) — 여기서 «무엇을 녹화할지»가 갈린다.
+       · 영상이고 스위치가 켜져 있으면 → **우리가 그린 9:16 캔버스**를 녹화한다
+       · 소리만이거나 스위치가 꺼져 있으면 → 예전처럼 **카메라 스트림 그대로**
+       ⚠ 중계를 못 만들면 조용히 카메라 스트림으로 돌아간다. 세로는 보장 못 하지만
+         **녹화가 아예 안 되는 것보다 낫다** — 그 사실은 로그로 남긴다. */
+    let stream = camera;
+    if (CANVAS_RELAY && mode === "video") {
+      const relayed = await relayStart(camera);
+      if (relayed) stream = relayed;
+      else console.warn(JSON.stringify({ evt: "relay_fallback", why: "캔버스를 못 만들어 카메라 스트림으로 녹화한다" }));
+    }
     chunks.current = [];
     const mime = pickMime(mode);
     /* ★★ **초당 비트를 직접 정한다** (2026-09-12). 안 정하면 브라우저가 «안전하게 낮은 쪽»을 고른다.
@@ -772,6 +871,17 @@ export function RecClient({ slug, k, businessName, onDone }: {
     rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.current.push(e.data); };
     rec.onstop = () => {
       const b = new Blob(chunks.current, { type: rec.mimeType || "" });
+      /* ★ **느린 폰을 «재서» 안다**(권반장 지시 [16] 2번). 사람이 눈으로 세지 않는다.
+         ⚠ 평균이 20장/초 아래로 자주 나오면 `config/recording.ts` 의 캔버스를
+           540×960 으로 낮춘다 — 릴스·틱톡 최소 기준을 여전히 넘는다. */
+      if (RELAY_MEASURE && relayFrames.current > 0) {
+        const secs = Math.max(1, secRef.current);
+        console.log(JSON.stringify({
+          evt: "relay_fps", frames: relayFrames.current, sec: secs,
+          fps: Math.round(relayFrames.current / secs), want: RELAY_FPS, size: `${RELAY_W}x${RELAY_H}`,
+        }));
+      }
+      relayStop();
       setBlob(b); setBlobUrl(URL.createObjectURL(b));
       if (tickRef.current) clearInterval(tickRef.current);
       setSource("browser");
@@ -1168,7 +1278,7 @@ export function RecClient({ slug, k, businessName, onDone }: {
                   <span className="font-display t-h1 text-white">{count > 0 ? count : "●"}</span>
                   {/* ⚠ 「흰 글자 70%」가 스크림 위에 얹혀 2.16:1 이었다. 밝은 매장을 비추면
                       글자가 사라진다. 알약을 깔고 흰 글자를 100% 로 올린다(8.46:1). */}
-                  <button type="button" onClick={startRec} className="absolute bottom-5 rounded-full bg-black/70 px-3 py-1 t-small font-semibold text-white underline">건너뛰기</button>
+                  <button type="button" onClick={() => void startRec()} className="absolute bottom-5 rounded-full bg-black/70 px-3 py-1 t-small font-semibold text-white underline">건너뛰기</button>
                 </div>
               ) : (
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center">
