@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uniqueSlug } from "@/lib/slug";
 import { cleanOwnerChannels } from "@/config/owner-channels";
+import {
+  cleanCtaSelection, cleanCtaFormFields, cleanCtaExtraField, ctaNeedsPublicPhone,
+} from "@/config/cta-channels";
 import { hasRequired, recordConsents } from "@/lib/consents";
 import { isAdmin } from "@/lib/admin-auth";
 import { WEEKLY_DEFAULT } from "@/lib/weekly";
@@ -45,6 +48,17 @@ const Input = z.object({
      ⚠ 모양 검사는 `config/channels.ts` 의 `cleanChannels` 한 곳에서 한다 — 화면과 같은 규칙이다.
        여기서는 **통째로 받아만 두고** 아래에서 걸러 넣는다. 화면 값을 그대로 믿지 않는다. */
   channels: z.record(z.string(), z.string()).optional(),
+  /* ★ 2026-09-16 — 손님이 누르는 «문의 채널(CTA)» 선택(선택 사항). 최대 2개.
+     ⚠ 모양·개수 검사는 `config/cta-channels.ts` 의 `cleanCtaSelection` 한 곳에서 한다 —
+       화면 값을 그대로 믿지 않는다(불변 규칙 4). */
+  cta: z.object({
+    selected: z.array(z.string()).optional(),
+    links: z.record(z.string(), z.string()).optional(),
+    formFields: z.object({
+      name: z.boolean(), phone: z.boolean(), email: z.boolean(), message: z.boolean(),
+    }).partial().optional(),
+    extraField: z.string().max(20).optional(),
+  }).optional(),
   // 온보딩 5단계 (2026-09-05) — 업종 직접 선택 · 세부 업종명 · 포인트색
   industryId: z.string().max(40).optional(),
   industryLabel: z.string().max(40).optional(),
@@ -132,6 +146,16 @@ export async function POST(req: Request) {
     }
   }
 
+  /* ★ 2026-09-16 — 문의 채널(CTA) 선택을 서버에서 다시 거른다. 죽은 버튼(주소 없는 url 항목)은
+     이 자리에서 이미 빠진다(cleanCtaSelection). */
+  const cta = cleanCtaSelection(input.cta?.selected, input.cta?.links);
+  const ctaFormFields = cleanCtaFormFields(input.cta?.formFields);
+  const ctaExtraField = cleanCtaExtraField(input.cta?.extraField);
+  /* ⚠ 「전화걸기」·「문의하기(전화번호 공개형)」·「문자 바로 보내기」를 고르면
+     번호를 손님에게 보여 줘야 버튼이 산다. 안 켜면 lib/phone-privacy.ts 가 발행본에서
+     번호를 지워 **버튼은 떠 있는데 눌러도 번호가 없는** 죽은 버튼이 된다(불변 규칙 12 의 정신). */
+  const ctaPhonePublic = ctaNeedsPublicPhone(cta.selected);
+
   const started = Date.now();
   try {
     const { doc, industry, category, copy, inferred, aiRaw } = await generateSite(input as GenerateInput);
@@ -201,6 +225,15 @@ export async function POST(req: Request) {
              ⚠ 빈 객체면 칸 자체를 안 만든다 — 빈 값이 있는 것과 없는 것은 다르다. */
           ...(Object.keys(cleanOwnerChannels(input.channels)).length
             ? { channels: cleanOwnerChannels(input.channels) } : {}),
+          /* ★★ 2026-09-16 — 문의 채널(CTA). `config/cta-channels.ts` 의 주석 참고.
+             ⚠ `settings.channels`(owner-channels, SEO 용) 과 **다른 칸**이다 — 헷갈리지 마라.
+             ⚠ 하나도 안 고르셨으면 칸 자체를 안 만든다 — 빈 값이 있는 것과 없는 것은 다르다. */
+          ...(cta.selected.length
+            ? { ctaChannels: { selected: cta.selected, links: cta.links, formFields: ctaFormFields, extraField: ctaExtraField || undefined } }
+            : {}),
+          /* ⚠ CTA 가 전화 공개를 요구할 때만 켠다. 안 고르셨으면 기존 기본(비공개)을 그대로 둔다 —
+             여기서 `false` 를 명시로 심지 않는다(다른 경로가 나중에 켤 수도 있는 칸이다). */
+          ...(ctaPhonePublic ? { phonePublic: true } : {}),
         },
         draft: doc,
         published: doc,
