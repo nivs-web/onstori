@@ -56,13 +56,14 @@ export async function POST(req: Request) {
     return next.success ? next.data : doc; // 20개 상한 등에 걸리면 원래 doc 그대로 둔다
   }
 
+  /* ⚠ draft만 고친다 — published를 여기서 직접 덮어쓰면 안 된다(불변 규칙 5).
+     published를 바꾸는 정당한 경로는 app/api/site/publish 하나뿐이다 — 거기서만
+     site_versions 스냅샷 + revalidatePath + markFunnel을 같이 한다. 사진은 draft에
+     들어가고, 사장님이 편집화면에서 [발행]을 누르면 정상 경로로 published에 반영된다
+     (2026-09-16 리뷰 지적으로 published 직접 patch 제거). */
   const nextDraft = withPhotos(r.site.draft);
   const patch: Record<string, unknown> = {};
   if (nextDraft) patch.draft = nextDraft;
-  if (r.site.published) {
-    const nextPublished = withPhotos(r.site.published);
-    if (nextPublished) patch.published = nextPublished;
-  }
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "invalid-doc" }, { status: 422 });
 
   const { error } = await sbAdmin().from("sites").update(patch).eq("id", r.site.id);

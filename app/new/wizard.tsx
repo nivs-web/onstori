@@ -215,15 +215,18 @@ export function Wizard() {
   const photoPreviews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
   useEffect(() => () => { photoPreviews.forEach((u) => URL.revokeObjectURL(u)); }, [photoPreviews]);
 
-  /** ⚠ 16번째는 «고르기 전»에 막는다 — 이미 15장이면 더 고를 수 없게 버튼을 숨긴다(아래 JSX).
-   *   그래도 한 번에 여러 장을 고르면 넘칠 수 있어 여기서도 자른다. */
+  /** 반장-지시 [2] 원문 그대로 — 두 곳(추가 시도·타일 자리)에 같은 문장을 복붙하지 않게 한 번만 만든다 */
+  const photoLimitNotice = `${PHOTO_LIMITS.onboarding}장까지예요`;
+
+  /** ⚠ 16번째는 «고르기 전»에 막는다 — 이미 15장이면 더 고를 수 없게 버튼을 숨기고(아래 JSX)
+   *   그 자리에 안내를 띄운다. 그래도 한 번에 여러 장을 고르면 넘칠 수 있어 여기서도 자른다. */
   function addPhotos(files: FileList | null) {
     if (!files || !files.length) return;
     setPhotos((prev) => {
       const room = PHOTO_LIMITS.onboarding - prev.length;
-      if (room <= 0) { setPhotoNotice(`사진은 ${PHOTO_LIMITS.onboarding}장까지예요`); return prev; }
+      if (room <= 0) { setPhotoNotice(photoLimitNotice); return prev; }
       const picked = Array.from(files).slice(0, room);
-      setPhotoNotice(files.length > picked.length ? `사진은 ${PHOTO_LIMITS.onboarding}장까지예요` : "");
+      setPhotoNotice(files.length > picked.length ? photoLimitNotice : "");
       return [...prev, ...picked];
     });
   }
@@ -361,29 +364,34 @@ export function Wizard() {
         if (logo.file || logo.svg) { setProgress(95); setStage("logo"); await fetch("/api/site/logo", { method: "POST", body: fd }); }
       } catch {}
       /* ★ 사진 올리기(반장-지시 [2]) — «올리는 중에도 다음으로, 실패해도 조용히».
-         홈페이지는 이미 만들어졌으니(위에서 응답을 받음) 여기서 무슨 일이 있어도 화면은 완료로 간다.
-         ⚠ 한 장이 실패해도 나머지는 올린다 — Promise.all 이 아니라 개별 try/catch. */
-      try {
-        if (photos.length) {
-          setStage("photo");
-          const urls = (await Promise.all(photos.map(async (f) => {
-            try {
-              const fd = new FormData();
-              fd.set("slug", String(d.slug)); if (aid) fd.set("anonId", aid); fd.set("file", f);
-              const ur = await fetch("/api/site/upload", { method: "POST", body: fd });
-              const ud = await readJson(ur);
-              return ur.ok ? String(ud.url) : null;
-            } catch { return null; }
-          }))).filter((u): u is string => !!u);
-          // 갤러리·소개 섹션에 반영 — 이미지뱅크 사진보다 사장님 사진이 먼저 오게(app/api/site/photos)
-          if (urls.length) {
-            await fetch("/api/site/photos", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ slug: String(d.slug), anonId: aid || undefined, urls }),
-            }).catch(() => {});
-          }
-        }
-      } catch {}
+         ⚠ 2026-09-16 리뷰 지적으로 고침: 전에는 여기서 `await` 해서 15장이면 완료 화면이
+           수십 초 더 늦게 떴다(그동안 진행바만 95%에 멈춰 있었다). 홈페이지는 이미 만들어졌으니
+           (위에서 응답을 받음) **기다리지 않고** 뒤에서 계속 올라가게 두고 바로 완료로 간다.
+         ⚠ 한 장이 실패해도 나머지는 올린다 — Promise.all 이 아니라 개별 try/catch.
+         ⚠ await 하지 않으므로 이 함수가 끝난 뒤(완료 화면이 뜬 뒤)에도 아래 IIFE는 백그라운드에서
+           계속 돈다 — 화면이 언마운트돼도 fetch 자체는 끊기지 않는다. */
+      if (photos.length) {
+        void (async () => {
+          try {
+            const urls = (await Promise.all(photos.map(async (f) => {
+              try {
+                const fd = new FormData();
+                fd.set("slug", String(d.slug)); if (aid) fd.set("anonId", aid); fd.set("file", f);
+                const ur = await fetch("/api/site/upload", { method: "POST", body: fd });
+                const ud = await readJson(ur);
+                return ur.ok ? String(ud.url) : null;
+              } catch { return null; }
+            }))).filter((u): u is string => !!u);
+            // 갤러리·소개 섹션에 반영 — 이미지뱅크 사진보다 사장님 사진이 먼저 오게(app/api/site/photos)
+            if (urls.length) {
+              await fetch("/api/site/photos", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ slug: String(d.slug), anonId: aid || undefined, urls }),
+              }).catch(() => {});
+            }
+          } catch {}
+        })();
+      }
       try { if (pickedQuestion) localStorage.setItem("onstori:firstQuestion", pickedQuestion.id); } catch {}
       clearInterval(tick); setProgress(100); setStage("finish");
       setResult({ url: String(d.url), slug: String(d.slug) });
@@ -887,7 +895,7 @@ export function Wizard() {
                 </button>
               </div>
             ))}
-            {photos.length < PHOTO_LIMITS.onboarding && (
+            {photos.length < PHOTO_LIMITS.onboarding ? (
               <label
                 className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed t-h2"
                 style={{ borderColor: "var(--n-300)", color: "var(--n-300)" }}
@@ -901,6 +909,15 @@ export function Wizard() {
                   onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }}
                 />
               </label>
+            ) : (
+              /* 15장이 차면 ＋ 타일이 사라진다 — 그 자리에 왜 더 못 고르는지를 바로 말한다.
+                 (2026-09-16 리뷰 지적: 전에는 타일이 조용히 사라지기만 했다) */
+              <div
+                className="flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed p-2 text-center t-caption"
+                style={{ borderColor: "var(--n-300)" }}
+              >
+                {photoLimitNotice}
+              </div>
             )}
           </div>
           <p className="mt-3 t-caption" style={{ color: "var(--muted)" }}>{photos.length}/{PHOTO_LIMITS.onboarding}장 · {photoLimitLabel("onboarding")}</p>
