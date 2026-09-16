@@ -32,6 +32,12 @@ type Item = {
   poster: string | null;
   preview: string | null;
   publicUrl: string | null;
+  /**
+   * ★ **지금 홈페이지에 걸려 있나** — 서버가 `video_out_key` 로 판정해 준다 (2026-09-16).
+   *   ⚠ 옛 화면은 「doc 의 video 섹션 url 과 같은가」로 봤다. 홈페이지가 영상을 «여러 편»
+   *     보여 주게 되면서 그 판정이 틀렸다 — 서버 판정을 그대로 쓴다.
+   */
+  attached?: boolean;
   /** ★ 누르기 «전»에 잰 인스타 가능 여부 (2026-09-12). 서버가 준다 */
   ig?: { ok: boolean; why: string };
   /** ⚠ **완성도 점수를 세는 칸**이다(lib/score.ts). 화면의 스위치로 쓰지 마라 — 점수가 조용히 바뀐다 */
@@ -341,11 +347,39 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     }
   }
 
-  async function attach(it: Item) {
-    // ⚠ V-1 은 한 편만 — 이미 걸린 게 있으면 반드시 묻는다
-    if (attachedUrl && attachedUrl !== it.publicUrl) {
-      if (!confirm("지금 걸려 있는 영상을 이 영상으로 바꿀까요?\n(이전 영상은 지워지지 않고 목록에 그대로 남아요)")) return;
+  /**
+   * ★★ 홈페이지에서 **이 영상만** 내린다. (2026-09-16)
+   *   서버가 `video_out_key` 를 비우면 숏폼 피드에서 사라진다.
+   *   ⚠ 파일은 안 지운다 — 다시 걸면 바로 올라온다. 「안 보이게」와 「없애기」는 다른 일이다.
+   *   ⚠ 지금 doc 의 video 섹션이 «이 영상»이었으면 그 섹션도 함께 뺀다 — 안 그러면
+   *     옛 길(피드가 비었을 때)로 그 한 편이 계속 보인다.
+   */
+  async function detach(it: Item) {
+    setBusyId(it.id); setErr(null);
+    try {
+      let anonId = "";
+      try { anonId = localStorage.getItem("onstori:anonId") ?? ""; } catch { /* 무시 */ }
+      const r = await fetch("/api/site/video/manage", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, entryId: it.id, action: "detach" }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!r.ok || !d.ok) {
+        setErr({ id: it.id, msg: d.error ?? `내리지 못했어요 (${r.status})` });
+        return;
+      }
+      if (it.publicUrl && it.publicUrl === attachedUrl) onDetach();
+      await load();
+    } catch {
+      setErr({ id: it.id, msg: "연결이 끊겼어요. 잠시 후 다시 시도해 주세요." });
+    } finally {
+      setBusyId(null);
     }
+  }
+
+  async function attach(it: Item) {
+    /* ★ 2026-09-16 — **묻지 않는다.** 전에는 「지금 걸린 것을 이 영상으로 바꿀까요?」를 물었다.
+       한 편만 걸리던 시절의 말이다. 이제 여러 편이 함께 걸리므로 바꾸는 것이 아니라 «더하는» 것이다. */
     setBusyId(it.id); setErr(null);
     try {
       let anonId = "";
@@ -422,11 +456,18 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
             <p className="t-caption font-semibold text-danger">⚠ {SNS_EDIT_NOTICE}</p>
             <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">{SNS_GROWTH_NOTE}</p>
           </div>
+          {/* ★★ 2026-09-16 — 「한 편만」이 **사실이 아니게 됐다.** 홈페이지가 걸린 영상을
+              전부 보여 준다(숏폼 피드). 옛 문장을 그대로 두면 사장님이 한 편만 거신다. */}
           <p className="t-caption leading-relaxed text-[var(--text-soft)]">
-            홈페이지에는 <b>한 편만</b> 걸 수 있어요. 다른 영상을 걸면 지금 걸린 것과 바뀝니다.
+            홈페이지에 <b>여러 편을 걸 수 있어요.</b> 건 영상은 첫 화면 아래 <b>숏폼 칸</b>에
+            인스타 릴스처럼 나란히 나옵니다 — 손님이 옆으로 넘겨 봅니다.
+            내리고 싶은 영상만 <b>[홈페이지에서 내리기]</b> 를 누르시면 됩니다.
           </p>
           {items.map((it) => {
-            const on = !!it.publicUrl && it.publicUrl === attachedUrl;
+            /* ★ 2026-09-16 — 걸림 판정을 **서버(`video_out_key`)** 로 옮겼다.
+               홈페이지가 영상을 여러 편 보여 주게 되어 「doc 의 한 칸과 같은가」로는 못 센다.
+               ⚠ 옛 서버 응답에는 `attached` 가 없다 — 그때는 예전 방식으로 내려앉는다. */
+            const on = it.attached ?? (!!it.publicUrl && it.publicUrl === attachedUrl);
             const d = dur[it.id];
             return (
               <section key={it.id} className={`space-y-3 rounded-2xl border p-4 ${on ? "border-green-700" : "border-n-200"}`}>
@@ -469,10 +510,14 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
 
                 <div className="flex flex-wrap gap-2">
                   {on ? (
-                    /* ★ 내리는 길 — 걸기만 되고 못 내리면 사장님이 갇힌다(회장님 지시 2) */
-                    <button type="button" onClick={onDetach}
-                      className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold">
-                      홈페이지에서 내리기
+                    /* ★ 내리는 길 — 걸기만 되고 못 내리면 사장님이 갇힌다(회장님 지시 2)
+                       ★★ 2026-09-16 — **이 영상만** 내린다. 서버가 `video_out_key` 를 비운다.
+                         전에는 doc 에서 섹션만 뺐는데, 홈페이지가 여러 편을 보여 주게 되면서
+                         그것만으로는 **내려도 계속 보였다.** */
+                    <button type="button" disabled={busyId === it.id}
+                      onClick={() => void detach(it)}
+                      className="rounded-full border border-n-300 px-4 py-2 t-caption font-semibold disabled:opacity-40">
+                      {busyId === it.id ? "내리는 중…" : "홈페이지에서 내리기"}
                     </button>
                   ) : (
                     <button type="button" disabled={busyId === it.id} onClick={() => void attach(it)}

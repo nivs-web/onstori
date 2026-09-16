@@ -134,6 +134,14 @@ export async function POST(req: Request) {
         preview,
         /** 홈페이지에 걸면 손님이 받게 될 주소. 클라이언트가 자기 doc 과 대조해 «걸림»을 판정한다 */
         publicUrl: publicKey ? storage.publicUrl(publicKey) : null,
+        /**
+         * ★★ **지금 홈페이지에 «실제로» 걸려 있나.** (2026-09-16 — 숏폼 피드와 짝)
+         *   전에는 화면이 「doc 의 video 섹션 url 과 같은가」로 판정했다. 그때는 한 편만 걸렸으니
+         *   그게 맞았다. 이제 홈페이지는 `video_out_key` 가 있는 영상을 **전부** 보여 준다
+         *   (`lib/shorts.ts`). 그러니 걸림 판정도 그 칸이어야 한다 — 판정하는 값과 화면이
+         *   보여 주는 값이 갈리면 「내렸는데 아직 보이네」가 된다(불변 규칙 12).
+         */
+        attached: !!row.video_out_key,
         posterUrl: poster,
       };
     }),

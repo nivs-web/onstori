@@ -28,7 +28,7 @@ const Input = z.object({
   slug: z.string().regex(/^[a-z0-9-]{2,30}$/),
   anonId: z.string().max(64).optional(),
   entryId: z.string().uuid(),
-  action: z.enum(["rename", "move", "delete"]),
+  action: z.enum(["rename", "move", "delete", "detach"]),
   /** rename 일 때 — 제목 */
   title: z.string().max(100).optional(),
   /** move 일 때 */
@@ -56,6 +56,26 @@ export async function POST(req: Request) {
   const { data: row } = await sb.from("story_entries")
     .select("id, sort, title").eq("id", v.entryId).eq("site_id", siteId).maybeSingle();
   if (!row) return NextResponse.json({ error: "그 영상을 찾지 못했어요" }, { status: 404 });
+
+  /**
+   * ★★ **홈페이지에서 «이 영상만» 내리기.** (2026-09-16 — 숏폼 피드와 짝)
+   *
+   * ⚠ 전에는 「내리기」가 **doc 에서 video 섹션을 빼는 것**뿐이었다. 그때는 한 편만 걸렸으니
+   *   그것으로 충분했다. 이제 홈페이지는 `video_out_key` 가 있는 영상을 **전부** 보여 주므로,
+   *   그 칸을 비우지 않으면 **내려도 계속 보인다.** 여기가 그 칸을 비우는 유일한 자리다.
+   *
+   * ⚠ **공개 사본 파일은 지우지 않는다.** 이미 SNS 가 그 주소를 물고 있을 수 있고
+   *   (`sns_posts.public_key`), 다시 걸 때 복사를 또 하지 않아도 된다. 「안 보이게」와
+   *   「없애기」는 다른 일이다 — 없애기는 [지우기]가 한다(불변 규칙 10).
+   * ⚠ `visible`·`sort`·`media_status` 는 건드리지 않는다. 각각 다른 일을 하는 칸이다.
+   */
+  if (v.action === "detach") {
+    const { error } = await sb.from("story_entries")
+      .update({ video_out_key: null }).eq("id", v.entryId).eq("site_id", siteId);
+    if (error) return fail("홈페이지에서 내리지 못했어요", error.message);
+    console.log(JSON.stringify({ evt: "video_detached", slug: v.slug, entryId: v.entryId }));
+    return NextResponse.json({ ok: true, detached: true });
+  }
 
   if (v.action === "rename") {
     const { error } = await sb.from("story_entries")
