@@ -4,7 +4,7 @@ import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { SiteDoc, Gallery, type SiteDocT } from "@/lib/schema";
 import { PHOTO_LIMITS } from "@/config/limits";
-import { recomputeScore } from "@/lib/score";
+import { applyPublish } from "@/lib/publish-site";
 
 const Input = z.object({
   slug: z.string(),
@@ -56,19 +56,20 @@ export async function POST(req: Request) {
     return next.success ? next.data : doc; // 20개 상한 등에 걸리면 원래 doc 그대로 둔다
   }
 
-  /* ⚠ draft만 고친다 — published를 여기서 직접 덮어쓰면 안 된다(불변 규칙 5).
-     published를 바꾸는 정당한 경로는 app/api/site/publish 하나뿐이다 — 거기서만
-     site_versions 스냅샷 + revalidatePath + markFunnel을 같이 한다. 사진은 draft에
-     들어가고, 사장님이 편집화면에서 [발행]을 누르면 정상 경로로 published에 반영된다
-     (2026-09-16 리뷰 지적으로 published 직접 patch 제거). */
   const nextDraft = withPhotos(r.site.draft);
-  const patch: Record<string, unknown> = {};
-  if (nextDraft) patch.draft = nextDraft;
-  if (Object.keys(patch).length === 0) return NextResponse.json({ error: "invalid-doc" }, { status: 422 });
+  if (!nextDraft) return NextResponse.json({ error: "invalid-doc" }, { status: 422 });
 
-  const { error } = await sbAdmin().from("sites").update(patch).eq("id", r.site.id);
+  const { error } = await sbAdmin().from("sites").update({ draft: nextDraft }).eq("id", r.site.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await recomputeScore(r.site.id);
-  return NextResponse.json({ ok: true });
+  /* ⚠ 가입 직후 사진이 «바로» 손님 화면에 보이게, 여기서 발행까지 같이 한다(T-0031).
+     published 를 여기서 직접 patch 하지 않는다(불변 규칙 5) — app/api/site/publish 와
+     완전히 같은 함수(lib/publish-site.ts applyPublish)를 써서 site_versions 스냅샷 +
+     revalidatePath + 스크린샷 갱신 + markFunnel + recomputeScore 를 빠짐없이 챙긴다.
+     사진 저장(draft update)이 위에서 이미 실패했으면 여기까지 오지 않으므로
+     "사진은 안 들어갔는데 발행만 됐다" 는 반쪽 상태가 나지 않는다. */
+  const pub = await applyPublish(r.site, nextDraft, new URL(req.url).origin);
+  if (!pub.ok) return NextResponse.json({ error: pub.error }, { status: 500 });
+
+  return NextResponse.json({ ok: true, score: pub.score });
 }
