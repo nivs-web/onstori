@@ -227,8 +227,41 @@ const AUDIO_BPS = 128_000;
 const videoWant = (facing: MediaTrackConstraints["facingMode"]): MediaTrackConstraints => ({
   facingMode: facing,
   width: { ideal: VIDEO_W }, height: { ideal: VIDEO_H },
+  /* ★★ 2026-09-16 — **`aspectRatio` 를 더했다. 이게 없어서 가로로 찍혔다.**
+     `width/height` 만 주면 브라우저는 «가장 가까운 모드»를 점수로 고르는데,
+     1080×1920 과 1920×1080 은 **점수가 똑같다**(가로 840, 세로 840). 그래서 카메라가
+     원래 갖고 있는 «가로» 모드가 그대로 뽑힌다 — 우리가 세로를 부탁한 줄 알았는데 아니었다.
+     가로세로비는 0.5625 와 1.777 로 **확실히 다르다.** 여기서 갈린다.
+     ⚠ 그래도 `ideal` 이다. `exact` 로 두면 세로 모드가 없는 기기에서 카메라가 아예 안 열린다. */
+  aspectRatio: { ideal: VIDEO_W / VIDEO_H },
   frameRate: { ideal: VIDEO_FPS, max: VIDEO_FPS },
 });
+
+/**
+ * 카메라가 «가로»로 열렸는지 본다. (2026-09-16 대표님 제보로 신설)
+ *
+ * ★★ **왜 이 검사가 필요한가 — 60초를 버리게 하지 않으려고.**
+ *   대표님이 폰을 세워 두 번 찍으셨는데 **올라간 영상이 가로였고, 틱톡이 거부**했다.
+ *   릴스·쇼츠·틱톡은 전부 세로(9:16)가 기본이다. 가로로 찍힌 것을 그대로 받으면
+ *   사장님은 **60초를 쓰고 나서** 거절당한다. 그건 안 받는 것보다 나쁘다.
+ *
+ * ★★ **왜 가로로 열리나 — 카카오톡 같은 «인앱 브라우저»가 가장 흔한 원인이다.**
+ *   크롬·사파리는 화면 방향에 맞춰 카메라 그림을 돌려 준다. 그런데 인앱 브라우저(카톡·인스타·
+ *   네이버)는 그 회전을 안 하는 경우가 있어, 폰을 세워도 **센서 원래 방향(가로)** 그대로 나온다.
+ *   대표님이 보내신 화면도 카카오톡 인앱 브라우저였다.
+ *
+ * ⚠ `getSettings()` 가 크기를 안 주는 기기가 있다. 그때는 **모른다(null)** 로 두고
+ *   막지 않는다 — 못 쟀다고 사장님을 멈춰 세우면 안 된다.
+ */
+function orientationOf(track: MediaStreamTrack | undefined): "portrait" | "landscape" | "unknown" {
+  try {
+    const s = track?.getSettings?.();
+    const w = typeof s?.width === "number" ? s.width : 0;
+    const h = typeof s?.height === "number" ? s.height : 0;
+    if (!w || !h) return "unknown";
+    return w > h ? "landscape" : "portrait";
+  } catch { return "unknown"; }
+}
 
 function pickMime(mode: "video" | "audio"): string {
   /* ★ 2026-09-10 — **영상에서 webm 후보를 통째로 지웠다.**
@@ -432,6 +465,15 @@ export function RecClient({ slug, k, businessName, onDone }: {
   const [posterUrl, setPosterUrl] = useState("");
   /** 찍힌 파일이 못 쓰는 형식일 때의 안내. 업로드 실패(err)와 섞지 않는다 — 원인이 다르다 */
   const [badWhy, setBadWhy] = useState("");
+  /**
+   * ★ 카메라가 «가로»로 열렸나. (2026-09-16 대표님 제보)
+   *   `true` 면 찍기 전에 빨간 안내를 띄운다 — 60초를 쓰고 나서 거절당하지 않게.
+   *   ⚠ **막지는 않는다.** 가로라도 홈페이지에는 걸린다. 막히는 것은 SNS 쪽뿐이라,
+   *     「못 찍게」 하면 세로가 영영 안 되는 기기의 사장님이 아무것도 못 하게 된다.
+   */
+  const [landscape, setLandscape] = useState(false);
+  /** ★ **찍힌 파일이** 가로인가. 카메라 설정이 아니라 «실제 파일»을 재서 정한다 (2026-09-16) */
+  const [shotLand, setShotLand] = useState(false);
   const [count, setCount] = useState(3);
   const [sec, setSec] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -519,6 +561,29 @@ export function RecClient({ slug, k, businessName, onDone }: {
       void countCameras();
       /* 실제로 열린 카메라가 앞면인지 뒷면인지 **브라우저에게 물어서** 정한다.
          우리가 «뒷면으로 요청했으니 뒷면일 것»이라고 단정하지 않는다 — 거울 반전이 걸려 있다. */
+      /* ★★ 2026-09-16 — **가로로 열렸으면 한 번 더 부탁하고, 그래도 가로면 알려 준다.**
+         찍기 «전»에 알아야 60초가 안 버려진다. 여기가 그 유일한 자리다. */
+      void (async () => {
+        const track = stream!.getVideoTracks()[0];
+        if (mode !== "video" || !track) { setLandscape(false); return; }
+        if (orientationOf(track) !== "landscape") { setLandscape(false); return; }
+        /* 한 번 더 — 어떤 기기는 열린 뒤 `applyConstraints` 로 세로 모드로 넘어간다 */
+        try {
+          await track.applyConstraints({
+            width: { ideal: VIDEO_W }, height: { ideal: VIDEO_H },
+            aspectRatio: { ideal: VIDEO_W / VIDEO_H },
+          });
+        } catch { /* 못 바꿔도 된다. 아래에서 알려 준다 */ }
+        const after = orientationOf(track);
+        setLandscape(after === "landscape");
+        if (after === "landscape") {
+          const s = track.getSettings?.() ?? {};
+          /* ⚠ 서버에 남긴다 — 어느 폰·어느 브라우저가 가로로 여는지 **숫자로** 쌓아야
+             다음에 고칠 수 있다. 지금은 카카오톡 인앱이 의심된다(대표님 화면). */
+          void tellServer("camera_landscape", `w=${s.width} h=${s.height} inApp=${inApp} dev=${device} ua=${navigator.userAgent.slice(0, 80)}`);
+        }
+      })();
+
       const got = facingOf(stream.getVideoTracks()[0], undefined);
       setFacing(got === "unknown" ? side : got);
       /* ⚠ 고른 쪽과 실제로 켜진 쪽이 다르면 **조용히 넘어가지 않는다**(회장님 지시 1). */
@@ -1023,6 +1088,30 @@ export function RecClient({ slug, k, businessName, onDone }: {
                 </button>
               )}
             </div>
+            {/* ★★ 2026-09-16 — **가로로 열렸으면 «찍기 전»에 말한다.**
+                대표님이 폰을 세워 두 번 찍으셨는데 가로로 저장돼 틱톡이 거부했다.
+                60초를 쓰고 나서 알려 주는 것은 안 알려 주는 것보다 나쁘다. */}
+            {landscape && mode === "video" && (
+              <div className="mt-3 rounded-2xl p-4" style={{ background: "#3A1212", border: "1px solid #7A2B2B" }}>
+                <p className="t-small font-bold" style={{ color: "#FFB4B4" }}>⚠ 카메라가 «가로»로 켜졌어요</p>
+                <p className="mt-1.5 t-small leading-relaxed opacity-90">
+                  지금 이대로 찍으면 <b>가로 영상</b>이 됩니다. 홈페이지에는 걸리지만,
+                  <b> 인스타 릴스·틱톡은 세로 영상만 받습니다.</b>
+                </p>
+                <p className="mt-2.5 t-small font-bold opacity-90">이렇게 해 보세요</p>
+                <ul className="mt-1 list-disc pl-5 t-caption leading-relaxed opacity-85">
+                  {inApp ? (
+                    <li>
+                      <b>카카오톡·인스타 안에서 열면</b> 폰을 세워도 카메라가 가로로 켜집니다.
+                      오른쪽 위 <b>⋮</b> 에서 <b>「다른 브라우저로 열기」</b>(크롬·사파리)를 눌러 주세요. 이게 가장 확실합니다.
+                    </li>
+                  ) : (
+                    <li>폰의 <b>화면 회전 잠금</b>을 끄고 세로로 세운 뒤, 이 화면을 한 번 새로 고쳐 주세요.</li>
+                  )}
+                  <li>그래도 가로면 <b>그냥 찍으셔도 됩니다.</b> 홈페이지에는 그대로 올라갑니다.</li>
+                </ul>
+              </div>
+            )}
             {err && (
               <div className="mt-3">
                 <p className="t-small font-semibold leading-relaxed" style={{ color: "var(--danger-soft)" }}>{err}</p>
@@ -1120,8 +1209,34 @@ export function RecClient({ slug, k, businessName, onDone }: {
               {/* ★ `poster` 를 붙인다 — 붙이기 전에는 재생을 누르기 전까지 «회색 바탕에 재생 아이콘»만
                      보였다. 그래서 표지가 잘 뽑혔는지 사장님이 알 길이 없었다(2026-09-11 회장님 지적).
                      이제 여기 보이는 그림이 곧 손님이 처음 보게 될 그림이다. */}
-              {mode === "video" ? <video src={blobUrl} poster={posterUrl || undefined} controls playsInline className="h-full w-full object-contain" /> :<div className="flex h-full flex-col items-center justify-center gap-4"><span className="t-h1">🎙</span><audio src={blobUrl} controls /></div>}
+              {mode === "video" ? (
+                <video
+                  src={blobUrl}
+                  poster={posterUrl || undefined}
+                  controls
+                  playsInline
+                  className="h-full w-full object-contain"
+                  /* ★★ 2026-09-16 — **찍힌 파일의 «진짜» 크기를 여기서 잰다.**
+                     카메라 설정(`getSettings`)은 «부탁한 값»을 돌려주기도 해서 믿을 수 없다.
+                     실제로 무엇이 찍혔는지는 **파일을 열어 봐야** 안다. 이 자리가 그 유일한 곳이다. */
+                  onLoadedMetadata={(e) => {
+                    const v = e.currentTarget;
+                    if (v.videoWidth && v.videoHeight) setShotLand(v.videoWidth > v.videoHeight);
+                  }}
+                />
+              ) : <div className="flex h-full flex-col items-center justify-center gap-4"><span className="t-h1">🎙</span><audio src={blobUrl} controls /></div>}
             </div>
+            {/* ★ 가로로 찍혔으면 «보내기 전»에 한 번 더 말한다 — 다시 찍을 기회를 드리는 것이 요점이다.
+                ⚠ 막지 않는다. 세로가 안 되는 기기도 있고, 홈페이지에는 가로도 걸린다. */}
+            {shotLand && mode === "video" && !badWhy && (
+              <div className="mt-3 rounded-2xl p-3.5" style={{ background: "#3A1212", border: "1px solid #7A2B2B" }}>
+                <p className="t-small font-bold" style={{ color: "#FFB4B4" }}>⚠ 가로 영상으로 찍혔어요</p>
+                <p className="mt-1 t-caption leading-relaxed opacity-90">
+                  홈페이지에는 그대로 올라갑니다. 다만 <b>인스타 릴스·틱톡은 세로만 받아서 이 영상은 거절될 수 있어요.</b>
+                  {inApp && <> 카카오톡 안에서 열면 이렇게 됩니다 — <b>크롬·사파리로 열어</b> 다시 찍으시면 세로가 됩니다.</>}
+                </p>
+              </div>
+            )}
             {/* ⚠ 못 쓰는 형식이면 «보내기»를 아예 없앤다. 남겨 두면 눌러도 또 되돌아와
                 8MB 를 다시 올리게 된다 — 요금과 시간만 태운다(2026-09-10 반증 검사). */}
             {badWhy ? (
