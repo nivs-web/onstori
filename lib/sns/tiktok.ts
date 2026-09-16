@@ -1,4 +1,7 @@
 import * as db from "./db";
+/* ★ 2026-09-17 — 파일을 «우리가 직접» 보낸다(지시 [18]). 그래서 저장소를 읽는다 */
+import * as storage from "@/lib/storage";
+import { SNIFF_BYTES, sniff } from "@/lib/media-sniff";
 import { limitsOf } from "./limits";
 import { SnsHttpError, brief, callJson, kindFromStatus } from "./http";
 import type { Availability, Connection, ErrorKind, ExtraField, Quota, SnsAdapter, UploadInput, UploadOutcome } from "./types";
@@ -6,8 +9,15 @@ import type { Availability, Connection, ErrorKind, ExtraField, Quota, SnsAdapter
 /**
  * 틱톡 어댑터 — Direct Post (2026-09-12 회장님 지시)
  *
- * ★★ **인스타와 같은 방식이다** — 우리가 «공개 주소»를 주면 틱톡이 가져간다(`PULL_FROM_URL`).
- *   도메인 인증이 끝났기에 이 길을 쓴다. 파일을 우리 서버로 통과시키지 않는다.
+ * ★★★ **2026-09-17 — `PULL_FROM_URL` 을 버리고 `FILE_UPLOAD` 로 바꿨다** (지시 [18]).
+ *   대표님이 네 번 시도해 네 번 다 `url_ownership_unverified` 로 거절당하셨다.
+ *   **파일은 아무 잘못이 없었다.** 우리 영상은 `img.onstori.com` 에서 나가는데
+ *   틱톡에 인증된 것은 `onstori.com` 하나뿐이었다 — **서브도메인은 «다른 도메인»으로 본다.**
+ *   (아래 옛 경고문이 이미 그 말을 하고 있었다. 우리가 놓쳤다.)
+ *
+ *   ⇒ 이제 **우리가 영상 바이트를 틱톡에 직접 밀어 넣는다.** 틱톡이 우리 주소로 가지러 오지 않으니
+ *   **도메인 인증이 영영 필요 없다.** 저장소를 옮기거나 도메인을 바꿔도 안 깨진다.
+ *   ⚠ 인스타는 그대로 `PULL_FROM_URL` 이다 — 이 변경은 **틱톡에만** 해당한다.
  *
  * ★★ **인스타와 다른 것 셋** — 이것이 틱톡의 심사 요건이다:
  *   ① 올리기 전에 **`creator_info` 를 반드시 먼저 불러야 한다.** 그 응답이 주는
@@ -16,14 +26,23 @@ import type { Availability, Connection, ErrorKind, ExtraField, Quota, SnsAdapter
  *   ③ 토큰이 **24시간**이면 만료된다(인스타는 60일). 그래서 **올리기 직전에 항상 갱신**한다.
  *      갱신 토큰은 365일짜리다.
  *
- * ⚠ **첫 게시 전에 반드시 확인할 것 — 도메인 인증 대상.**
- *   `PULL_FROM_URL` 은 틱톡에 **인증된 도메인**의 주소만 받는다. 우리 영상은
- *   공개 저장소(`R2_PUBLIC_BASE`, 지금 `img.onstori.com`)에서 나간다.
- *   `onstori.com` 만 인증하셨다면 **그 주소는 거절된다.** 실패하면 화면의
- *   [자세한 이유 보기]에 `url_ownership_unverified` 같은 말이 뜬다 — 그때는 도메인을 하나 더 인증하면 된다.
+ * ⚠ **옛 경고문 — 남겨 둔다.** 아래는 `PULL_FROM_URL` 을 쓰던 때의 경고이고, 2026-09-17 에
+ *   **실제로 그 일이 났다.** 지우면 「왜 바꿨는지」가 사라진다:
+ *   「`PULL_FROM_URL` 은 틱톡에 **인증된 도메인**의 주소만 받는다. 우리 영상은 공개 저장소
+ *   (`R2_PUBLIC_BASE`, 지금 `img.onstori.com`)에서 나간다. `onstori.com` 만 인증하셨다면
+ *   **그 주소는 거절된다.** 실패하면 `url_ownership_unverified` 가 뜬다.」
+ *   ⇒ **지금은 해당 없다.** 파일을 직접 보내므로 어느 도메인에서 나가든 상관없다.
  *
  * ⚠ 아래 엔드포인트·필드는 틱톡 공식 문서 기준으로 적었다. **첫 실제 게시로 대조해야 한다.**
  */
+
+/**
+ * 한 덩이로 보낼 수 있는 최대 크기 (2026-09-17 지시 [18]).
+ * ⚠ 틱톡 규칙 — 덩이 하나는 **5MB 이상 64MB 이하**. 5MB 미만이면 «반드시» 통째로 보낸다.
+ *   그래서 64MB 까지는 언제나 한 덩이로 끝난다. 그 위는 여러 덩이로 나눠야 하는데,
+ *   60초 영상이 64MB 를 넘을 일이 없어 **만들지 않았다**(만들면 시험할 방법이 없다).
+ */
+const TT_MAX_BYTES = 64 * 1024 * 1024;
 
 const API = "https://open.tiktokapis.com/v2";
 const OAUTH_DIALOG = "https://www.tiktok.com/v2/auth/authorize/";
@@ -364,8 +383,38 @@ export const tiktok: SnsAdapter = {
       };
     }
 
+    /* ⚠ `try` **밖**에 둔다. 안에 두면 오류가 났을 때 catch 가 이 번호를 못 봐서,
+       바이트를 이미 보낸 건의 접수 번호가 사라진다 ⇒ 다시 누르면 두 번 올라간다. */
+    let publishId = input.containerId ?? null;
     try {
-      let publishId = input.containerId ?? null;
+
+      /* ── ⓪ 파일을 읽는다 — **틱톡에 직접 보내려고** (2026-09-17 지시 [18]) ──
+         ⚠ 이미 맡긴 건(`containerId` 있음)이면 **읽지 않는다.** 바이트는 그때 이미 갔다.
+         ⚠ 권반장 걱정: 「메모리에 통째로 올리지 마십시오」. 그런데 틱톡은 `video_size` 를
+           **init 에 먼저** 요구하고, PUT 에는 정확한 `Content-Length`·`Content-Range` 를 요구한다.
+           흘려보내면서 그 값을 맞추는 길이 이 런타임에는 없다(위 §파일 보내기 주석 참조).
+           ⇒ **대신 크기로 막는다.** 아래 상한을 넘으면 읽지도 않고 돌려보낸다.
+           60초 영상은 보통 5~15MB 라 실제로 걸릴 일은 거의 없다. */
+      let bytes = new Uint8Array(0);
+      if (!publishId) {
+        const src = await storage.signedGetUrl(input.sourceKey, 900);
+        /* ★ **한 바이트만 받아 «전체 크기»를 먼저 안다.**
+           ⚠ `HEAD` 로 물으면 **403** 이 온다 — 서명은 `GET` 에만 유효하다(2026-09-17 실측).
+             전에 여기 HEAD 를 썼다가 크기가 늘 0 으로 읽혀 **상한 검사가 죽어 있었다.**
+           ⇒ `Range: bytes=0-0` 로 받으면 `Content-Range: bytes 0-0/전체` 가 와서 총 길이를 준다. */
+        const probe = await fetch(src, { headers: { Range: "bytes=0-0" }, cache: "no-store" }).catch(() => null);
+        const declared = Number(probe?.headers.get("content-range")?.split("/")[1] ?? 0);
+        if (declared > TT_MAX_BYTES) {
+          return { state: "failed", kind: "REJECTED", detail: `영상이 너무 커요 (${Math.round(declared / 1048576)}MB). 60초 안쪽으로 다시 찍어 주세요.` };
+        }
+        const fileRes = await fetch(src, { cache: "no-store" });
+        if (!fileRes.ok) return { state: "failed", kind: "TRANSIENT", detail: "영상 파일을 읽지 못했어요." };
+        bytes = new Uint8Array(await fileRes.arrayBuffer());
+        if (bytes.byteLength === 0) return { state: "failed", kind: "TRANSIENT", detail: "영상 파일이 비어 있어요." };
+        if (bytes.byteLength > TT_MAX_BYTES) {
+          return { state: "failed", kind: "REJECTED", detail: `영상이 너무 커요 (${Math.round(bytes.byteLength / 1048576)}MB). 60초 안쪽으로 다시 찍어 주세요.` };
+        }
+      }
 
       /* ── ① 맡기기 — 이미 맡겼으면 건너뛴다(두 번 올라가는 것을 막는 핵심) ── */
       if (!publishId) {
@@ -380,15 +429,63 @@ export const tiktok: SnsAdapter = {
             brand_organic_toggle: choice!.brandOrganic === true,
             brand_content_toggle: choice!.brandedContent === true,
           },
-          source_info: { source: "PULL_FROM_URL", video_url: input.publicUrl },
+          /* 🔴 **여기가 2026-09-17 에 바뀐 자리다** (지시 [18]).
+             전에는 `{ source: "PULL_FROM_URL", video_url: input.publicUrl }` 이었고,
+             그 주소가 `img.onstori.com` 이라 틱톡이 **네 번 다** `url_ownership_unverified` 로
+             거절했다. 이제 **우리가 바이트를 직접 밀어 넣는다.** 아래 §파일 보내기 참조. */
+          source_info: {
+            source: "FILE_UPLOAD",
+            video_size: bytes.byteLength,
+            /* ⚠ **한 덩이로 보낸다.** 틱톡 규칙: 5MB 미만은 «반드시» 통째로,
+               그 위로도 64MB 까지는 한 덩이가 허용된다. 60초 영상은 늘 그 아래다.
+               ⚠ `chunk_size` 와 `video_size` 가 다르면 틱톡이 거절한다. 같이 둬라. */
+            chunk_size: bytes.byteLength,
+            total_chunk_count: 1,
+          },
         };
         const made = (await callJson(`${API}/post/publish/video/init/`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json; charset=UTF-8" },
           body: JSON.stringify(body),
-        }, "tt:init")) as { data?: { publish_id?: string } };
+        }, "tt:init")) as { data?: { publish_id?: string; upload_url?: string } };
         if (!made.data?.publish_id) return { state: "failed", kind: "TRANSIENT", detail: "틱톡이 접수 번호를 주지 않았어요." };
+        if (!made.data.upload_url) return { state: "failed", kind: "TRANSIENT", detail: "틱톡이 올릴 자리를 주지 않았어요." };
         publishId = made.data.publish_id;
+
+        /* ── §파일 보내기 — 받은 자리에 바이트를 그대로 PUT 한다 ──
+           ⚠ 세 헤더가 **전부 필수**다(틱톡 문서). `Content-Length` 는 손으로 적지 않는다 —
+             바이트 덩이를 body 로 주면 런타임이 정확히 넣어 준다.
+             (`lib/sns/youtube.ts` 가 「fetch 가 Content-Length 를 조용히 무시한다」고 적어 둔
+              바로 그 이유다. 손으로 적고 「적었다」고 믿는 것이 가장 위험하다.)
+           ⚠ 여기서 실패하면 `publish_id` 를 버리고 실패로 돌린다. **아직 아무것도 게시되지 않았다** —
+             다시 누르면 새 번호로 처음부터 한다. 두 번 올라가지 않는다. */
+        /* ⚠ **형식을 손으로 적지 않는다.** 틱톡이 받는 것은 mp4·quicktime·webm 셋뿐이고,
+             딱지가 내용과 다르면 거절한다. 우리 저장소에는 옛 `.webm` 녹화도 남아 있다
+             (2026-09-17 실측 — `sample-interior` 의 영상 13건이 webm 이다).
+           ★ 파일 머리 64바이트로 **진짜 형식**을 본다 — `lib/media-sniff.ts` 가 하는 그 일이다. */
+        const found = sniff(bytes.subarray(0, SNIFF_BYTES));
+        const ct = found.container === "webm" ? "video/webm"
+          : found.container === "quicktime" ? "video/quicktime"
+          : "video/mp4";
+        const put = await fetch(made.data.upload_url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": ct,
+            "Content-Range": `bytes 0-${bytes.byteLength - 1}/${bytes.byteLength}`,
+          },
+          body: bytes,
+          cache: "no-store",
+        });
+        if (!put.ok) {
+          const why = brief(await put.text().catch(() => ""), 160);
+          console.error(JSON.stringify({ evt: "tt_put_failed", status: put.status, why }));
+          return {
+            state: "failed",
+            kind: kindFromStatus(put.status),
+            detail: `틱톡에 영상을 올리지 못했어요 (${put.status}). ${why}`,
+          };
+        }
+        console.log(JSON.stringify({ evt: "tt_put_ok", bytes: bytes.byteLength, ct, publishId }));
       }
 
       /* ── ② 다 됐나 — **여기서 기다리지 않는다.** 한 번만 보고 돌려준다.
@@ -420,6 +517,15 @@ export const tiktok: SnsAdapter = {
     } catch (e) {
       const kind = tiktok.translateError(e);
       if (kind === "AUTH_EXPIRED") await db.markExpired(input.siteId, "tiktok");
+      /* 🔴 **이미 맡긴 건이면 «실패»로 끝내지 않는다** (2026-09-17 지시 [18] 을 만들며 고침).
+         바이트는 이미 틱톡에 들어갔고 번호도 받았다. 여기서 실패로 돌리면 번호가 사라져,
+         사장님이 다시 누르면 **같은 영상이 한 번 더 올라간다.**
+         ⚠ 연결이 풀린 것(AUTH_EXPIRED)·틱톡이 거절한 것(REJECTED)은 다시 눌러도 소용없으니 그대로 실패다.
+         ⚠ 잠깐 그런 것(TRANSIENT)만 「아직 진행 중」으로 돌려 번호를 지킨다. */
+      if (publishId && kind === "TRANSIENT") {
+        console.warn(JSON.stringify({ evt: "tt_status_transient", publishId, err: brief(String(e), 120) }));
+        return { state: "processing", containerId: publishId };
+      }
       return { state: "failed", kind, detail: e instanceof SnsHttpError ? e.body : brief(String(e)) };
     }
   },
