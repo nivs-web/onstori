@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { isAdmin } from "@/lib/admin-auth";
 import { getSiteForAdmin } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
-import { SiteChrome } from "@/components/sections/site-chrome";
+import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 
 /**
  * ★★★ **비공개 홈페이지 보관실 — `/x/{상호}`** (2026-09-15 대표님 지시로 신설)

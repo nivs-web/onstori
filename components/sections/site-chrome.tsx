@@ -6,6 +6,10 @@ import type { SiteDocT } from "@/lib/schema";
    이 파일은 "use client" 다 — 잎 모듈(./nav)에서만 가져온다(2026-09-10 실측). */
 import { contactOf, SECTION_ANCHORS } from "./nav";
 import { ICON, ARIA } from "./connect-widget";
+import { findCtaChannel } from "@/config/cta-channels";
+
+/** 위저드·설정에서 넘어오는 CTA 선택값 — sites.settings.ctaChannels (config/cta-channels.ts 참고) */
+export type CtaSettings = { selected?: string[]; links?: Record<string, string> } | null | undefined;
 
 /**
  * 손님 사이트 크롬 — 상단 바 + 햄버거 시트 + 하단 고정 바 (docs/specs/mobile-ux.md · docs/DESIGN.md).
@@ -18,7 +22,7 @@ import { ICON, ARIA } from "./connect-widget";
  * 그 자리는 항상 어두운 그라데이션이 깔려 있어 팔레트와 무관하게 대비가 성립한다.
  */
 
-export function SiteChrome({ doc, businessName, logo }: { doc: SiteDocT; businessName: string; logo?: string | null }) {
+export function SiteChrome({ doc, businessName, logo, cta }: { doc: SiteDocT; businessName: string; logo?: string | null; cta?: CtaSettings }) {
   const links = SECTION_ANCHORS(doc);
   const { tel, kakaoUrl } = contactOf(doc);
   const hasQuote = doc.sections.some((s) => s.type === "quoteForm");
@@ -27,12 +31,56 @@ export function SiteChrome({ doc, businessName, logo }: { doc: SiteDocT; busines
      띠(banner)가 먼저 오는 사이트에서 투명을 쓰면 흰 배경 위 흰 글자가 되어 상호명이 사라진다. */
   const first = doc.sections[0];
   const canFloat = Boolean(first && first.type === "hero" && "image" in first && first.image);
+  const buttons = resolveCtaButtons({ tel, kakaoUrl, hasQuote, cta });
   return (
     <>
       <TopBar links={links} businessName={businessName} logo={logo} tel={tel} kakaoUrl={kakaoUrl} canFloat={canFloat} quoteHref={hasQuote ? "#quote" : null} />
-      <Dock tel={tel} kakaoUrl={kakaoUrl} hasQuote={hasQuote} />
+      <Dock buttons={buttons} />
     </>
   );
+}
+
+/**
+ * 문의 채널(CTA) 선택 → 실제로 그릴 버튼 목록. (2026-09-16, 반장 지시 [3])
+ *
+ * ⚠ **선택이 비어 있으면 옛 방식 그대로다.** `settings.ctaChannels` 가 없는 사이트(이 기능
+ *   이전에 만들어진 사이트 전부)가 하루아침에 하단 바를 잃으면 안 된다 — 회귀 없음.
+ * ⚠ **값이 없는 항목은 그리지 않는다**(죽은 버튼 금지). url 형은 서버가 이미 한 번 걸렀지만
+ *   `call`·`sms_direct` 는 `tel` 이 비공개면(phonePublic 꺼짐) 여기서도 다시 빈다 —
+ *   두 겹으로 막는다.
+ */
+function resolveCtaButtons(
+  { tel, kakaoUrl, hasQuote, cta }: { tel: string; kakaoUrl: string; hasQuote: boolean; cta?: CtaSettings },
+): { id: string; label: string; href: string; external?: boolean }[] {
+  const selected = cta?.selected ?? [];
+  if (selected.length === 0) {
+    // 레거시 — CTA 선택 이전에 만들어진 사이트는 예전 그대로 [전화][카톡][견적 문의]
+    const legacy: { id: string; label: string; href: string; external?: boolean }[] = [];
+    if (tel) legacy.push({ id: "call", label: "전화", href: `tel:${tel}` });
+    if (kakaoUrl) legacy.push({ id: "kakao_channel", label: "카톡", href: kakaoUrl, external: true });
+    if (hasQuote) legacy.push({ id: "form_email", label: "견적 문의", href: "#quote" });
+    return legacy;
+  }
+  const links = cta?.links ?? {};
+  const out: { id: string; label: string; href: string; external?: boolean }[] = [];
+  for (const id of selected) {
+    const def = findCtaChannel(id);
+    if (!def) continue;
+    let href = "";
+    let external = false;
+    if (def.kind === "url") {
+      href = links[id] ?? "";
+      external = true;
+    } else if (id === "call" || id === "sms_direct") {
+      href = tel ? `${id === "call" ? "tel" : "sms"}:${tel}` : "";
+    } else {
+      // form_email · form_sms · form_tel — 페이지 안의 문의 폼(#quote)으로 보낸다
+      href = hasQuote ? "#quote" : "";
+    }
+    if (!href) continue;
+    out.push({ id, label: def.dockLabel, href, external });
+  }
+  return out;
 }
 
 type Link = { href: string; label: string };
@@ -212,12 +260,15 @@ function TopBar({
 }
 
 /**
- * 하단 고정 바 64px — [전화][카톡][견적 문의]. 견적만 주 버튼이다.
+ * 하단 고정 바 64px — **고른 문의 채널 최대 2개만** 그린다. (2026-09-16, 반장 지시 [3])
+ * 🔴 1개면 큰 버튼(주 버튼 하나가 폭을 다 채운다) · 2개면 지금 이 디자인(둘로 나눔) — 대표님 원문.
  * ⚠ 이 바가 있으면 플로팅 버튼을 따로 두지 않는다 — 겹친다 (지시서 2-4).
+ *   `components/sections/channel-widget.tsx` 가 바로 **그 위** 자리(`bottom: dock-h + …`)에 뜬다.
  */
-function Dock({ tel, kakaoUrl, hasQuote }: { tel: string; kakaoUrl: string; hasQuote: boolean }) {
-  const any = tel || kakaoUrl || hasQuote;
-  if (!any) return null;
+function Dock({ buttons }: { buttons: { id: string; label: string; href: string; external?: boolean }[] }) {
+  if (buttons.length === 0) return null;
+  // 마지막 버튼(가장 나중에 고른 것)만 주 버튼(면 색)으로. 나머지는 보조(테두리 아님 — 규칙 11: 연회색 면).
+  const lastIdx = buttons.length - 1;
   return (
     <>
       {/* ⚠ 여기에 스페이서 <div> 를 두면 안 된다. SiteChrome 은 문서 **맨 앞**에 그려지므로
@@ -236,25 +287,80 @@ function Dock({ tel, kakaoUrl, hasQuote }: { tel: string; kakaoUrl: string; hasQ
           backdropFilter: "blur(8px)",
         }}
       >
-        {tel && <ContactButton kind="call" href={`tel:${tel}`} label="전화" />}
-        {kakaoUrl && <ContactButton kind="kakao" href={kakaoUrl} label="카톡" />}
-        {hasQuote && (
-          <a
-            href="#quote"
-            className="t-body flex flex-1 items-center justify-center font-semibold"
-            style={{
-              gap: "var(--s-2)", minHeight: "var(--tap)", borderRadius: "var(--r-md)",
-              background: "var(--s-accent)", color: "var(--s-on-accent)",
-            }}
-          >
-            견적 문의
-          </a>
-        )}
+        {buttons.map((b, i) => (
+          <CtaBtn key={b.id} href={b.href} label={b.label} external={b.external} primary={i === lastIdx} />
+        ))}
       </nav>
     </>
   );
 }
 
+/**
+ * PC — 스크롤을 내리면 만나는 **최종 문의 CTA**. (2026-09-16, 반장 지시 [3])
+ * 대표님 원문: 「PC: 스크롤을 내리면 최종 문의하기로 이어지는 CTA 버튼」
+ * ⚠ 하단 고정 바는 폰 전용(`md:hidden`)이라 PC 에는 늘 떠 있는 바가 없다 — 그래서 이 블록을
+ *   본문 맨 끝(푸터 바로 앞)에 둔다. 스크롤해서 내려오면 «자연히» 만난다.
+ * ⚠ 손님 사이트 페이지(3곳: `app/[slug]/page.tsx` · `app/x/[slug]/page.tsx`)가 각자 부른다 —
+ *   `preview-client.tsx`(에디터 미리보기)는 settings 를 안 받으므로 부르지 않는다
+ *   (채널 위젯도 같은 이유로 미리보기에 없다 — 기존 관례를 따른다).
+ */
+export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
+  const { tel, kakaoUrl } = contactOf(doc);
+  const hasQuote = doc.sections.some((s) => s.type === "quoteForm");
+  const buttons = resolveCtaButtons({ tel, kakaoUrl, hasQuote, cta });
+  if (buttons.length === 0) return null;
+  const lastIdx = buttons.length - 1;
+  return (
+    <section
+      aria-label="최종 문의"
+      className="hidden md:block"
+      style={{ paddingBlock: "var(--s-8)", paddingInline: "var(--gutter)", background: "var(--s-soft)" }}
+    >
+      <div className="mx-auto flex max-w-[var(--container)] flex-col items-center text-center" style={{ gap: "var(--s-4)" }}>
+        <p className="t-h2 font-bold" style={{ color: "var(--s-ink)" }}>지금 바로 문의해 보세요</p>
+        <div className="flex flex-wrap items-center justify-center" style={{ gap: "var(--s-3)" }}>
+          {buttons.map((b, i) => (
+            <a
+              key={b.id}
+              href={b.href}
+              {...(b.external ? { target: "_blank", rel: "noreferrer" } : {})}
+              className="t-body inline-flex items-center justify-center font-semibold"
+              style={{
+                minHeight: "var(--tap)", minWidth: 180, paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)",
+                ...(i === lastIdx
+                  ? { background: "var(--s-accent)", color: "var(--s-on-accent)" }
+                  : { background: "var(--s-bg)", color: "var(--s-ink)" }),
+              }}
+            >
+              {b.label}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Dock 의 버튼 하나 — 주 버튼은 면 색, 보조는 연회색 면(규칙 11: 테두리 아님) */
+function CtaBtn({ href, label, external, primary }: { href: string; label: string; external?: boolean; primary?: boolean }) {
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      className="t-body flex flex-1 items-center justify-center font-semibold"
+      style={{
+        gap: "var(--s-2)", minHeight: "var(--tap)", borderRadius: "var(--r-md)",
+        ...(primary
+          ? { background: "var(--s-accent)", color: "var(--s-on-accent)" }
+          : { background: "var(--s-soft)", color: "var(--s-ink)" }),
+      }}
+    >
+      {label}
+    </a>
+  );
+}
+
+/** 햄버거 시트 맨 아래 전화·카톡 버튼 — 하단 고정 바(Dock)와는 다른 자리다 (TopBar 참고) */
 function ContactButton({
   kind, href, label, primary = false,
 }: { kind: "call" | "kakao"; href: string; label: string; primary?: boolean }) {
