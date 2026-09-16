@@ -21,8 +21,10 @@
 
 | 무엇 | 어떻게 | 왜 급한가 |
 |---|---|---|
+| 🔴 **네이버 서치어드바이저 소유확인** | [searchadvisor.naver.com](https://searchadvisor.naver.com) → 웹마스터도구 → 사이트 등록 `https://onstori.com` → **HTML 태그** 방식 → 나오는 `content="…"` 안의 **글자만** 권반장에게 | 🔴 **부반장이 못 합니다** — 부반장의 브라우저 도구가 naver.com 을 안전 정책으로 차단합니다(2026-09-16 실측). **대표님 손이 유일한 길입니다.** 이게 없으면 네이버가 우리를 거의 안 옵니다 |
+| **인스타(Meta) 심사 — 스크린캐스트 녹화** | developers.facebook.com → 온스토리 앱 → 앱 검수 → 권한 7개의 「사용 가이드라인」 답변 + 화면 녹화 | 지금 상태가 **「제출되지 않음」**입니다. 녹화는 실제 인스타 앱에서 지워지는지 등 **사람이 눌러 확인**해야 하는 부분이라 AI 가 대신 못 합니다 |
+| **틱톡 영상 게시 시험** | `onstori.com` 에서 실제 크리에이터 계정으로 로그인 → 영상 1건 올려 보기 | 틱톡 개발자 콘솔 **안에는 게시 시험 버튼이 없습니다**(부반장 실측). 우리 코드로만 됩니다. 이게 되면 「Submit for review」를 누를 수 있습니다 |
 | 🔴 **네이버 서치어드바이저에 `onstori.com` 등록** | [searchadvisor.naver.com](https://searchadvisor.naver.com) → 웹마스터도구 → 사이트 등록 `https://onstori.com` → **HTML 태그** 방식 → 나오는 `content` 값을 권반장에게 | **이게 없으면 네이버가 우리를 사실상 수집하지 않는다.** 경쟁사 홈ON 은 이 태그를 3개 달고 있다. 소유확인은 **도메인 단위**라 한 번이면 사장님 홈페이지 전부가 따라온다 |
-| 🔴 **구글 서치콘솔에 등록** | [search.google.com/search-console](https://search.google.com/search-console) → 속성 추가 → **URL 접두어** → **HTML 태그** 방식 → 값을 권반장에게 | 위와 같음. 값 두 개만 주시면 코드는 권반장이 넣는다(환경변수 자리는 이미 만들어 뒀다) |
 | **`interior` → `feliz` 로 주소 옮기기** | 권반장에게 「펠리즈 주소 옮겨」 한 마디 | 대표님이 원하신 주소는 `onstori.com/feliz` 였는데 주소 칸이 배포 전이라 `interior` 로 만들어졌다. **권한 분류기가 막아** 권반장이 혼자 못 했다 |
 | **Vercel 에 열쇠 한 줄** | Vercel → 프로젝트 → Settings → Environment Variables → `REVIEW_SITE` = `sample-interior` → 저장 → Redeploy | **유튜브 감사 제출의 마지막 한 걸음.** 이게 없으면 심사관이 로그인해도 빈 화면을 본다 = 반려 |
 | **교육 사진을 이미지 은행에** | 어드민 → 이미지 뱅크에 학원·수업 사진 업로드 (태그: `academy`·`lesson`·`sports`·`study`·`fitness`) | 교육·레슨 업종을 켰는데 **사진이 849장 중 0장**이다. 지금 학원 홈페이지를 만들면 갤러리 칸이 통째로 안 생긴다 |
