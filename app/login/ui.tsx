@@ -19,22 +19,42 @@ function safeNext(raw: string | null): string {
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/my";
 }
 
-/** Supabase Email OTP Length 허용 범위 — 대시보드 설정에 따라 달라지므로 자릿수를 고정하지 않는다 */
-const OTP_MIN = 6;
-const OTP_MAX = 10;
+/**
+ * 🔴 **비밀번호 최소 길이 — 8자.** (2026-09-17 대표님 확정 · 권반장 지시 [25] 3번)
+ *
+ * ⚠ **대문자·특수문자를 강요하지 않는다.** 우리 손님은 가게 사장님이다.
+ *   까다로우면 **그 자리에서 나간다.** 짧은 규칙 하나가 긴 규칙 넷보다 낫다.
+ */
+const PW_MIN = 8;
 
-/** 로그인 — 카카오 OAuth + 이메일 6자리 인증번호(OTP). 성공 시 익명 생성 사이트 귀속(claim) 후 next로 이동 */
+/**
+ * 로그인 — 카카오 + **이메일·비밀번호**. (2026-09-17 대표님 확정으로 인증번호 방식을 걷어냈다)
+ *
+ * ★★ 대표님 원문: 「이메일 인증 로그인 너무 불편한 거 같아. 이메일 들어가서 확인하고 인증번호 넣고 —
+ *   **누가 요즘 그런 방식을 쓰니?** … 이메일 가입 시 인증은 필요하지만, 이메일로 «로그인»은
+ *   이메일과 비밀번호 입력 방식이다. **이걸로 확정!**」
+ *
+ * ★ 화면은 넷이다 — `signin`(로그인) · `signup`(가입) · `forgot`(비밀번호 찾기) · `sent`(메일 보냄).
+ * ⚠ **카카오는 한 글자도 안 건드렸다.** `lib/kakao.ts` 와 `/auth/kakao` 는 그대로다 —
+ *   그것을 깨뜨리는 것이 이 작업에서 가장 위험하다(권반장 경고).
+ */
 export function LoginUi() {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const sb = useMemo(() => sbBrowser(), []);
 
-  const [step, setStep] = useState<"check" | "email" | "code">("check");
+  const [step, setStep] = useState<"check" | "signin" | "signup" | "forgot" | "sent">("check");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  const [pw, setPw] = useState("");
+  /** 🔴 「보기」 눈 — 폰에서 오타로 못 들어가는 일이 가장 흔하다(권반장 지시 4번) */
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(params.get("error") ? "로그인에 실패했어요. 다시 시도해주세요." : "");
+  /** 카카오로 시작한 분께 드리는 안내 — 로그인이 «실패한 뒤에만» 켜진다 */
+  const [kakaoHint, setKakaoHint] = useState(false);
+  /** `sent` 화면에서 무엇을 보냈는지 — 문구가 달라진다 */
+  const [sentKind, setSentKind] = useState<"signup" | "reset">("signup");
 
   /** 로그인 완료 공통 처리 — 이 브라우저에서 익명으로 만든 사이트를 계정에 귀속시킨 뒤 이동 */
   async function finish() {
@@ -55,7 +75,7 @@ export function LoginUi() {
     // 카카오 콜백 복귀 or 이미 로그인 상태면 바로 마무리
     sb.auth.getUser().then(({ data }) => {
       if (data.user) void finish();
-      else setStep("email");
+      else setStep("signin");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,30 +89,70 @@ export function LoginUi() {
     location.href = `/auth/kakao?next=${encodeURIComponent(next)}`;
   }
 
-  async function sendCode(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setErr("");
-    const { error } = await sb.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
-    setBusy(false);
-    if (error) {
-      setErr("인증 메일을 보내지 못했어요. 주소를 확인하거나 잠시 후 다시 시도해주세요.");
-      return;
-    }
-    setStep("code");
+  /** 로그인 실패 뒤 — 「혹시 카카오로 시작하신 분인가」만 물어본다(`/api/auth/how` 머리말 참조) */
+  async function askKakaoOnly(addr: string): Promise<boolean> {
+    try {
+      const r = await fetch("/api/auth/how", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: addr }),
+      });
+      return !!((await r.json()) as { kakaoOnly?: boolean }).kakaoOnly;
+    } catch { return false; }
   }
 
-  async function verify(e: React.FormEvent) {
+  /** ── 로그인 — 이메일 + 비밀번호 ── */
+  async function signIn(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    setErr("");
-    const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
+    setBusy(true); setErr(""); setKakaoHint(false);
+    const addr = email.trim();
+    const { error } = await sb.auth.signInWithPassword({ email: addr, password: pw });
+    if (!error) { await finish(); return; }
+    /* 🔴 **어느 쪽이 틀렸는지 알려 주지 않는다**(권반장 지시 5번).
+       「이 메일은 없습니다」라고 하면 남의 계정이 있는지 캐내는 데 쓰인다. */
+    setErr("이메일이나 비밀번호가 맞지 않아요.");
+    /* 다만 **카카오로 시작한 분**께는 길을 알려 드린다 — 그분은 비밀번호가 아예 없어서
+       무엇을 넣어도 영원히 틀리고, 「비밀번호 찾기」도 소용이 없다(만든 적이 없으니까). */
+    if (await askKakaoOnly(addr)) { setKakaoHint(true); setErr(""); }
+    setBusy(false);
+  }
+
+  /** ── 가입 — 🔴 이메일 인증은 그대로 필요하다(대표님 확정) ── */
+  async function signUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < PW_MIN) { setErr(`비밀번호는 ${PW_MIN}자 이상으로 만들어 주세요.`); return; }
+    setBusy(true); setErr(""); setKakaoHint(false);
+    const { data, error } = await sb.auth.signUp({
+      email: email.trim(), password: pw,
+      /* 확인 메일의 링크가 돌아올 곳 — 돌아오면 그대로 로그인된 채로 이어진다 */
+      options: { emailRedirectTo: `${location.origin}/login?next=${encodeURIComponent(next)}` },
+    });
+    setBusy(false);
     if (error) {
-      setBusy(false);
-      setErr("인증번호가 맞지 않아요. 메일을 다시 확인해주세요.");
+      /* 이미 있는 메일이면 Supabase 가 «가짜 성공»을 주기도 한다(계정 캐내기 방지).
+         그래서 오류 문구도 「이미 있다」를 단정하지 않는다. */
+      setErr("가입하지 못했어요. 주소를 확인하시거나, 이미 계정이 있으시면 [비밀번호를 잊으셨나요?]를 눌러 주세요.");
       return;
     }
-    await finish();
+    /* 확인이 필요 없게 설정돼 있으면 세션이 바로 생긴다 — 그때는 곧장 들어간다 */
+    if (data.session) { await finish(); return; }
+    setSentKind("signup"); setStep("sent");
+  }
+
+  /**
+   * ── 비밀번호 찾기 / 만들기 ──
+   * 🔴 **인증번호로 가입하신 분들에게도 이 길이 «비밀번호 만들기»다**(권반장 지시 2번).
+   *   그분들은 비밀번호가 없으니 「잊었다」가 아니라 「아직 없다」이고, 길은 같다.
+   * ⚠ **보냈는지 안 보냈는지 구별해 주지 않는다** — 없는 메일에도 같은 화면을 보여 준다.
+   *   그래야 「이 메일이 우리 손님인가」를 캐낼 수 없다.
+   */
+  async function forgot(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setErr(""); setKakaoHint(false);
+    await sb.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${location.origin}/login/new-password?next=${encodeURIComponent(next)}`,
+    }).catch(() => null);
+    setBusy(false);
+    setSentKind("reset"); setStep("sent");
   }
 
   if (step === "check") return <main className="px-6 py-24 text-center text-[var(--text-soft)]">확인 중…</main>;
@@ -132,60 +192,119 @@ export function LoginUi() {
         <span className="h-px flex-1" style={{ background: "var(--line)" }} />
       </div>
 
-      {step === "email" ? (
-        <form onSubmit={sendCode} className="space-y-3">
+      {/* ══ 이메일 — 로그인 / 가입 / 비밀번호 찾기 ══ */}
+      {step === "sent" ? (
+        <section className="rounded-xl p-4" style={{ background: "var(--n-50)" }}>
+          <p className="t-body font-semibold">메일을 보냈어요</p>
+          <p className="mt-2 t-body" style={{ color: "var(--text)" }}>
+            <b>{email.trim()}</b> 로 보냈습니다.{" "}
+            {sentKind === "signup"
+              ? "메일 속 링크를 누르시면 가입이 끝나고 바로 로그인됩니다."
+              : "메일 속 링크를 누르시면 새 비밀번호를 정하실 수 있어요."}
+          </p>
+          <p className="mt-2 t-caption" style={{ color: "var(--muted)" }}>
+            메일이 안 보이면 <b>스팸함</b>도 한 번 봐 주세요. 몇 분 걸릴 수 있어요.
+          </p>
+          <button type="button" onClick={() => { setStep("signin"); setPw(""); }}
+            className="mt-4 w-full py-2 t-body underline" style={{ color: "var(--muted)" }}>
+            로그인 화면으로
+          </button>
+        </section>
+      ) : (
+        <form onSubmit={step === "signin" ? signIn : step === "signup" ? signUp : forgot} className="space-y-3">
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setKakaoHint(false); }}
             placeholder="이메일 주소"
             className="w-full rounded-xl border bg-white px-4 py-3 t-body outline-none focus:border-green-700"
             style={{ borderColor: "var(--line)" }}
           />
+
+          {/* 비밀번호 — 찾기 화면에서는 안 받는다 */}
+          {step !== "forgot" && (
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                required
+                minLength={step === "signup" ? PW_MIN : undefined}
+                autoComplete={step === "signup" ? "new-password" : "current-password"}
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                placeholder={step === "signup" ? `비밀번호 (${PW_MIN}자 이상)` : "비밀번호"}
+                className="w-full rounded-xl border bg-white py-3 t-body outline-none focus:border-green-700"
+                style={{ borderColor: "var(--line)", paddingLeft: "var(--s-4)", paddingRight: "var(--s-8)" }}
+              />
+              {/* 🔴 「보기」 눈 — 폰에서 오타로 못 들어가는 일이 가장 흔하다(권반장 지시 4번).
+                  ⚠ 글자가 아니라 «상태»를 읽어 주는 단추라 aria-pressed 를 단다. */}
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                aria-pressed={showPw}
+                aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+                className="absolute inset-y-0 right-0 flex items-center t-caption font-semibold"
+                style={{ paddingInline: "var(--s-3)", color: "var(--muted)", minHeight: "var(--tap)" }}
+              >
+                {showPw ? "숨기기" : "보기"}
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={busy || !email.trim()}
+            disabled={busy || !email.trim() || (step !== "forgot" && !pw)}
             className="w-full rounded-xl px-4 py-3.5 t-body font-semibold text-white disabled:opacity-50"
             style={{ background: "var(--accent)" }}
           >
-            {busy ? "보내는 중…" : "인증번호 받기"}
+            {busy ? "잠시만요…" : step === "signin" ? "로그인" : step === "signup" ? "가입하기" : "비밀번호 재설정 메일 받기"}
           </button>
+
+          {/* ── 아래 줄 — 화면마다 갈 곳이 다르다 ── */}
+          {step === "signin" && (
+            <div className="flex items-center justify-between" style={{ paddingTop: "var(--s-1)" }}>
+              <button type="button" onClick={() => { setStep("forgot"); setErr(""); setKakaoHint(false); }}
+                className="t-caption underline" style={{ color: "var(--muted)", minHeight: "var(--tap)" }}>
+                비밀번호를 잊으셨나요?
+              </button>
+              <button type="button" onClick={() => { setStep("signup"); setErr(""); setKakaoHint(false); }}
+                className="t-caption font-semibold underline" style={{ color: "var(--accent)", minHeight: "var(--tap)" }}>
+                처음이신가요? 가입하기
+              </button>
+            </div>
+          )}
+          {step !== "signin" && (
+            <button type="button" onClick={() => { setStep("signin"); setErr(""); setKakaoHint(false); }}
+              className="w-full py-2 t-body underline" style={{ color: "var(--muted)" }}>
+              로그인 화면으로
+            </button>
+          )}
+
+          {/* 🔴 인증번호로 가입하신 분 안내 — 그분들에겐 «아직 비밀번호가 없다»(권반장 지시 2번).
+              「잊었다」가 아니라 「아직 없다」라서, 같은 길을 다른 말로 한 번 더 알려 드린다. */}
+          {step === "signin" && (
+            <p className="t-caption" style={{ marginTop: "var(--s-3)", color: "var(--muted)", lineHeight: 1.6 }}>
+              전에 <b>인증번호</b>로 로그인하셨나요? 그때는 비밀번호가 없었어요 —
+              [비밀번호를 잊으셨나요?]를 누르시면 <b>비밀번호를 새로 만드실 수 있습니다.</b>
+            </p>
+          )}
+          {step === "signup" && (
+            <p className="t-caption" style={{ marginTop: "var(--s-2)", color: "var(--muted)", lineHeight: 1.6 }}>
+              가입하시면 <b>확인 메일</b>이 갑니다. 메일 속 링크를 한 번 눌러 주셔야 가입이 끝나요.
+            </p>
+          )}
         </form>
-      ) : (
-        <form onSubmit={verify} className="space-y-3">
-          <p className="t-body">
-            <b>{email}</b> 로 보낸 인증번호를 입력해주세요.
+      )}
+
+      {/* 🔴 카카오로 시작하신 분 — 비밀번호가 «아예 없어» 무엇을 넣어도 안 됩니다(권반장 지시 6번) */}
+      {kakaoHint && (
+        <section className="mt-4 rounded-xl p-4" style={{ background: "var(--n-50)" }}>
+          <p className="t-body font-semibold">이 이메일은 <b>카카오로 시작하셨어요</b></p>
+          <p className="mt-2 t-body" style={{ color: "var(--text)" }}>
+            그때는 비밀번호를 만들지 않으셨어요. 위의 <b>[카카오로 시작하기]</b> 버튼을 눌러 주세요.
           </p>
-          {/* Supabase의 Email OTP Length는 대시보드에서 6~10자리로 바뀔 수 있다(현재 8자리).
-              자릿수를 하드코딩하면 설정만 바뀌어도 로그인이 막히므로 범위로 받는다. */}
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_MAX))}
-            placeholder="인증번호"
-            className="field kicker-wide text-center text-lg"
-            style={{ borderColor: "var(--line)" }}
-          />
-          <button
-            type="submit"
-            disabled={busy || code.length < OTP_MIN}
-            className="w-full rounded-xl px-4 py-3.5 t-body font-semibold text-white disabled:opacity-50"
-            style={{ background: "var(--accent)" }}
-          >
-            {busy ? "확인 중…" : "로그인"}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setStep("email"); setCode(""); setErr(""); }}
-            className="w-full py-2 t-body underline"
-            style={{ color: "var(--muted)" }}
-          >
-            다른 이메일로 받기
-          </button>
-        </form>
+        </section>
       )}
 
       {err && <p className="mt-4 t-body text-danger">{err}</p>}
