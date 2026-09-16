@@ -659,7 +659,12 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
 .rec-shell .t-caption, .rec-shell .t-micro { color: var(--n-0); }
 /* ⚠ 주 버튼도 안 보였다. `--green-700`(#005B2A)은 어두운 초록 바탕과 **1.33:1** —
    「버튼이 어디 있는지」가 안 보인다. 이 화면에서만 밝은 라임으로 뒤집는다(7.19:1). */
-.rec-shell .btn-lime { background: var(--lime); color: var(--forest); }
+/* ⚠ 2026-09-16 — 아래 «진한 면 위의 글자» 블록이 .btn-lime 의 글자 토큰을 흰색으로 뒤집는다.
+   이 화면의 .btn-lime 만은 **밝은 라임 면**이라 흰 글자가 사라진다. 토큰을 여기서 되돌린다. */
+.rec-shell .btn-lime {
+  background: var(--lime); color: var(--forest);
+  --text: var(--forest); --text-soft: var(--forest); --text-strong: var(--forest);
+}
 .rec-shell .btn-lime:hover { background: var(--green-300); }
 
 /* ② 중앙 정렬 헤드 — 최대 36em */
@@ -1230,6 +1235,54 @@ h4, h5, h6 { font-weight: var(--w-semi); letter-spacing: var(--ls-h3); }
   }
 }
 
+/* ══════ 진한 브랜드색 «면» 위의 글자 — 2026-09-16 대표님 지시 ══════
+   ★ 증상은 셋인데 **원인은 하나**다.
+     ② /{상호}/edit 의 [사이트 반영] — `btn btn-primary btn-xs t-caption`
+     ③ [작업 기록][소식][이정표][손님 이야기] — `bg-green-700 text-white t-caption` (같은 꼴 23곳)
+     ③ 녹화 링크 섹션의 안내 글 — 어두운 면 위의 `t-caption`
+   ★ 원인: `.t-caption`·`.t-micro` 가 **레이어 밖**에서 `color: var(--text-soft)` 를 박고 있다.
+     레이어 밖 규칙은 `@layer components`(.btn-primary 의 흰 글자)도,
+     `@layer utilities`(Tailwind 의 `text-white`)도 **명시도와 무관하게 이긴다**(CSS 캐스케이드 순서).
+     그래서 진한 초록 면 위에 회색 글자(--text-soft = --n-700 #50665E)가 그대로 남았다.
+     실측 대비 **1.35:1** — WCAG AA(4.5:1) 의 3분의 1도 안 된다.
+   ★ 고치는 법은 이 파일이 이미 세 번 쓴 방식과 똑같다(.surface-900·.rec-shell·다크 다리):
+     **토큰만 뒤집는다.** 화면마다 `color: white` 를 박지 않는다 — 어두운 테마에서 또 깨진다.
+   ⚠ `--on-brand` 를 쓴다. 이 토큰은 밝음·어두움 **양쪽 다 흰색**이라(위 테마 블록)
+     테마가 바뀌어도 흔들리지 않는다. 운영자 화면의 어두운 모드는 면 자체가 «밝은 초록»으로
+     뒤집히므로 이 파일 맨 아래 다크 블록에서 --on-solid(어두운 글자)로 **다시** 뒤집는다.
+   ⚠ `:where()` 로 감싸 **명시도를 0 으로** 둔다. 색을 직접 지정한 기존 규칙
+     (.rec-shell .btn-lime 등)을 건드리지 않기 위해서다.
+   ⚠ 영향 범위: .btn-primary 4곳 · .btn-lime 19곳 · .bg-green-700 계열 37곳.
+     전부 «진한 초록 면 + 글자» 자리라 흰 글자가 정답이다(실측 8.30:1).
+   ⚠ .step-num 은 **일부러 뺀다.** `.surface-900 .step-num` 이 @layer 안에 있어
+     레이어 밖 규칙을 못 이긴다 — 넣으면 밝은 초록 원 위에 흰 숫자가 된다(1.70:1).
+     지금 그대로도 잘 보이고 안에 t-caption 이 없어 고칠 이유가 없다. */
+:where(.btn-primary, .btn-lime, .bg-green-700, .bg-green-800, .bg-green-900) {
+  --text: var(--on-brand);
+  --text-soft: var(--on-brand);
+  --text-strong: var(--on-brand);
+  color: var(--on-brand);
+}
+/* 짙은 «중성» 면 — 초록이 아니라 숲색(--n-800)이다. 어느 테마에서도 면이 어두우니 늘 흰 글자.
+   ⚠ color 는 건드리지 않는다 — `.btn-forest` 가 이미 --n-0 를 들고 있고, 여기서 또 쓰면
+     어두운 운영자 화면의 다리(--n-0 → --surface)와 엇갈린다. 토큰만 준다. */
+:where(.btn-forest) {
+  --text: var(--on-brand);
+  --text-soft: var(--on-brand);
+  --text-strong: var(--on-brand);
+}
+/* 배경은 부르는 쪽이 정하고 **글자 토큰만** 뒤집고 싶을 때 쓰는 조각.
+   `.surface-900` 과 달리 배경을 칠하지 않는다 — 인라인 style 로 면을 칠한 자리
+   (예: app/[slug]/edit/story-link.tsx 의 --forest 섹션)에 이 클래스 한 낱말만 붙이면 된다. */
+.on-fill {
+  --text: var(--on-brand);
+  --text-soft: var(--on-brand);
+  --text-strong: var(--on-brand);
+  color: var(--on-brand);
+}
+.on-fill .t-caption, .on-fill .t-micro, .on-fill .t-lead,
+.on-fill .t-display, .on-fill .t-h1, .on-fill .t-h2, .on-fill .t-h3 { color: var(--on-brand); }
+
 /* ───────────────────────── 모션 ───────────────────────── */
 /* ⚠ 등장과 조작의 시간을 반대로 쓰지 마라.
      등장 = 700ms 크게 부드럽게 / 조작 = 120~200ms 짧고 즉시.
@@ -1422,8 +1475,17 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 .logo-dark  { display: none; }
 [data-mode="dark"] .logo-light { display: none !important; }
 [data-mode="dark"] .logo-dark { display: block !important; }
-/* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다 */
-[data-mode="dark"] :is(.admin-shell, .editor-shell) .btn-primary { color: var(--on-solid); }
+/* 주 버튼은 어두운 면에서 글자를 어둡게 — 밝은 초록 위의 흰 글자는 안 읽힌다.
+   ⚠ 2026-09-16 — `color` 만으로는 모자랐다. 버튼에 `t-caption` 이 같이 붙으면
+     그 클래스가 **레이어 밖**에서 `var(--text-soft)` 를 박아 이 규칙을 이긴다
+     ([사이트 반영] 실측 1.41:1). 그래서 **토큰도 같이** 뒤집는다.
+     `.btn-lime` 도 같은 자리다 — 정기결제 버튼이 편집화면 안에 있다. */
+[data-mode="dark"] :is(.admin-shell, .editor-shell) :is(.btn-primary, .btn-lime) {
+  color: var(--on-solid);
+  --text: var(--on-solid);
+  --text-soft: var(--on-solid);
+  --text-strong: var(--on-solid);
+}
 
 /* ⚠ 제목류는 **원시 토큰 `--n-900` 을 직접** 쓴다(globals 318·324~327행).
    그래서 `--text-strong` 만 바꿔서는 안 바뀐다 — 2026-09-07 실측에서
@@ -1457,9 +1519,14 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 /* ③ 초록 «면» 버튼 — 다리가 --green-700 을 --brand-ink(밝은 초록)로 바꾸므로 그 위의 흰 글자가
    사라진다. 어두운 화면의 주 버튼은 **밝은 초록 면 + 어두운 글자**다(디자인 정의 §4).
    ⚠ 글자색으로 쓰는 .text-green-700 은 건드리지 않는다 — 그건 밝은 초록이 맞다. */
-[data-mode="dark"] :is(.admin-shell, .editor-shell) .bg-green-700 {
+[data-mode="dark"] :is(.admin-shell, .editor-shell) :is(.bg-green-700, .bg-green-800, .bg-green-900) {
   background-color: var(--brand-solid);
   color: var(--on-solid);
+  /* ⚠ 2026-09-16 — 여기 붙는 칩·탭은 거의 다 `t-caption` 을 같이 쓴다. 그 클래스가
+     레이어 밖에서 `var(--text-soft)` 를 박아 위 `color` 를 이긴다. 토큰까지 뒤집어야 바뀐다. */
+  --text: var(--on-solid);
+  --text-soft: var(--on-solid);
+  --text-strong: var(--on-solid);
 }
 
 /* 운영자 메모장 전용 — 입력칸과 **같은 높이**의 작은 버튼 (2026-09-07 회장님: 절반 크기로).

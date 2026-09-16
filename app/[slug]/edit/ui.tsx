@@ -403,14 +403,14 @@ export function EditUi({ slug }: { slug: string }) {
     );
   }
 
-  /* ── 왼쪽 칸 — 완성도 막대 · 점수 힌트 · 섹션 목록 (S2⑥) ──
+  /* ── 왼쪽 칸 — 완성도(숫자+막대) · 점수 힌트 · 섹션 목록 (S2⑥) ──
      ⚠ 완성도 막대와 힌트는 **없어진 게 아니라 자리를 옮겼다.** 전에는 상단 헤더와
-       본문 위에 있었다. 앵커 score-bar 는 상단바로 갔다(shell.tsx). */
+       본문 위에 있었다.
+     ★ 2026-09-16 대표님 — **앵커 score-bar 가 상단바에서 다시 여기로 돌아왔다.**
+       숫자(상단바)와 막대(여기)가 따로 놀던 것을 ScoreMeter 하나로 합쳤다. 아래 주석 참조. */
   const rail = (
     <div className="space-y-4">
-      <div className="h-1.5 overflow-hidden rounded-full bg-n-100">
-        <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${data.score}%` }} />
-      </div>
+      <ScoreMeter score={data.score} />
 
       {/* 점수 올리기 힌트 — ⚠ logo(panel-brand)는 P6 라 갈 곳이 없다. 이 제외를 빼면 먹통 힌트가 된다 */}
       <section className="rounded-xl bg-green-50 p-3 t-caption leading-relaxed text-green-900">
@@ -478,7 +478,8 @@ export function EditUi({ slug }: { slug: string }) {
     <EditorShell
       slug={slug}
       businessName={data.businessName}
-      score={data.score}
+      /* ⚠ 2026-09-16 — `score` 는 더 이상 껍데기로 내려보내지 않는다.
+         점수는 `rail` 안의 ScoreMeter 가 직접 그린다(상단바에서 잘리던 문제). */
       menu={menu}
       onMenu={switchMenu}
       newCount={newCount}
@@ -675,6 +676,78 @@ function LogoBox({ slug, logo, onLogo }: {
       </div>
       {err && <p className="t-caption text-danger">{err}</p>}
     </section>
+  );
+}
+
+/**
+ * ★★ 완성도 계기판 — 「완성도 65점/100점」 **바로 아래** 차오르는 막대 (2026-09-16 대표님 지시)
+ *
+ * ⚠ **무엇이 이상했나 (원인 셋).**
+ *   ① **숫자와 막대가 서로 다른 파일·다른 자리에 있었다.** 숫자는 상단바(shell.tsx 의 `.editor-ident`),
+ *      막대는 여기 왼쪽 칸이었다. 폰에서는 그 사이에 «탭 메뉴 줄 하나 + 본문 여백»이 끼어
+ *      숫자와 막대가 60px 넘게 떨어져 **한 쌍으로 보이지 않았다.**
+ *   ② **막대에 이름표가 없고 6px(h-1.5) 뿐이었다.** 라벨 없는 실선 하나라 「그래프」가 아니라
+ *      «구분선»으로 보인다. 대표님이 「막대그래프가 떠야 하는데 이상해」라고 하신 것이 이 모습이다.
+ *   ③ **차오르는 애니메이션이 아예 일어나지 않았다.** `transition-all` 이 붙어 있었지만 처음 그릴 때부터
+ *      `width` 가 최종값(65%)이라 브라우저가 «변화»를 볼 일이 없었다. 게다가 width 애니메이션은
+ *      globals.css 가 금지한다(「움직이는 건 transform 과 opacity 만」).
+ *
+ * ★ **고친 방법.** 숫자와 막대를 이 부품 하나로 합치고, 둘 사이를 var(--s-2) 로 좁혔다.
+ *   차오르기는 `transform: scaleX()` 로 한다 — 0 으로 그린 «다음» 프레임에 실제 점수로 올려야
+ *   브라우저가 변화로 보고 굴려 준다.
+ *
+ * ★ 둥근 모서리는 **바깥 틀**이 가진다. 안쪽을 늘렸다 줄이면 모서리까지 같이 늘어나 찌그러지므로,
+ *   틀이 `overflow:hidden` 으로 깎아 준다.
+ *
+ * ★ `prefers-reduced-motion` 은 **여기서 따로 막지 않는다.** globals.css 맨 아래 전역 규칙이
+ *   모든 transition 을 .01ms 로 만든다(!important). 두 곳에서 막으면 언젠가 어긋난다.
+ *
+ * ⚠ 폰 360px 에서 「완성도 65점/100점」은 한 줄에 들어간다 — 왼쪽 칸은 폰에서 **화면 전체 폭**
+ *   (360 − 좌우 여백 32 = 328px)을 쓰고 이 글자는 13px 기준 약 95px 이다. 상단바(60~96px)와 다르다.
+ */
+function ScoreMeter({ score }: { score: number }) {
+  /* 서버 점수가 이상해도 막대가 틀 밖으로 나가지 않게 0~100 으로 가둔다 */
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
+
+  /* 0 에서 시작해 **첫 그리기 다음 프레임**에 실제 점수로 올린다(원인 ③) */
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(pct));
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
+
+  return (
+    <div data-tour="score-bar">
+      <p className="t-caption" style={{ color: "var(--text)", marginBottom: "var(--s-2)" }}>
+        완성도 <b style={{ color: "var(--brand-ink)" }}>{pct}점/100점</b>
+      </p>
+
+      {/* 틀 — 색은 `bg-n-100`·`bg-green-700` 을 그대로 쓴다. 어두운 화면 처리가 이 두 이름에 걸려 있다
+          (globals.css 의 «다크 다리»가 --n-100 을 바꾸고, `.editor-shell .bg-green-700` 을 되돌린다).
+          이름을 바꾸면 어두운 화면에서 막대가 사라진다. */}
+      <div
+        role="progressbar"
+        aria-label="홈페이지 완성도"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        aria-valuetext={`100점 중 ${pct}점`}
+        className="overflow-hidden rounded-full bg-n-100"
+        style={{ height: "var(--s-3)" }}
+      >
+        <div
+          className="h-full bg-green-700"
+          style={{
+            transformOrigin: "left",
+            transform: `scaleX(${shown / 100})`,
+            /* --dur-2(200ms)는 «차오른다»기보다 «툭» 나타난다. 대표님이 원하신 건 부드럽게 차오르는
+               모습이라 같은 변수의 4배를 쓴다. 새 숫자를 만들지 않으려고 calc 로 곱했다. */
+            transition: "transform calc(var(--dur-2) * 4) var(--ease)",
+            willChange: "transform",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
