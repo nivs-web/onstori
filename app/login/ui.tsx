@@ -89,6 +89,26 @@ export function LoginUi() {
     location.href = `/auth/kakao?next=${encodeURIComponent(next)}`;
   }
 
+  /**
+   * 🔴 **「우리 쪽 메일이 안 나간 것」인가.** (2026-09-17 지시 [28])
+   *
+   * ⚠ **이 구별이 없으면 사장님께 거짓말을 합니다.** 2026-09-17 실측 —
+   *   조직 «밖» 주소로 가입하면 Supabase 가 **500 `Error sending confirmation email`** 을 주고
+   *   **계정이 아예 안 만들어집니다.** 그런데 화면은 「주소를 확인하세요」라고 했습니다.
+   *   사장님은 자기 이메일이 틀린 줄 알고 **몇 번이고 다시 칩니다.** 그러다 떠납니다.
+   *
+   * ★ 지금 그런 이유: Supabase **기본 메일**은 「시간당 2통 · 조직 구성원 주소만」입니다.
+   *   자체 SMTP 를 붙이면 사라집니다 — `docs/WAITING.md` 에 대표님 판단으로 올려 두었습니다.
+   */
+  function isMailDown(msg: string, status?: number): boolean {
+    return /sending|smtp|rate limit|over_email_send|not authorized/i.test(msg) || status === 429 || status === 500;
+  }
+
+  /** 🔴 메일이 안 나갔을 때 하는 말 — **주소 탓을 하지 않는다.** 그리고 갈 길을 준다 */
+  const MAIL_DOWN =
+    "지금은 저희 쪽에서 메일을 보내지 못하고 있어요. 사장님 주소 문제가 아닙니다. " +
+    "잠시 후 다시 해 보시거나, 위의 [카카오로 시작하기]를 눌러 주세요.";
+
   /** 로그인 실패 뒤 — 「혹시 카카오로 시작하신 분인가」만 물어본다(`/api/auth/how` 머리말 참조) */
   async function askKakaoOnly(addr: string): Promise<boolean> {
     try {
@@ -128,6 +148,9 @@ export function LoginUi() {
     });
     setBusy(false);
     if (error) {
+      /* 🔴 **메일이 안 나간 것과 주소가 이상한 것을 «갈라서» 말한다**(2026-09-17 지시 [28]).
+         갈라 놓지 않으면 사장님이 자기 주소를 탓하며 몇 번이고 다시 칩니다. */
+      if (isMailDown(error.message, (error as { status?: number }).status)) { setErr(MAIL_DOWN); return; }
       /* 이미 있는 메일이면 Supabase 가 «가짜 성공»을 주기도 한다(계정 캐내기 방지).
          그래서 오류 문구도 「이미 있다」를 단정하지 않는다. */
       setErr("가입하지 못했어요. 주소를 확인하시거나, 이미 계정이 있으시면 [비밀번호를 잊으셨나요?]를 눌러 주세요.");
@@ -148,10 +171,17 @@ export function LoginUi() {
   async function forgot(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(""); setKakaoHint(false);
-    await sb.auth.resetPasswordForEmail(email.trim(), {
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${location.origin}/login/new-password?next=${encodeURIComponent(next)}`,
-    }).catch(() => null);
+    }).catch((e: Error) => ({ error: e }));
     setBusy(false);
+    /* 🔴 **메일이 «안 나간» 것을 삼키지 않는다**(2026-09-17 지시 [28] 3번).
+       전에는 무슨 일이 있어도 「메일을 보냈어요」를 띄웠습니다 — 못 보냈을 때도 그랬습니다.
+       사장님은 오지 않는 메일을 **영영 기다립니다.** 그건 침묵보다 나쁩니다.
+       ⚠ **「없는 주소」는 여전히 구별해 주지 않습니다** — 그때는 Supabase 가 200 을 주고,
+         우리도 「보냈어요」를 그대로 띄웁니다(계정 캐내기 방지). 갈라지는 것은 «우리 쪽 고장»뿐입니다.
+       ⚠ SMTP 를 제대로 붙이면 이 오류는 드물어집니다. 그때는 이 갈래가 거의 안 쓰입니다. */
+    if (error && isMailDown(error.message, (error as { status?: number }).status)) { setErr(MAIL_DOWN); return; }
     setSentKind("reset"); setStep("sent");
   }
 
