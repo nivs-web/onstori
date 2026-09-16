@@ -11,7 +11,7 @@ import { sectionVisibility } from "@/lib/page-sections";
 import { BIZ } from "@/config/company";
 /* ⚠ `CHANNELS_PITCH`(상수) 대신 `channelsPitch(저장값)` 을 쓴다 — 지시 [9] */
 import { channelsPitch, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
-import { COPY, BILLING_INTERVAL, TRIAL_DAYS } from "@/lib/trial";
+import { COPY, TRIAL_DAYS } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
 import { MarkStack, MarkSearch, MarkVoice } from "@/components/site/marks";
 
@@ -308,7 +308,9 @@ export default async function Home() {
               <p className="chip chip-accent">가장 많이 선택</p>
               <h2 className="t-h2" style={{ marginTop: "var(--s-4)" }}>
                 정회원 <span style={{ color: "var(--accent)" }}>{COPY.priceOnly}</span>
-                <span className="t-h3" style={{ fontWeight: "var(--w-semi)" }}> ({BILLING_INTERVAL} 구독 요금제)</span>
+                {/* ⚠ 괄호를 손으로 적지 않는다 — `COPY.priceSuffix` 한 곳에서 읽는다(2026-09-17 지시 [24]).
+                    손으로 적었더니 「부가세 포함」이 더해질 때 **이 두 곳만 옛 문장으로 남았다.** */}
+                <span className="t-h3" style={{ fontWeight: "var(--w-semi)" }}> {COPY.priceSuffix}</span>
               </h2>
               <p className="t-body" style={{ marginTop: "var(--s-2)", color: "var(--n-300)" }}>
                 {TRIAL_DAYS}일 동안 전 기능 무료로 써 보시고, 마음에 드시면 {COPY.priceLine}로 계속 쓰시면 됩니다. 언제든 해지하실 수 있습니다.
@@ -530,7 +532,7 @@ export default async function Home() {
           </ol>
           <p className="t-display" style={{ marginTop: "var(--s-6)" }}>
             정회원 <span style={{ color: "var(--accent)" }}>{COPY.priceOnly}</span>
-            <span className="t-h2" style={{ fontWeight: "var(--w-semi)" }}> ({BILLING_INTERVAL} 구독 요금제)</span>
+            <span className="t-h2" style={{ fontWeight: "var(--w-semi)" }}> {COPY.priceSuffix}</span>
           </p>
           {/* ⚠ t-small(15px) 이라 안 읽혔다 — t-body(17px) 로 키우고 색도 --text 로 올린다(2026-09-07 회장님) */}
           <p className="t-body measure mx-auto" style={{ marginTop: "var(--s-4)", color: "var(--n-200)" }}>
