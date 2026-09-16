@@ -81,7 +81,21 @@ function sb() {
  *   `seeds/*.json` 에서 오는 것은 전부 예시다. 그 밖에 DB 에 있는 예시는 여기 적는다.
  * ⚠ 여기에 진짜 사장님 주소를 적지 마라 — 그분 홈페이지에 「예시」가 붙는다.
  */
-export const SAMPLE_SLUGS = new Set(["sample-interior"]);
+export const SAMPLE_SLUGS = new Set(["sample-interior", "sample-toss"]);
+
+/**
+ * ★★ **검색에서 «지우는» 예시** — 이 목록에 있으면 `noindex` 가 붙는다. (2026-09-17 지시 [22])
+ *
+ * ⚠ **`SAMPLE_SLUGS` 와 다른 목록이다. 합치지 마라.** 둘은 서로 다른 질문에 답한다:
+ *   · `SAMPLE_SLUGS` = 「예시인가」 → 「예시」 표시 · 사이트맵 제외 · 구조화 데이터 제외
+ *   · 여기          = 「검색에서 지울 것인가」 → `noindex`
+ *
+ * ★ `sample-interior` 는 **여기 없다. 넣지 마라.** 그 화면은 유튜브·인스타 심사관이 검색으로도
+ *   찾아 볼 수 있어야 한다(2026-09-16 지시 [8] — 「사이트맵에서 빼기」와 「검색에서 지우기」는 다르다).
+ * ★ `sample-toss` 는 **토스 심사 때만 쓰는 껍데기**라 검색에 아예 없는 편이 맞다.
+ *   권반장 지시 [22]: 「🔴 `noindex` + 사이트맵 제외. 없는 업체가 구글에 색인되면 안 됩니다.」
+ */
+export const NOINDEX_SLUGS = new Set(["sample-toss"]);
 
 async function getFromDb(slug: string): Promise<SiteData | null> {
   const client = sb();

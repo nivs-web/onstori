@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { isAdmin } from "@/lib/admin-auth";
 import { localBusinessJsonLd } from "@/lib/jsonld";
-import { getSiteBySlug, getPausedSite } from "@/lib/sites";
+import { getSiteBySlug, getPausedSite, NOINDEX_SLUGS } from "@/lib/sites";
 import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
@@ -68,6 +68,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
      *   (완성도 75점 · 올바른 전화번호 · 한 번이라도 직접 고침).
      *   여기서 막는 것이 아니다 — **우리가 «먼저 알리지» 않을 뿐, 「지우라」고는 하지 않는다.**
      */
+    /* 🔴 **토스 심사용 껍데기는 검색에서 아예 뺀다** (2026-09-17 지시 [22]).
+       목록은 `lib/sites.ts` 의 `NOINDEX_SLUGS` 하나다 — 여기에 슬러그를 손으로 적지 마라.
+       ⚠ `sample-interior` 는 그 목록에 **없다.** 심사관이 검색으로도 찾아 볼 수 있어야 한다. */
+    ...(NOINDEX_SLUGS.has(slug) ? { robots: { index: false, follow: false } } : {}),
     alternates: { canonical: url },
     openGraph: {
       title: site.doc.businessName,
