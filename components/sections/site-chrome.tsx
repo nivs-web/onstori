@@ -193,7 +193,7 @@ function TopBar({
               className="t-small inline-flex items-center justify-center font-semibold"
               style={{ minHeight: "var(--tap)", paddingInline: "var(--btn-px)", borderRadius: "var(--r-md)", background: "var(--s-accent)", color: "var(--s-on-accent)" }}
             >
-              견적 문의
+              {INQUIRY_CTA_LABEL}
             </a>
           ) : tel ? (
             <a

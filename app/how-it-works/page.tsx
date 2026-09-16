@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CHANNELS_LINE_MARKED, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
+/* ⚠ SNS 한 줄은 `CHANNELS_LINE_MARKED` 를 직접 쓰지 않는다 — 대표님이 `/admin/copy` 에서
+   저장하신 값이 이긴다(2026-09-16 지시 [9]). 저장하신 적이 없으면 그 상수가 그대로 기본값이다. */
+import { CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
+import { readConfig } from "@/lib/admin-config";
 import { COPY } from "@/lib/trial";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { RecMockup, SpeechToStory } from "@/components/site/blocks";
@@ -10,13 +13,15 @@ import { QuestionShuffle } from "@/components/site/question-shuffle";
 export const metadata: Metadata = { title: "작동방식 — 온스토리", description: `문자 링크 하나로 매주 60초. 홈페이지와 영상이 되어 ${LIVE_COUNT}곳에 퍼집니다. (나머지는 준비 중)` };
 
 /** 작동방식 — 색·간격·글자는 app/globals.css 토큰만 쓴다 (docs/DESIGN.md) */
-export default function HowItWorks() {
+export default async function HowItWorks() {
+  /* ⚠ 서버에서만 돈다. 표가 없거나 오류면 `readConfig()` 가 **기본값**으로 떨어져 화면이 안 죽는다 */
+  const cfg = await readConfig();
   const steps = [
     ["홈페이지가 먼저 생깁니다", "오늘 · 3분", "상호명과 업종만 고르면 온스토리가 문구·사진·구조를 채워 onstori.com/name 을 만듭니다. ${COPY.trialShort}."],
     ["매주 질문이 문자로 옵니다", "주 1회 (원하면 매일)", "\"이 일을 시작한 이유는요?\" 같은 질문 4개 중 하나. 마음에 안 들면 [랜덤 질문 바꾸기]."],
     ["링크를 누르고 60초 말합니다", "60초", "브라우저가 열리고 3·2·1 뒤 녹화. 얼굴이 싫으면 '음성만'. 다시 찍기는 무제한."],
     ["온스토리가 영상·글·사진 카드를 만듭니다", "30분", "무음 컷 · 한글 자막 · 쇼츠·릴스 규격 · 원문/1인칭/3인칭 글 · 캡션 6종 · 사진 카드."],
-    [`${LIVE_COUNT}곳에 퍼집니다`, "하루 최대 3건", `${CHANNELS_LINE_MARKED}.`],
+    [`${LIVE_COUNT}곳에 퍼집니다`, "하루 최대 3건", `${cfg.snsLine}.`],
     ["홈페이지에 쌓입니다", "계속", "이야기가 늘수록 검색에 잡히는 페이지가 늘고, \"작업 기록 47건\"이 말이 아니라 기록으로 증명됩니다."],
   ];
   return (

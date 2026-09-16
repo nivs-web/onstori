@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { sitemapVerdict, SITEMAP_MIN_SCORE } from "@/lib/indexable";
+import { SAMPLE_SLUGS } from "@/lib/sites";
 import { readConfig } from "@/lib/admin-config";
 
 /**
@@ -69,6 +70,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           phone: (s.settings as { phone?: unknown } | null)?.phone,
           firstEditAt: funnel.first_edit_at ?? null,
         }, { indexTrial: cfg.indexTrial });
+        /* 🔴 **예시 홈페이지는 사이트맵에 싣지 않는다.** (2026-09-16 권반장 지시 [8])
+           `sample-interior`(「다산 리모델링」)는 **존재하지 않는 업체**다. 지금은 속이 비어 점수가
+           낮아 «우연히» 안 실릴 뿐이고, 유튜브 심사용으로 채우면 문턱을 넘어 **들어가 버린다.**
+           그러면 없는 가게가 구글에 색인되고, 그 손해는 `onstori.com` 이라는 **한 도메인 평판을
+           나눠 쓰는 모든 사장님**에게 간다.
+         ⚠ **`sites` 표에는 `sample` 칸이 없다** (`supabase/migrations/20260831120000_core.sql`).
+           예시 여부의 단일 출처는 `lib/sites.ts` 의 `SAMPLE_SLUGS` 다 (2026-09-13 지시 13).
+           조회 `select` 에 `sample` 을 적으면 PostgREST 가 400 을 내고 그 오류를 아래 `catch` 가
+           삼켜 **사이트맵이 통째로 빈다.** 그래서 «칸을 읽는» 대신 «목록으로 거른다».
+         ⚠ `gated` 와 **상관없이** 뺀다. 열쇠가 없으면 완성도 문턱은 꺼지지만, 없는 가게를
+           구글에 미는 것은 그때도 똑같이 안 된다.
+         ⚠ 여기서 하는 것은 «미는 힘»을 빼는 것뿐이다 — `app/[slug]/page.tsx` 의 noindex 는
+           건드리지 않았다. 심사관은 예시를 열어 봐야 한다 (`lib/indexable.ts` 머리말 참고). */
+        if (SAMPLE_SLUGS.has(s.slug as string)) { skipped.sample = (skipped.sample ?? 0) + 1; continue; }
         if (gated && !v.ok) { skipped[v.why] = (skipped[v.why] ?? 0) + 1; continue; }
         entries.push({
           url: `${base}/${s.slug}`,

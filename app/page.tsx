@@ -4,10 +4,13 @@ import { Portfolio, loadShowcase } from "@/components/portfolio";
 import { PromoBar, SiteHeader, SiteFooter } from "@/components/site/chrome";
 import { ChannelStrip, RecMockup, SpeechToStory, CompareCallout, FaqList } from "@/components/site/blocks";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
-import { FAQ_FEATURED } from "@/config/faq";
+import { faqFeatured } from "@/config/faq";
+/* ⚠ SNS 한 줄은 `/admin/copy` 저장값이 이긴다 (2026-09-16 지시 [9]) */
+import { readConfig } from "@/lib/admin-config";
 import { sectionVisibility } from "@/lib/page-sections";
 import { BIZ } from "@/config/company";
-import { CHANNELS_PITCH, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
+/* ⚠ `CHANNELS_PITCH`(상수) 대신 `channelsPitch(저장값)` 을 쓴다 — 지시 [9] */
+import { channelsPitch, CHANNEL_COUNT, LIVE_COUNT } from "@/config/channels";
 import { COPY, BILLING_INTERVAL, TRIAL_DAYS } from "@/lib/trial";
 import { SectionGate } from "@/components/site/section-gate";
 import { MarkStack, MarkSearch, MarkVoice } from "@/components/site/marks";
@@ -40,7 +43,8 @@ export const revalidate = 60;
  */
 export default async function Home() {
   // ⚠ 두 번을 이어서 기다리지 않는다. 순서대로 하면 왕복이 두 번 쌓인다.
-  const [show, items] = await Promise.all([sectionVisibility(), loadShowcase()]);
+  const [show, items, cfg] = await Promise.all([sectionVisibility(), loadShowcase(), readConfig()]);
+  const FAQ_FEATURED = faqFeatured(cfg.snsLine);
   const heroSite = items.find((i) => i.featured) ?? items[0];
 
   return (
@@ -205,7 +209,7 @@ export default async function Home() {
               ["60초 영상", "매주(혹은 매일) 질문 하나에 60초. 아직도 타이핑하고 계신가요? 목소리가 있어야 고객이 신뢰합니다."],
               /* ★ 제목의 숫자에도 «지금 몇 곳»을 함께 적는다. 설명(CHANNELS_PITCH)은
                  이름마다 (준비 중) 을 달고 마지막에 PENDING_NOTE 를 붙인다 */
-              [`${CHANNEL_COUNT}곳 동시 발행 — 지금 ${LIVE_COUNT}곳`, CHANNELS_PITCH],
+              [`${CHANNEL_COUNT}곳 동시 발행 — 지금 ${LIVE_COUNT}곳`, channelsPitch(cfg.snsLine)],
             ].map(([t, d]) => (
               <div key={t} className="card" style={{ padding: "var(--s-5)" }}>
                 <h3 className="t-h3">{t}</h3>

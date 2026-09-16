@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero, CtaBand } from "@/components/site/chrome";
 import { FaqList } from "@/components/site/blocks";
-import { FAQ } from "@/config/faq";
+import { faqGroups } from "@/config/faq";
+/* ⚠ SNS 한 줄은 `/admin/copy` 저장값이 이긴다 (2026-09-16 지시 [9]) */
+import { readConfig } from "@/lib/admin-config";
 
 export const metadata: Metadata = { title: "자주묻는질문 — 온스토리", description: "온스토리란 · 요금 · 녹화 · 질문 · 발행 · 홈페이지 · 개인정보. 궁금한 것부터." };
 
 /** 자주묻는질문 — 내용의 단일 출처는 config/faq.ts. 색·간격은 globals.css 토큰. */
-export default function FaqPage() {
+export default async function FaqPage() {
+  const cfg = await readConfig();
+  const FAQ = faqGroups(cfg.snsLine);
   return (
     <main className="min-h-svh surface-0">
       <PromoBar />

@@ -1,5 +1,8 @@
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { telValue } from "@/lib/phone";
+// 목차는 «버튼 글자» 가 아니라 «그 자리 폼의 실제 제목」을 따라간다 (T-0008, CTO 결정).
+// SiteDocT 에 template 이 이미 있어(lib/schema.ts) 업종별 formTitle 을 가져올 수 있다 — 구조를 새로 만들지 않는다.
+import { TEMPLATE_WORDS } from "@/config/industries";
 
 /**
  * 손님 사이트의 «차례»와 «연락처» — **렌더러가 없는 잎 모듈** (2026-09-10, V-1 B).
@@ -30,7 +33,12 @@ export function SECTION_ANCHORS(doc: SiteDocT): { href: string; label: string }[
   const fallback: Partial<Record<SectionT["type"], string>> = {
     about: "소개", storyFeed: "작업 기록", gallery: "사진", portfolioGallery: "시공 사례",
     processSteps: "진행 과정", reviews: "후기", menuPrice: "가격", hoursCard: "영업시간",
-    map: "오시는 길", quoteForm: "견적 문의", video: "영상",
+    map: "오시는 길",
+    // 목차 이름 = 그 자리 폼의 실제 제목(업종별 formTitle). 버튼 글자(문의하기)와는 다르게 둔다 —
+    // 예: 시공업은 「견적 문의」, 학원은 「수업 문의」. 실제로는 section.title 이 항상 이 값으로
+    // 채워져 있어(lib/generate.ts) 여기까지 오는 건 title 이 비어 있는 예외 경로뿐이다.
+    quoteForm: TEMPLATE_WORDS[doc.template].formTitle,
+    video: "영상",
   };
   const seen = new Set<string>();
   /** 이미 쓴 «이름» — 앵커가 달라도 이름이 같으면 손님이 구분을 못 한다 */

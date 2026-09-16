@@ -1,7 +1,10 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
-import { CHANNELS_LINE_MARKED, PENDING_NOTE } from "@/config/channels";
+/* ⚠ 미리보기는 «지금 실제로 나가는 값»을 보여야 정직하다 — `/admin/copy` 저장값이 이긴다
+   (2026-09-16 지시 [9]). 코드 기본값 `CHANNELS_LINE_MARKED` 는 `defaultConfig()` 안에 있다. */
+import { PENDING_NOTE } from "@/config/channels";
+import { readConfig } from "@/lib/admin-config";
 import { SITEMAP_MIN_SCORE } from "@/lib/indexable";
 /* ★ 기간 숫자를 손으로 적지 않는다 — 요금·기간의 유일한 출처는 lib/trial.ts 다(CLAUDE.md 규칙 9) */
 import { TRIAL_DAYS } from "@/lib/trial";
@@ -38,6 +41,7 @@ function Ok({ on, yes, no }: { on: boolean; yes: string; no: string }) {
 
 export default async function SeoAdmin() {
   if (!(await isAdmin())) return <AdminLogin />;
+  const cfg = await readConfig();
 
   const naver = (process.env.NAVER_SITE_VERIFICATION ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const google = (process.env.GOOGLE_SITE_VERIFICATION ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -159,7 +163,7 @@ export default async function SeoAdmin() {
           아래 한 줄은 <b>온스토리 전체 홈페이지의 핵심 키워드이자 핵심 문구</b>입니다(2026-09-15 대표님).
           <b> AI 는 이 문구를 대표님 허락 없이 바꾸지 않습니다.</b> 채널이 열리면 권한다고 «말씀만» 드립니다.
         </p>
-        <div className="mt-3 rounded-xl bg-n-50 p-3 t-small font-semibold">{CHANNELS_LINE_MARKED}</div>
+        <div className="mt-3 rounded-xl bg-n-50 p-3 t-small font-semibold">{cfg.snsLine}</div>
         <p className="mt-2 t-caption text-[var(--text-soft)]">{PENDING_NOTE}</p>
         <p className="mt-3 t-small">
           <b>바꾸는 곳은 한 곳입니다</b> — <code>config/channels.ts</code> 의 <code>live</code> 값.
