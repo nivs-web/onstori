@@ -16,6 +16,33 @@ import { purgeSnsForSite } from "@/lib/sns/maintenance";
  *
  * 환불(청약철회)은 별개다. 약관 제5조 참조 — 이 라우트는 "다음 달부터 안 받기"만 한다.
  */
+/**
+ * ★★ **GET — 아무것도 바꾸지 않는다.** 「해지 안내 화면」이 «언제까지 쓰시는지»를 물어보는 자리다.
+ *   (2026-09-17 지시 [29])
+ *
+ * ⚠ 전에는 그 날짜를 **해지한 «뒤»에야** 알려 줬다. 그래서 안내 화면이
+ *   「이미 결제하신 **달**은 그대로 쓰실 수 있어요」처럼 **뭉뚱그린 말**밖에 못 했다.
+ *   권반장 지시: 「화면에 **「○월 ○일까지 그대로 쓰실 수 있어요」**를 남겨 주십시오.」
+ *   ⇒ 누르기 «전»에 그 날짜를 먼저 보여 드리려면 여기서 읽어야 한다.
+ * ⚠ 주인 확인은 POST 와 **똑같다**(`loadOwnedSite`). 남의 결제일을 캐낼 수 없다.
+ */
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const slug = url.searchParams.get("slug") ?? "";
+  const anonId = url.searchParams.get("anonId") ?? undefined;
+  const owned = await loadOwnedSite(slug, anonId);
+  if ("error" in owned) {
+    return NextResponse.json({ error: owned.error }, { status: owned.error === "forbidden" ? 403 : 404 });
+  }
+  const { data: bill } = await sbAdmin()
+    .from("billing").select("status, next_charge_at").eq("site_id", owned.site.id).maybeSingle();
+  return NextResponse.json({
+    /** 살아 있는 자동결제가 있나 — 없으면 화면이 「해지할 것이 없어요」로 갈린다 */
+    active: !!bill && bill.status !== "canceled",
+    paidUntil: bill?.next_charge_at ?? null,
+  });
+}
+
 export async function POST(req: Request) {
   const { slug, anonId } = await req.json().catch(() => ({}));
   if (typeof slug !== "string") return NextResponse.json({ error: "bad-input" }, { status: 400 });

@@ -121,7 +121,7 @@ export default function TermsPage() {
           </p>
         </Sec>
 
-        <Sec n="5" title="청약철회와 환불">
+        <Sec n="5" id="refund" title="청약철회와 환불">
           <p className="t-body" style={{ color: "var(--muted)" }}>
             날짜는 대한민국 시간 기준입니다. 영업일은 토요일·일요일·공휴일을 뺀 날입니다.
             금액을 계산할 때 1원 미만은 <b>사장님께 유리한 쪽</b>으로 합니다 — 뺄 금액은 버리고, 드릴 금액은 올립니다.

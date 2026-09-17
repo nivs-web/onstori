@@ -77,16 +77,40 @@ export function CancelSubscription({ slug, paidUntilLabel }: { slug: string; pai
   const router = useRouter();
   const [step, setStep] = useState<"idle" | "confirm" | "busy" | "done">("idle");
   const [msg, setMsg] = useState("");
+  /** 「○월 ○일까지 그대로 쓰실 수 있어요」 — 누르기 «전»에 보여 드린다 */
+  const [until, setUntil] = useState<string | null>(null);
+
+  const anon = () => { try { return localStorage.getItem("onstori:anonId") ?? undefined; } catch { return undefined; } };
+  const fmt = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? `${d.getMonth() + 1}월 ${d.getDate()}일` : "";
+  };
+
+  /**
+   * ★ **안내 화면을 열기 «전»에 날짜부터 물어본다.** (2026-09-17 지시 [29])
+   *   ⚠ 못 읽어도 화면은 연다 — 날짜 하나 때문에 해지를 막으면 그게 더 나쁘다(전자상거래법 제21조의2).
+   */
+  async function open() {
+    setStep("confirm"); setMsg("");
+    try {
+      const q = new URLSearchParams({ slug, ...(anon() ? { anonId: anon()! } : {}) });
+      const r = await fetch(`/api/billing/cancel?${q}`);
+      const d = (await r.json().catch(() => ({}))) as { paidUntil?: string | null };
+      if (r.ok && d.paidUntil) setUntil(d.paidUntil);
+    } catch { /* 날짜를 못 읽어도 그냥 연다 */ }
+  }
 
   async function cancel() {
     setStep("busy"); setMsg("");
     try {
       const r = await fetch("/api/billing/cancel", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId: (() => { try { return localStorage.getItem("onstori:anonId") ?? undefined; } catch { return undefined; } })() }),
+        body: JSON.stringify({ slug, anonId: anon() }),
       });
       const d = (await r.json().catch(() => ({}))) as { error?: string; paidUntil?: string };
       if (!r.ok) throw new Error(d.error ?? "해지 처리에 실패했어요");
+      if (d.paidUntil) setUntil(d.paidUntil);
       setStep("done");
       router.refresh();
     } catch (e) {
@@ -95,18 +119,51 @@ export function CancelSubscription({ slug, paidUntilLabel }: { slug: string; pai
     }
   }
 
+  const untilLabel = fmt(until) || paidUntilLabel || "";
+
   if (step === "done") {
-    return <p className="t-caption font-semibold" style={{ color: "var(--green-700)" }}>해지됐습니다. 결제하신 달까지는 그대로 쓰실 수 있어요.</p>;
+    return (
+      <p className="t-caption font-semibold" style={{ color: "var(--green-700)" }}>
+        해지됐습니다. {untilLabel ? `${untilLabel}까지는 그대로 쓰실 수 있어요.` : "결제하신 회차는 마지막 날까지 그대로 쓰실 수 있어요."}
+      </p>
+    );
   }
 
   return (
     <div className="text-right">
       {step === "confirm" ? (
+        /**
+         * ★★★ **해지 안내 화면** — 대표님 지시 [29] ②.
+         *   「결제 관리 들어가면 해지 버튼 있고 **해지 안내 페이지** 있고, 그 다음에 해지 누르면 해지」
+         *
+         * 🔴 **다섯 가지는 «약관 제5조»에서 그대로 옮겼다. 새로 쓰지 않았다.**
+         *   약관과 화면이 다르면 그게 분쟁이다(권반장 지시). 그래서 아래에 **［환불 규정 보기］**로
+         *   제5조를 바로 열 수 있게 두었다 — 손님이 두 글을 맞대 볼 수 있어야 한다.
+         *
+         * 🔴 **다크패턴을 만들지 않는다**(전자상거래법 제21조의2):
+         *   · 확인은 **한 번**뿐이다. 「정말요?」를 두 번 묻지 않는다
+         *   · ［해지하기］를 숨기거나 흐리게 하지 않는다 — ［그대로 두기］와 **같은 크기**다
+         *   · 할인·쿠폰으로 붙잡지 않는다(그런 것이 있지도 않다)
+         *   · 화면에서 끝난다. 전화·메일을 요구하지 않는다
+         */
         <div className="rounded-xl border p-3 text-left" style={{ borderColor: "var(--n-200)" }}>
-          <p className="t-caption" style={{ color: "var(--text-strong)" }}>
-            다음 달부터 청구되지 않습니다.{paidUntilLabel ? ` 이미 결제하신 ${paidUntilLabel}까지는 그대로 쓰실 수 있어요.` : " 이미 결제하신 달은 그대로 쓰실 수 있어요."}
-          </p>
-          <div className="mt-2 flex justify-end gap-2">
+          <p className="t-small font-bold" style={{ color: "var(--text-strong)" }}>해지하면 이렇게 됩니다</p>
+          <ul className="mt-2 space-y-1.5 t-caption" style={{ color: "var(--text-strong)" }}>
+            <li>
+              <b>언제까지 쓰나요</b> — 이미 결제하신 회차는{untilLabel ? <> <b>{untilLabel}까지</b></> : " 마지막 날까지"} 그대로 쓰십니다.
+              다음 회차부터 청구되지 않고, <b>위약금·해지 수수료는 없습니다.</b>
+            </li>
+            <li><b>홈페이지는요</b> — 그 회차가 끝나면 <b>비공개</b>로 바뀝니다. <b>지워지지 않습니다.</b></li>
+            <li><b>제 자료는요</b> — <b>그대로 보관</b>됩니다.</li>
+            <li><b>다시 오시려면</b> — <b>결제 한 번이면 바로 다시 공개</b>됩니다.</li>
+            <li>
+              <b>환불되나요</b> — 결제하신 날부터 <b>7일 이내</b>면 그 회차 금액을 <b>전액</b> 돌려드립니다.
+              그 뒤에는 남은 기간을 그대로 쓰시는 것입니다.{" "}
+              <Link href="/terms#refund" target="_blank" className="underline underline-offset-2">환불 규정 보기</Link>
+            </li>
+          </ul>
+          {/* ⚠ 두 버튼은 **같은 크기·같은 선명도**다. 해지 쪽을 작게 만들면 그게 다크패턴이다 */}
+          <div className="mt-3 flex justify-end gap-2">
             <button type="button" onClick={() => setStep("idle")} className="rounded-full border px-3 py-1.5 t-caption font-semibold" style={{ borderColor: "var(--n-200)", color: "var(--text-soft)" }}>
               그대로 두기
             </button>
@@ -116,12 +173,15 @@ export function CancelSubscription({ slug, paidUntilLabel }: { slug: string; pai
           </div>
         </div>
       ) : (
-        <button type="button" onClick={() => setStep("confirm")} disabled={step === "busy"}
-          className="t-caption font-semibold underline underline-offset-4 disabled:opacity-50" style={{ color: "var(--text-soft)" }}>
-          {step === "busy" ? "해지 중…" : "구독 해지"}
-        </button>
+        <>
+          {msg && <p className="t-caption" style={{ color: "var(--danger)" }}>{msg}</p>}
+          {/* ⚠ 가입이 웹 클릭으로 끝나면 해지도 웹 클릭으로 끝나야 한다 — 이 버튼을 숨기지 마라 */}
+          <button type="button" disabled={step === "busy"} onClick={open}
+            className="t-caption underline underline-offset-2 disabled:opacity-50" style={{ color: "var(--text-soft)" }}>
+            {step === "busy" ? "해지하는 중…" : "구독 해지"}
+          </button>
+        </>
       )}
-      {msg && <p className="mt-1 t-caption text-danger">{msg}</p>}
     </div>
   );
 }

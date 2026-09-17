@@ -31,6 +31,8 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
   const [openEvent, setOpenEvent] = useState(false);
   /** 등급 바꾸기 칸 (2026-09-17 지시 [23]) — 「올리기」인지 「내리기」인지 */
   const [openGrade, setOpenGrade] = useState<null | "up" | "down">(null);
+  /** 🔴 자동결제가 걸려 내리기가 막힌 곳 — 그 자리에서 풀 수 있게 한다 (2026-09-17 지시 [29]) */
+  const [needCancel, setNeedCancel] = useState<string | null>(null);
   /** 내릴 때 어디로 — 기본은 무료체험(지시 3번) */
   const [downTo, setDownTo] = useState<"trial" | "suspended">("trial");
   const [months, setMonths] = useState(3);
@@ -75,11 +77,47 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
         body: JSON.stringify({ mode, slugs, months, reason, to }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setErr(String(d.error ?? `실패했어요 (${r.status})`)); return; }
+      if (!r.ok) {
+        setErr(String(d.error ?? `실패했어요 (${r.status})`));
+        /* 🔴 409 = 「자동결제가 걸려 있어 못 내린다」. 막기만 하고 **어디서 푸는지**를 안 알려 주면
+           운영자가 벽 앞에 선다(2026-09-17 지시 [29]). 그 자리에서 풀 길을 띄운다. */
+        setNeedCancel(r.status === 409 ? slugs[0] : null);
+        return;
+      }
+      setNeedCancel(null);
       setMsg(mode === "grade"
         ? `등급을 바꿨습니다 (${d.from} → ${d.to}). 새로고침하면 표에 반영됩니다.`
         : `${d.done}곳에 적용했습니다. 새로고침하면 표에 반영됩니다.`);
       setSel(new Set()); setOpenEvent(false); setOpenGrade(null); setReason("");
+    } finally { setBusy(false); }
+  }
+
+  /**
+   * ★★ **막힌 자리에서 바로 «자동결제 해지»까지.** (2026-09-17 지시 [29])
+   *
+   * 🔴 **돈이 얽힌 자리라 확인창은 필수**다(권반장 지시). 그리고 **한 번만** 묻는다.
+   * ⚠ 해지해도 **이미 결제하신 회차는 끝까지** 쓰신다 — `api/billing/cancel` 이 그렇게 만든다.
+   *   운영자가 그 사실을 모르고 누르면 안 되므로 확인창이 그대로 말해 준다.
+   * ⚠ 해지만 하고 **등급은 안 내린다.** 두 가지를 한 번에 해 버리면 「무엇을 눌렀는지」가 흐려진다 —
+   *   해지한 뒤 ⬇ 를 다시 누르시면 그때는 막히지 않는다.
+   */
+  async function cancelBilling(slug: string) {
+    if (!confirm(`「${slug}」 의 자동결제를 해지합니다.
+
+이미 결제하신 회차는 마지막 날까지 그대로 쓰십니다.
+다음 회차부터 청구되지 않습니다.
+계속할까요?`)) return;
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const r = await fetch("/api/billing/cancel", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(String(d.error ?? `해지하지 못했어요 (${r.status})`)); return; }
+      const until = d.paidUntil ? new Date(d.paidUntil) : null;
+      setMsg(`자동결제를 해지했습니다${until && Number.isFinite(until.getTime()) ? ` (${until.getMonth() + 1}월 ${until.getDate()}일까지 그대로 쓰십니다)` : ""}. 이제 ⬇ 로 내리실 수 있습니다.`);
+      setNeedCancel(null);
     } finally { setBusy(false); }
   }
 
@@ -142,6 +180,14 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
                     ? "왜 올리나요? 예) 우리 회사 사이트 · 파트너 계약 · 오프라인 입금"
                     : "왜 내리나요? 예) 해지 요청 · 이벤트 종료 · 실수로 올림"}
                   onChange={(e) => setReason(e.target.value)} />
+                {/* 🔴 막힌 이유를 말했으면 **푸는 길도** 같은 자리에 (지시 [29]) */}
+                {needCancel && (
+                  <button type="button" disabled={busy} onClick={() => cancelBilling(needCancel)}
+                    className="rounded-full border px-3 py-1.5 t-small font-semibold disabled:opacity-40"
+                    style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+                    먼저 자동결제 해지하기
+                  </button>
+                )}
                 <button type="button"
                   disabled={busy || reason.trim().length < 2 || sel.size !== 1}
                   onClick={() => run("grade", openGrade === "up" ? "active" : downTo)}
