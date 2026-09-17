@@ -2066,14 +2066,22 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
 
 /* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
+/* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 «크게».**
+   ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨습니다. **위치는 아직 안 옮겼습니다** —
+     권반장이 릴스·쇼츠의 실제 배치를 조사 중이라, 두 번 옮기면 낭비입니다.
+   ★ 대신 **글자 「나가기」를 함께** 넣었습니다. ✕ 하나만으로는 「닫기인가 지우기인가」가 안 읽힙니다. */
 .world-x {
   position: absolute; top: var(--s-4); right: var(--s-4);
-  width: 52px; height: 52px;
-  display: grid; place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.35); border-radius: 999px;
-  background: rgb(0 0 0 / 0.5);
-  color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--tap);
+  padding: 12px 20px;
+  border: 1.5px solid rgb(255 255 255 / 0.75); border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: 20px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px);
 }
+.world-x:hover { background: rgb(0 0 0 / 0.85); }
+.world-x-say { font-size: var(--t-small); font-weight: 700; }
 .world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .world-count {
   position: absolute; top: calc(var(--s-4) + 16px); left: var(--s-4);
@@ -2082,7 +2090,7 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 }
 
 .world-arrow {
-  position: absolute; top: 50%; transform: translateY(-50%);
+  position: absolute;
   width: 56px; height: 56px;
   display: grid; place-items: center;
   border: 1px solid rgb(255 255 255 / 0.3); border-radius: 999px;
@@ -2091,8 +2099,10 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 }
 .world-arrow:disabled { opacity: 0.25; cursor: default; }
 .world-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-.world-arrow.left { left: var(--s-5); }
-.world-arrow.right { right: var(--s-5); }
+/* 🔴 **위아래**다(2026-09-17 지시 [35]③) — 릴스·쇼츠·틱톡 전부 위아래이고 대표님 말씀도 그렇다.
+   ⚠ 전에는 좌우(‹ ›)였다. 「모든 숏폼은 위아래 아닌가?」 — 맞습니다. */
+.world-arrow.up { top: var(--s-6); left: 50%; transform: translateX(-50%); }
+.world-arrow.down { top: auto; bottom: var(--s-6); left: 50%; transform: translateX(-50%); }
 
 /* 「← → 로 넘기고, ESC 로 나가요」 — 열린 직후 한 번만 */
 /* ⚠ 캡션 위로 올린다 — 실측에서 «이번 주 가장 바빴던 순간은요?» 와 겹쳤다 */

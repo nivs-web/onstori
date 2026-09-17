@@ -186,7 +186,28 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     return () => { document.body.style.overflow = prev; window.scrollTo(0, y); };
   }, [world]);
 
-  /* ← → 로 넘기고, ESC 로 나간다 (지시 2번) */
+  /**
+   * 🔴 **마우스 휠로 위아래.** (2026-09-17 대표님 지시 [35]③)
+   *   대표님: 「**좌우 화살표로 영상 돌리는 게 익숙하지 않을 듯. 모든 숏폼은 위아래 아닌가?**
+   *     마우스 휠로 돌려서 위아래 영상 바꾸기가 좋을까?」 — 릴스·쇼츠·틱톡 전부 위아래가 맞습니다.
+   * ⚠ 휠은 **한 번에 여러 번** 들어온다(관성). 그대로 두면 한 번 굴려 다섯 편이 지나간다.
+   *   그래서 **한 번 넘기면 잠깐 잠근다.**
+   */
+  useEffect(() => {
+    if (world === null) return;
+    let lock = 0;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now < lock || Math.abs(e.deltaY) < 8) return;
+      lock = now + 420;
+      setWorld((i) => Math.min(items.length - 1, Math.max(0, (i ?? 0) + (e.deltaY > 0 ? 1 : -1))));
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [world, items.length]);
+
+  /* ↑ ↓ (그리고 ← →) 로 넘기고, ESC 로 나간다 (지시 2번 · [35]③) */
   useEffect(() => {
     if (world === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -291,8 +312,12 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
 
           {/* 🔴 「탭하면 소리」 — 첫 편에서 잠깐. 켜면 사라진다 */}
           {showHint && (
+            /* 🔴🔴 **스피커는 «하나»뿐이어야 한다.** (2026-09-17 대표님 폰 실측 · 지시 [35]①)
+               대표님: 「폰으로 테스트 했는데 **스피커 2개 나오네????** 아무튼 **스피커 1개**」
+               ⚠ 옛 레일이 겹친 게 아니었다(실측: 레일 0개). **이 힌트 알약이 🔇 를 하나 더**
+                 달고 큰 스피커 «바로 아래»에 떠서 둘로 보였다. 글자만 남긴다. */
             <button type="button" className="stage-hint" onClick={() => setLoud(true)}>
-              🔇 탭하면 소리가 나요
+              탭하면 소리가 나요
             </button>
           )}
 
@@ -394,19 +419,26 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
         </div>
       </div>
 
-      <button ref={closeRef} type="button" className="world-x" onClick={onClose} aria-label="숏폼피드에서 나가기">✕</button>
+      {/* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 크게.**
+          ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨는데, **권반장이 릴스·쇼츠의 실제 배치를
+            조사 중**이라 **위치는 그대로 두고 크기만** 키웠습니다 — 두 번 옮기면 낭비입니다. */}
+      <button ref={closeRef} type="button" className="world-x" onClick={onClose} aria-label="숏폼피드에서 나가기">
+        <span aria-hidden>✕</span><span className="world-x-say">나가기</span>
+      </button>
       <span className="world-count" aria-hidden>{at + 1} / {items.length}</span>
 
       {items.length > 1 && (
         <>
-          <button type="button" className="world-arrow left" aria-label="이전 영상"
-            disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}>‹</button>
-          <button type="button" className="world-arrow right" aria-label="다음 영상"
-            disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}>›</button>
+          {/* 🔴 **위아래**다(지시 [35]③). 릴스·쇼츠·틱톡 전부 위아래이고, 대표님 말씀도 그렇다.
+              ⚠ ← → 키도 «함께» 산다 — 익숙한 사람의 손을 막을 이유는 없다. */}
+          <button type="button" className="world-arrow up" aria-label="이전 영상"
+            disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}>⌃</button>
+          <button type="button" className="world-arrow down" aria-label="다음 영상"
+            disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}>⌄</button>
         </>
       )}
 
-      {help && <p className="world-help">← → 로 넘기고, ESC 로 나가요</p>}
+      {help && <p className="world-help">↑ ↓ 또는 마우스 휠로 넘기고, ESC 로 나가요</p>}
     </div>,
     document.body,
   );
