@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
+import { STAGE_MAX } from "@/config/shorts";
 
 /**
  * 🔴 **숏폼 무대** — 히어로 바로 아래에서 화면이 «까맣게» 덮이는 자리. (2026-09-17 지시 [19]①)
@@ -42,6 +43,16 @@ const HINT_MS = 2800;
 const CLOSE_SWIPE_PX = 140;
 
 export default function ShortsStage({ items, anchorId, title }: { items: ShortT[]; anchorId?: string; title: string }) {
+  /**
+   * 🔴🔴 **«가두는» 무대는 앞 12편까지.** (2026-09-17 지시 [39] · 조사 8-2 ④)
+   *
+   * ⚠ 무대 높이는 **`(편수 + 1) × 화면 하나`**다. 편수만큼 늘리면
+   *   **1000편에서 81만px** 가 되어 **스크롤바가 못 쓰게 된다.**
+   * ⇒ 무대는 **13화면으로 고정**하고, 나머지는 **「숏폼피드 세상」(전체화면)**에서 이어 본다.
+   *   세상은 **한 편씩만** 그리므로 편수가 늘어도 높이가 안 늘어난다.
+   * ★ 🔴 **「세상」에는 «전부» 넘긴다.** 무대에서 잘린 것은 **못 보는 게 아니라 거기 있다.**
+   */
+  const staged = items.length > STAGE_MAX ? items.slice(0, STAGE_MAX) : items;
   const [active, setActive] = useState(0);
   const [loud, setLoud] = useState(false);
   /**
@@ -134,11 +145,11 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     for (const el of steps) io.observe(el);
     pick();
     return () => io.disconnect();
-  }, [items.length]);
+  }, [staged.length]);
 
   /* 지금 편만 튼다. 나머지는 멈춘다 — 동시에 여러 개를 틀면 폰이 뜨겁고 데이터가 샌다 */
   useEffect(() => {
-    items.forEach((it, i) => {
+    staged.forEach((it, i) => {
       const v = vids.current.get(it.id);
       if (!v) return;
       v.muted = !(loud && i === active);
@@ -146,7 +157,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
       if (i === active) void v.play().catch(() => {});
       else v.pause();
     });
-  }, [active, loud, calm, items]);
+  }, [active, loud, calm, staged]);
 
   /**
    * ★★ **무대가 화면을 덮는 «동안»에는 위 상단 바도 까맣게.** (2026-09-17 지시 [19]①·③)
@@ -179,9 +190,9 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
   const goTo = useCallback((i: number) => {
     const root = rootRef.current;
     if (!root) return;
-    const n = Math.min(items.length - 1, Math.max(0, i));
+    const n = Math.min(staged.length - 1, Math.max(0, i));
     root.querySelector<HTMLElement>(`[data-step="${n}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [items.length]);
+  }, [staged.length]);
 
   /**
    * 🔴 **바깥 페이지를 멈춘다.** 뒤에서 페이지가 움직이면 멀미가 납니다(지시 1번).
@@ -219,13 +230,13 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
 
   /* 소리를 켜면 힌트는 할 일을 다 했다 */
   const showHint = (hint || hover) && !loud && !calm;
-  const cur = items[active];
+  const cur = staged[active];
 
   return (
-    <section ref={rootRef} id={anchorId} className="stage" style={{ ["--stage-n" as string]: String(items.length) }}>
+    <section ref={rootRef} id={anchorId} className="stage" style={{ ["--stage-n" as string]: String(staged.length) }}>
       {/* 눈금 — 보이지 않는다. «몇 번째인지»를 알려 주는 자 역할만 한다 */}
       <div className="stage-steps" aria-hidden>
-        {items.map((it, i) => <div key={it.id} data-step={i} />)}
+        {staged.map((it, i) => <div key={it.id} data-step={i} />)}
       </div>
 
       <div className="stage-sticky" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -237,7 +248,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
           {/* ⚠ 한 편씩 `<figure>` 로 싼다 — 「움직임 줄이기」를 켠 손님에게는 이 묶음이
                  그대로 **세로 목록 한 칸**이 되고, 캡션도 영상마다 따라붙는다.
                  보통 손님에게는 이 묶음이 겹쳐 쌓여 한 칸처럼 보인다(CSS 가 한다). */}
-          {items.map((it, i) => {
+          {staged.map((it, i) => {
             /**
              * 🔴🔴 **화면에 살아 있는 <video> 는 «항상 세 칸»뿐이다.** (2026-09-17 조사 8-2 [3])
              *
@@ -285,7 +296,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
           {/* 위쪽 — 여기가 무엇인지 한 줄. 「이건 뭐지?」에 답해 준다 */}
           <div className="stage-top">
             <span className="stage-kicker">{title}</span>
-            {items.length > 1 && <span className="stage-count">{active + 1} / {items.length}</span>}
+            {staged.length > 1 && <span className="stage-count">{active + 1} / {staged.length}{items.length > staged.length ? <span className="stage-more-n"> · 전체 {items.length}</span> : null}</span>}
           </div>
 
           {/* 소리 — 손님이 «지금 음소거구나»를 알아야 누를 생각을 한다 */}
@@ -323,10 +334,22 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
           </div>
 
           {/* 오른쪽 — 몇 번째인지. 폰에서도 손가락에 안 가리는 자리다 */}
-          {items.length > 1 && (
+          {staged.length > 1 && (
             <div className="stage-dots" aria-hidden>
-              {items.map((it, i) => <span key={it.id} className={i === active ? "on" : ""} />)}
+              {staged.map((it, i) => <span key={it.id} className={i === active ? "on" : ""} />)}
             </div>
+          )}
+
+          {/**
+            * 🔴 **「전부 보기」 — 무대에서 잘린 편들이 «여기» 있다.** (2026-09-17 지시 [39])
+            *   무대는 13화면으로 고정이라 13편째부터는 무대에 안 섭니다.
+            *   🔴 **못 보는 게 아닙니다** — 누르면 전체화면에서 **처음부터 끝까지** 이어 봅니다.
+            * ⚠ 편수가 무대 상한을 넘을 때만 뜹니다. 안 넘으면 있을 이유가 없습니다.
+            */}
+          {items.length > staged.length && !calm && (
+            <button type="button" className="stage-all" onClick={() => { setLoud(true); setWorld(active); }}>
+              전부 보기 ({items.length}편) →
+            </button>
           )}
 
           {/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다.
