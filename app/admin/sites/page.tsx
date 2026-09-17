@@ -47,13 +47,22 @@ export default async function SitesAdmin({
     const t = trialInfo(s as never);
     const set = (s.settings as Record<string, unknown>) ?? {};
     /** ★ 이벤트로 기간을 받은 분은 **따로 보인다.** 유료와 섞이면 매출 숫자가 흐려진다 */
-    const member = t.paid ? "유료회원" : set.eventMember === true ? "이벤트회원" : t.expired ? "무료 종료" : "무료회원";
+    /**
+     * 🔴 **«돈 받은 정회원»과 «손으로 올린 정회원»을 표에서도 갈라 보인다.** (2026-09-17 지시 [23] 2번)
+     *   돈이 들어오면 `paid_at` 이 찍힌다(`billing/confirm`·`billing/subscribe` 둘 다).
+     *   손으로 올릴 때는 **일부러 안 찍는다** — 그래야 매출 숫자가 흐려지지 않는다.
+     *   ⇒ **정회원인데 `paid_at` 이 비었다 = 돈을 받은 적이 없다.** 표에 그대로 적는다.
+     *   ⚠ 이 줄이 없으면 대표님이 매출표를 보실 때 **둘이 똑같아 보인다.** 그것이 지시가 막으려던 일이다.
+     */
+    const byHand = t.paid && !s.paid_at;
+    const member = t.paid ? (byHand ? "정회원(손으로)" : "유료회원")
+      : set.eventMember === true ? "이벤트회원" : t.expired ? "무료 종료" : "무료회원";
     return {
       slug: s.slug as string,
       name: (s.business_name as string) ?? "",
       industry: (s.industry as string) ?? "",
       live: st.live, stateLabel: st.label, stateDetail: st.detail,
-      member, paid: t.paid,
+      member, paid: t.paid, byHand,
       dday: t.paid ? "—" : t.expired ? `삭제 D-${Math.max(0, t.daysUntilDelete)}` : `D-${t.daysLeft}`,
       urgent: !t.paid && (t.expired || t.daysLeft <= 7),
       trialEnds: (s.trial_ends_at as string)?.slice(0, 10) ?? "",

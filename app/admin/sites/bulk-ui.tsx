@@ -7,7 +7,7 @@ import { DeleteSite } from "./delete-ui";
 export type BulkRow = {
   slug: string; name: string; industry: string;
   live: boolean; stateLabel: string; stateDetail: string;
-  member: string; paid: boolean; dday: string; urgent: boolean;
+  member: string; paid: boolean; byHand: boolean; dday: string; urgent: boolean;
   trialEnds: string;
   phone: string; email: string; ownerId: string | null;
 };
@@ -29,6 +29,10 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [openEvent, setOpenEvent] = useState(false);
+  /** 등급 바꾸기 칸 (2026-09-17 지시 [23]) — 「올리기」인지 「내리기」인지 */
+  const [openGrade, setOpenGrade] = useState<null | "up" | "down">(null);
+  /** 내릴 때 어디로 — 기본은 무료체험(지시 3번) */
+  const [downTo, setDownTo] = useState<"trial" | "suspended">("trial");
   const [months, setMonths] = useState(3);
   const [reason, setReason] = useState("");
 
@@ -36,10 +40,31 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
   const toggle = (slug: string) =>
     setSel((p) => { const n = new Set(p); if (n.has(slug)) n.delete(slug); else n.add(slug); return n; });
 
-  async function run(mode: "close" | "open" | "event") {
+  async function run(mode: "close" | "open" | "event" | "grade", to?: string) {
     const slugs = [...sel];
     if (!slugs.length) return;
-    if (mode !== "event") {
+    /* 🔴 **등급은 한 번에 하나씩**(지시 6번). 서버도 막지만 화면에서 먼저 말해 준다 —
+       200곳을 고른 채 눌렀다가 서버 오류만 보는 것보다 낫다. */
+    if (mode === "grade" && slugs.length !== 1) {
+      setErr("등급은 한 번에 한 곳만 바꿀 수 있어요. 하나만 고르고 다시 눌러 주세요.");
+      return;
+    }
+    /* 🔴🔴 **2026-09-17 실측으로 잡은 버그** — 여기에 `mode !== "event"` 라고만 적혀 있어서
+         **등급 바꾸기도 이 확인창에 걸렸다.** 화면에는 「1곳을 «다시 열기» 합니다 —
+         폐쇄해도 자료는 지워지지 않고…」가 떴다. **등급과 아무 상관 없는 말**이다.
+       ⇒ 등급은 **등급의 말로** 물어본다. 「무엇을 누르는지」와 「무엇이 뜨는지」가 달라선 안 된다. */
+    if (mode === "grade") {
+      const one = slugs[0];
+      const q = to === "active"
+        ? `「${one}」 을 정회원으로 올립니다.
+
+결제 없이 올리는 것이라 매출로는 잡지 않습니다.
+계속할까요?`
+        : `「${one}」 을 ${to === "suspended" ? "폐쇄(손님에게 안 보임)" : "무료회원(체험)"} 으로 내립니다.
+
+계속할까요?`;
+      if (!confirm(q)) return;
+    } else if (mode !== "event") {
       const word = mode === "close" ? "폐쇄" : "다시 열기";
       if (!confirm(`${slugs.length}곳을 ${word} 합니다.\n\n폐쇄해도 자료는 지워지지 않고, 손님에게만 안 보입니다.\n계속할까요?`)) return;
     }
@@ -47,12 +72,14 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
     try {
       const r = await fetch("/api/admin/site-bulk", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, slugs, months, reason }),
+        body: JSON.stringify({ mode, slugs, months, reason, to }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setErr(String(d.error ?? `실패했어요 (${r.status})`)); return; }
-      setMsg(`${d.done}곳에 적용했습니다. 새로고침하면 표에 반영됩니다.`);
-      setSel(new Set()); setOpenEvent(false); setReason("");
+      setMsg(mode === "grade"
+        ? `등급을 바꿨습니다 (${d.from} → ${d.to}). 새로고침하면 표에 반영됩니다.`
+        : `${d.done}곳에 적용했습니다. 새로고침하면 표에 반영됩니다.`);
+      setSel(new Set()); setOpenEvent(false); setOpenGrade(null); setReason("");
     } finally { setBusy(false); }
   }
 
@@ -72,7 +99,58 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
             className="rounded-full border border-n-300 px-3 py-1 t-small font-semibold disabled:opacity-40">
             이벤트 기간 주기
           </button>
+          {/* ★★ 2026-09-17 대표님 지시 [23] — **등급 올리기·내리기.**
+              대표님: 「정회원으로 올려줬는데 **무료회원으로 다시 바꾸는 게 없어.**」
+              🔴 한 번에 **한 곳만** 바꿉니다. 200곳을 실수로 정회원으로 만들면 되돌릴 수 없습니다. */}
+          <button type="button" disabled={busy} onClick={() => setOpenGrade((v) => (v === "up" ? null : "up"))}
+            className="rounded-full border px-3 py-1 t-small font-semibold disabled:opacity-40"
+            style={{ borderColor: "var(--green)", color: "var(--green)" }}>⬆ 정회원으로 올리기</button>
+          <button type="button" disabled={busy} onClick={() => setOpenGrade((v) => (v === "down" ? null : "down"))}
+            className="rounded-full border border-n-300 px-3 py-1 t-small font-semibold disabled:opacity-40">
+            ⬇ 무료회원으로 내리기
+          </button>
           <button type="button" onClick={() => setSel(new Set())} className="t-caption underline text-[var(--text-soft)]">선택 해제</button>
+
+          {openGrade && (
+            <div className="w-full border-t border-n-200 pt-3">
+              <p className="t-small font-bold">
+                {openGrade === "up" ? "정회원으로 올립니다" : "정회원에서 내립니다"}
+              </p>
+              {openGrade === "up" ? (
+                <p className="mt-1 t-caption text-[var(--text-soft)]">
+                  화면에서는 <b>결제하신 분과 똑같이</b> 보입니다. 다만 <b>돈을 받은 것으로 잡지 않습니다</b> —
+                  「손으로 올림」 표시가 따로 남아 매출 숫자가 흐려지지 않습니다.
+                </p>
+              ) : (
+                <p className="mt-1 t-caption text-[var(--text-soft)]">
+                  🔴 <b>자동결제가 걸려 있으면 막습니다.</b> 그냥 내리면 <b>다음 달에 또 결제됩니다</b> —
+                  먼저 해지하셔야 합니다.
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {openGrade === "down" && (
+                  <label className="t-small">어디로
+                    <select value={downTo} onChange={(e) => setDownTo(e.target.value as "trial" | "suspended")}
+                      className="field ml-2" style={{ width: 150, display: "inline-block" }}>
+                      <option value="trial">무료회원(체험)</option>
+                      <option value="suspended">폐쇄(손님에게 안 보임)</option>
+                    </select>
+                  </label>
+                )}
+                <input className="field min-w-0 flex-1" value={reason} maxLength={120}
+                  placeholder={openGrade === "up"
+                    ? "왜 올리나요? 예) 우리 회사 사이트 · 파트너 계약 · 오프라인 입금"
+                    : "왜 내리나요? 예) 해지 요청 · 이벤트 종료 · 실수로 올림"}
+                  onChange={(e) => setReason(e.target.value)} />
+                <button type="button"
+                  disabled={busy || reason.trim().length < 2 || sel.size !== 1}
+                  onClick={() => run("grade", openGrade === "up" ? "active" : downTo)}
+                  className="btn btn-primary !py-1.5 !t-small disabled:opacity-40">
+                  {busy ? "바꾸는 중…" : sel.size !== 1 ? "한 곳만 고르세요" : openGrade === "up" ? "정회원으로 올리기" : "내리기"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {openEvent && (
             <div className="w-full border-t border-n-200 pt-3">
@@ -134,7 +212,11 @@ export function SitesTable({ rows }: { rows: BulkRow[] }) {
                   </span>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
-                  <b style={{ color: r.paid ? "var(--green)" : undefined }}>{r.member}</b>
+                  {/* 손으로 올린 정회원은 **초록으로 칠하지 않는다** — 초록은 「돈이 들어왔다」는 뜻이다 */}
+                  <b style={{ color: r.paid && !r.byHand ? "var(--green)" : undefined }}
+                    title={r.byHand ? "결제 없이 어드민에서 올린 정회원입니다. 매출로 잡히지 않습니다." : undefined}>
+                    {r.member}
+                  </b>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <span style={{ color: r.urgent ? "var(--danger)" : "var(--text-soft)", fontWeight: r.urgent ? 700 : 400 }}>{r.dday}</span>
