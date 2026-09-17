@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import dynamic from "next/dynamic";
@@ -78,6 +78,23 @@ function warmWhenIdle() {
 
 
 
+/**
+ * 🔴 **«그리기 직전»에 도는 효과.** (2026-09-17 지시 [42] §5 · 권반장 물음에 대한 답)
+ *
+ * ⚠⚠ **왜 `useState` 의 첫 값으로 섞으면 «안 되는가»:**
+ *   섞으려면 **이 방문의 씨앗**이 필요한데 그건 `sessionStorage`, 즉 **브라우저에만** 있다.
+ *   서버는 그 값을 모르니 **다른 순서**로 HTML 을 만들고 —
+ *   브라우저가 그 HTML 을 이어받을 때(하이드레이션) **순서가 어긋나** 경고가 나고 화면이 튄다.
+ *
+ * ⚠ 그렇다고 보통 `useEffect` 로 하면 **원본 순서로 한 번 그린 뒤** 바뀐다(깜빡임).
+ *
+ * ⇒ **`useLayoutEffect`** — 하이드레이션 «뒤», **브라우저가 칠하기 «전»**에 돈다.
+ *   ⇒ 서버 HTML 은 원본 순서 · **손님이 보는 첫 그림은 이미 섞인 순서.** 깜빡임이 없다.
+ * ⚠ 서버에서는 `useLayoutEffect` 가 아무 일도 안 하고 **경고만** 낸다 —
+ *   그래서 **서버에서는 `useEffect`** 를 쓴다(아래 한 줄). 흔히 쓰는 방식이다.
+ */
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 export default function ShortsStage({ items, anchorId, title, slug, order = SHORTS_ORDER_DEFAULT, stageN = STAGE_MAX }: {
   items: ShortT[]; anchorId?: string; title: string; slug: string; order?: ShortsOrder;
   /** 🔴 **가두는 편수 — 사장님이 5~10 에서 고른다**(2026-09-17 대표님). 없으면 최대(10) */
@@ -94,7 +111,7 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
    *   그래야 「1 / N」이 참이 된다(권반장 지적).
    */
   const [view, setView] = useState<ShortT[]>(items);
-  useEffect(() => {
+  useBeforePaint(() => {
     setView(orderShorts(items, order, visitSeed(slug)));
   }, [items, order, slug]);
   /**
@@ -415,11 +432,16 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
             *   🔴 **못 보는 게 아닙니다** — 누르면 전체화면에서 **처음부터 끝까지** 이어 봅니다.
             * ⚠ 편수가 무대 상한을 넘을 때만 뜹니다. 안 넘으면 있을 이유가 없습니다.
             */}
-          {view.length > staged.length && !calm && (
-            <button type="button" className="stage-all" onClick={() => { setLoud(true); setWorld(active); }}>
-              전부 보기 ({view.length}편) →
-            </button>
-          )}
+          {/**
+            * ⚠⚠ **「전부 보기 (N편) →」 단추는 «뺐다».** (2026-09-17 [42]④ · 권반장이 정함)
+            *
+            * ★ **왜 뺐나:** 대표님이 **「어떤 상황에서든 클릭을 1번이라도 하게 되면 들어감」**이라
+            *   하셔서 **영상을 누르기만 하면** 큰 화면이 열린다(폰 포함 — 실측으로 확인).
+            *   그러면 같은 곳으로 가는 길이 둘이 되어 **손님이 헷갈린다.**
+            * 🔴 **순서를 지켜서 뺐다:** 「폰에서 눌러도 열리는 것」을 «먼저» 재서 확인한 뒤에 뺐다.
+            *   먼저 뺐으면 **폰 손님이 들어갈 문이 하나도 없었다**(그때 폰 탭은 소리 토글이었다).
+            * ⚠ **남은 것은 「더 많은 영상을 보시려면 영상 클릭하세요」 하나** — 대표님이 직접 쓰신 문장이다.
+            */}
 
           {/**
             * 🔴 **마지막 편에 닿으면 — 「더 많은 영상을 보시려면 영상 클릭하세요」** (2026-09-17 지시 [42] §3)

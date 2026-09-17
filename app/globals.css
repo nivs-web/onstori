@@ -2221,20 +2221,8 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-sound:hover, .world-x:hover { background: rgb(0 0 0 / 0.75); }
 .world-sound:focus-visible, .world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
-/* 🔴 「전부 보기」 — 무대(13화면 고정)에서 잘린 편들로 가는 문 (2026-09-17 지시 [39])
-   ⚠ 「건너뛰기 ↓」와 «같은 줄»에 두되 왼쪽이다. 나가는 길과 더 보는 길이 나란히 있어야
-     손님이 고를 수 있다. 폰에서 좁으면 위로 접힌다. */
-.stage-all {
-  position: absolute; left: var(--s-4); bottom: calc(var(--dock-pad) + var(--s-3));
-  min-height: var(--tap);
-  padding: 11px 18px; border-radius: 999px;
-  border: 1.5px solid rgb(255 255 255 / 0.5);
-  background: rgb(0 0 0 / 0.55);
-  color: #fff; font-size: var(--t-small); font-weight: 700;
-  cursor: pointer; white-space: nowrap;
-  backdrop-filter: blur(6px);
-}
-.stage-all:hover { background: rgb(0 0 0 / 0.85); }
+/* ⚠ 「전부 보기」 단추의 모양(`.stage-all`)은 [42]④ 로 «뺐다» — 영상을 누르기만 하면 열리므로
+   같은 곳으로 가는 길이 둘일 이유가 없다(권반장이 정함). 되살릴 일이 생기면 git 에 남아 있다. */
 /* 무대 위 「3 / 12 · 전체 40」 에서 뒷부분은 흐리게 — 지금 위치가 먼저 읽혀야 한다 */
 .stage-more-n { opacity: 0.7; font-weight: 600; }
 
