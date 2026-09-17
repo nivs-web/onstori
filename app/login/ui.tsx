@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { sbBrowser } from "@/lib/supabase/browser";
+import { PW_MIN } from "@/config/password";
 
 /**
  * 로그인 뒤 어디로 보낼지.
@@ -25,7 +26,7 @@ function safeNext(raw: string | null): string {
  * ⚠ **대문자·특수문자를 강요하지 않는다.** 우리 손님은 가게 사장님이다.
  *   까다로우면 **그 자리에서 나간다.** 짧은 규칙 하나가 긴 규칙 넷보다 낫다.
  */
-const PW_MIN = 8;
+
 
 /**
  * 로그인 — 카카오 + **이메일·비밀번호**. (2026-09-17 대표님 확정으로 인증번호 방식을 걷어냈다)

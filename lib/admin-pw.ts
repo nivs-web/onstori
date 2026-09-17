@@ -1,6 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { sbAdmin } from "./db-admin";
+import { PW_MIN } from "@/config/password";
 
 /**
  * ★★★ **어드민 «아이디 + 비밀번호».** (2026-09-17 지시 [34])
@@ -34,8 +35,8 @@ const scryptAsync = promisify(scrypt) as (pw: string, salt: string, len: number)
 type Stored = { id: string; salt: string; hash: string; at: string };
 
 const ROW = "admin_pw";
-/** 비밀번호 최소 길이 — 손님 로그인과 **같은 값**이다(`app/login/ui.tsx` 의 `PW_MIN`) */
-export const ADMIN_PW_MIN = 8;
+/** 비밀번호 최소 길이 — 손님 로그인과 **같은 값**이다. 숫자는 `config/password.ts` 한 곳에 있다 */
+export const ADMIN_PW_MIN = PW_MIN;
 
 async function read(): Promise<Stored | null> {
   try {
