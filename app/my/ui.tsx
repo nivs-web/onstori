@@ -33,6 +33,23 @@ export function MyCardActions({ slug, trial }: { slug: string; trial: TrialInfo 
         </button>
       </div>
 
+      {/**
+        * 🔴 **「비밀번호 바꾸기」 — 2026-09-17 지시 [34] 로 «메뉴»가 생겼다.**
+        *
+        * ★ 대표님이 물으셨다: 「**우리 고객이 비밀번호 변경하는 거 메뉴 만들었나?**」
+        *   ⇒ **화면은 [25] 때 이미 있었는데(`/login/new-password`) «거기로 가는 길»이 없었다.**
+        *     로그인한 사장님이 비밀번호를 바꾸려면 **로그아웃 → 「비밀번호를 잊으셨나요?」 → 메일**
+        *     을 거쳐야 했다. 그건 「바꾸기」가 아니라 「되찾기」다.
+        * ⚠ 그 화면은 **로그인만 돼 있으면 그대로 돈다**(세션이 있으면 바로 바꾼다).
+        *   새 화면을 만들지 않고 **길만** 냈다.
+        */}
+      <div style={{ marginTop: "var(--s-3)" }}>
+        <Link href={`/login/new-password?next=${encodeURIComponent("/my")}`}
+          className="t-caption underline underline-offset-2" style={{ color: "var(--text-soft)" }}>
+          비밀번호 바꾸기
+        </Link>
+      </div>
+
       {/* 구독 중이면 해지 진입점을 1뎁스로 — 가입만큼 쉬워야 한다(전자상거래법 제21조의2) */}
       {trial.paid && <div style={{ marginTop: "var(--s-3)" }}><CancelSubscription slug={slug} /></div>}
 
