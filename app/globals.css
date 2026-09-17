@@ -1747,8 +1747,13 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 }
 
 /* ② 나올 때 — 검정이 다음 섹션 색으로 «풀린다».
-   ⚠ 감싸개(띠)에 위 여백을 그만큼 준다. 안 주면 소개 제목이 **검은 부분 안에 갇혀** 안 읽힌다. */
-.stage + * {
+   ⚠ 감싸개(띠)에 위 여백을 그만큼 준다. 안 주면 소개 제목이 **검은 부분 안에 갇혀** 안 읽힌다.
+   ⚠⚠ **2026-09-17 [31]⑤ 로 한 칸이 끼어들었다** — 무대 바로 아래의 「퍼뜨리는 곳」 칸(`.sns-strip`)이다.
+     그 칸도 검정이라 거기에 그라데이션을 걸면 **검정 위 검정**이라 아무 일도 안 일어나고,
+     정작 밝아져야 할 다음 섹션은 **툭 끊긴다**(실측으로 잡았다).
+     ⇒ 밝아지는 자리는 **「검정이 끝난 바로 다음 칸」** 이다. 두 경우를 모두 적는다. */
+.stage + *:not(.sns-strip),
+.sns-strip + * {
   background-image: linear-gradient(to bottom, rgb(0 0 0 / 0.96) 0, rgb(0 0 0 / 0) 150px);
   padding-top: 110px;
 }
@@ -1884,7 +1889,7 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   .stage { height: auto; box-shadow: none; padding-block: var(--s-5); }
   /* 가두지 않으니 «검게 잠기는» 연출도 하지 않는다 — 그냥 검은 칸 하나로 지나간다 */
   .stage::before { display: none; }
-  .stage + * { background-image: none; padding-top: 0; }
+  .stage + *:not(.sns-strip), .sns-strip + * { background-image: none; padding-top: 0; }
   .stage-steps { display: none; }
   .stage-sticky { position: static; height: auto; display: block; overflow: visible; }
   /* 칸이 아니라 **목록**이 된다 — 편수만큼 아래로 이어진다 */
@@ -1949,3 +1954,62 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
     --gutter: var(--gutter-lg);         /* 20 → 32 */
   }
 }
+
+/* 🔴 「탭하면 소리가 나요」 — 무대 첫 편에서 2.8초만 (2026-09-17 지시 [31]①)
+   ⚠ 소리 단추 바로 «아래»에 둔다. 손가락이 닿는 자리이면서 영상을 가리지 않는다.
+   ⚠ 등장은 느리게, 사라짐도 느리게(docs/MOTION.md — 등장 700ms). */
+.stage-hint {
+  position: absolute; top: calc(var(--bar-h) + var(--s-7) + 46px); right: var(--s-4);
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  background: rgb(0 0 0 / 0.55);
+  color: #fff; font-size: var(--t-caption); font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  backdrop-filter: blur(6px);
+  animation: stage-hint-in var(--dur-enter, 700ms) var(--ease-out, ease) both;
+}
+@keyframes stage-hint-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-hint { display: none; }
+}
+
+/* 🔴 「이 홈페이지가 영상을 퍼뜨리고 있는 곳」 — 무대 «바로 아래» 한 줄 (2026-09-17 지시 [31]⑤)
+   ★ 무대(검정)에서 본문(밝음)으로 넘어가는 **딱 그 자리**다. 그래서 어두운 채로 두고,
+     아래쪽에서 밝아지게 한다 — 전환이 두 번 일어나지 않는다.
+   ⚠ 이 칸이 서면 무대의 «밝아지는» 그라데이션은 이 칸이 이어받는다(`.stage + *` 규칙이 여기 걸린다). */
+.sns-strip {
+  background-color: #000;
+  padding-block: var(--s-6) var(--s-7);
+  color: #fff;
+}
+.sns-strip-in {
+  margin-inline: auto;
+  max-width: var(--container);
+  padding-inline: var(--gutter);
+  text-align: center;
+}
+.sns-strip-head {
+  margin: 0 0 var(--s-4);
+  font-size: var(--t-small);
+  font-weight: 700;
+  opacity: 0.85;
+}
+.sns-strip-list {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: var(--s-2);
+  margin: 0; padding: 0; list-style: none;
+}
+.sns-strip-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: var(--tap);
+  padding: 8px 15px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.08);
+  color: #fff; font-size: var(--t-small); font-weight: 600;
+  text-decoration: none;
+}
+.sns-strip-pill:hover { background: rgb(255 255 255 / 0.18); }
+.sns-strip-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }

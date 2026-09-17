@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ShortT, ShortLink } from "@/lib/shorts";
+import type { ShortT } from "@/lib/shorts";
+import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 
 /**
  * 홈페이지 안의 «숏폼 피드» — 릴스·쇼츠·틱톡에서 보던 그 느낌. (2026-09-16 대표님 지시)
@@ -28,25 +29,20 @@ import type { ShortT, ShortLink } from "@/lib/shorts";
  *   그 성질을 지키려고 이 컴포넌트를 따로 뺐다. **index.tsx 안으로 되돌리지 마라.**
  */
 
-const LABEL: Record<ShortLink["provider"], string> = {
-  instagram: "인스타에서 보기",
-  tiktok: "틱톡에서 보기",
-  youtube: "쇼츠에서 보기",
-  facebook: "페이스북에서 보기",
-  threads: "쓰레드에서 보기",
-  x: "X에서 보기",
-};
-
-/** 각 SNS 의 상징색 — 알약 버튼 왼쪽 점 하나로만 쓴다(로고를 쓰면 상표 문제가 생긴다) */
-const DOT: Record<ShortLink["provider"], string> = {
-  instagram: "#E1306C", tiktok: "#25F4EE", youtube: "#FF0000",
-  facebook: "#1877F2", threads: "#FFFFFF", x: "#FFFFFF",
-};
 
 export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: string }) {
   const [active, setActive] = useState(0);
-  /** 소리를 켠 영상 — 한 번에 하나만. 릴스와 같다 */
-  const [loud, setLoud] = useState<string | null>(null);
+  /**
+   * 🔴 **소리는 «한 번 켜면 끝까지».** (2026-09-17 대표님 지시 [31]①)
+   *
+   * > 대표님: 「소리 부분이 좀 걱정이야.」 — 지금은 넘길 때마다 **다시 탭**해야 했다.
+   *   일곱 편을 보려면 **일곱 번** 눌러야 한다. 틱톡·릴스·쇼츠는 **한 번 켜면 계속** 난다.
+   *
+   * ⚠ 옛 방식은 `loud` 가 «영상 id» 였다(한 편만). 이제는 **켬/끔 하나**다.
+   * ★ 2026-09-10 회장님 결정(「들어오자마자 목소리 나면 나간다」)은 그대로다 —
+   *   **처음은 음소거**이고, **페이지를 새로 열면 다시 음소거**다(상태가 초기화된다).
+   */
+  const [loud, setLoud] = useState(false);
   const railRef = useRef<HTMLDivElement | null>(null);
   const vids = useRef(new Map<string, HTMLVideoElement>());
 
@@ -82,10 +78,10 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
     return () => io.disconnect();
   }, [items]);
 
-  /* 소리는 한 번에 한 편만 — 다른 것을 켜면 앞엣것은 음소거로 돌아간다 */
+  /* 켜 두면 **지금 보이는 편**에서 소리가 난다. 안 보이는 편은 어차피 멈춰 있다 */
   useEffect(() => {
-    for (const [id, v] of vids.current) v.muted = id !== loud;
-  }, [loud]);
+    vids.current.forEach((v) => { v.muted = !loud; });
+  }, [loud, active]);
 
   const go = (dir: -1 | 1) => {
     const rail = railRef.current;
@@ -111,23 +107,23 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
                 preload="none"
                 /* ⚠ `controls` 를 달지 않는다 — 릴스·틱톡에는 재생바가 없다.
                    대신 카드를 누르면 소리가 켜진다. 그것이 이 화면의 유일한 조작이다. */
-                onClick={() => setLoud((cur) => (cur === it.id ? null : it.id))}
+                onClick={() => setLoud((v) => !v)}
               />
               {/* 소리 상태 — 손님이 «지금 음소거구나»를 알아야 누를 생각을 한다 */}
               <button
                 type="button"
                 className="shorts-sound"
-                aria-label={loud === it.id ? "소리 끄기" : "소리 켜기"}
-                onClick={() => setLoud((cur) => (cur === it.id ? null : it.id))}
+                aria-label={loud ? "소리 끄기" : "소리 켜기"}
+                onClick={() => setLoud((v) => !v)}
               >
-                {loud === it.id ? "🔊" : "🔇"}
+                {loud ? "🔊" : "🔇"}
               </button>
               {/* 아래 그림자 위에 글 — 릴스와 같은 자리 */}
               <div className="shorts-meta">
                 {it.caption && <p className="shorts-cap">{it.caption}</p>}
-                {it.links.length > 0 && (
+                {pillLinks(it.links).length > 0 && (
                   <div className="shorts-links">
-                    {it.links.map((l) => (
+                    {pillLinks(it.links).map((l) => (
                       <a
                         key={l.provider}
                         href={l.url}
@@ -135,8 +131,8 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
                         rel="noopener noreferrer"
                         className="shorts-pill"
                       >
-                        <span className="shorts-dot" style={{ background: DOT[l.provider] }} />
-                        {LABEL[l.provider]}
+                        <span className="shorts-dot" style={{ background: SNS_DOT[l.provider] }} />
+                        {SNS_LABEL[l.provider]}
                       </a>
                     ))}
                   </div>

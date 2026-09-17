@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ShortT, ShortLink } from "@/lib/shorts";
+import type { ShortT } from "@/lib/shorts";
+import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 
 /**
  * 🔴 **숏폼 무대** — 히어로 바로 아래에서 화면이 «까맣게» 덮이는 자리. (2026-09-17 지시 [19]①)
@@ -31,21 +32,39 @@ import type { ShortT, ShortLink } from "@/lib/shorts";
  *   ⑥ **PC 에서도 9:16** — 좌우는 검게 두고 가운데만 세로로. **가로로 늘리지 않는다**
  */
 
-const LABEL: Record<ShortLink["provider"], string> = {
-  instagram: "인스타에서 보기", tiktok: "틱톡에서 보기", youtube: "쇼츠에서 보기",
-  facebook: "페이스북에서 보기", threads: "쓰레드에서 보기", x: "X에서 보기",
-};
-const DOT: Record<ShortLink["provider"], string> = {
-  instagram: "#E1306C", tiktok: "#25F4EE", youtube: "#FF0000",
-  facebook: "#1877F2", threads: "#FFFFFF", x: "#FFFFFF",
-};
 
 /** 손가락이 이만큼은 움직여야 «넘긴 것»으로 본다. 너무 작으면 살짝 흔들려도 넘어간다 */
 const SWIPE_PX = 48;
+/** 「탭하면 소리」를 띄워 두는 시간. 2~3초 — 읽히되 거슬리지 않는 선(권반장 지시 [31]①) */
+const HINT_MS = 2800;
 
 export default function ShortsStage({ items, anchorId, title }: { items: ShortT[]; anchorId?: string; title: string }) {
   const [active, setActive] = useState(0);
   const [loud, setLoud] = useState(false);
+  /**
+   * 🔴 **「탭하면 소리」 힌트** — 첫 편에서 잠깐만. (2026-09-17 대표님 지시 [31]①)
+   *   대표님: 「소리 부분이 좀 걱정이야.」
+   *   ⚠ 지금은 작은 아이콘뿐이라 **누를 생각이 안 납니다**(권반장). 그래서 **말로** 한 번 알려 준다.
+   *   ⚠ 무대에 **들어왔을 때부터** 세고, 소리를 켜면 그 자리에서 사라진다.
+   */
+  const [hint, setHint] = useState(false);
+  /**
+   * 🔴 **PC — 마우스를 «올리면» 소리 안내가 다시 뜬다.** (2026-09-17 대표님 지시 [31]③)
+   *
+   * > 대표님: 「pc에선 마우스가 있으니깐 **마우스를 올리기만 해도 소리** 나오면 안 됨?」
+   *
+   * ⚠⚠ **«소리를 저절로 켜는 것»은 안 했습니다. 이유 둘 — 보고서에 적었습니다:**
+   *   ① **2026-09-10 회장님 결정과 정면으로 부딪칩니다** — 「손님이 들어왔는데 **갑자기
+   *      사장님 목소리가 나면 그 자리에서 나간다**」. 마우스가 «지나가기만» 해도 소리가 나면
+   *      그건 손님이 **원한 적 없는 소리**입니다. 우리가 막으려던 바로 그 일입니다.
+   *   ② **브라우저가 막을 수 있습니다.** 「손님이 한 번도 안 눌렀으면 소리를 못 켠다」가
+   *      정책인데, 그 판정은 브라우저마다 다릅니다(사파리가 특히 엄격합니다).
+   *      제가 잰 것은 **헤드리스 크롬**이라 **진짜 손님 브라우저의 답이 아닙니다.**
+   *
+   * ⇒ 대신 **「🔇 탭하면 소리가 나요」를 다시 띄웁니다.** 마우스를 올리면 «권하고»,
+   *   켜는 것은 **손님이 한 번 누르는 것**으로 둡니다. 놀라게 하지 않으면서 길은 보입니다.
+   */
+  const [hover, setHover] = useState(false);
   /** 멀미를 싫어하는 손님인가 — 레이아웃은 CSS 가 맡고, 여기서는 **자동재생만** 끈다 */
   const [calm, setCalm] = useState(false);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -116,8 +135,14 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
   useEffect(() => {
     const el = rootRef.current?.querySelector(".stage-sticky");
     if (!el || calm) { document.documentElement.classList.remove("stage-dark"); return; }
+    let shown = false;
     const io = new IntersectionObserver(
-      ([e]) => document.documentElement.classList.toggle("stage-dark", e.intersectionRatio > 0.9),
+      ([e]) => {
+        const covering = e.intersectionRatio > 0.9;
+        document.documentElement.classList.toggle("stage-dark", covering);
+        /* 힌트는 **딱 한 번**만. 오르내릴 때마다 뜨면 그게 더 성가시다 */
+        if (covering && !shown) { shown = true; setHint(true); window.setTimeout(() => setHint(false), HINT_MS); }
+      },
       { threshold: [0, 0.9, 0.99] },
     );
     io.observe(el);
@@ -153,6 +178,8 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     goTo(active + (dy < 0 ? 1 : -1));
   };
 
+  /* 소리를 켜면 힌트는 할 일을 다 했다 */
+  const showHint = (hint || hover) && !loud && !calm;
   const cur = items[active];
 
   return (
@@ -163,7 +190,11 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
       </div>
 
       <div className="stage-sticky" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <div className="stage-frame">
+        <div className="stage-frame"
+          /* ⚠ **마우스가 있는 기기에서만.** 폰에서는 탭이 hover 처럼 들어와 힌트가 붙어 버린다 */
+          onMouseEnter={() => { if (window.matchMedia?.("(hover: hover)").matches) setHover(true); }}
+          onMouseLeave={() => setHover(false)}
+        >
           {/* ⚠ 한 편씩 `<figure>` 로 싼다 — 「움직임 줄이기」를 켠 손님에게는 이 묶음이
                  그대로 **세로 목록 한 칸**이 되고, 캡션도 영상마다 따라붙는다.
                  보통 손님에게는 이 묶음이 겹쳐 쌓여 한 칸처럼 보인다(CSS 가 한다). */}
@@ -201,15 +232,22 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
             </button>
           )}
 
+          {/* 🔴 「탭하면 소리」 — 첫 편에서 잠깐. 켜면 사라진다 */}
+          {showHint && (
+            <button type="button" className="stage-hint" onClick={() => setLoud(true)}>
+              🔇 탭하면 소리가 나요
+            </button>
+          )}
+
           {/* 아래 — 캡션과 SNS 링크 */}
           <div className="stage-meta">
             {cur?.caption && <p className="stage-cap">{cur.caption}</p>}
-            {cur?.links?.length ? (
+            {pillLinks(cur?.links ?? []).length ? (
               <div className="stage-links">
-                {cur.links.map((l) => (
+                {pillLinks(cur.links).map((l) => (
                   <a key={l.provider} href={l.url} target="_blank" rel="noopener noreferrer" className="stage-pill">
-                    <span className="stage-dot" style={{ background: DOT[l.provider] }} />
-                    {LABEL[l.provider]}
+                    <span className="stage-dot" style={{ background: SNS_DOT[l.provider] }} />
+                    {SNS_LABEL[l.provider]}
                   </a>
                 ))}
               </div>

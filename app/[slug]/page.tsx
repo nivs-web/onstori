@@ -10,6 +10,7 @@ import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 import ShortsStage from "@/components/sections/shorts-stage";
+import ShortsSns from "@/components/sections/shorts-sns";
 import { ANCHOR_OF } from "@/components/sections/nav";
 
 /**
@@ -140,6 +141,12 @@ export default async function SitePage({ params }: Props) {
   /* 🔴 「같은 바탕을 연속으로 두지 않는다」(DESIGN.md §7) — 한 곳에서 미리 정한다 */
   const bands = bandsOf(site.doc.sections);
 
+  /**
+   * ⚠ **손님이 보는 글이다.** 대표님 승인 전까지 쓰는 «임시» 문장이라 여기 한 곳에만 둔다 —
+   *   바꾸라고 하시면 이 줄 하나만 고치면 된다(`docs/WAITING.md` 에 올려 두었다).
+   */
+  const SNS_STRIP_TITLE = "이 가게 영상이 나가고 있는 곳";
+
   const videoTitle =
     (site.doc.sections.find((x) => x.type === "video") as { title?: string } | undefined)?.title?.trim()
     || "사장님 이야기";
@@ -204,7 +211,12 @@ export default async function SitePage({ params }: Props) {
           <React.Fragment key={i}>
             <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn }} />
             {i === stageAfter && (
-              <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />
+              <>
+                <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />
+                {/* 🔴 무대 «바로 아래» — 이 홈페이지가 실제로 영상을 퍼뜨린 곳들 (지시 [31]⑤).
+                    ⚠ 실제로 «올라간» 기록이 하나도 없으면 스스로 안 그린다. */}
+                <ShortsSns items={stageItems} title={SNS_STRIP_TITLE} />
+              </>
             )}
           </React.Fragment>
         ))}
