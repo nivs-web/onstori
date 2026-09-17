@@ -1851,6 +1851,11 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   line-height: 1.55;
   font-weight: 600;
   text-shadow: 0 1px 12px rgb(0 0 0 / 0.5);
+  /* 🔴 **두 줄에서 자른다.** (2026-09-17 지시 [42] §2 · 권반장이 정함)
+     ⚠ 2026-09-17 까지 `line-clamp`·`max-height`·`overflow` 가 **셋 다 없어** 긴 제목이
+       화면을 밀어냈다. **글자는 한 자도 안 바꾼다** — 넘칠 때 «…»으로 멈출 뿐이다. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 .stage-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
 .stage-pill {
@@ -2067,8 +2072,24 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
   margin: 0 0 var(--s-3);
   font-size: var(--t-body); line-height: 1.55; font-weight: 600;
   text-shadow: 0 1px 12px rgb(0 0 0 / 0.5);
+  /* 🔴 **두 줄에서 자른다.** (2026-09-17 지시 [42] §2 · 권반장이 정함)
+     ⚠ 2026-09-17 까지 `line-clamp`·`max-height`·`overflow` 가 **셋 다 없어** 긴 제목이
+       화면을 밀어냈다. **글자는 한 자도 안 바꾼다** — 넘칠 때 «…»으로 멈출 뿐이다. */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+  /* 🔴 **오른쪽을 비워 둔다 — 우하 「몰입모드 나가기」가 그 자리에 선다.** (2026-09-17 [42] §2)
+     ⚠ 실측으로 잡았다: 비우지 않으면 **제목의 오른쪽 끝이 나가기 단추 «밑으로 깔린다»**
+       (폰 375px 에서 제목 오른끝 359 · 단추 왼끝 255 — 104px 이 겹쳤다).
+     ⚠ 알약([인스타에서 보기])은 짧아서 안 겹친다 — **제목에만** 준다.
+       묶음 전체에 주면 알약까지 쓸데없이 좁아진다. */
+  margin-right: 124px;
 }
-.world-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
+/* 🔴 좌하 묶음 — [인스타에서 보기] 와 [쇼츠에서 보기] 를 **세로로 쌓는다**(지시 [42] §2).
+   ⚠ 전에는 가로로 나란히였다. 대표님 설계는 «한 줄에 하나»이고, 그래야 오른쪽에
+     ♡·💬 가 붙을 자리가 생긴다(§6). */
+.world-links { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); pointer-events: auto; }
+/* 알약 한 줄 — 오른쪽이 ♡·💬 자리다(§6 전에는 비어 있다) */
+.world-row { display: inline-flex; align-items: center; gap: var(--s-3); }
 
 /* 🔴 몰입모드의 SNS 알약 — **`.stage-pill`·`.stage-dot` 의 «글자까지 같은» 사본**이다.
    (2026-09-17 지시 [42] §1 — 몰입모드를 파일로 떼면서 CSS 이름도 갈랐다)
@@ -2094,19 +2115,7 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
    ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨습니다. **위치는 아직 안 옮겼습니다** —
      권반장이 릴스·쇼츠의 실제 배치를 조사 중이라, 두 번 옮기면 낭비입니다.
    ★ 대신 **글자 「나가기」를 함께** 넣었습니다. ✕ 하나만으로는 「닫기인가 지우기인가」가 안 읽힙니다. */
-.world-x {
-  position: absolute; top: var(--s-4); right: var(--s-4);
-  display: inline-flex; align-items: center; gap: 8px;
-  min-height: var(--tap);
-  padding: 12px 20px;
-  border: 1.5px solid rgb(255 255 255 / 0.75); border-radius: 999px;
-  background: rgb(0 0 0 / 0.6);
-  color: #fff; font-size: 20px; line-height: 1; cursor: pointer;
-  backdrop-filter: blur(6px);
-}
-.world-x:hover { background: rgb(0 0 0 / 0.85); }
-.world-x-say { font-size: var(--t-small); font-weight: 700; }
-.world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* ⚠ 옛 「✕ + 나가기」 알약은 [42] §2 로 없앴다 — 글자는 우하 `.world-exit` 가 맡는다 */
 /* ⚠ 왼쪽 위는 이제 **소리 단추** 자리다(권반장 조사 [36]①). 편수는 가운데 위로 비켰다 */
 .world-count {
   position: absolute; top: var(--s-5); left: 50%; transform: translateX(-50%);
@@ -2114,24 +2123,38 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
   font-variant-numeric: tabular-nums;
 }
 
-.world-arrow {
-  position: absolute;
-  width: 56px; height: 56px;
-  display: grid; place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.3); border-radius: 999px;
-  background: rgb(0 0 0 / 0.5);
-  color: #fff; font-size: 30px; line-height: 1; cursor: pointer;
+/* 🔴🔴 **우측 정중앙 — 「점 3 + 긴 막대 1 + 점 3」.** (2026-09-17 지시 [42] §2)
+   ⚠ **⌃⌄ 두 단추를 지운 그 자리다**(옛 `.world-arrow` — 대표님 설계에서 이 자리가 이것이다).
+   ★ **일곱 칸 «고정»이다.** 편수만큼 그리면 2000편에서 화면 밖으로 흘러넘친다 —
+     막대는 언제나 한가운데, 끝에 가까워지면 바깥 점이 비어 간다. */
+.world-rail {
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  pointer-events: none;
 }
-.world-arrow:disabled { opacity: 0.25; cursor: default; }
-.world-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-/* 🔴 **위아래**다(2026-09-17 지시 [35]③) — 릴스·쇼츠·틱톡 전부 위아래이고 대표님 말씀도 그렇다.
-   ⚠ 전에는 좌우(‹ ›)였다. 「모든 숏폼은 위아래 아닌가?」 — 맞습니다.
+.world-rail span {
+  width: 5px; height: 5px; border-radius: 999px;
+  background: #fff; opacity: 0.35;
+  transition: opacity var(--dur-act, 160ms) var(--ease-out, ease), height var(--dur-act, 160ms) var(--ease-out, ease);
+}
+.world-rail span.on { height: 22px; opacity: 0.95; }
+/* 그 자리에 «편이 없을 때» — 자리는 지키되 안 보인다. 막대가 늘 한가운데 있어야 한다 */
+.world-rail span.gone { opacity: 0; }
 
-   🔴 **2026-09-17 권반장 조사([36]④) — 오른쪽 끝으로 모았다.**
-   ⚠ 전에는 위·아래 «화면 한가운데»에 뒀는데, **아래 ⌄ 가 캡션을 덮었다.**
-     유튜브 쇼츠는 오른쪽 끝에 위아래로 나란히 둔다 — 그 자리가 맞다. */
-.world-arrow.up { top: 50%; right: 24px; transform: translateY(calc(-50% - 34px)); }
-.world-arrow.down { top: 50%; right: 24px; transform: translateY(calc(-50% + 34px)); }
+/* 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2)
+   ★ 우상 ✕ 가 글자를 뗀 몫을 이 단추가 받는다. 대표님: 「크게 강조할 필요 없음」 */
+.world-exit {
+  position: absolute; right: var(--s-4); bottom: var(--s-5);
+  display: grid; justify-items: center; gap: 2px;
+  padding: 8px 12px; border: 0; border-radius: var(--r-md, 12px);
+  background: transparent;
+  color: #fff; cursor: pointer;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.6);
+}
+.world-exit-x { font-size: 26px; line-height: 1; }
+.world-exit-say { font-size: var(--t-caption); font-weight: 600; opacity: 0.9; white-space: nowrap; }
+.world-exit:hover .world-exit-say { opacity: 1; }
+.world-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* 「← → 로 넘기고, ESC 로 나가요」 — 열린 직후 한 번만 */
 /* ⚠ 캡션 위로 올린다 — 실측에서 «이번 주 가장 바빴던 순간은요?» 와 겹쳤다 */
@@ -2156,8 +2179,16 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
      조용한 곳에서 연 손님은 허둥대다 그대로 나갔다.
    ★ 자리는 **영상 왼쪽 위** — 유튜브 쇼츠와 같다(조사 2026-09-17).
    🔴 화면에 스피커 그림은 **언제나 1개**를 넘지 않는다. 무대의 것은 이 검은 화면 아래에 깔린다. */
-.world-sound {
-  position: absolute; top: 16px; left: 16px;
+/* 🔴🔴 **좌상 🔊 와 우상 ✕ 는 «한 규칙»이다.** (2026-09-17 지시 [42] §2)
+
+   > 대표님: 「원형의 스피커 아이콘과 **똑같은 디자인에 가운데 스피커 모양만
+   >   스피커가 아닌 X 마크**가 있고 동그란 형태가 우측 상단에」
+
+   ⚠⚠ **두 블록으로 나눠 적지 마라.** 크기·테두리·배경을 각각 적으면 한쪽만 고쳐져
+     **대칭이 조용히 깨진다.** 여기 한 줄에 묶어 두면 그럴 수가 없다.
+   ⇒ **다른 것은 «어느 쪽 끝에 붙느냐» 하나뿐이다.** */
+.world-sound, .world-x {
+  position: absolute; top: 16px;
   width: 48px; height: 48px;
   display: grid; place-items: center;
   border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
@@ -2165,8 +2196,10 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
   color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
   backdrop-filter: blur(6px);
 }
-.world-sound:hover { background: rgb(0 0 0 / 0.75); }
-.world-sound:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.world-sound { left: 16px; }
+.world-x { right: 16px; }
+.world-sound:hover, .world-x:hover { background: rgb(0 0 0 / 0.75); }
+.world-sound:focus-visible, .world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* 🔴 「전부 보기」 — 무대(13화면 고정)에서 잘린 편들로 가는 문 (2026-09-17 지시 [39])
    ⚠ 「건너뛰기 ↓」와 «같은 줄»에 두되 왼쪽이다. 나가는 길과 더 보는 길이 나란히 있어야

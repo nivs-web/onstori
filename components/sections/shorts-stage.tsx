@@ -3,8 +3,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
+import dynamic from "next/dynamic";
 import { STAGE_MAX, SWIPE_PX, HINT_MS } from "@/config/shorts";
-import ShortsWorld from "./shorts-world";
+/**
+ * 🔴🔴 **몰입모드는 «클릭해야» 열린다 — 그러니 미리 내려보내지 않는다.** (2026-09-17 지시 [42] §2)
+ *
+ * > 대표님이 **「속도, 무조건 빨라야 해」**를 1번으로 두셨다.
+ *
+ * ⚠⚠ **그냥 미루기만 하면 «새 문제»가 생긴다**(권반장 지적):
+ *   클릭한 «그 순간»에 내려받기 시작하면 **「눌렀는데 아무 일도 안 나네」**가 된다.
+ *   소리를 들으려고 누른 손님이 그 사이에 나간다.
+ * ⇒ **무대가 화면에 «닿는» 순간 조용히 미리 당겨 온다**(아래 `warmWorld`).
+ *   클릭할 때쯤엔 **이미 와 있다.** PC 는 마우스를 올릴 때도 한 번 더 당긴다.
+ *
+ * ⚠ `ssr: false` — 이 화면은 손님이 누른 뒤에야 존재한다. 서버가 미리 그릴 것이 없다.
+ */
+const ShortsWorld = dynamic(() => import("./shorts-world"), { ssr: false });
+
+/** 몰입모드 뭉치를 미리 당겨 온다. 여러 번 불러도 브라우저가 한 번만 받는다 */
+let warmed = false;
+function warmWorld() {
+  if (warmed) return;
+  warmed = true;
+  void import("./shorts-world");
+}
 
 /**
  * 🔴 **숏폼 무대** — 히어로 바로 아래에서 화면이 «까맣게» 덮이는 자리. (2026-09-17 지시 [19]①)
@@ -172,6 +194,9 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     let shown = false;
     const io = new IntersectionObserver(
       ([e]) => {
+        /* 🔴 무대가 화면에 «닿는» 순간 몰입모드를 미리 당겨 온다(위 `warmWorld` 주석).
+           ⚠ 덮였을 때가 아니라 **스치기만 해도** 당긴다 — 클릭은 그 뒤에 온다 */
+        if (e.isIntersecting) warmWorld();
         const covering = e.intersectionRatio > 0.9;
         document.documentElement.classList.toggle("stage-dark", covering);
         /* 힌트는 **딱 한 번**만. 오르내릴 때마다 뜨면 그게 더 성가시다 */
@@ -239,7 +264,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
       <div className="stage-sticky" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="stage-frame"
           /* ⚠ **마우스가 있는 기기에서만.** 폰에서는 탭이 hover 처럼 들어와 힌트가 붙어 버린다 */
-          onMouseEnter={() => { if (window.matchMedia?.("(hover: hover)").matches) setHover(true); }}
+          onMouseEnter={() => { warmWorld(); if (window.matchMedia?.("(hover: hover)").matches) setHover(true); }}
           onMouseLeave={() => setHover(false)}
         >
           {/* ⚠ 한 편씩 `<figure>` 로 싼다 — 「움직임 줄이기」를 켠 손님에게는 이 묶음이
