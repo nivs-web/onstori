@@ -16,7 +16,19 @@ export type SiteRow = {
   order: ShortsOrder;
   /** 사장님이 직접 고른 적이 있나 — 없으면 기본값으로 도는 중 */
   chosen: boolean;
+  /** 🔴 실제 저장량(바이트). **`null` 은 「못 쟀다」이지 「0」이 아니다**(지시 [47]①) */
+  bytes: number | null;
 };
+
+/** 사람이 읽는 용량. ⚠ 못 쟀으면 **「못 쟀어요」**라고 쓴다 — 0 이라고 쓰면 거짓말이다 */
+function saySize(bytes: number | null): string {
+  if (bytes === null) return "용량 못 쟀어요";
+  /* ⚠ **0 을 「1KB」로 쓰지 않는다.** 아무것도 없는데 1KB 라고 적으면 그것도 거짓말이다 */
+  if (bytes === 0) return "0";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)}GB`;
+}
 
 /**
  * 🔴 **전체 홈페이지의 「숏폼 스타일」 표.** (2026-09-17 지시 [42] §4-②)
@@ -29,7 +41,7 @@ export type SiteRow = {
  * ⚠ **먼저 화면을 바꾸고** 서버에 보낸다 — 누르자마자 반응이 있어야 한다.
  *   실패하면 **되돌리고 그 줄에 사실대로** 적는다(조용히 삼키면 바뀐 줄 안다).
  */
-export function VideosStyleTable({ rows }: { rows: SiteRow[] }) {
+export function VideosStyleTable({ rows, warnAt }: { rows: SiteRow[]; warnAt: number }) {
   const [list, setList] = useState(rows);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<Record<string, string>>({});
@@ -77,6 +89,12 @@ export function VideosStyleTable({ rows }: { rows: SiteRow[] }) {
             {/* 🔴 영상이 없으면 어느 모양을 골라도 화면에 아무 변화가 없다 — 먼저 말해 준다 */}
             <span className="t-caption text-[var(--text-soft)]">
               {r.videos > 0 ? `걸린 영상 ${r.videos}편` : "걸린 영상 없음 — 골라도 화면에 안 보입니다"}
+            </span>
+            {/* 🔴 실제 저장량 — **막지 않고 보이기만** 한다(지시 [47]①②).
+                   기준을 넘으면 «눈에 띄게». 그래도 아무것도 막지 않는다 */}
+            <span className={`t-caption ${r.videos > warnAt ? "font-bold text-danger" : "text-[var(--text-soft)]"}`}>
+              · {saySize(r.bytes)}
+              {r.videos > warnAt && ` · 🔴 ${warnAt}편 넘음`}
             </span>
             {!r.chosen && (
               <span className="t-caption text-[var(--text-soft)]">· 사장님이 고른 적 없음(기본값)</span>

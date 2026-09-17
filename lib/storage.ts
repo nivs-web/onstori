@@ -259,6 +259,44 @@ export async function listPrefix(bucket: Bucket, prefix: string): Promise<string
 }
 
 /**
+ * 🔴 **prefix 아래가 «몇 바이트»인지 센다.** (2026-09-17 지시 [47]①)
+ *
+ * ⚠⚠ **왜 필요한가:** 영상을 **몇 편이든 올릴 수 있는데 막는 것이 없다.**
+ *   지금은 사장님이 몇 분이라 0원 구간이지만, **안 보이면 아무도 모른다.**
+ *   ⇒ 어드민 표에 **사장님별 실제 저장량**을 띄워 **눈을 뜨고 있게** 한다.
+ *
+ * ⚠ `listPrefix` 와 달리 **크기까지** 받아 온다(`ListObjectsV2` 가 `Size` 를 함께 준다).
+ *   그래서 같은 함수로 합치지 않고 따로 뒀다 — 지우는 길에 크기 계산을 끼워 넣고 싶지 않다.
+ * ⚠ 안전장치로 5,000개에서 멈춘다(`listPrefix` 와 같은 이유). 넘으면 «최소값»이다.
+ */
+export async function sizeOfPrefix(bucket: Bucket, prefix: string): Promise<{ bytes: number; count: number }> {
+  const env = r2Env();
+  let bytes = 0, count = 0;
+  if (env) {
+    let token: string | undefined;
+    do {
+      const r = await client(env).send(
+        new ListObjectsV2Command({ Bucket: r2Bucket(env, bucket), Prefix: prefix, ContinuationToken: token, MaxKeys: 1000 })
+      );
+      for (const o of r.Contents ?? []) { bytes += o.Size ?? 0; count++; }
+      token = r.IsTruncated ? r.NextContinuationToken : undefined;
+    } while (token && count < 5000);
+    return { bytes, count };
+  }
+  /* Supabase 폴백 — 크기를 못 주는 경우가 있다. 그때는 «0» 이 아니라 «못 쟀다»로 다뤄야 하므로
+     개수만 세어 돌려준다(부르는 쪽이 0바이트를 보고 「없다」고 말하지 않게 한다). */
+  const { bucket: sbBucket, path } = split(prefix.replace(/\/+$/, "") + "/x");
+  const dir = path.replace(/\/x$/, "");
+  const { data } = await sbAdmin().storage.from(sbBucket).list(dir, { limit: 1000 });
+  for (const f of data ?? []) {
+    count++;
+    const sz = (f as { metadata?: { size?: number } }).metadata?.size;
+    if (typeof sz === "number") bytes += sz;
+  }
+  return { bytes, count };
+}
+
+/**
  * prefix 아래 파일을 전부 지우고 지운 개수를 준다.
  * ⚠ 되돌릴 수 없다. 호출부가 삭제 대상을 정확히 좁혔는지 먼저 확인할 것.
  * 개별 실패는 삼키고 계속한다 — 하나 때문에 멈추면 파일이 반만 남는다.

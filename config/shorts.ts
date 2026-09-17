@@ -233,3 +233,14 @@ export function stageNOf(settings: unknown): number {
   if (!Number.isFinite(n)) return STAGE_N_MAX;
   return Math.min(STAGE_N_MAX, Math.max(STAGE_N_MIN, n));
 }
+
+/**
+ * 🔴 **한 사장님이 이 편수를 넘으면 어드민 표에서 «눈에 띄게» 한다.** (2026-09-17 지시 [47]②)
+ *
+ * ⚠⚠ **막는 값이 아니다.** 올리는 것을 막는 것은 **«사업 정책»이고 «돈»과 얽혀** 대표님 결정 사항이다.
+ *   여기 숫자는 **「눈을 뜨고 있기 위한 표시」**일 뿐이다 — 넘어도 **아무것도 막지 않는다.**
+ *
+ * ★ **왜 300인가:** 주 1회 찍으면 약 6년치다. 그 이상은 **평범한 쓰임이 아니라 «봐야 할 신호»**다.
+ *   ⚠ 근거 있는 정답이 아니라 **눈에 띄게 하려고 고른 값**이다 — 대표님이 다른 수를 주시면 그 값으로 바꾼다.
+ */
+export const VIDEOS_WARN_AT = 300;
