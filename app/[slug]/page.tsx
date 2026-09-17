@@ -10,6 +10,7 @@ import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 import ShortsStage from "@/components/sections/shorts-stage";
+import { shortsStyleOf } from "@/config/shorts";
 import ShortsSns from "@/components/sections/shorts-sns";
 import { ANCHOR_OF } from "@/components/sections/nav";
 
@@ -129,7 +130,16 @@ export default async function SitePage({ params }: Props) {
    *   그리고 그때는 `shorts-stage.tsx` 의 JS 가 **한 바이트도 안 나간다.**
    */
   const stageItems = site.shorts ?? [];
-  const stageOn = stageItems.length > 0;
+  /**
+   * 🔴🔴 **어느 «모양»으로 보여 줄지는 사장님이 고른다.** (2026-09-17 지시 [42] §3)
+   *
+   * ⚠⚠ 2026-09-17 까지는 **「영상이 있으면 무조건 숏폼형태」**였다.
+   *   그래서 **카드형태(`shorts-feed.tsx`)는 아무 사이트에서도 안 그려지고 있었다** — 있는데 잠들어 있었다.
+   * ⇒ 이제 `settings.shorts.style` 이 정한다. **아무것도 안 고른 사장님은 지금까지와 똑같다**(기본 = 숏폼형태).
+   * ⚠ 모르는 값이 들어 있으면 `shortsStyleOf` 가 **조용히 기본값으로** 떨어뜨린다.
+   */
+  const shortsStyle = shortsStyleOf(site.settings);
+  const stageOn = shortsStyle === "shorts" && stageItems.length > 0;
   /* 히어로가 없는 사이트도 있다 — 그때는 맨 앞에 세운다 */
   const heroAt = site.doc.sections.findIndex((x) => x.type === "hero");
   const stageAfter = stageOn ? Math.max(0, heroAt) : -1;
@@ -209,7 +219,7 @@ export default async function SitePage({ params }: Props) {
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <React.Fragment key={i}>
-            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn }} />
+            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle }} />
             {i === stageAfter && (
               <>
                 <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />

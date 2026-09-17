@@ -2217,3 +2217,16 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .stage-all:hover { background: rgb(0 0 0 / 0.85); }
 /* 무대 위 「3 / 12 · 전체 40」 에서 뒷부분은 흐리게 — 지금 위치가 먼저 읽혀야 한다 */
 .stage-more-n { opacity: 0.7; font-weight: 600; }
+
+/* 🔴 마지막 편에 닿았을 때의 권유 — 「더 많은 영상을 보시려면 영상 클릭하세요」 (지시 [42] §3)
+   ⚠ 「전부 보기」 단추와 겹치지 않게 **그 위**에 띄운다. */
+.stage-more-say {
+  position: absolute; left: 50%; bottom: calc(var(--dock-pad) + var(--s-3) + var(--tap) + var(--s-3));
+  transform: translateX(-50%);
+  margin: 0; padding: 9px 18px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: var(--t-caption); font-weight: 600; white-space: nowrap;
+  backdrop-filter: blur(6px);
+  animation: stage-hint-in var(--dur-enter, 700ms) var(--ease-out, ease) both;
+}

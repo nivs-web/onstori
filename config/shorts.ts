@@ -35,7 +35,6 @@ export const SHORTS_MAX = 200;
  *   폰에서 한 화면을 한 번 굴리는 데 1~2초이니 **끝까지 20초 안팎** — 참을 수 있는 선이다.
  *   더 늘리면 「건너뛰기」를 누르기 전에 지친다.
  */
-export const STAGE_MAX = 12;
 
 /**
  * 🔴 **손가락이 이만큼은 움직여야 «넘긴 것»으로 본다.** 너무 작으면 살짝 흔들려도 넘어간다.
@@ -51,3 +50,53 @@ export const SWIPE_PX = 48;
  * ⚠ 이것도 **무대와 몰입모드가 같이 쓴다**(권반장 지시 [31]①).
  */
 export const HINT_MS = 2800;
+
+/**
+ * 🔴🔴 **두 모양 — 「숏폼형태」와 「카드형태」.** (2026-09-17 지시 [42] §3·§4)
+ *
+ * ★ **두 화면은 이미 있었다.** 새로 만든 것이 아니다 —
+ *   숏폼형태 `components/sections/shorts-stage.tsx` · 카드형태 `components/sections/shorts-feed.tsx`.
+ *   전에는 **「영상이 있으면 무조건 숏폼형태」**였고, 카드형태는 아무 데서도 안 그려졌다.
+ *   이제 **사장님이 고른 모양**이 정한다.
+ *
+ * ⚠⚠ **값은 «문자열 하나»이고 목록은 여기 한 곳이다.** 모양이나 순서가 늘어날 때
+ *   `if` 를 세 개 박지 말고 **이 배열에 한 줄만** 더한다. 화면은 이 배열을 돌려 그린다.
+ * 🔴 **모르는 값이 오면 «조용히» 기본값으로 떨어뜨린다**(`shortsStyleOf`) —
+ *   옛 사이트나 손으로 고친 값 때문에 **손님 화면이 깨지면 안 된다.**
+ */
+export const SHORTS_STYLES = [
+  { key: "shorts", label: "숏폼형태", desc: "히어로 아래에서 화면을 가득 채웁니다 (틱톡·릴스처럼)" },
+  { key: "cards", label: "카드형태", desc: "카드가 옆으로 넘어갑니다 (스크롤을 붙잡지 않습니다)" },
+] as const;
+
+export type ShortsStyle = (typeof SHORTS_STYLES)[number]["key"];
+
+/** 🔴 **기본은 숏폼형태**다(대표님 확정). 아무것도 안 고른 사장님은 지금까지와 똑같이 보인다 */
+export const SHORTS_STYLE_DEFAULT: ShortsStyle = "shorts";
+
+/**
+ * 🔴 **홈페이지에 «그리는» 편수 — 모양마다 다르다.** (지시 [42] §3 · 대표님 확정)
+ *
+ * ⚠⚠ **`SHORTS_MAX`(200)와 «전혀 다른 숫자»다. 헷갈리지 마라.**
+ *   · `SHORTS_MAX`   = **DB 에서 몇 편을 가져오나** (몰입모드가 그 전부를 본다)
+ *   · 여기          = **첫 화면에 몇 개를 그리나**
+ *   ⇒ 대표님 말씀 「10·20편은 홈페이지만, **몰입모드는 전부**」가 이 구조와 그대로 맞는다.
+ *
+ * ⚠ 숏폼형태가 10인 이유는 **무대 높이가 `(편수+1) × 화면 하나`**라서다.
+ *   [39] 에서 12였고, [42] 로 **10**이 되었다.
+ */
+export const SHORTS_SHAPE_N: Record<ShortsStyle, number> = {
+  shorts: 10,
+  cards: 20,
+};
+
+/**
+ * 사장님이 고른 모양을 **안전하게** 꺼낸다. 저장 자리는 `sites.settings.shorts.style`.
+ * ⚠ `settings` 는 **자유 형식(jsonb)**이라 무엇이든 들어 있을 수 있다 — 모르는 값은 기본값이다.
+ */
+export function shortsStyleOf(settings: unknown): ShortsStyle {
+  const v = (settings as { shorts?: { style?: unknown } } | null | undefined)?.shorts?.style;
+  return SHORTS_STYLES.some((s) => s.key === v) ? (v as ShortsStyle) : SHORTS_STYLE_DEFAULT;
+}
+
+export const STAGE_MAX = SHORTS_SHAPE_N.shorts;

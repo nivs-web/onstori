@@ -2,7 +2,33 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
+import dynamic from "next/dynamic";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
+
+/**
+ * 🔴🔴 **카드형태에도 «몰입모드»가 붙는다.** (2026-09-17 지시 [42] §3 · 대표님 확정)
+ *
+ * > 대표님: 카드형태는 「소리 꺼진 채 1편만 재생 · 좌우로 넘김 · **스크롤 안 가둠** ·
+ * >   **클릭하면 몰입모드에 갇힘**」
+ *
+ * ★ **[42] §1 에서 몰입모드를 파일로 떼어낸 것이 바로 이걸 위해서였다.**
+ *   전에는 몰입모드가 무대(`shorts-stage.tsx`) 안에만 살아서 카드형태는 쓸 수가 없었다.
+ * ⚠ 무대와 **같은 방식으로** 미루고 미리 받는다 — 첫 화면을 무겁게 하지 않는다.
+ */
+const ShortsWorld = dynamic(() => import("./shorts-world"), { ssr: false });
+
+let warmed = false;
+function warmWorld() {
+  if (warmed) return;
+  warmed = true;
+  void import("./shorts-world");
+}
+/** 한가한 틈에 한 번 — 누르는 순간 기다리지 않게(무대와 같은 이유. `shorts-stage.tsx` 주석 참조) */
+function warmWhenIdle() {
+  const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => warmWorld(), { timeout: 3000 });
+  else window.setTimeout(warmWorld, 1200);
+}
 
 /**
  * 홈페이지 안의 «숏폼 피드» — 릴스·쇼츠·틱톡에서 보던 그 느낌. (2026-09-16 대표님 지시)
@@ -30,8 +56,17 @@ import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
  */
 
 
-export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: string }) {
+export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all?: ShortT[]; onInk: string }) {
   const [active, setActive] = useState(0);
+  /**
+   * 🔴 **몰입모드에 넘기는 것은 «가져온 전부»다.** (지시 [42] §3)
+   *   화면에 그리는 카드는 20장까지지만, 열고 들어가면 **전부** 볼 수 있어야 한다
+   *   (대표님: 「10·20편은 홈페이지만, 몰입모드는 전부」).
+   */
+  const world = all && all.length ? all : items;
+  const [worldAt, setWorldAt] = useState<number | null>(null);
+  /** 멀미를 싫어하는 손님에게는 몰입모드를 열지 않는다 — 무대와 같은 규칙이다 */
+  const [calm, setCalm] = useState(false);
   /**
    * 🔴 **소리는 «한 번 켜면 끝까지».** (2026-09-17 대표님 지시 [31]①)
    *
@@ -48,6 +83,15 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
 
   const setVid = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) vids.current.set(id, el); else vids.current.delete(id);
+  }, []);
+
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const on = () => setCalm(m.matches);
+    on();
+    m.addEventListener("change", on);
+    warmWhenIdle();
+    return () => m.removeEventListener("change", on);
   }, []);
 
   /* ★★ 보이는 카드 하나만 재생한다.
@@ -106,8 +150,15 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
                 playsInline
                 preload="none"
                 /* ⚠ `controls` 를 달지 않는다 — 릴스·틱톡에는 재생바가 없다.
-                   대신 카드를 누르면 소리가 켜진다. 그것이 이 화면의 유일한 조작이다. */
-                onClick={() => setLoud((v) => !v)}
+                   🔴 **누르면 «몰입모드»가 열린다**(2026-09-17 지시 [42] §3 · 대표님 확정).
+                     전에는 누르면 소리가 켜졌다 — 그 몫은 이제 **스피커 단추**가 맡는다.
+                   ⚠ 「움직임 줄이기」를 켠 손님에게는 열지 않고 **전처럼 소리만** 켠다. */
+                onClick={() => {
+                  if (calm) { setLoud((v) => !v); return; }
+                  const i = world.findIndex((x) => x.id === it.id);
+                  setLoud(true);              // 눌렀으니 브라우저가 소리를 허락한다
+                  setWorldAt(i >= 0 ? i : 0);
+                }}
               />
               {/* 소리 상태 — 손님이 «지금 음소거구나»를 알아야 누를 생각을 한다 */}
               <button
@@ -154,6 +205,11 @@ export default function ShortsFeed({ items, onInk }: { items: ShortT[]; onInk: s
             ))}
           </div>
         </>
+      )}
+
+      {/* 🔴 **몰입모드 — 무대와 «같은 파일»을 쓴다**(지시 [42] §1 에서 떼어낸 그것) */}
+      {worldAt !== null && (
+        <ShortsWorld items={world} at={worldAt} onAt={setWorldAt} onClose={() => setWorldAt(null)} calm={calm} />
       )}
     </div>
   );

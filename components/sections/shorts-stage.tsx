@@ -394,6 +394,17 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
             </button>
           )}
 
+          {/**
+            * 🔴 **마지막 편에 닿으면 — 「더 많은 영상을 보시려면 영상 클릭하세요」** (2026-09-17 지시 [42] §3)
+            *
+            * ⚠ 위 「전부 보기 (N편) →」는 **늘 떠 있는 문**이고, 이것은 **끝에 닿았을 때의 권유**다.
+            *   둘이 같은 곳으로 간다 — 🔴 **권반장님께 「둘 다 둘까요」를 여쭤 두었다.**
+            * ⚠ **가두기는 여기서 끝난다** — 무대 높이가 정해져 있어 이 아래로는 그냥 내려간다(「탈출 가능」).
+            */}
+          {items.length > staged.length && !calm && active === staged.length - 1 && (
+            <p className="stage-more-say">더 많은 영상을 보시려면 영상 클릭하세요</p>
+          )}
+
           {/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다.
               ⚠ 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.** 키우고 또렷하게 했다. */}
           <button type="button" className="stage-skip" onClick={skip}>건너뛰기 ↓</button>

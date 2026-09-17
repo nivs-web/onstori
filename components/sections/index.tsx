@@ -6,6 +6,7 @@ import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
 import type { ShortT } from "@/lib/shorts";
 import ShortsFeed from "./shorts-feed";
+import { SHORTS_SHAPE_N, type ShortsStyle } from "@/config/shorts";
 
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
@@ -31,6 +32,8 @@ type Ctx = {
   doc: SiteDocT; stories: StoryEntryT[]; slug: string; shorts?: ShortT[];
   /** 🔴 히어로 아래 «숏폼 무대»가 이미 섰는가 (2026-09-17 지시 [19]①) — 아래 영상 섹션이 이걸 보고 비킨다 */
   stageOn?: boolean;
+  /** 사장님이 고른 숏폼 모양 — `shorts`(무대) / `cards`(카드). 없으면 기본값 */
+  shortsStyle?: ShortsStyle;
 };
 
 /**
@@ -466,7 +469,13 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
      없으면(옛 호출부·미리보기 등) 지금까지처럼 섹션이 들고 있던 한 편만 그린다.
      ⚠ 섹션 스키마(`url` 한 칸)는 **건드리지 않았다.** 스키마를 고치면 네 곳이 함께 움직여야 한다
        (불변 규칙 2). 영상 목록은 DB 가 이미 진실을 갖고 있어(`video_out_key`) 스키마를 늘릴 이유가 없다. */
-  const feed = ctx.shorts ?? [];
+  /**
+   * 🔴 **카드형태는 «20편»까지 그린다.** (2026-09-17 지시 [42] §3 · 대표님 확정)
+   * ⚠ `SHORTS_MAX`(200)는 **DB 에서 몇 편 가져오나**라 별개다 — 여기서 자르는 것은 «그리는 수»다.
+   *   몰입모드는 여전히 **가져온 전부**를 본다.
+   */
+  const all = ctx.shorts ?? [];
+  const feed = all.length > SHORTS_SHAPE_N.cards ? all.slice(0, SHORTS_SHAPE_N.cards) : all;
   const single = s.url?.trim() ?? "";
 
   /**
@@ -505,7 +514,13 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
           {/* 여러 편일 때만 안내 한 줄 — 손님이 «옆으로 넘길 수 있다»는 걸 알아야 넘긴다 */}
           {feed.length > 1 && (
             <p className="t-small" style={{ margin: "0 0 var(--s-5)", color: on, opacity: 0.68 }}>
-              {feed.length}편 · 옆으로 넘겨 보세요. 소리는 영상을 누르면 켜집니다.
+              {/* 🔴🔴 **이 문장이 [42] §3 으로 «거짓말»이 됐다 — 그래서 고친다.** (2026-09-17)
+                    전 : 「… 소리는 **영상을 누르면 켜집니다**」
+                    후 : 「… **영상을 누르면 몰입모드로 열립니다**」
+                  ⚠ 대표님 확정으로 **카드형태는 누르면 몰입모드가 열린다.** 소리는 **스피커 단추**가 맡는다.
+                    그대로 두면 화면이 «안 하는 일»을 한다고 말한다(불변 규칙 12).
+                  🔴 **손님이 보는 글이라 권반장님께 보고했다** — 되돌리라 하시면 한 줄이다. */}
+              {feed.length}편 · 옆으로 넘겨 보세요. 영상을 누르면 몰입모드로 열립니다.
             </p>
           )}
         </div>
@@ -514,7 +529,7 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
       {feed.length > 0 ? (
         /* ★ 피드는 좌우 여백 «밖»까지 흐른다 — 카드가 화면 가장자리에서 잘려 보여야
              「더 있다」가 읽힌다. 릴스·틱톡이 전부 이렇게 한다. */
-        <ShortsFeed items={feed} onInk={on} />
+        <ShortsFeed items={feed} all={all} onInk={on} />
       ) : (
         <div style={{ paddingInline: "var(--gutter)" }}>
           <div className="mx-auto max-w-3xl">
