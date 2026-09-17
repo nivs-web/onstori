@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { AddToHome } from "./add-home";
 import { QuestionShuffle } from "@/components/site/question-shuffle";
 import type { Question } from "@/config/questions";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
@@ -1105,6 +1106,11 @@ export function RecClient({ slug, k, businessName, onDone }: {
                   「하지 마라」가 아니라 「알 수 없는 것은 묻지 않고 해 본다」로 바꾼 것이다. */}
             <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !t-body">60초 영상 촬영하기</button>
             <ShootGuide />
+            {/* ★★ 2026-09-17 대표님 아이디어 [20] — **홈 화면에 바로가기.**
+                「폰 홈 화면에 바로가기로 60초 촬영이 박히는 거야. 그러면 폰 할 때마다 앱을 보게 될 거고,
+                  **자주 영상 찍어 올려줄 거 같다.**」
+                ⚠ **첫 화면에만** 둔다. 찍는 도중에 이걸 권하면 찍던 것을 놓친다. */}
+            <AddToHome />
           </section>
         )}
 
