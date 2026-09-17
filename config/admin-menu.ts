@@ -51,7 +51,9 @@ export const ADMIN_GROUPS: AdminGroup[] = [
     group: "콘텐츠",
     items: [
       { href: "/admin/bank", label: "이미지뱅크", desc: "생성 이미지 검수·점수·삭제", ready: true },
-      { href: "/admin/videos", label: "영상 관리", desc: "녹화 영상 검수·발행 (V 배치)", ready: false },
+      /* ★ 2026-09-17 [42]§4-② — 「숏폼 스타일」을 한눈에 보고 대신 바꿔 주는 표가 생겼다.
+         ⚠ 고르는 것은 원래 **사장님 편집화면**이 «주»다. 여기는 전화로 부탁하셨을 때의 길이다. */
+      { href: "/admin/videos", label: "영상 관리", desc: "홈페이지별 숏폼 모양·편수·재생 순서", ready: true },
       { href: "/admin/pages", label: "온스토리 홈페이지", desc: "첫 페이지 섹션 보이기·가리기", ready: true },
       /* ★ 2026-09-11 — 「100건도 안 썼는데 $10 이 사라졌다」를 알아채는 자리(회장님 요청) */
       { href: "/admin/sns", label: "SNS 발행 현황", desc: "채널별 올린 건수·실패·추정 비용", ready: true },
