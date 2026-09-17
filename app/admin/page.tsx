@@ -5,6 +5,7 @@
  *   옛 주소 `/admin/dashboard` 는 여기로 넘겨준다(북마크 보호).
  */
 import Link from "next/link";
+import { ReviewLoginFix } from "./review-login-fix";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "./ui";
@@ -175,6 +176,9 @@ export default async function DashboardPage() {
           })}
         {rows.length === 0 && <li className="px-4 py-8 text-center text-[var(--text-soft)]">아직 홈페이지가 없어요</li>}
       </ul>
+
+      {/* 🔴 2026-09-17 지시 [30] — 심사관이 일반 로그인 화면으로 못 들어오던 것. 단추 하나로 고친다 */}
+      <ReviewLoginFix />
     </main>
   );
 }
