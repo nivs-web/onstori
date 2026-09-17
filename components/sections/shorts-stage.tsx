@@ -78,8 +78,10 @@ function warmWhenIdle() {
 
 
 
-export default function ShortsStage({ items, anchorId, title, slug, order = SHORTS_ORDER_DEFAULT }: {
+export default function ShortsStage({ items, anchorId, title, slug, order = SHORTS_ORDER_DEFAULT, stageN = STAGE_MAX }: {
   items: ShortT[]; anchorId?: string; title: string; slug: string; order?: ShortsOrder;
+  /** 🔴 **가두는 편수 — 사장님이 5~10 에서 고른다**(2026-09-17 대표님). 없으면 최대(10) */
+  stageN?: number;
 }) {
   /**
    * 🔴🔴 **재생 순서는 «브라우저»에서 정한다.** (2026-09-17 지시 [42] §5)
@@ -104,7 +106,7 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
    *   세상은 **한 편씩만** 그리므로 편수가 늘어도 높이가 안 늘어난다.
    * ★ 🔴 **「세상」에는 «전부» 넘긴다.** 무대에서 잘린 것은 **못 보는 게 아니라 거기 있다.**
    */
-  const staged = view.length > STAGE_MAX ? view.slice(0, STAGE_MAX) : view;
+  const staged = view.length > stageN ? view.slice(0, stageN) : view;
   const [active, setActive] = useState(0);
   const [loud, setLoud] = useState(false);
   /**

@@ -287,7 +287,41 @@ function TopBar({
  *   `components/sections/channel-widget.tsx` 가 바로 **그 위** 자리(`bottom: dock-h + …`)에 뜬다.
  */
 function Dock({ buttons }: { buttons: CtaButton[] }) {
+  /**
+   * 🔴🔴 **히어로·숏폼 구역에서는 «안 뜬다».** (2026-09-17 대표님 지시)
+   *
+   * > 대표님: 「하단에 [문의하기]가 플로팅처럼 고정돼 있잖아. **처음부터 고정될 필요 없어.**
+   * >   **히어로 섹션이랑, 숏폼 구역에선 안 뜨게 하고, 숏폼 구역 아래로 벗어나면 그때 나오게** 만들어.
+   * >   문의하기가 중요한 버튼인 건 알지만, **안 그래도 폰 화면 작은데 너무 공간을 많이 차지한다**」
+   *
+   * ⚠⚠ **손님이 문의를 «못 하게» 되면 안 된다.** 먼저 확인했다 —
+   *   **히어로 안에 [문의하기] 버튼이 따로 있다**(`components/sections/index.tsx` 의 히어로 CTA).
+   *   그래서 이 바를 숨겨도 **첫 화면에서 문의로 가는 길이 남는다.**
+   *
+   * ★ **기준은 «숏폼 구역의 아래»다.** 무대(`.stage`)가 있으면 그 아래, 없으면 **첫 섹션**(히어로) 아래.
+   * 🔴 **못 찾으면 «보여 준다».** 기준을 못 찾았다고 문의 길을 막으면 그게 더 큰 손해다.
+   * ⚠ 스크롤마다 자리를 재지만 `passive` 리스너 하나뿐이고 계산은 `getBoundingClientRect` 한 번이다.
+   */
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const look = () => {
+      const gate =
+        document.querySelector<HTMLElement>(".stage") ??
+        document.querySelector<HTMLElement>("main section");
+      if (!gate) { setPast(true); return; }        // 못 찾으면 보여 준다
+      setPast(gate.getBoundingClientRect().bottom <= 0);
+    };
+    look();
+    window.addEventListener("scroll", look, { passive: true });
+    window.addEventListener("resize", look);
+    return () => {
+      window.removeEventListener("scroll", look);
+      window.removeEventListener("resize", look);
+    };
+  }, []);
+
   if (buttons.length === 0) return null;
+  if (!past) return null;
   // 어느 것이 주 버튼(면 색)인지는 `resolveCtaButtons` 가 이미 정해 왔다(`b.primary`).
   // 여기서 「마지막 것」이라고 다시 추측하지 않는다 — 그러면 레거시 사이트가 어긋난다.
   return (

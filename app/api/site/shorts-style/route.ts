@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { revalidatePath } from "next/cache";
-import { SHORTS_STYLES, SHORTS_ORDERS, shortsStyleOf, shortsOrderOf } from "@/config/shorts";
+import { SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES, shortsStyleOf, shortsOrderOf, stageNOf } from "@/config/shorts";
 
 /**
  * 🔴 **사장님이 「숏폼 모양」을 고르는 창구.** (2026-09-17 지시 [42] §4)
@@ -21,7 +21,7 @@ import { SHORTS_STYLES, SHORTS_ORDERS, shortsStyleOf, shortsOrderOf } from "@/co
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string; order?: string };
+  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string; order?: string; stageN?: number };
   const r = await loadOwnedSite(String(body.slug ?? ""), body.anonId);
   if ("error" in r) {
     return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });
@@ -33,6 +33,7 @@ export async function POST(req: Request) {
    * 🔴 **보낸 것만 바꾼다.** 순서만 보냈는데 모양이 기본값으로 덮이면 안 된다.
    */
   const patch: Record<string, string> = {};
+  const patchN: Record<string, number> = {};
   if (body.style !== undefined) {
     if (!SHORTS_STYLES.some((s) => s.key === body.style)) {
       return NextResponse.json({ error: "모르는 모양이에요" }, { status: 400 });
@@ -45,14 +46,21 @@ export async function POST(req: Request) {
     }
     patch.order = body.order;
   }
-  if (!Object.keys(patch).length) {
+  if (body.stageN !== undefined) {
+    /* 🔴 범위 밖 숫자는 **받지 않는다** — 화면이 고장 나도 무대 높이가 이상해지면 안 된다 */
+    if (!STAGE_N_CHOICES.includes(Number(body.stageN))) {
+      return NextResponse.json({ error: "고를 수 없는 편수예요" }, { status: 400 });
+    }
+    patchN.stageN = Number(body.stageN);
+  }
+  if (!Object.keys(patch).length && !Object.keys(patchN).length) {
     return NextResponse.json({ error: "바꿀 것이 없어요" }, { status: 400 });
   }
 
   const now = (r.site.settings as Record<string, unknown> | null) ?? {};
   const shorts = (now.shorts as Record<string, unknown> | undefined) ?? {};
   /* 🔴 **있던 것 위에 얹는다**(위 주석). 두 겹 다 얹어야 `shorts` 안의 다른 값도 안 날아간다 */
-  const next = { ...now, shorts: { ...shorts, ...patch } };
+  const next = { ...now, shorts: { ...shorts, ...patch, ...patchN } };
 
   const { error } = await sbAdmin().from("sites").update({ settings: next }).eq("id", r.site.id);
   if (error) {
@@ -64,6 +72,6 @@ export async function POST(req: Request) {
      사장님은 「안 바뀌네?」 하고 또 누른다. */
   revalidatePath(`/${r.site.slug}`);
 
-  console.log(JSON.stringify({ evt: "shorts_style_set", slug: r.site.slug, ...patch }));
-  return NextResponse.json({ ok: true, style: shortsStyleOf(next), order: shortsOrderOf(next) });
+  console.log(JSON.stringify({ evt: "shorts_style_set", slug: r.site.slug, ...patch, ...patchN }));
+  return NextResponse.json({ ok: true, style: shortsStyleOf(next), order: shortsOrderOf(next), stageN: stageNOf(next) });
 }

@@ -2141,6 +2141,26 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 /* 그 자리에 «편이 없을 때» — 자리는 지키되 안 보인다. 막대가 늘 한가운데 있어야 한다 */
 .world-rail span.gone { opacity: 0; }
 
+/* 🔴🔴 **⌃⌄ 를 되살린다.** (2026-09-17 대표님이 뒤집으심 — [42] §2 에서 지웠던 것)
+   > 「오른쪽 중간 ⌃⌄ 버튼은 인스타 릴스 보니까 **다시 살리는 게 좋겠다**」
+   🔴 **모양은 아직 «옛날 것»이다.** 대표님은 **인스타 릴스 수준의 원형 버튼**을 원하신다 —
+     그 규격(지름·선굵기·투명도)은 권반장이 조사 중이다. 오면 그때 맞춘다.
+   ⚠ **`.world-rail` 과 자리가 겹친다**(둘 다 오른쪽 한가운데). 둘을 어떻게 놓을지도
+     권반장 규격과 함께 온다 — **혼자 옮기지 마라.** */
+.world-arrow {
+  position: absolute;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 20px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.world-arrow:disabled { opacity: 0.25; cursor: default; }
+.world-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.world-arrow.up { top: 50%; right: 24px; transform: translateY(calc(-50% - 34px)); }
+.world-arrow.down { top: 50%; right: 24px; transform: translateY(calc(-50% + 34px)); }
+
 /* 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2)
    ★ 우상 ✕ 가 글자를 뗀 몫을 이 단추가 받는다. 대표님: 「크게 강조할 필요 없음」 */
 .world-exit {

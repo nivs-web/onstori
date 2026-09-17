@@ -205,3 +205,31 @@ export function visitSeed(slug: string): number {
     return 1;
   }
 }
+
+/**
+ * 🔴🔴 **숏폼형태가 «가두는» 편수를 사장님이 고른다 — 5~10편.** (2026-09-17 대표님 지시)
+ *
+ * > 대표님: 「스크롤에 갇히는 거 몇 개로 할지 설정할 수 있게 … **최소 5개에서 최대 10개 중에 고를 수 있음.**
+ * >   숏폼형태 10개면 **너무 많이 영상이 가려서 사장님들이 답답해 할 수 있으니까**」
+ *
+ * ⚠ **카드형태 20 은 그대로다**(대표님 지시) — 카드는 스크롤을 안 가두므로 답답할 일이 없다.
+ * ⚠ 무대 높이는 **`(편수+1) × 화면 하나`**라, 이 숫자가 곧 **손님이 굴려야 하는 길이**다.
+ *   10편이면 11화면 — 그래서 대표님이 「답답하다」고 하신 것이다.
+ * 🔴 **범위 밖 값은 조용히 끌어당긴다**(`stageNOf`). 옛 사이트·손으로 고친 값이 화면을 깨면 안 된다.
+ */
+export const STAGE_N_MIN = 5;
+export const STAGE_N_MAX = SHORTS_SHAPE_N.shorts;   // 10 — 「모양별 편수」와 어긋나지 않게 한 곳에서
+
+/** 고를 수 있는 숫자들 — 화면이 이 배열을 돌려 그린다(늘 때 여기만 고친다) */
+export const STAGE_N_CHOICES: number[] = Array.from(
+  { length: STAGE_N_MAX - STAGE_N_MIN + 1 },
+  (_, i) => STAGE_N_MIN + i,
+);
+
+/** 저장 자리는 `sites.settings.shorts.stageN`. ⚠ 없거나 이상하면 **기본(최대)**이다 */
+export function stageNOf(settings: unknown): number {
+  const v = (settings as { shorts?: { stageN?: unknown } } | null | undefined)?.shorts?.stageN;
+  const n = typeof v === "number" ? Math.round(v) : Number.NaN;
+  if (!Number.isFinite(n)) return STAGE_N_MAX;
+  return Math.min(STAGE_N_MAX, Math.max(STAGE_N_MIN, n));
+}

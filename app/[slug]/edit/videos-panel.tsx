@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, SHORTS_ORDERS, SHORTS_ORDER_DEFAULT, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
+import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, SHORTS_ORDERS, SHORTS_ORDER_DEFAULT, STAGE_N_CHOICES, STAGE_N_MAX, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -97,6 +97,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   /** 🔴 사장님이 고른 숏폼 모양 (지시 [42] §4). 서버가 목록과 함께 알려 준다 */
   const [style, setStyle] = useState<ShortsStyle>(SHORTS_STYLE_DEFAULT);
   const [order, setOrder] = useState<ShortsOrder>(SHORTS_ORDER_DEFAULT);
+  /** 🔴 숏폼형태가 «가두는» 편수 — 사장님이 5~10 에서 고른다(2026-09-17 대표님) */
+  const [stageN, setStageN] = useState<number>(STAGE_N_MAX);
   const [styleBusy, setStyleBusy] = useState(false);
   const [styleMsg, setStyleMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
@@ -154,10 +156,11 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle; shortsOrder?: ShortsOrder };
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle; shortsOrder?: ShortsOrder; stageN?: number };
       setItems(got.items);
       if (got.shortsStyle) setStyle(got.shortsStyle);
       if (got.shortsOrder) setOrder(got.shortsOrder);
+      if (typeof got.stageN === "number") setStageN(got.stageN);
       /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
       if (got.softDeleteReady === false) setCanDelete(false);
       /* 🔴 서버가 세어 준 «걸린 전체 편수» — 목록은 잘려 오므로 이 수로만 판단한다 */
@@ -405,13 +408,15 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
    * ⚠ **먼저 화면을 바꾸고** 서버에 보낸다 — 누르자마자 반응이 있어야 한다.
    *   실패하면 **되돌리고 사실대로 말한다**(조용히 삼키면 바뀐 줄 안다).
    */
-  async function chooseShorts(patch: { style?: ShortsStyle; order?: ShortsOrder }) {
+  async function chooseShorts(patch: { style?: ShortsStyle; order?: ShortsOrder; stageN?: number }) {
     if (styleBusy) return;
     if (patch.style && patch.style === style) return;
     if (patch.order && patch.order === order) return;
-    const before = { style, order };
+    if (patch.stageN && patch.stageN === stageN) return;
+    const before = { style, order, stageN };
     if (patch.style) setStyle(patch.style);
     if (patch.order) setOrder(patch.order);
+    if (patch.stageN) setStageN(patch.stageN);
     setStyleBusy(true); setStyleMsg("");
     try {
       const r = await fetch("/api/site/shorts-style", {
@@ -419,10 +424,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         body: JSON.stringify({ slug, anonId, ...patch }),
       });
       const d = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) { setStyle(before.style); setOrder(before.order); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
+      if (!r.ok) { setStyle(before.style); setOrder(before.order); setStageN(before.stageN); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
       setStyleMsg("바꿨어요. 홈페이지를 열어 보시면 바로 보입니다.");
     } catch {
-      setStyle(before.style); setOrder(before.order);
+      setStyle(before.style); setOrder(before.order); setStageN(before.stageN);
       setStyleMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
     } finally { setStyleBusy(false); }
   }
@@ -715,6 +720,42 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
             );
           })}
         </div>
+
+        {/**
+          * 🔴 **가두는 편수 — 5~10편.** (2026-09-17 대표님 지시)
+          *
+          * > 「스크롤에 갇히는 거 몇 개로 할지 설정할 수 있게 … **최소 5개에서 최대 10개 중에 고를 수 있음.**
+          * >   숏폼형태 10개면 **너무 많이 영상이 가려서 사장님들이 답답해 할 수 있으니까**」
+          *
+          * ⚠ **숏폼형태일 때만** 뜬다 — 카드형태는 스크롤을 안 가두므로 이 숫자가 뜻이 없다.
+          * ⚠ 카드형태 20편은 **대표님 지시로 그대로** 둔다(고르는 칸을 안 만든다).
+          */}
+        {style === "shorts" && (
+          <div className="border-t border-n-200 pt-3">
+            <p className="t-body font-bold">가두는 영상 수</p>
+            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+              손님이 <b>몇 편까지 보고</b> 홈페이지의 다음 부분으로 내려가게 할지 고르세요.
+              <br />숫자가 클수록 영상을 더 많이 보시지만, <b>홈페이지의 다른 내용이 그만큼 늦게</b> 나옵니다.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {STAGE_N_CHOICES.map((n) => {
+                const on = stageN === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => chooseShorts({ stageN: n })}
+                    disabled={styleBusy}
+                    aria-pressed={on}
+                    className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                  >
+                    {n}편
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/**
           * 🔴 **재생 순서.** (지시 [42] §5 · 대표님 기획서 §1-2)

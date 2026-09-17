@@ -235,7 +235,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           * ⚠ **모양 값을 손으로 맞추지 마라.** CSS 에서 `.world-sound` 와 **같은 값을 공유**한다
           *   (`app/globals.css` 의 `.world-sound, .world-x` 한 줄) — 한쪽만 바뀌면 대칭이 깨진다.
           */}
-        <button ref={closeRef} type="button" className="world-x" onClick={close} aria-label="몰입모드 나가기">
+        <button ref={closeRef} type="button" className="world-x" onClick={close} aria-label="숏폼에서 나가기">
           <span aria-hidden>✕</span>
         </button>
 
@@ -277,6 +277,29 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
         )}
 
         {/**
+        * 🔴🔴 **⌃⌄ 를 «되살렸다».** (2026-09-17 대표님이 뒤집으심)
+        *
+        * > 대표님: 「**오른쪽 중간 ⌃⌄ 버튼은 인스타 릴스 보니까 다시 살리는 게 좋겠다.**
+        * >   근데 인스타 릴스 퀄리티 나오게 … 캡처랑 거의 똑같게 **비율 잘 맞춰서 디자인**해」
+        *
+        * ⚠⚠ **[42] §2 에서 «지웠던» 것이다.** 권반장이 지우라 했고 대표님이 되살리라 하셨다 —
+        *   **나중 말씀이 이긴다.** 지우지 마라.
+        * 🔴 **모양은 «아직 옛날 것»이다.** 대표님이 원하시는 것은 **인스타 릴스 수준의 원형 버튼**
+        *   (어두운 원 + 얇은 흰 화살표)인데, 그 규격(지름·선굵기·투명도)을 권반장이 조사 중이다.
+        *   ⇒ **지금은 «되살리기»까지만.** 규격이 오면 그때 맞춘다.
+        * ⚠ **리액션 막대(`.world-rail`)와 자리가 겹친다** — 둘 다 오른쪽 한가운데다.
+        *   어떻게 둘을 놓을지도 권반장이 규격과 함께 준다. **혼자 옮기지 마라.**
+        */}
+        {items.length > 1 && (
+          <>
+            <button type="button" className="world-arrow up" aria-label="이전 영상"
+              disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}>⌃</button>
+            <button type="button" className="world-arrow down" aria-label="다음 영상"
+              disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}>⌄</button>
+          </>
+        )}
+
+      {/**
           * 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2 · 대표님 원문)
           *
           * > 「오른쪽 아래에는 **큰 X가 위에 있고 그 아래 작은 글씨로 「몰입모드 나가기」**」
@@ -284,9 +307,12 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           *
           * ★ 우상 ✕ 가 글자를 뗀 몫을 **이 단추가 받는다.** 그래서 나가는 길이 여전히 보인다.
           */}
-        <button type="button" className="world-exit" onClick={close} aria-label="몰입모드 나가기">
+        <button type="button" className="world-exit" onClick={close} aria-label="숏폼에서 나가기">
           <span className="world-exit-x" aria-hidden>✕</span>
-          <span className="world-exit-say">몰입모드 나가기</span>
+          {/* 🔴 **대표님이 직접 정하신 글자다.** (2026-09-17)
+               > 「**몰입모드 나가기 라는 이름을 그냥 «숏폼에서 나가기» 라는 명칭으로 바꿔**」
+             ⚠ 「몰입모드」는 **우리끼리 부르는 이름**이라 손님이 모른다 — 그래서 바뀐 것이다. */}
+          <span className="world-exit-say">숏폼에서 나가기</span>
         </button>
 
         {/**

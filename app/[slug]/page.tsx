@@ -10,7 +10,7 @@ import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 import ShortsStage from "@/components/sections/shorts-stage";
-import { shortsStyleOf, shortsOrderOf } from "@/config/shorts";
+import { shortsStyleOf, shortsOrderOf, stageNOf } from "@/config/shorts";
 import ShortsSns from "@/components/sections/shorts-sns";
 import { ANCHOR_OF } from "@/components/sections/nav";
 
@@ -141,6 +141,8 @@ export default async function SitePage({ params }: Props) {
   const shortsStyle = shortsStyleOf(site.settings);
   /* 🔴 재생 순서는 «브라우저»가 쓴다 — 값만 내려보낸다(지시 [42] §5) */
   const shortsOrder = shortsOrderOf(site.settings);
+  /* 🔴 가두는 편수 — 사장님이 5~10 에서 고른다(2026-09-17 대표님) */
+  const stageN = stageNOf(site.settings);
   const stageOn = shortsStyle === "shorts" && stageItems.length > 0;
   /* 히어로가 없는 사이트도 있다 — 그때는 맨 앞에 세운다 */
   const heroAt = site.doc.sections.findIndex((x) => x.type === "hero");
@@ -224,7 +226,7 @@ export default async function SitePage({ params }: Props) {
             <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle, shortsOrder }} />
             {i === stageAfter && (
               <>
-                <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} slug={slug} order={shortsOrder} />
+                <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} slug={slug} order={shortsOrder} stageN={stageN} />
                 {/* 🔴 무대 «바로 아래» — 이 홈페이지가 실제로 영상을 퍼뜨린 곳들 (지시 [31]⑤).
                     ⚠ 실제로 «올라간» 기록이 하나도 없으면 스스로 안 그린다. */}
                 <ShortsSns items={stageItems} title={SNS_STRIP_TITLE} />
