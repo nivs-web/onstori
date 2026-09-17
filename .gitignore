@@ -70,3 +70,6 @@ deployments.json
 .claude/worktrees/
 .claude-backup-*/
 logo-sheet.html
+
+# 시험용 임시 스크립트 (기록은 git 에 남는다)
+scripts/tmp/
