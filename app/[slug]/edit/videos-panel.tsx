@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, type ShortsStyle } from "@/config/shorts";
+import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, SHORTS_ORDERS, SHORTS_ORDER_DEFAULT, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -96,6 +96,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [items, setItems] = useState<Item[] | null>(null);
   /** 🔴 사장님이 고른 숏폼 모양 (지시 [42] §4). 서버가 목록과 함께 알려 준다 */
   const [style, setStyle] = useState<ShortsStyle>(SHORTS_STYLE_DEFAULT);
+  const [order, setOrder] = useState<ShortsOrder>(SHORTS_ORDER_DEFAULT);
   const [styleBusy, setStyleBusy] = useState(false);
   const [styleMsg, setStyleMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
@@ -153,9 +154,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle };
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle; shortsOrder?: ShortsOrder };
       setItems(got.items);
       if (got.shortsStyle) setStyle(got.shortsStyle);
+      if (got.shortsOrder) setOrder(got.shortsOrder);
       /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
       if (got.softDeleteReady === false) setCanDelete(false);
       /* 🔴 서버가 세어 준 «걸린 전체 편수» — 목록은 잘려 오므로 이 수로만 판단한다 */
@@ -403,20 +405,25 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
    * ⚠ **먼저 화면을 바꾸고** 서버에 보낸다 — 누르자마자 반응이 있어야 한다.
    *   실패하면 **되돌리고 사실대로 말한다**(조용히 삼키면 바뀐 줄 안다).
    */
-  async function chooseStyle(next: ShortsStyle) {
-    if (next === style || styleBusy) return;
-    const before = style;
-    setStyle(next); setStyleBusy(true); setStyleMsg("");
+  async function chooseShorts(patch: { style?: ShortsStyle; order?: ShortsOrder }) {
+    if (styleBusy) return;
+    if (patch.style && patch.style === style) return;
+    if (patch.order && patch.order === order) return;
+    const before = { style, order };
+    if (patch.style) setStyle(patch.style);
+    if (patch.order) setOrder(patch.order);
+    setStyleBusy(true); setStyleMsg("");
     try {
       const r = await fetch("/api/site/shorts-style", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, anonId, style: next }),
+        body: JSON.stringify({ slug, anonId, ...patch }),
       });
       const d = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) { setStyle(before); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
+      if (!r.ok) { setStyle(before.style); setOrder(before.order); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
       setStyleMsg("바꿨어요. 홈페이지를 열어 보시면 바로 보입니다.");
     } catch {
-      setStyle(before); setStyleMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
+      setStyle(before.style); setOrder(before.order);
+      setStyleMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
     } finally { setStyleBusy(false); }
   }
 
@@ -664,7 +671,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
               <button
                 key={o.key}
                 type="button"
-                onClick={() => chooseStyle(o.key)}
+                onClick={() => chooseShorts({ style: o.key })}
                 disabled={styleBusy}
                 aria-pressed={on}
                 className={`rounded-2xl border p-4 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
@@ -707,6 +714,47 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
               </button>
             );
           })}
+        </div>
+
+        {/**
+          * 🔴 **재생 순서.** (지시 [42] §5 · 대표님 기획서 §1-2)
+          * ⚠ **목록을 여기 박지 않는다** — `config/shorts.ts` 의 `SHORTS_ORDERS` 를 돌려 그린다.
+          *   대표님이 **「옵션이 더 늘어난다」**고 하셔서, 늘 때 **그 배열에 한 줄만** 더하면 되게 뒀다.
+          */}
+        <div className="border-t border-n-200 pt-3">
+          <p className="t-body font-bold">재생 순서</p>
+          <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+            손님이 홈페이지에 들어왔을 때 <b>어떤 차례로</b> 보여 드릴지 고르세요.
+          </p>
+          <div className="mt-3 space-y-2">
+            {SHORTS_ORDERS.map((o) => {
+              const on = order === o.key;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => chooseShorts({ order: o.key })}
+                  disabled={styleBusy}
+                  aria-pressed={on}
+                  className={`flex w-full items-start gap-2 rounded-xl border p-3 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                >
+                  <span className={`mt-0.5 inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
+                    {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
+                  </span>
+                  <span>
+                    <b className="t-caption">{o.label}</b>
+                    <span className="mt-0.5 block t-caption leading-relaxed text-[var(--text-soft)]">{o.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* ⚠ 「왜 새로고침해도 안 바뀌나」를 미리 답해 둔다 — 안 그러면 「고장났나?」 한다 */}
+          {order !== "newest" && (
+            <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+              손님 한 분에게는 <b>보시는 동안 순서가 바뀌지 않습니다.</b> 새로 오시면 그때 다시 섞입니다.
+            </p>
+          )}
         </div>
 
         {styleMsg && <p className="t-caption font-semibold">{styleMsg}</p>}

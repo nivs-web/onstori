@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
 import dynamic from "next/dynamic";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
+import { orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, type ShortsOrder } from "@/config/shorts";
 
 /**
  * 🔴🔴 **카드형태에도 «몰입모드»가 붙는다.** (2026-09-17 지시 [42] §3 · 대표님 확정)
@@ -56,14 +57,25 @@ function warmWhenIdle() {
  */
 
 
-export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all?: ShortT[]; onInk: string }) {
+export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORDER_DEFAULT }: {
+  items: ShortT[]; all?: ShortT[]; onInk: string; slug: string; order?: ShortsOrder;
+}) {
+  /* 🔴 재생 순서 — 무대와 «같은 방식»이다(`shorts-stage.tsx` 의 주석 참조).
+       서버에서 섞으면 캐시 때문에 모든 손님이 같은 순서를 받는다. */
+  const [view, setView] = useState<ShortT[]>(items);
+  const [viewAll, setViewAll] = useState<ShortT[]>(all ?? items);
+  useEffect(() => {
+    const seed = visitSeed(slug);
+    setView(orderShorts(items, order, seed));
+    setViewAll(orderShorts(all ?? items, order, seed));
+  }, [items, all, order, slug]);
   const [active, setActive] = useState(0);
   /**
    * 🔴 **몰입모드에 넘기는 것은 «가져온 전부»다.** (지시 [42] §3)
    *   화면에 그리는 카드는 20장까지지만, 열고 들어가면 **전부** 볼 수 있어야 한다
    *   (대표님: 「10·20편은 홈페이지만, 몰입모드는 전부」).
    */
-  const world = all && all.length ? all : items;
+  const world = viewAll.length ? viewAll : view;
   const [worldAt, setWorldAt] = useState<number | null>(null);
   /** 멀미를 싫어하는 손님에게는 몰입모드를 열지 않는다 — 무대와 같은 규칙이다 */
   const [calm, setCalm] = useState(false);
@@ -106,7 +118,7 @@ export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all
           const v = vids.current.get(id);
           if (!v) continue;
           if (e.isIntersecting && e.intersectionRatio >= 0.6) {
-            const i = items.findIndex((it) => it.id === id);
+            const i = view.findIndex((it) => it.id === id);
             if (i >= 0) setActive(i);
             /* ⚠ play() 는 약속(Promise)을 돌려주고 실패할 수 있다(전원 절약 모드 등).
                잡지 않으면 콘솔에 빨간 줄이 남고, 손님은 아무 잘못이 없다. 조용히 넘긴다. */
@@ -120,7 +132,7 @@ export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all
     );
     for (const el of rail.querySelectorAll<HTMLElement>("[data-sid]")) io.observe(el);
     return () => io.disconnect();
-  }, [items]);
+  }, [view]);
 
   /* 켜 두면 **지금 보이는 편**에서 소리가 난다. 안 보이는 편은 어차피 멈춰 있다 */
   useEffect(() => {
@@ -130,15 +142,15 @@ export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all
   const go = (dir: -1 | 1) => {
     const rail = railRef.current;
     if (!rail) return;
-    const next = Math.min(items.length - 1, Math.max(0, active + dir));
-    const card = rail.querySelector<HTMLElement>(`[data-sid="${items[next]?.id}"]`);
+    const next = Math.min(view.length - 1, Math.max(0, active + dir));
+    const card = rail.querySelector<HTMLElement>(`[data-sid="${view[next]?.id}"]`);
     card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
 
   return (
     <div className="shorts">
       <div className="shorts-rail" ref={railRef}>
-        {items.map((it) => (
+        {view.map((it) => (
           <article key={it.id} data-sid={it.id} className="shorts-card">
             <div className="shorts-frame">
               <video
@@ -194,13 +206,13 @@ export default function ShortsFeed({ items, all, onInk }: { items: ShortT[]; all
         ))}
       </div>
 
-      {items.length > 1 && (
+      {view.length > 1 && (
         <>
           {/* PC 전용 좌우 화살표 — 폰에서는 손가락으로 넘긴다 */}
           <button type="button" className="shorts-arrow left" onClick={() => go(-1)} aria-label="이전 영상">‹</button>
           <button type="button" className="shorts-arrow right" onClick={() => go(1)} aria-label="다음 영상">›</button>
           <div className="shorts-dots" style={{ color: onInk }}>
-            {items.map((it, i) => (
+            {view.map((it, i) => (
               <span key={it.id} className={i === active ? "on" : ""} />
             ))}
           </div>

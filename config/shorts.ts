@@ -118,3 +118,90 @@ export function shortsStyleOf(settings: unknown): ShortsStyle {
 }
 
 export const STAGE_MAX = SHORTS_SHAPE_N.shorts;
+
+/**
+ * 🔴🔴 **재생 순서 — 사장님이 고른다.** (2026-09-17 지시 [42] §5 · 대표님 기획서 §1-2)
+ *
+ * ⚠⚠ **`if` 를 세 개 박지 마라.** 대표님이 **「옵션이 더 늘어난다」**고 하셨다 —
+ *   늘어날 때 **이 배열에 한 줄만** 더하면 화면도 서버도 저절로 따라오게 둔다.
+ * 🔴 **모르는 값은 조용히 기본값으로**(`shortsOrderOf`). 옛 사이트가 깨지면 안 된다.
+ */
+export const SHORTS_ORDERS = [
+  { key: "newest", label: "최근에 등록한 순으로 재생", hint: "찍은 순서대로. 새 영상이 맨 앞에 옵니다" },
+  { key: "first-fixed", label: "첫 영상만 최근, 2번째부터 랜덤", hint: "가장 보여 주고 싶은 한 편은 고정하고, 나머지는 올 때마다 다르게" },
+  { key: "random", label: "전체 랜덤 재생", hint: "올 때마다 순서가 다릅니다" },
+] as const;
+
+export type ShortsOrder = (typeof SHORTS_ORDERS)[number]["key"];
+
+/** 🔴 **기본은 최근 순**(대표님 확정). 아무것도 안 고른 사장님은 지금까지와 똑같다 */
+export const SHORTS_ORDER_DEFAULT: ShortsOrder = "newest";
+
+/** 저장 자리는 `sites.settings.shorts.order`. ⚠ 모르는 값은 기본값이다 */
+export function shortsOrderOf(settings: unknown): ShortsOrder {
+  const v = (settings as { shorts?: { order?: unknown } } | null | undefined)?.shorts?.order;
+  return SHORTS_ORDERS.some((o) => o.key === v) ? (v as ShortsOrder) : SHORTS_ORDER_DEFAULT;
+}
+
+/**
+ * 🔴🔴 **«같은 씨앗이면 같은 순서»가 나오는 섞기.** (지시 [42] §5)
+ *
+ * ⚠⚠ **왜 «아무 랜덤»을 쓰면 안 되나 — 권반장이 잡아 준 것:**
+ *   그릴 때마다 새로 섞으면 **「1 / 2000」이 거짓말**이 된다. 손님이 3번째 편을 보다가
+ *   새로고침하면 **전혀 다른 영상**이 3번째가 된다. 「몇 번째인지」가 아무 뜻이 없어진다.
+ * ⇒ **손님 한 분의 «방문 한 번»에는 순서를 고정한다.** 들어올 때 씨앗 하나를 뽑아
+ *   `sessionStorage` 에 두고, 그 방문 내내 그 씨앗으로만 섞는다.
+ *   ⇒ **올 때마다 다르되, 그 손님에게는 끝까지 같다.**
+ *
+ * ⚠ **서버에서 섞으면 안 된다.** 손님 화면은 ISR(캐시)이라 **모든 손님이 같은 순서**를 받는다 —
+ *   「올 때마다 다르게」가 아예 성립하지 않는다. 그래서 **브라우저에서** 섞는다.
+ */
+function 씨앗난수(seed: number) {
+  /* mulberry32 — 짧고 씨앗 하나로 같은 수열이 나온다. 암호용이 아니다(그럴 필요도 없다) */
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 원본을 건드리지 않고 섞은 «새 배열»을 준다(Fisher–Yates) */
+function 섞기<T>(arr: T[], rnd: () => number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * 고른 순서대로 다시 늘어놓는다. **원본 배열은 안 건드린다.**
+ * ⚠ `seed` 가 같으면 **언제 불러도 같은 결과**다 — 새로고침해도 안 흔들리는 이유다.
+ */
+export function orderShorts<T>(items: T[], order: ShortsOrder, seed: number): T[] {
+  if (order === "newest" || items.length < 2) return items;
+  const rnd = 씨앗난수(seed);
+  if (order === "first-fixed") return [items[0], ...섞기(items.slice(1), rnd)];
+  return 섞기(items, rnd);
+}
+
+/**
+ * 이 «방문»의 씨앗. 같은 탭에서는 새로고침해도 그대로다.
+ * ⚠ `sessionStorage` 를 못 쓰는 브라우저(사생활 보호 모드 등)에서는 **그 화면 동안만** 쓴다 —
+ *   막히더라도 **화면이 죽으면 안 된다.**
+ */
+export function visitSeed(slug: string): number {
+  const key = `onstori:shortsSeed:${slug}`;
+  try {
+    const had = sessionStorage.getItem(key);
+    if (had) return Number(had) || 1;
+    const made = Math.floor(Math.random() * 2 ** 31) || 1;
+    sessionStorage.setItem(key, String(made));
+    return made;
+  } catch {
+    return 1;
+  }
+}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { revalidatePath } from "next/cache";
-import { SHORTS_STYLES, shortsStyleOf, type ShortsStyle } from "@/config/shorts";
+import { SHORTS_STYLES, SHORTS_ORDERS, shortsStyleOf, shortsOrderOf } from "@/config/shorts";
 
 /**
  * 🔴 **사장님이 「숏폼 모양」을 고르는 창구.** (2026-09-17 지시 [42] §4)
@@ -21,21 +21,38 @@ import { SHORTS_STYLES, shortsStyleOf, type ShortsStyle } from "@/config/shorts"
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string };
+  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string; order?: string };
   const r = await loadOwnedSite(String(body.slug ?? ""), body.anonId);
   if ("error" in r) {
     return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });
   }
 
-  const style = body.style;
-  if (!SHORTS_STYLES.some((s) => s.key === style)) {
-    return NextResponse.json({ error: "모르는 모양이에요" }, { status: 400 });
+  /**
+   * ⚠ **모양과 순서를 «한 창구»로 받는다.** 둘 다 `settings.shorts` 안에 살고
+   *   저장 방식(얹어 쓰기·되살리기)이 똑같다 — 창구를 둘로 나누면 그 규칙을 두 번 적게 된다.
+   * 🔴 **보낸 것만 바꾼다.** 순서만 보냈는데 모양이 기본값으로 덮이면 안 된다.
+   */
+  const patch: Record<string, string> = {};
+  if (body.style !== undefined) {
+    if (!SHORTS_STYLES.some((s) => s.key === body.style)) {
+      return NextResponse.json({ error: "모르는 모양이에요" }, { status: 400 });
+    }
+    patch.style = body.style;
+  }
+  if (body.order !== undefined) {
+    if (!SHORTS_ORDERS.some((o) => o.key === body.order)) {
+      return NextResponse.json({ error: "모르는 순서예요" }, { status: 400 });
+    }
+    patch.order = body.order;
+  }
+  if (!Object.keys(patch).length) {
+    return NextResponse.json({ error: "바꿀 것이 없어요" }, { status: 400 });
   }
 
   const now = (r.site.settings as Record<string, unknown> | null) ?? {};
   const shorts = (now.shorts as Record<string, unknown> | undefined) ?? {};
   /* 🔴 **있던 것 위에 얹는다**(위 주석). 두 겹 다 얹어야 `shorts` 안의 다른 값도 안 날아간다 */
-  const next = { ...now, shorts: { ...shorts, style } };
+  const next = { ...now, shorts: { ...shorts, ...patch } };
 
   const { error } = await sbAdmin().from("sites").update({ settings: next }).eq("id", r.site.id);
   if (error) {
@@ -47,6 +64,6 @@ export async function POST(req: Request) {
      사장님은 「안 바뀌네?」 하고 또 누른다. */
   revalidatePath(`/${r.site.slug}`);
 
-  console.log(JSON.stringify({ evt: "shorts_style_set", slug: r.site.slug, style }));
-  return NextResponse.json({ ok: true, style: shortsStyleOf(next) as ShortsStyle });
+  console.log(JSON.stringify({ evt: "shorts_style_set", slug: r.site.slug, ...patch }));
+  return NextResponse.json({ ok: true, style: shortsStyleOf(next), order: shortsOrderOf(next) });
 }

@@ -10,7 +10,7 @@ import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 import ShortsStage from "@/components/sections/shorts-stage";
-import { shortsStyleOf } from "@/config/shorts";
+import { shortsStyleOf, shortsOrderOf } from "@/config/shorts";
 import ShortsSns from "@/components/sections/shorts-sns";
 import { ANCHOR_OF } from "@/components/sections/nav";
 
@@ -139,6 +139,8 @@ export default async function SitePage({ params }: Props) {
    * ⚠ 모르는 값이 들어 있으면 `shortsStyleOf` 가 **조용히 기본값으로** 떨어뜨린다.
    */
   const shortsStyle = shortsStyleOf(site.settings);
+  /* 🔴 재생 순서는 «브라우저»가 쓴다 — 값만 내려보낸다(지시 [42] §5) */
+  const shortsOrder = shortsOrderOf(site.settings);
   const stageOn = shortsStyle === "shorts" && stageItems.length > 0;
   /* 히어로가 없는 사이트도 있다 — 그때는 맨 앞에 세운다 */
   const heroAt = site.doc.sections.findIndex((x) => x.type === "hero");
@@ -219,10 +221,10 @@ export default async function SitePage({ params }: Props) {
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <React.Fragment key={i}>
-            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle }} />
+            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle, shortsOrder }} />
             {i === stageAfter && (
               <>
-                <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />
+                <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} slug={slug} order={shortsOrder} />
                 {/* 🔴 무대 «바로 아래» — 이 홈페이지가 실제로 영상을 퍼뜨린 곳들 (지시 [31]⑤).
                     ⚠ 실제로 «올라간» 기록이 하나도 없으면 스스로 안 그린다. */}
                 <ShortsSns items={stageItems} title={SNS_STRIP_TITLE} />

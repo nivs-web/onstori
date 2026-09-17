@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import dynamic from "next/dynamic";
-import { STAGE_MAX, SWIPE_PX, HINT_MS } from "@/config/shorts";
+import { STAGE_MAX, SWIPE_PX, HINT_MS, orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, type ShortsOrder } from "@/config/shorts";
 /**
  * 🔴🔴 **몰입모드는 «클릭해야» 열린다 — 그러니 미리 내려보내지 않는다.** (2026-09-17 지시 [42] §2)
  *
@@ -78,7 +78,23 @@ function warmWhenIdle() {
 
 
 
-export default function ShortsStage({ items, anchorId, title }: { items: ShortT[]; anchorId?: string; title: string }) {
+export default function ShortsStage({ items, anchorId, title, slug, order = SHORTS_ORDER_DEFAULT }: {
+  items: ShortT[]; anchorId?: string; title: string; slug: string; order?: ShortsOrder;
+}) {
+  /**
+   * 🔴🔴 **재생 순서는 «브라우저»에서 정한다.** (2026-09-17 지시 [42] §5)
+   *
+   * ⚠⚠ **서버에서 섞으면 안 된다** — 손님 화면은 ISR(캐시)이라 **모든 손님이 같은 순서**를 받는다.
+   *   「올 때마다 다르게」가 아예 성립하지 않는다.
+   * ⚠ 그래서 **처음 그릴 때는 원본 순서**이고, 붙자마자 이 방문의 씨앗으로 다시 늘어놓는다.
+   *   자동재생이 시작되기 «전»이라 손님 눈에는 안 띈다.
+   * 🔴 씨앗은 **방문 하나에 하나**다(`sessionStorage`) — 새로고침해도 순서가 안 흔들린다.
+   *   그래야 「1 / N」이 참이 된다(권반장 지적).
+   */
+  const [view, setView] = useState<ShortT[]>(items);
+  useEffect(() => {
+    setView(orderShorts(items, order, visitSeed(slug)));
+  }, [items, order, slug]);
   /**
    * 🔴🔴 **«가두는» 무대는 앞 12편까지.** (2026-09-17 지시 [39] · 조사 8-2 ④)
    *
@@ -88,7 +104,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
    *   세상은 **한 편씩만** 그리므로 편수가 늘어도 높이가 안 늘어난다.
    * ★ 🔴 **「세상」에는 «전부» 넘긴다.** 무대에서 잘린 것은 **못 보는 게 아니라 거기 있다.**
    */
-  const staged = items.length > STAGE_MAX ? items.slice(0, STAGE_MAX) : items;
+  const staged = view.length > STAGE_MAX ? view.slice(0, STAGE_MAX) : view;
   const [active, setActive] = useState(0);
   const [loud, setLoud] = useState(false);
   /**
@@ -338,7 +354,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
           {/* 위쪽 — 여기가 무엇인지 한 줄. 「이건 뭐지?」에 답해 준다 */}
           <div className="stage-top">
             <span className="stage-kicker">{title}</span>
-            {staged.length > 1 && <span className="stage-count">{active + 1} / {staged.length}{items.length > staged.length ? <span className="stage-more-n"> · 전체 {items.length}</span> : null}</span>}
+            {staged.length > 1 && <span className="stage-count">{active + 1} / {staged.length}{view.length > staged.length ? <span className="stage-more-n"> · 전체 {view.length}</span> : null}</span>}
           </div>
 
           {/* 소리 — 손님이 «지금 음소거구나»를 알아야 누를 생각을 한다 */}
@@ -388,9 +404,9 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
             *   🔴 **못 보는 게 아닙니다** — 누르면 전체화면에서 **처음부터 끝까지** 이어 봅니다.
             * ⚠ 편수가 무대 상한을 넘을 때만 뜹니다. 안 넘으면 있을 이유가 없습니다.
             */}
-          {items.length > staged.length && !calm && (
+          {view.length > staged.length && !calm && (
             <button type="button" className="stage-all" onClick={() => { setLoud(true); setWorld(active); }}>
-              전부 보기 ({items.length}편) →
+              전부 보기 ({view.length}편) →
             </button>
           )}
 
@@ -401,7 +417,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
             *   둘이 같은 곳으로 간다 — 🔴 **권반장님께 「둘 다 둘까요」를 여쭤 두었다.**
             * ⚠ **가두기는 여기서 끝난다** — 무대 높이가 정해져 있어 이 아래로는 그냥 내려간다(「탈출 가능」).
             */}
-          {items.length > staged.length && !calm && active === staged.length - 1 && (
+          {view.length > staged.length && !calm && active === staged.length - 1 && (
             <p className="stage-more-say">더 많은 영상을 보시려면 영상 클릭하세요</p>
           )}
 
@@ -412,7 +428,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
       </div>
 
       {/* 🔴🔴 **숏폼피드 세상** — 클릭하면 통째로 열리는 전체화면 (2026-09-17 지시 [33]) */}
-      {world !== null && <ShortsWorld items={items} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} />}
+      {world !== null && <ShortsWorld items={view} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} />}
     </section>
   );
 }

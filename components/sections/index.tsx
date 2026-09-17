@@ -6,7 +6,7 @@ import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
 import type { ShortT } from "@/lib/shorts";
 import ShortsFeed from "./shorts-feed";
-import { SHORTS_SHAPE_N, type ShortsStyle } from "@/config/shorts";
+import { SHORTS_SHAPE_N, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
 
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
@@ -34,6 +34,8 @@ type Ctx = {
   stageOn?: boolean;
   /** 사장님이 고른 숏폼 모양 — `shorts`(무대) / `cards`(카드). 없으면 기본값 */
   shortsStyle?: ShortsStyle;
+  /** 사장님이 고른 재생 순서 — 섞는 일은 브라우저가 한다 */
+  shortsOrder?: ShortsOrder;
 };
 
 /**
@@ -532,7 +534,7 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
       {feed.length > 0 ? (
         /* ★ 피드는 좌우 여백 «밖»까지 흐른다 — 카드가 화면 가장자리에서 잘려 보여야
              「더 있다」가 읽힌다. 릴스·틱톡이 전부 이렇게 한다. */
-        <ShortsFeed items={feed} all={all} onInk={on} />
+        <ShortsFeed items={feed} all={all} onInk={on} slug={ctx.slug} order={ctx.shortsOrder} />
       ) : (
         <div style={{ paddingInline: "var(--gutter)" }}>
           <div className="mx-auto max-w-3xl">
