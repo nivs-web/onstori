@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import { SWIPE_PX, HINT_MS } from "@/config/shorts";
+import { IconSoundOn, IconSoundOff, IconClose, IconChevronUp, IconChevronDown } from "./shorts-icons";
 
 /**
  * 🔴🔴 **몰입모드(「숏폼시네마」)만 사는 파일.** (2026-09-17 지시 [42] §1)
@@ -176,7 +177,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
         {!calm && (
           <button type="button" className="world-sound" aria-label={loud ? "소리 끄기" : "소리 켜기"}
             onClick={() => setLoud((v) => !v)}>
-            {loud ? "🔊" : "🔇"}
+            {loud ? <IconSoundOn /> : <IconSoundOff />}
           </button>
         )}
         {/**
@@ -236,7 +237,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           *   (`app/globals.css` 의 `.world-sound, .world-x` 한 줄) — 한쪽만 바뀌면 대칭이 깨진다.
           */}
         <button ref={closeRef} type="button" className="world-x" onClick={close} aria-label="숏폼에서 나가기">
-          <span aria-hidden>✕</span>
+          <IconClose />
         </button>
 
         {/**
@@ -293,9 +294,9 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
         {items.length > 1 && (
           <>
             <button type="button" className="world-arrow up" aria-label="이전 영상"
-              disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}>⌃</button>
+              disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}><IconChevronUp /></button>
             <button type="button" className="world-arrow down" aria-label="다음 영상"
-              disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}>⌄</button>
+              disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}><IconChevronDown /></button>
           </>
         )}
 
@@ -308,7 +309,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           * ★ 우상 ✕ 가 글자를 뗀 몫을 **이 단추가 받는다.** 그래서 나가는 길이 여전히 보인다.
           */}
         <button type="button" className="world-exit" onClick={close} aria-label="숏폼에서 나가기">
-          <span className="world-exit-x" aria-hidden>✕</span>
+          <IconClose className="world-exit-x" />
           {/* 🔴 **대표님이 직접 정하신 글자다.** (2026-09-17)
                > 「**몰입모드 나가기 라는 이름을 그냥 «숏폼에서 나가기» 라는 명칭으로 바꿔**」
              ⚠ 「몰입모드」는 **우리끼리 부르는 이름**이라 손님이 모른다 — 그래서 바뀐 것이다. */}

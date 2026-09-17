@@ -5,6 +5,7 @@ import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import dynamic from "next/dynamic";
 import { STAGE_MAX, SWIPE_PX, HINT_MS, orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, type ShortsOrder } from "@/config/shorts";
+import { IconSoundOn, IconSoundOff } from "./shorts-icons";
 /**
  * 🔴🔴 **몰입모드는 «클릭해야» 열린다 — 그러니 미리 내려보내지 않는다.** (2026-09-17 지시 [42] §2)
  *
@@ -389,7 +390,7 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
           {!calm && (
             <button type="button" className="stage-sound" aria-label={loud ? "소리 끄기" : "소리 켜기"}
               onClick={() => setLoud((v) => !v)}>
-              {loud ? "🔊" : "🔇"}
+              {loud ? <IconSoundOn /> : <IconSoundOff />}
             </button>
           )}
 

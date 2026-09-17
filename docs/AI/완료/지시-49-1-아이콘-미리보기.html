@@ -1,0 +1,120 @@
+<title>숏폼 아이콘 아홉 개</title>
+<style>
+  :root { --ink:#141a17; --soft:#5b6660; --line:#e3e8e5; --bg:#f4f6f5; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:400 16px/1.68 Pretendard,-apple-system,"Segoe UI",system-ui,sans-serif; }
+  .wrap { max-width:860px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:26px; font-weight:700; margin:0 0 6px; letter-spacing:-.02em; }
+  .sub { color:var(--soft); font-size:14px; margin:0 0 28px; }
+  h2 { font-size:17px; font-weight:700; margin:34px 0 12px; }
+  .note { font-size:13.5px; color:var(--soft); margin:0 0 16px; }
+  .shot { border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+  /* 밝은 영상 위에서도 보이는지 보려고 «밝은 바탕»과 «어두운 바탕»을 나란히 둔다 */
+  .band { display:grid; grid-template-columns:1fr 1fr; }
+  .lite { background:linear-gradient(135deg,#dfe7ea,#f3f1e8); }
+  .dark { background:linear-gradient(135deg,#2b3b34,#101614); }
+  .row { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; padding:26px 22px; }
+  .cell { display:grid; justify-items:center; gap:7px; }
+  .cap { font-size:11.5px; font-weight:600; }
+  .lite .cap { color:#3d4a44; }
+  .dark .cap { color:#e6ece9; }
+  /* 배지 — 지시서 §3 표의 값 그대로 */
+  .badge { display:grid; place-items:center; border-radius:999px; color:#fff;
+    background:rgb(0 0 0 / .5); border:1px solid rgb(255 255 255 / .32);
+    backdrop-filter:blur(6px); line-height:1; }
+  .b48 { width:48px; height:48px; font-size:22px; }
+  .b56 { width:56px; height:56px; font-size:26px; }
+  .b40 { width:40px; height:40px; font-size:20px; }
+  .b44 { width:44px; height:44px; font-size:22px; background:rgb(0 0 0 / .45); border:0; }
+  .bare { font-size:26px; color:#fff; text-shadow:0 1px 12px rgb(0 0 0 / .6); }
+  .lite .bare { color:#1d2622; text-shadow:none; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin-top:8px; }
+  th,td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); }
+  th { font-weight:700; background:#fff; }
+  td.n { font-variant-numeric:tabular-nums; }
+  .ok { color:#0a7a3f; font-weight:700; }
+  .warn { color:#9a5b00; font-weight:700; }
+  @media (max-width:640px){ .band{grid-template-columns:1fr} }
+</style>
+
+<div class="wrap">
+  <h1>숏폼 화면 아이콘 아홉 개</h1>
+  <p class="sub">이모지(🔊 🔇 ✕ ⌃ ⌄ ‹ ›)를 떼고 <b>우리가 그린 그림</b>으로 바꿨습니다.
+    아래는 실제 화면에 들어가는 <b>그대로의 크기</b>입니다. · 2026-09-17 지시 [49]①</p>
+
+  <h2>1. 실제 배지 안에서 — 밝은 바탕 / 어두운 바탕</h2>
+  <p class="note">밝은 영상 위에서도 보이는지가 중요해서 두 바탕에 나란히 뒀습니다.
+    검은 원과 흰 테두리가 그 역할을 합니다.</p>
+
+  <div class="shot">
+    <div class="band">
+      <div class="lite">
+        <div class="row">
+          <div class="cell"><span class="badge b56" id="a1"></span><span class="cap">무대 소리 56</span></div>
+          <div class="cell"><span class="badge b48" id="a2"></span><span class="cap">몰입 소리 48</span></div>
+          <div class="cell"><span class="badge b48" id="a3"></span><span class="cap">닫기 48</span></div>
+          <div class="cell"><span class="badge b40" id="a4"></span><span class="cap">위 40</span></div>
+          <div class="cell"><span class="badge b40" id="a5"></span><span class="cap">아래 40</span></div>
+          <div class="cell"><span class="badge b44" id="a6"></span><span class="cap">카드 ‹ 44</span></div>
+          <div class="cell"><span class="badge b44" id="a7"></span><span class="cap">카드 › 44</span></div>
+          <div class="cell"><span class="bare" id="a8"></span><span class="cap">우하 나가기</span></div>
+        </div>
+      </div>
+      <div class="dark">
+        <div class="row">
+          <div class="cell"><span class="badge b56" id="b1"></span><span class="cap">무대 소리 56</span></div>
+          <div class="cell"><span class="badge b48" id="b2"></span><span class="cap">몰입 소리 48</span></div>
+          <div class="cell"><span class="badge b48" id="b3"></span><span class="cap">닫기 48</span></div>
+          <div class="cell"><span class="badge b40" id="b4"></span><span class="cap">위 40</span></div>
+          <div class="cell"><span class="badge b40" id="b5"></span><span class="cap">아래 40</span></div>
+          <div class="cell"><span class="badge b44" id="b6"></span><span class="cap">카드 ‹ 44</span></div>
+          <div class="cell"><span class="badge b44" id="b7"></span><span class="cap">카드 › 44</span></div>
+          <div class="cell"><span class="bare" id="b8"></span><span class="cap">우하 나가기</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>2. 아홉 개를 크게 — 모양 확인용</h2>
+  <div class="shot"><div class="dark"><div class="row" id="big"></div></div></div>
+
+  <h2>3. 어디에 들어갔나</h2>
+  <table>
+    <tr><th>아이콘</th><th>들어간 자리</th><th>배지 / 아이콘</th><th>상태</th></tr>
+    <tr><td>① 소리 켜짐 / ② 꺼짐</td><td>무대 우상 · 몰입 좌상 · 카드 우상</td><td class="n">56/26 · 48/22</td><td class="ok">붙었습니다</td></tr>
+    <tr><td>③ 위 / ④ 아래</td><td>몰입모드 오른쪽 가운데</td><td class="n">40 / 20</td><td class="ok">붙었습니다</td></tr>
+    <tr><td>⑦ 닫기</td><td>몰입 우상 · 우하 「숏폼에서 나가기」</td><td class="n">48/22 · 26</td><td class="ok">붙었습니다</td></tr>
+    <tr><td>⑧ 왼쪽 / ⑨ 오른쪽</td><td>카드형태 좌우</td><td class="n">44 / 22</td><td class="ok">붙었습니다</td></tr>
+    <tr><td>⑤ 하트 / ⑥ 말풍선</td><td>아직 화면에 없습니다</td><td class="n">—</td><td class="warn">그려만 뒀습니다</td></tr>
+  </table>
+  <p class="note">⑤⑥ 이 들어갈 자리(리액션 막대)는 <b>[49]③</b> 이고, 숫자를 가져오는 일은 <b>[46]</b> 뒤입니다.
+    대표님이 「아홉 개를 각각 그리라」 하셔서 <b>아홉 개를 다 그려 두었습니다.</b></p>
+
+  <h2>4. 확인해 주실 것</h2>
+  <p class="note">· <b>소리 꺼짐(②)</b> 은 대표님 캡처처럼 <b>사선 ✕</b> 로 막았습니다. 빗금이 아닙니다.<br>
+    · <b>로고(인스타·유튜브 마크)는 그리지 않았습니다</b> — 상표라서 따라 그리면 안 됩니다.<br>
+    · 이 크기 값들은 <b>인스타 공식 수치가 아니라 «추정»</b> 입니다(권반장 규격서에 그렇게 적혀 있습니다).</p>
+</div>
+
+<script>
+const I = {
+ sound:'<path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z" fill="currentColor"/><path d="M16 8.5c1.3 1 1.3 6 0 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.6 6.4c2.7 2.3 2.7 8.9 0 11.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+ mute:'<path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z" fill="currentColor"/><path d="M16.3 9.3l5.4 5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21.7 9.3l-5.4 5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+ up:'<path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+ down:'<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+ heart:'<path d="M12 20.1c-.3 0-.6-.1-.8-.3-1.6-1.3-3.1-2.5-4.4-3.7-2-1.8-3.6-3.5-4.5-5.3C1.5 8.7 2 6.2 4 4.9c1.8-1.2 4.1-.9 5.6.7l2.4 2.5 2.4-2.5c1.5-1.6 3.8-1.9 5.6-.7 2 1.3 2.5 3.8 1.7 5.9-.9 1.8-2.5 3.5-4.5 5.3-1.3 1.2-2.8 2.4-4.4 3.7-.2.2-.5.3-.8.3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+ chat:'<path d="M4 5.5h16A1.5 1.5 0 0 1 21.5 7v9A1.5 1.5 0 0 1 20 17.5H9.4L5 21v-3.5H4A1.5 1.5 0 0 1 2.5 16V7A1.5 1.5 0 0 1 4 5.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+ close:'<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+ left:'<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+ right:'<path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+const svg = (k, px) => `<svg viewBox="0 0 24 24" fill="none" width="${px||'1em'}" height="${px||'1em'}" aria-hidden="true">${I[k]}</svg>`;
+const order = ['sound','mute','up','down','close','left','right'];
+['a','b'].forEach(p => {
+  [['1','sound'],['2','mute'],['3','close'],['4','up'],['5','down'],['6','left'],['7','right'],['8','close']]
+    .forEach(([n,k]) => { document.getElementById(p+n).innerHTML = svg(k); });
+});
+const names = [['sound','① 소리 켜짐'],['mute','② 소리 꺼짐'],['up','③ 위'],['down','④ 아래'],['heart','⑤ 하트'],['chat','⑥ 말풍선'],['close','⑦ 닫기'],['left','⑧ 왼쪽'],['right','⑨ 오른쪽']];
+document.getElementById('big').innerHTML = names.map(([k,t]) =>
+  `<span class="cell"><span style="color:#fff">${svg(k,44)}</span><span class="cap">${t}</span></span>`).join('');
+</script>

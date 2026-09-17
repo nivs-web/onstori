@@ -5,6 +5,7 @@ import type { ShortT } from "@/lib/shorts";
 import dynamic from "next/dynamic";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import { orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, type ShortsOrder } from "@/config/shorts";
+import { IconSoundOn, IconSoundOff, IconChevronLeft, IconChevronRight } from "./shorts-icons";
 
 /**
  * 🔴🔴 **카드형태에도 «몰입모드»가 붙는다.** (2026-09-17 지시 [42] §3 · 대표님 확정)
@@ -179,7 +180,7 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
                 aria-label={loud ? "소리 끄기" : "소리 켜기"}
                 onClick={() => setLoud((v) => !v)}
               >
-                {loud ? "🔊" : "🔇"}
+                {loud ? <IconSoundOn /> : <IconSoundOff />}
               </button>
               {/* 아래 그림자 위에 글 — 릴스와 같은 자리 */}
               <div className="shorts-meta">
@@ -209,8 +210,8 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
       {view.length > 1 && (
         <>
           {/* PC 전용 좌우 화살표 — 폰에서는 손가락으로 넘긴다 */}
-          <button type="button" className="shorts-arrow left" onClick={() => go(-1)} aria-label="이전 영상">‹</button>
-          <button type="button" className="shorts-arrow right" onClick={() => go(1)} aria-label="다음 영상">›</button>
+          <button type="button" className="shorts-arrow left" onClick={() => go(-1)} aria-label="이전 영상"><IconChevronLeft /></button>
+          <button type="button" className="shorts-arrow right" onClick={() => go(1)} aria-label="다음 영상"><IconChevronRight /></button>
           <div className="shorts-dots" style={{ color: onInk }}>
             {view.map((it, i) => (
               <span key={it.id} className={i === active ? "on" : ""} />
