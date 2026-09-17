@@ -3,7 +3,7 @@ import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { quickCheckForInstagram } from "@/lib/sns/mp4";
-import { SHORTS_MAX } from "@/config/shorts";
+import { SHORTS_MAX, shortsStyleOf } from "@/config/shorts";
 
 export const dynamic = "force-dynamic";
 
@@ -215,5 +215,6 @@ export async function POST(req: Request) {
     attachedTotal = alive.error ? (await q()).count ?? null : alive.count ?? null;
   } catch { /* 못 세도 목록은 그대로 나간다 */ }
 
-  return NextResponse.json({ items, softDeleteReady, attachedTotal });
+  /* 🔴 편집화면이 「지금 어떤 모양인가」를 알아야 고르는 칸에 표시할 수 있다 (지시 [42] §4) */
+  return NextResponse.json({ items, softDeleteReady, attachedTotal, shortsStyle: shortsStyleOf(r.site.settings) });
 }

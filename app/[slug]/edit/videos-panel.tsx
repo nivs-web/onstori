@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SHORTS_MAX } from "@/config/shorts";
+import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, type ShortsStyle } from "@/config/shorts";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -94,6 +94,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   onDetach: () => void;
 }) {
   const [items, setItems] = useState<Item[] | null>(null);
+  /** 🔴 사장님이 고른 숏폼 모양 (지시 [42] §4). 서버가 목록과 함께 알려 준다 */
+  const [style, setStyle] = useState<ShortsStyle>(SHORTS_STYLE_DEFAULT);
+  const [styleBusy, setStyleBusy] = useState(false);
+  const [styleMsg, setStyleMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
   /** 🔴 서버가 세어 준 «걸린 전체 편수». 목록은 잘려 오므로 이 수로만 판단한다 */
   const [attachedTotal, setAttachedTotal] = useState<number | null>(null);
@@ -149,8 +153,9 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null };
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle };
       setItems(got.items);
+      if (got.shortsStyle) setStyle(got.shortsStyle);
       /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
       if (got.softDeleteReady === false) setCanDelete(false);
       /* 🔴 서버가 세어 준 «걸린 전체 편수» — 목록은 잘려 오므로 이 수로만 판단한다 */
@@ -393,6 +398,28 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     } catch { setManageMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요."); }
   }
 
+  /**
+   * 🔴 **모양 바꾸기.** (2026-09-17 지시 [42] §4)
+   * ⚠ **먼저 화면을 바꾸고** 서버에 보낸다 — 누르자마자 반응이 있어야 한다.
+   *   실패하면 **되돌리고 사실대로 말한다**(조용히 삼키면 바뀐 줄 안다).
+   */
+  async function chooseStyle(next: ShortsStyle) {
+    if (next === style || styleBusy) return;
+    const before = style;
+    setStyle(next); setStyleBusy(true); setStyleMsg("");
+    try {
+      const r = await fetch("/api/site/shorts-style", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId, style: next }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) { setStyle(before); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
+      setStyleMsg("바꿨어요. 홈페이지를 열어 보시면 바로 보입니다.");
+    } catch {
+      setStyle(before); setStyleMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
+    } finally { setStyleBusy(false); }
+  }
+
   async function publish(entryId: string, providers: string[] = snsPicked, tiktok?: TtChoice, captionOverride?: string) {
     /* ★★ **[간단 등록]에서는 틱톡을 뺀다** (2026-09-12 지시 8).
        틱톡은 올릴 때마다 공개범위를 직접 골라야 해서 «5초 흐름»에 들어갈 수 없다.
@@ -607,6 +634,83 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     <div className="space-y-4">
       {tabs}
       {loadErr && <p className="rounded-xl bg-danger-soft p-3 t-caption font-semibold text-danger">{loadErr}</p>}
+
+      {/**
+        * 🔴🔴 **「숏폼 스타일 선택」 — 사장님이 «모양»을 고르는 자리.** (2026-09-17 지시 [42] §4)
+        *
+        * ★ **왜 여기인가:** 고르는 것이 **사이트마다**라 사장님 화면이 자연스럽다.
+        *   대표님 원문은 「홈페이지 관리자 - 어드민 - 영상 - "숏폼 스타일 선택"」인데
+        *   「관리자」가 사장님인지 우리인지 갈려 **권반장이 대표님께 여쭙는 중**이다.
+        *   ⇒ **사장님 쪽을 «주»로 먼저 만든다**(권반장이 정함). 어드민 표는 그 뒤다.
+        *
+        * ⚠⚠ **설명글은 «대표님이 쓰신 문장 그대로»다. 다듬지 마라.**
+        *   (`fable51plandept/handoff/2026-09-17-숏폼시네마/00-기획서-대표님확인용.md` §1-1)
+        * 🔴 **「몰입모드」·「숏폼시네마」라는 낱말을 여기 쓰지 않는다**(권반장이 정함) —
+        *   **우리끼리 부르는 이름**이라 사장님도 모른다. **무엇이 일어나는지**로 쓴다.
+        * ★ **그림으로 한눈에** — 세로/가로 방향을 작은 그림으로 보여 준다(글보다 빠르다).
+        */}
+      <section data-tour="panel-shorts-style" className="space-y-3 rounded-2xl border border-n-200 p-4">
+        <div>
+          <p className="t-body font-bold">숏폼 스타일 선택</p>
+          <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+            홈페이지에서 영상을 <b>어떤 모양으로</b> 보여 드릴지 고르세요. 언제든 바꿀 수 있어요.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {SHORTS_STYLES.map((o) => {
+            const on = style === o.key;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => chooseStyle(o.key)}
+                disabled={styleBusy}
+                aria-pressed={on}
+                className={`rounded-2xl border p-4 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+              >
+                <span className="flex items-center gap-2">
+                  {/* 고른 것에 동그라미 — 라디오처럼 보이게(하나만 고른다는 뜻) */}
+                  <span className={`inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
+                    {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
+                  </span>
+                  <b className="t-body">{o.label}</b>
+                  <span className="t-caption text-[var(--text-soft)]">최근 {SHORTS_SHAPE_N[o.key]}편</span>
+                </span>
+
+                {/* ★ 그림 한 장 — 세로로 넘기나(숏폼형태) 옆으로 넘기나(카드형태) */}
+                <span aria-hidden className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-n-100 p-3">
+                  {o.key === "shorts" ? (
+                    <span className="flex flex-col items-center gap-1">
+                      <span className="block h-3 w-10 rounded bg-n-300" />
+                      <span className="block h-10 w-10 rounded bg-n-400" />
+                      <span className="block h-3 w-10 rounded bg-n-300" />
+                      <span className="t-caption font-semibold text-[var(--text-soft)]">↓ 세로로</span>
+                    </span>
+                  ) : (
+                    <span className="flex flex-col items-center gap-1">
+                      <span className="flex items-center gap-1">
+                        <span className="block h-10 w-4 rounded bg-n-300" />
+                        <span className="block h-12 w-9 rounded bg-n-400" />
+                        <span className="block h-10 w-4 rounded bg-n-300" />
+                      </span>
+                      <span className="t-caption font-semibold text-[var(--text-soft)]">→ 옆으로</span>
+                    </span>
+                  )}
+                </span>
+
+                {/* 🔴 **대표님이 쓰신 문장 그대로**(기획서 §1-1). 줄이거나 다듬지 마라 */}
+                <span className="mt-3 block t-caption font-bold leading-relaxed">&ldquo;{o.headline}&rdquo;</span>
+                {o.body.map((line) => (
+                  <span key={line} className="mt-2 block t-caption leading-relaxed text-[var(--text-soft)]">{line}</span>
+                ))}
+              </button>
+            );
+          })}
+        </div>
+
+        {styleMsg && <p className="t-caption font-semibold">{styleMsg}</p>}
+      </section>
 
       {/**
         * 🔴🔴 **21편째부터 «어디에도» 안 나온다 — 그런데 화면은 「걸림」이라고 말한다.**
