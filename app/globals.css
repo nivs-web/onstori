@@ -1636,14 +1636,15 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   cursor: pointer;
 }
 
-/* 소리 단추 — 오른쪽 위. 릴스와 같은 자리다 */
+/* 소리 단추 — 오른쪽 위. 릴스와 같은 자리다.
+   🔴 2026-09-17 대표님 지시 [33]7 로 **키웠다** — 작으면 누를 생각이 안 난다 */
 .shorts-sound {
   position: absolute; top: 10px; right: 10px;
-  width: 36px; height: 36px;
+  width: 48px; height: 48px;
   display: grid; place-items: center;
-  border: 0; border-radius: 999px;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff; font-size: 16px; line-height: 1;
+  border: 1px solid rgb(255 255 255 / 0.3); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 22px; line-height: 1;
   cursor: pointer;
   backdrop-filter: blur(6px);
 }
@@ -1815,14 +1816,17 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 .stage-kicker { font-size: var(--t-small); font-weight: 700; letter-spacing: 0.01em; }
 .stage-count { font-size: var(--t-caption); opacity: 0.8; font-variant-numeric: tabular-nums; }
 
+/* 🔴 **스피커를 «크게».** 대표님 지시 [33]7 — 「스피커 모양을 좀 크게 만들어! 그럼 될 거 같아!」
+   ⚠ 작으면 **누를 생각이 안 납니다.** 이것이 [31]① 의 진짜 원인이기도 했다.
+   ⚠ 폰·PC 둘 다 키운다. 테두리를 줘서 어두운 영상 위에서도 «단추»로 읽히게 한다. */
 .stage-sound {
   /* 상단 바 + 제목 줄 아래. 손가락이 햄버거를 잘못 누르지 않게 충분히 내린다 */
-  position: absolute; top: calc(var(--bar-h) + var(--s-7)); right: var(--s-4);
-  width: 38px; height: 38px;
+  position: absolute; top: calc(var(--bar-h) + var(--s-6)); right: var(--s-4);
+  width: 56px; height: 56px;
   display: grid; place-items: center;
-  border: 0; border-radius: 999px;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff; font-size: 16px; line-height: 1;
+  border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 26px; line-height: 1;
   cursor: pointer;
   backdrop-filter: blur(6px);
 }
@@ -1870,16 +1874,19 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 /* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다(지시 ②) */
 /* 🔴 **하단 고정 바 «위»에 띄운다.** 실측에서 「문의하기」 바에 완전히 가려 있었다 —
    탈출구가 안 보이면 「항상 띄운다」는 약속이 거짓말이 된다(지시 ②). */
+/* 🔴 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.**
+   ⚠ 「항상 띄운다」는 약속은 **보여야** 참이 된다. 키우고, 흰 테두리를 또렷하게, 글자도 키웠다. */
 .stage-skip {
   position: absolute; left: 50%; bottom: calc(var(--dock-pad) + var(--s-3)); transform: translateX(-50%);
-  padding: 8px 16px; border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.35);
-  background: rgb(0 0 0 / 0.4);
-  color: #fff; font-size: var(--t-caption); font-weight: 600;
+  min-height: var(--tap);
+  padding: 11px 22px; border-radius: 999px;
+  border: 1.5px solid rgb(255 255 255 / 0.75);
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: var(--t-small); font-weight: 700;
   cursor: pointer;
   backdrop-filter: blur(6px);
 }
-.stage-skip:hover { background: rgb(0 0 0 / 0.65); }
+.stage-skip:hover { background: rgb(0 0 0 / 0.85); }
 
 /* ⚠⚠ **「움직임 줄이기」를 켠 손님 — 가두지 않는다**(지시 ②).
    멀미를 일으키는 화면이다. 높이를 되돌리고 sticky 를 풀면 **평범한 세로 목록**이 된다.
@@ -1959,7 +1966,7 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
    ⚠ 소리 단추 바로 «아래»에 둔다. 손가락이 닿는 자리이면서 영상을 가리지 않는다.
    ⚠ 등장은 느리게, 사라짐도 느리게(docs/MOTION.md — 등장 700ms). */
 .stage-hint {
-  position: absolute; top: calc(var(--bar-h) + var(--s-7) + 46px); right: var(--s-4);
+  position: absolute; top: calc(var(--bar-h) + var(--s-6) + 64px); right: var(--s-4);
   padding: 7px 13px; border-radius: 999px;
   border: 1px solid rgb(255 255 255 / 0.3);
   background: rgb(0 0 0 / 0.55);
@@ -2013,3 +2020,93 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 }
 .sns-strip-pill:hover { background: rgb(255 255 255 / 0.18); }
 .sns-strip-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   🔴🔴 **숏폼피드 세상** — PC 에서 클릭하면 통째로 열리는 전체화면 (2026-09-17 지시 [33])
+
+   > 대표님: 「**틱톡이나 인스타 온 것처럼 전체화면으로 확 바뀌면서 숏폼 피드 속으로 들어간 것처럼**」
+   > 「이 재생 창 자체를 **통으로 하나의 세상**으로」
+
+   ★ **우리 숏폼의 공식 이름은 「숏폼피드」다**(대표님 확정 · 광고 카피로 쓰신다).
+   ⚠ `body` 에 직접 붙는다(portal). 어떤 상자에도 안 들어가야 「전체화면」이 참이 된다.
+   ══════════════════════════════════════════════════════════════════════════ */
+.world {
+  position: fixed; inset: 0;
+  /* ⚠ **저장소에서 가장 높은 층**이어야 한다. 떠 있는 채널 공(위젯)·상단 바·하단 바가
+     검은 화면 «위»로 비쳐 나오면 「하나의 세상」이 깨진다(2026-09-17 실측으로 잡았다). */
+  z-index: 2147483000;
+  display: grid; place-items: center;
+  /* 반투명이면 뒤 화면이 «얼룩»으로 비친다. 통째로 검정이어야 다른 세상이 된다 */
+  background: #000;
+  /* 등장은 느리게 — 「확 바뀌는」 그 순간이 이 화면의 전부다(docs/MOTION.md 등장 700ms) */
+  animation: world-in var(--dur-enter, 700ms) var(--ease-out, ease) both;
+}
+@keyframes world-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+
+/* 🔴 여기서도 9:16 이다. 가로로 늘리지 않는다 */
+.world-frame {
+  position: relative;
+  height: 100svh; aspect-ratio: 9 / 16; max-width: 100vw;
+  background: #000; overflow: hidden;
+}
+.world-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.world-meta {
+  position: absolute; inset-inline: 0; bottom: 0;
+  padding: var(--s-7) var(--s-4) var(--s-5);
+  background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0));
+  color: #fff; pointer-events: none;
+}
+.world-cap {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-body); line-height: 1.55; font-weight: 600;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.5);
+}
+.world-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
+
+/* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
+.world-x {
+  position: absolute; top: var(--s-4); right: var(--s-4);
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.35); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
+}
+.world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.world-count {
+  position: absolute; top: calc(var(--s-4) + 16px); left: var(--s-4);
+  color: #fff; font-size: var(--t-small); font-weight: 700; opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.world-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.3); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 30px; line-height: 1; cursor: pointer;
+}
+.world-arrow:disabled { opacity: 0.25; cursor: default; }
+.world-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.world-arrow.left { left: var(--s-5); }
+.world-arrow.right { right: var(--s-5); }
+
+/* 「← → 로 넘기고, ESC 로 나가요」 — 열린 직후 한 번만 */
+/* ⚠ 캡션 위로 올린다 — 실측에서 «이번 주 가장 바빴던 순간은요?» 와 겹쳤다 */
+.world-help {
+  position: absolute; left: 50%; bottom: calc(var(--s-8) + var(--s-6)); transform: translateX(-50%);
+  margin: 0; padding: 9px 18px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: var(--t-caption); font-weight: 600; white-space: nowrap;
+  animation: stage-hint-in var(--dur-enter, 700ms) var(--ease-out, ease) both;
+}
+
+/* ⚠ 「움직임 줄이기」 — 전환을 없애고 «바로» 열린다. 내용은 같다(지시 4번) */
+.world.calm, .world.calm .world-help { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .world, .world-help { animation: none; }
+}

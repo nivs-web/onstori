@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ShortT } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 
@@ -65,6 +66,21 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
    *   켜는 것은 **손님이 한 번 누르는 것**으로 둡니다. 놀라게 하지 않으면서 길은 보입니다.
    */
   const [hover, setHover] = useState(false);
+  /**
+   * 🔴🔴 **「숏폼피드 세상」** — PC 에서 «클릭»하면 전체화면으로 확 열린다. (2026-09-17 지시 [33])
+   *
+   * > **대표님:** 「pc에서도 **클릭 한번 하면, 틱톡이나 인스타 온 것처럼 전체화면으로 확 바뀌면서
+   * >   숏폼 피드 속으로 들어간 것처럼** … 이 재생 창 자체를 **통으로 하나의 세상**으로 만든다면?
+   * >   그러면 **7편이면 7편 전부** 소리가 나오게 할 수 있지 않을까?」
+   *
+   * ★ **왜 «호버»가 아니라 «클릭»인가**(권반장 판단 · 대표님 승인):
+   *   스크롤하다 마우스가 **지나가기만** 해도 나는 소리는 **손님이 원한 적 없는 소리**이고
+   *   2026-09-10 회장님 결정과 정면으로 부딪칩니다. **클릭은 「보고 싶다」는 뜻이 분명**하고,
+   *   브라우저도 **그때부터** 소리를 허용합니다.
+   *
+   * ⚠ **폰은 지금 그대로**입니다(대표님: 「폰은 이대로 좋아」). 여기는 **마우스가 있는 기기만** 엽니다.
+   */
+  const [world, setWorld] = useState<number | null>(null);
   /** 멀미를 싫어하는 손님인가 — 레이아웃은 CSS 가 맡고, 여기서는 **자동재생만** 끈다 */
   const [calm, setCalm] = useState(false);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -157,6 +173,31 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     root.querySelector<HTMLElement>(`[data-step="${n}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [items.length]);
 
+  /**
+   * 🔴 **바깥 페이지를 멈춘다.** 뒤에서 페이지가 움직이면 멀미가 납니다(지시 1번).
+   *   ⚠ 닫을 때 **원래 보던 자리로** 정확히 돌아가야 합니다(지시 3번) — `position: fixed` 로
+   *     막으면 스크롤이 0 으로 튀므로, 그 값을 기억했다가 되돌립니다.
+   */
+  useEffect(() => {
+    if (world === null) return;
+    const y = window.scrollY;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; window.scrollTo(0, y); };
+  }, [world]);
+
+  /* ← → 로 넘기고, ESC 로 나간다 (지시 2번) */
+  useEffect(() => {
+    if (world === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setWorld(null); return; }
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); setWorld((i) => Math.min(items.length - 1, (i ?? 0) + 1)); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); setWorld((i) => Math.max(0, (i ?? 0) - 1)); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [world, items.length]);
+
   /** 「건너뛰기 ↓」 — 무대 «바로 아래»로 내려간다 */
   const skip = useCallback(() => {
     const root = rootRef.current;
@@ -211,7 +252,23 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
                 /* ⚠ 지금 편과 그 다음 편만 미리 받는다. 열 편을 한꺼번에 받으면 데이터가 샌다 */
                 preload={i === active || i === active + 1 ? "metadata" : "none"}
                 controls={calm}
-                onClick={() => !calm && setLoud((v) => !v)}
+                /**
+                 * 🔴 **PC 는 «세상»을 열고, 폰은 지금처럼 소리만** (2026-09-17 지시 [33]·6번).
+                 *   대표님: 「폰은 이대로 좋아」 — 폰의 동작을 바꾸지 않습니다.
+                 */
+                onClick={() => {
+                  if (calm) return;
+                  if (typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
+                    setLoud(true);          // 눌렀으니 브라우저가 소리를 허락한다
+                    /* ⚠⚠ **`i` 가 아니라 `active` 다** — 2026-09-17 실측으로 잡았다.
+                       일곱 편이 **겹쳐 쌓여** 있어서 클릭은 «DOM 의 마지막 편»이 받는다.
+                       `i` 를 쓰면 **어느 편을 눌러도 항상 마지막 편**이 열렸다(실측 7/7).
+                       손님이 «보고 있던» 편은 언제나 `active` 다. */
+                    setWorld(active);
+                    return;
+                  }
+                  setLoud((v) => !v);
+                }}
               />
               {/* 목록으로 보일 때만 뜬다 — 겹쳐 쌓였을 때는 아래 `.stage-meta` 가 맡는다 */}
               {it.caption && <figcaption className="stage-item-cap">{it.caption}</figcaption>}
@@ -261,10 +318,96 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
             </div>
           )}
 
-          {/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다 */}
+          {/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다.
+              ⚠ 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.** 키우고 또렷하게 했다. */}
           <button type="button" className="stage-skip" onClick={skip}>건너뛰기 ↓</button>
         </div>
       </div>
+
+      {/* 🔴🔴 **숏폼피드 세상** — 클릭하면 통째로 열리는 전체화면 (2026-09-17 지시 [33]) */}
+      {world !== null && <ShortsWorld items={items} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} />}
     </section>
+  );
+}
+
+/**
+ * 🔴🔴 **숏폼피드 세상** — 「통으로 하나의 세상」. (2026-09-17 대표님 지시 [33])
+ *
+ * ★ **우리 숏폼의 공식 이름은 「숏폼피드」다**(2026-09-17 대표님 확정).
+ *   「**숏폼피드가 있는 홈페이지**」를 광고 카피로 쓰신다. **코드·주석·화면 어디서든 이 이름으로 부른다.**
+ *
+ * ⚠ **`createPortal` 로 `body` 에 직접 붙인다.** 무대 안에 두면 `overflow:hidden` 인 상자에 갇혀
+ *   전체화면이 안 된다. 「전체화면」은 **아무 상자에도 안 들어가야** 참이 된다.
+ *
+ * 🔴 **나가는 길을 셋 둔다 — ESC · [✕] · 바깥 클릭**(지시 2번).
+ *   하나뿐이면 갇힌 느낌이 난다. 그리고 **닫으면 원래 보던 자리로** 돌아간다(지시 3번).
+ * 🔴 **키보드로만 쓰는 손님**(지시 5번) — 열리면 **[✕] 에 초점이 가고**, `Tab` 으로 단추들을 돈다.
+ */
+function ShortsWorld({ items, at, onAt, onClose, calm }: {
+  items: ShortT[]; at: number; onAt: (i: number) => void; onClose: () => void; calm: boolean;
+}) {
+  const vid = useRef<HTMLVideoElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const [help, setHelp] = useState(!calm);
+  const cur = items[at];
+
+  /* 열리면 닫기 단추에 초점을 준다 — 키보드만 쓰는 손님이 곧바로 나갈 수 있어야 한다 */
+  useEffect(() => { closeRef.current?.focus(); }, []);
+
+  /* 도움말은 2.8초. 「움직임 줄이기」에서는 아예 안 띄운다 */
+  useEffect(() => {
+    if (!help) return;
+    const t = window.setTimeout(() => setHelp(false), HINT_MS);
+    return () => window.clearTimeout(t);
+  }, [help]);
+
+  /**
+   * ★ **소리를 켠 채로 시작한다.** 손님이 **클릭해서** 들어왔으니 브라우저가 허락한다.
+   * ⚠ 그래도 `play()` 는 거절될 수 있다(전원 절약 등). 잡아서 조용히 넘긴다 —
+   *   콘솔에 빨간 줄이 남아도 손님 잘못이 아니다.
+   */
+  useEffect(() => {
+    const v = vid.current;
+    if (!v) return;
+    v.muted = false;
+    void v.play().catch(() => {});
+  }, [at]);
+
+  return createPortal(
+    <div className={`world${calm ? " calm" : ""}`} role="dialog" aria-modal="true" aria-label="숏폼피드"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="world-frame">
+        <video ref={vid} className="world-video" src={cur?.src} poster={cur?.poster}
+          autoPlay loop playsInline controls={calm} />
+        <div className="world-meta">
+          {cur?.caption && <p className="world-cap">{cur.caption}</p>}
+          {pillLinks(cur?.links ?? []).length ? (
+            <div className="world-links">
+              {pillLinks(cur.links).map((l) => (
+                <a key={l.provider} href={l.url} target="_blank" rel="noopener noreferrer" className="stage-pill">
+                  <span className="stage-dot" style={{ background: SNS_DOT[l.provider] }} />
+                  {SNS_LABEL[l.provider]}
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <button ref={closeRef} type="button" className="world-x" onClick={onClose} aria-label="숏폼피드에서 나가기">✕</button>
+      <span className="world-count" aria-hidden>{at + 1} / {items.length}</span>
+
+      {items.length > 1 && (
+        <>
+          <button type="button" className="world-arrow left" aria-label="이전 영상"
+            disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}>‹</button>
+          <button type="button" className="world-arrow right" aria-label="다음 영상"
+            disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}>›</button>
+        </>
+      )}
+
+      {help && <p className="world-help">← → 로 넘기고, ESC 로 나가요</p>}
+    </div>,
+    document.body,
   );
 }
