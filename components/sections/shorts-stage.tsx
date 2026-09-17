@@ -38,6 +38,8 @@ import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 const SWIPE_PX = 48;
 /** 「탭하면 소리」를 띄워 두는 시간. 2~3초 — 읽히되 거슬리지 않는 선(권반장 지시 [31]①) */
 const HINT_MS = 2800;
+/** 전체화면을 «닫는» 쓸어내리기. 넘기기(48)보다 훨씬 커야 실수로 안 닫힌다 */
+const CLOSE_SWIPE_PX = 140;
 
 export default function ShortsStage({ items, anchorId, title }: { items: ShortT[]; anchorId?: string; title: string }) {
   const [active, setActive] = useState(0);
@@ -185,39 +187,6 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; window.scrollTo(0, y); };
   }, [world]);
-
-  /**
-   * 🔴 **마우스 휠로 위아래.** (2026-09-17 대표님 지시 [35]③)
-   *   대표님: 「**좌우 화살표로 영상 돌리는 게 익숙하지 않을 듯. 모든 숏폼은 위아래 아닌가?**
-   *     마우스 휠로 돌려서 위아래 영상 바꾸기가 좋을까?」 — 릴스·쇼츠·틱톡 전부 위아래가 맞습니다.
-   * ⚠ 휠은 **한 번에 여러 번** 들어온다(관성). 그대로 두면 한 번 굴려 다섯 편이 지나간다.
-   *   그래서 **한 번 넘기면 잠깐 잠근다.**
-   */
-  useEffect(() => {
-    if (world === null) return;
-    let lock = 0;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const now = Date.now();
-      if (now < lock || Math.abs(e.deltaY) < 8) return;
-      lock = now + 420;
-      setWorld((i) => Math.min(items.length - 1, Math.max(0, (i ?? 0) + (e.deltaY > 0 ? 1 : -1))));
-    };
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
-  }, [world, items.length]);
-
-  /* ↑ ↓ (그리고 ← →) 로 넘기고, ESC 로 나간다 (지시 2번 · [35]③) */
-  useEffect(() => {
-    if (world === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setWorld(null); return; }
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); setWorld((i) => Math.min(items.length - 1, (i ?? 0) + 1)); }
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); setWorld((i) => Math.max(0, (i ?? 0) - 1)); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [world, items.length]);
 
   /** 「건너뛰기 ↓」 — 무대 «바로 아래»로 내려간다 */
   const skip = useCallback(() => {
@@ -374,10 +343,82 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
   const vid = useRef<HTMLVideoElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [help, setHelp] = useState(!calm);
+  /**
+   * 🔴🔴 **소리 끄는 단추 — 없었습니다.** (2026-09-17 권반장 조사 · [36]①)
+   *
+   * > 「대표님이 지적하신 「스피커 2개」는 코드상 이미 1개로 고쳐져 있었고,
+   * >   **진짜 문제는 전체화면에 소리 «끄는» 단추가 «0개»인데 소리가 켜진 채 열린다**는 점입니다」
+   *
+   * ⚠ **제가 [33] 에서 만든 것의 실수입니다.** 「클릭했으니 소리를 켜 준다」까지는 맞았는데,
+   *   **끄는 길을 안 만들었습니다.** 조용한 사무실에서 연 손님은 **허둥대다 그냥 나갑니다.**
+   * ★ 자리는 **영상 왼쪽 위**(유튜브 쇼츠와 같은 자리) — 조사 결과 그대로.
+   * 🔴 **화면에 스피커 그림은 언제나 «1개»를 넘지 않는다**(릴스·쇼츠 둘 다 그렇다).
+   *   무대의 스피커는 이 검은 화면 «아래»에 깔려 안 보인다.
+   */
+  const [loud, setLoud] = useState(true);
+  const touchY = useRef<number | null>(null);
   const cur = items[at];
 
   /* 열리면 닫기 단추에 초점을 준다 — 키보드만 쓰는 손님이 곧바로 나갈 수 있어야 한다 */
   useEffect(() => { closeRef.current?.focus(); }, []);
+
+  /**
+   * 🔴 **폰 「뒤로가기」로 닫힌다.** (권반장 조사 · [36]②)
+   *
+   * ⚠ 지금은 뒤로가기를 누르면 **홈페이지를 통째로 떠납니다.**
+   *   **한국 안드로이드 손님이 제일 먼저 누르는 단추**입니다.
+   * ★ 열릴 때 기록을 하나 밀어 넣고, 뒤로가기가 그 기록을 먹으면 닫습니다.
+   * ⚠ ✕·ESC·바깥클릭으로 닫을 때는 **밀어 넣은 기록을 되돌립니다** —
+   *   안 그러면 손님의 뒤로가기 한 번이 «아무 일도 안 하는» 데 낭비됩니다.
+   */
+  const pushed = useRef(false);
+  useEffect(() => {
+    /* ⚠⚠ **React 는 개발 중에 이 효과를 «두 번» 돌린다**(StrictMode).
+         처음에 정리(cleanup)에서 `history.back()` 을 불렀더니 **열자마자 닫혔다**(실측).
+         ⇒ 기록은 **딱 한 번만** 밀어 넣고, 되돌리는 것은 **닫는 자리**에서 한다. */
+    if (!pushed.current) { window.history.pushState({ onstoriWorld: true }, ""); pushed.current = true; }
+    const onPop = () => { pushed.current = false; onClose(); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [onClose]);
+
+  /**
+   * 닫는 «단 하나의» 길. ✕·ESC·바깥클릭·쓸어내리기가 전부 여기로 온다.
+   * ⚠ 내가 밀어 넣은 기록을 **내가 치운다** — 안 그러면 손님의 뒤로가기 한 번이 낭비된다.
+   */
+  const close = useCallback(() => {
+    if (pushed.current) { pushed.current = false; window.history.back(); }
+    onClose();
+  }, [onClose]);
+
+  /* ↑ ↓ (그리고 ← →) 로 넘기고, ESC 로 나간다 */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { close(); return; }
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); onAt(Math.min(items.length - 1, at + 1)); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); onAt(Math.max(0, at - 1)); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [at, items.length, onAt, close]);
+
+  /**
+   * 🔴 **마우스 휠로 위아래.** (2026-09-17 대표님 지시 [35]③)
+   * ⚠ 휠은 **한 번에 여러 번** 들어온다(관성). 그대로 두면 한 번 굴려 대여섯 편이 지나간다.
+   *   그래서 **한 번 넘기면 잠깐 잠근다.**
+   */
+  useEffect(() => {
+    let lock = 0;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now < lock || Math.abs(e.deltaY) < 8) return;
+      lock = now + 420;
+      onAt(Math.min(items.length - 1, Math.max(0, at + (e.deltaY > 0 ? 1 : -1))));
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [at, items.length, onAt]);
 
   /* 도움말은 2.8초. 「움직임 줄이기」에서는 아예 안 띄운다 */
   useEffect(() => {
@@ -394,16 +435,41 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
-    v.muted = false;
+    v.muted = !loud;
     void v.play().catch(() => {});
-  }, [at]);
+  }, [at, loud]);
+
+  /**
+   * 🔴 **폰에서 «아래로 크게 쓸어내리면» 닫힌다.** (권반장 조사 · [36]⑤)
+   *   인스타·틱톡·유튜브 **셋 다** 있는 몸짓입니다.
+   * ⚠ `preventDefault` 를 **하지 않습니다.** 막으면 평범한 스크롤이 죽습니다.
+   * ⚠ 위로 쓸면 «다음 편»입니다 — 닫히지 않습니다.
+   */
+  const onTouchStart = (e: React.TouchEvent) => { touchY.current = e.touches[0]?.clientY ?? null; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const from = touchY.current;
+    touchY.current = null;
+    if (from === null || calm) return;
+    const dy = (e.changedTouches[0]?.clientY ?? from) - from;
+    if (dy > CLOSE_SWIPE_PX) { close(); return; }            // 아래로 «크게» → 나가기
+    if (dy < -SWIPE_PX) { onAt(Math.min(items.length - 1, at + 1)); return; }
+    if (dy > SWIPE_PX) { onAt(Math.max(0, at - 1)); }
+  };
 
   return createPortal(
     <div className={`world${calm ? " calm" : ""}`} role="dialog" aria-modal="true" aria-label="숏폼피드"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="world-frame">
+      onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className="world-frame" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <video ref={vid} className="world-video" src={cur?.src} poster={cur?.poster}
           autoPlay loop playsInline controls={calm} />
+
+        {/* 🔴 **소리 단추 하나** — 영상 왼쪽 위(유튜브 쇼츠와 같은 자리). 없어서 못 끄던 것을 고쳤다 */}
+        {!calm && (
+          <button type="button" className="world-sound" aria-label={loud ? "소리 끄기" : "소리 켜기"}
+            onClick={() => setLoud((v) => !v)}>
+            {loud ? "🔊" : "🔇"}
+          </button>
+        )}
         <div className="world-meta">
           {cur?.caption && <p className="world-cap">{cur.caption}</p>}
           {pillLinks(cur?.links ?? []).length ? (
@@ -422,7 +488,7 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
       {/* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 크게.**
           ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨는데, **권반장이 릴스·쇼츠의 실제 배치를
             조사 중**이라 **위치는 그대로 두고 크기만** 키웠습니다 — 두 번 옮기면 낭비입니다. */}
-      <button ref={closeRef} type="button" className="world-x" onClick={onClose} aria-label="숏폼피드에서 나가기">
+      <button ref={closeRef} type="button" className="world-x" onClick={close} aria-label="숏폼피드에서 나가기">
         <span aria-hidden>✕</span><span className="world-x-say">나가기</span>
       </button>
       <span className="world-count" aria-hidden>{at + 1} / {items.length}</span>
@@ -438,7 +504,8 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
         </>
       )}
 
-      {help && <p className="world-help">↑ ↓ 또는 마우스 휠로 넘기고, ESC 로 나가요</p>}
+      {/* ⚠ **나가는 «자리»를 말해 준다**(권반장 조사 [36]③) — 마우스만 쓰는 손님은 ESC 를 모른다 */}
+      {help && <p className="world-help">↑ ↓ 또는 마우스 휠로 넘기고, 오른쪽 위 ✕ 로 나가요</p>}
     </div>,
     document.body,
   );

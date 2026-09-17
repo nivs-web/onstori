@@ -2083,8 +2083,9 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-x:hover { background: rgb(0 0 0 / 0.85); }
 .world-x-say { font-size: var(--t-small); font-weight: 700; }
 .world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* ⚠ 왼쪽 위는 이제 **소리 단추** 자리다(권반장 조사 [36]①). 편수는 가운데 위로 비켰다 */
 .world-count {
-  position: absolute; top: calc(var(--s-4) + 16px); left: var(--s-4);
+  position: absolute; top: var(--s-5); left: 50%; transform: translateX(-50%);
   color: #fff; font-size: var(--t-small); font-weight: 700; opacity: 0.85;
   font-variant-numeric: tabular-nums;
 }
@@ -2100,9 +2101,13 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-arrow:disabled { opacity: 0.25; cursor: default; }
 .world-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 /* 🔴 **위아래**다(2026-09-17 지시 [35]③) — 릴스·쇼츠·틱톡 전부 위아래이고 대표님 말씀도 그렇다.
-   ⚠ 전에는 좌우(‹ ›)였다. 「모든 숏폼은 위아래 아닌가?」 — 맞습니다. */
-.world-arrow.up { top: var(--s-6); left: 50%; transform: translateX(-50%); }
-.world-arrow.down { top: auto; bottom: var(--s-6); left: 50%; transform: translateX(-50%); }
+   ⚠ 전에는 좌우(‹ ›)였다. 「모든 숏폼은 위아래 아닌가?」 — 맞습니다.
+
+   🔴 **2026-09-17 권반장 조사([36]④) — 오른쪽 끝으로 모았다.**
+   ⚠ 전에는 위·아래 «화면 한가운데»에 뒀는데, **아래 ⌄ 가 캡션을 덮었다.**
+     유튜브 쇼츠는 오른쪽 끝에 위아래로 나란히 둔다 — 그 자리가 맞다. */
+.world-arrow.up { top: 50%; right: 24px; transform: translateY(calc(-50% - 34px)); }
+.world-arrow.down { top: 50%; right: 24px; transform: translateY(calc(-50% + 34px)); }
 
 /* 「← → 로 넘기고, ESC 로 나가요」 — 열린 직후 한 번만 */
 /* ⚠ 캡션 위로 올린다 — 실측에서 «이번 주 가장 바빴던 순간은요?» 와 겹쳤다 */
@@ -2120,3 +2125,21 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 @media (prefers-reduced-motion: reduce) {
   .world, .world-help { animation: none; }
 }
+
+
+/* 🔴 **전체화면의 소리 단추 — 하나뿐이다.** (2026-09-17 권반장 조사 [36]①)
+   ⚠ 전에는 **끄는 단추가 아예 없었다.** 소리가 «켜진 채» 열리는데 끌 수가 없어,
+     조용한 곳에서 연 손님은 허둥대다 그대로 나갔다.
+   ★ 자리는 **영상 왼쪽 위** — 유튜브 쇼츠와 같다(조사 2026-09-17).
+   🔴 화면에 스피커 그림은 **언제나 1개**를 넘지 않는다. 무대의 것은 이 검은 화면 아래에 깔린다. */
+.world-sound {
+  position: absolute; top: 16px; left: 16px;
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.world-sound:hover { background: rgb(0 0 0 / 0.75); }
+.world-sound:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }

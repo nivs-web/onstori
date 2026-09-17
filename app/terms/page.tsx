@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PromoBar, SiteHeader, SiteFooter, PageHero } from "@/components/site/chrome";
-import { MEMBERSHIP_PRICE, TRIAL_DAYS, LEGAL, INQUIRY_RETENTION_DAYS } from "@/lib/trial";
+import { MEMBERSHIP_PRICE, TRIAL_DAYS, LEGAL, INQUIRY_RETENTION_DAYS, DELETE_AFTER_SUSPEND_DAYS } from "@/lib/trial";
 import { BIZ } from "@/config/company";
 import { LEGAL_VERSION } from "@/lib/consents";
 
@@ -311,7 +311,13 @@ export default function TermsPage() {
                   «지킨 척»만 하는 것이다. */}
             언제든 <b>마이페이지에서 버튼 한 번으로</b> 해지하실 수 있습니다. 가입만큼 쉽게 해지하실 수 있도록 해 두었습니다.
             해지하시면 <b>이미 결제하신 그 달은 끝까지 쓰시고, 다음 달부터 청구되지 않습니다.</b>
-            그 뒤 홈페이지는 비공개로 바뀌고, 정지된 날부터 {INQUIRY_RETENTION_DAYS}일이 지나면 자료가 파기됩니다.
+            {/* 🔴 2026-09-17 권반장 조사 — **읽는 상수가 틀려 있었다.**
+                이 줄은 «사장님 자료»의 파기 기한인데 «손님 문의» 상수(`INQUIRY_RETENTION_DAYS`)를
+                읽고 있었다. 지금은 둘 다 60이라 **우연히** 같은 글자가 나오지만,
+                한쪽만 바꾸는 날 **약관이 거짓말을 한다.**
+                ⚠ 바꾼 것은 «읽는 상수»뿐이다 — **화면에 나오는 글자는 한 글자도 안 바뀐다.**
+                  그래서 법률 문구 변경이 아니다. */}
+            그 뒤 홈페이지는 비공개로 바뀌고, 정지된 날부터 {DELETE_AFTER_SUSPEND_DAYS}일이 지나면 자료가 파기됩니다.
             해지하셔도 <b>홈페이지 · 영상 · 기록은 사장님 것</b>이라 그 전에 내려받아 가져가실 수 있습니다.
             자료 삭제를 원하시면{" "}
             <Link href="/privacy#delete" className="underline underline-offset-2" style={{ color: "var(--forest)" }}>삭제 요청 안내</Link>를 따라 주세요.
