@@ -79,10 +79,51 @@ export async function POST(req: Request) {
     /** ★ 실패 이유·시도 횟수까지 읽는다 — 없으면 화면이 「안 올라갔어요」조차 말할 수 없다 */
     error_kind?: string | null; attempts?: number | null;
     remote_deleted_at?: string | null;
+    created_at?: string | null;
+  };
+
+  /**
+   * 🔴🔴 **한 영상·한 SNS 에 «줄이 여럿»일 수 있다.** (2026-09-17 지시 [40])
+   *
+   * ⚠ 유일 제약(`sns_posts_live_uniq`)은 **«살아 있는» 시도에만** 걸려 있다 —
+   *   `where status in ('queued','uploading','processing','published')`.
+   *   **실패·취소는 다시 시도할 수 있어야 해서 일부러 뺀 것**이다. 그래서 실패할 때마다 줄이 쌓인다.
+   *   실측(2026-09-17 · 읽기만 함): 한 영상에 `tiktok` 이 **8줄**(failed 7 + published 1),
+   *   다른 영상에 **4줄**(failed 4).
+   *
+   * 🔴 그래서 **둘이 깨졌다:**
+   *   ① 편집화면이 `key={provider}` 로 그려서 **「Encountered two children with the same key」**
+   *   ② 같은 영상 밑에 **「안 올라갔어요」 일곱 줄과 「올라갔어요」 한 줄**이 나란히 떴다.
+   *      🔴 **화면이 스스로와 어긋나면 그게 곧 거짓말이다**(불변 규칙 12).
+   *
+   * ⇒ **SNS 한 곳당 «가장 참인 한 줄»만** 내보낸다. 기록은 **DB 에 그대로 남는다** —
+   *   지우는 것이 아니라 **화면에 한 줄만 고르는 것**이다(불변 규칙 10).
+   *
+   * ★ 고르는 차례: **올라간 것 > 가는 중 > 실패 > 취소**, 같으면 **나중 것**.
+   *   (실패를 일곱 번 하고 여덟 번째에 올라갔으면 **「올라갔어요」가 참**이다.
+   *    몇 번 시도했는지는 그 줄의 `attempts` 가 들고 있다.)
+   */
+  const 살아있음 = 3;
+  const 참한줄순서: Record<string, number> = {
+    published: 4,
+    processing: 살아있음, uploading: 살아있음, queued: 살아있음,
+    failed: 2, canceled: 1,
+  };
+  const 때 = (p: PostRow) => Date.parse(p.published_at ?? p.created_at ?? "") || 0;
+  const SNS한곳에한줄 = (rows: PostRow[]): PostRow[] => {
+    const best = new Map<string, PostRow>();
+    for (const r of rows) {
+      const old = best.get(r.provider);
+      if (!old) { best.set(r.provider, r); continue; }
+      const a = 참한줄순서[r.status] ?? 0;
+      const b = 참한줄순서[old.status] ?? 0;
+      if (a > b || (a === b && 때(r) > 때(old))) best.set(r.provider, r);
+    }
+    return [...best.values()];
   };
   let posts: PostRow[] = [];
   if (entryIds.length) {
-    const cols = "entry_id, provider, status, remote_url, published_at, error_kind, attempts";
+    const cols = "entry_id, provider, status, remote_url, published_at, error_kind, attempts, created_at";
     const first = await sbAdmin().from("sns_posts").select(`${cols}, remote_deleted_at`).in("entry_id", entryIds);
     if (first.error) {
       const fallback = await sbAdmin().from("sns_posts").select(cols).in("entry_id", entryIds);
@@ -118,9 +159,8 @@ export async function POST(req: Request) {
 
       return {
         ig,
-        /** 이 영상을 어디에 올렸나 — 새로고침해도 남는다 */
-        posted: posts
-          .filter((p) => p.entry_id === row.id)
+        /** 이 영상을 어디에 올렸나 — 새로고침해도 남는다. 🔴 **SNS 한 곳당 한 줄**(지시 [40]) */
+        posted: SNS한곳에한줄(posts.filter((p) => p.entry_id === row.id))
           .map((p) => ({
             provider: p.provider, status: p.status,
             /* ⚠ 이 영어(error_kind)는 **화면에 그대로 찍으면 안 된다.**

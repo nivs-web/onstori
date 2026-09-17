@@ -943,6 +943,14 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                   const tone = said.tone === "good" ? "text-green-700"
                     : said.tone === "bad" ? "text-danger" : "text-[var(--text-soft)]";
                   return (
+                    /* 🔴 **`provider` 를 열쇠로 써도 되는 이유** (2026-09-17 지시 [40]).
+                       ⚠ 2026-09-17 까지는 **안 됐다** — 실패한 시도가 줄로 쌓여
+                         한 영상에 `tiktok` 이 **여덟 줄**이었고, 콘솔에
+                         「Encountered two children with the same key」가 났다.
+                       ⇒ 이제 **서버가 SNS 한 곳당 한 줄만** 보낸다
+                         (`app/api/site/videos/route.ts` 의 `SNS한곳에한줄`).
+                       🔴 **열쇠를 `provider+index` 로 바꿔 덮지 마라** — 그러면 경고만 사라지고
+                         「안 올라갔어요」와 「올라갔어요」가 **나란히 뜨는 거짓말**은 그대로 남는다. */
                     <p key={x.provider} className={`t-caption leading-relaxed ${tone}`}>
                       <b>{providerName(x.provider)}</b> — {said.text}
                       {said.action === "보기" && x.url && (
