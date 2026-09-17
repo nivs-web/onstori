@@ -277,28 +277,6 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           </div>
         )}
 
-        {/**
-        * 🔴🔴 **⌃⌄ 를 «되살렸다».** (2026-09-17 대표님이 뒤집으심)
-        *
-        * > 대표님: 「**오른쪽 중간 ⌃⌄ 버튼은 인스타 릴스 보니까 다시 살리는 게 좋겠다.**
-        * >   근데 인스타 릴스 퀄리티 나오게 … 캡처랑 거의 똑같게 **비율 잘 맞춰서 디자인**해」
-        *
-        * ⚠⚠ **[42] §2 에서 «지웠던» 것이다.** 권반장이 지우라 했고 대표님이 되살리라 하셨다 —
-        *   **나중 말씀이 이긴다.** 지우지 마라.
-        * 🔴 **모양은 «아직 옛날 것»이다.** 대표님이 원하시는 것은 **인스타 릴스 수준의 원형 버튼**
-        *   (어두운 원 + 얇은 흰 화살표)인데, 그 규격(지름·선굵기·투명도)을 권반장이 조사 중이다.
-        *   ⇒ **지금은 «되살리기»까지만.** 규격이 오면 그때 맞춘다.
-        * ⚠ **리액션 막대(`.world-rail`)와 자리가 겹친다** — 둘 다 오른쪽 한가운데다.
-        *   어떻게 둘을 놓을지도 권반장이 규격과 함께 준다. **혼자 옮기지 마라.**
-        */}
-        {items.length > 1 && (
-          <>
-            <button type="button" className="world-arrow up" aria-label="이전 영상"
-              disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}><IconChevronUp /></button>
-            <button type="button" className="world-arrow down" aria-label="다음 영상"
-              disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}><IconChevronDown /></button>
-          </>
-        )}
 
       {/**
           * 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2 · 대표님 원문)
@@ -331,6 +309,45 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           */}
         {help && <p className="world-help">↑ ↓ 또는 마우스 휠로 넘길 수 있어요</p>}
       </div>
+
+      {/**
+        * 🔴🔴 **⌃⌄ 는 «영상 바깥»에 둔다 — 프레임 «밖»이라 여기 있다.** (2026-09-17 지시 [49]②)
+        *
+        * ## 무엇이 문제였나 — 5px 겹침
+        *
+        * `.world-rail`(점 표시기)과 `.world-arrow` 가 **둘 다 `right:24px` · `top:50%`** 였다.
+        * 막대는 폭이 5px 라 **단추 안에 통째로 들어가** 있었다. 그것이 그 「5px 겹침」이다.
+        *
+        * ## 어떻게 풀었나 — «없애지» 않고 «자리»로 가른다
+        *
+        * 🔴 **점 표시기를 없애지 않았다.** 대표님이 기획서에 **두 번** 명시하셨다(권반장 재확인).
+        * ⇒ 대표님 캡처④(인스타 PC)대로 **⌃⌄ 는 화면 가장자리 · 점 표시기는 영상 안**으로 나눴다.
+        *
+        * ## ⚠ 그래서 이 단추가 «프레임 밖»에 있다 — 옮기지 마라
+        *
+        * `.world-frame` 에는 **`overflow: hidden`** 이 걸려 있다.
+        * 🔴 **프레임 «안»에 두고 바깥으로 밀면 «잘려서 안 보인다».** 그래서 `.world` 의 직계 자식이다.
+        * ⚠ `position:absolute` 라 **grid 흐름에서 빠진다** — `.world` 의 가운데 정렬(`place-items:center`)이
+        *   이 단추 때문에 흔들리지 않는다.
+        * ⚠ 바깥을 눌러 닫는 길(`e.target === e.currentTarget`)도 **안 막힌다** — 단추를 누르면
+        *   `target` 이 단추라 닫기가 안 걸린다.
+        *
+        * ## ⚠ 폰에서는 «안 보인다». 대표님이 살리라 하신 것을 왜 숨기나
+        *
+        * **다음 창이 반드시 물을 것이라 여기 적어 둔다**(권반장 지시):
+        * ① **인스타도 폰에는 ⌃⌄ 가 없다** — 손가락으로 쓸면 되기 때문이다(우리도 쓸기가 된다)
+        * ② 폰은 **영상이 화면을 꽉 채운다.** 「영상 바깥」이라는 자리 자체가 없다
+        * ③ 억지로 안에 넣으면 **점 표시기와 다시 겹친다** — 방금 푼 문제로 되돌아간다
+        * 🔴 **PC 에서는 그대로 보인다.** 대표님 지시(「다시 살리는 게 좋겠다」)는 지켜진다.
+        */}
+      {items.length > 1 && (
+        <>
+          <button type="button" className="world-arrow up" aria-label="이전 영상"
+            disabled={at === 0} onClick={() => onAt(Math.max(0, at - 1))}><IconChevronUp /></button>
+          <button type="button" className="world-arrow down" aria-label="다음 영상"
+            disabled={at === items.length - 1} onClick={() => onAt(Math.min(items.length - 1, at + 1))}><IconChevronDown /></button>
+        </>
+      )}
     </div>,
     document.body,
   );
