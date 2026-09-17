@@ -2070,6 +2070,25 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 }
 .world-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
 
+/* 🔴 몰입모드의 SNS 알약 — **`.stage-pill`·`.stage-dot` 의 «글자까지 같은» 사본**이다.
+   (2026-09-17 지시 [42] §1 — 몰입모드를 파일로 떼면서 CSS 이름도 갈랐다)
+
+   ⚠⚠ **왜 빌려 쓰던 것을 갈랐나:** 전에는 몰입모드가 무대의 `.stage-pill` 을 그대로 썼다.
+     [42] 2단계에서 **무대와 몰입모드가 서로 «다른» 모양**이 된다 —
+     그때 `.stage-pill` 을 고치면 **몰입모드까지 같이 바뀌어** 버린다(그 반대도 마찬가지).
+   ★ **지금은 값이 똑같다. 화면이 한 픽셀도 안 바뀐다**(§1 「화면 변화 0」).
+     달라지는 것은 2단계부터다 — 그때 이 블록만 고치면 된다. */
+.world-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: #fff; font-size: var(--t-caption); font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+}
+.world-pill:hover { background: rgb(255 255 255 / 0.26); }
+.world-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+
 /* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
 /* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 «크게».**
    ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨습니다. **위치는 아직 안 옮겼습니다** —
