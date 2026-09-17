@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ShortT } from "@/lib/shorts";
 import dynamic from "next/dynamic";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
-import { orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, type ShortsOrder } from "@/config/shorts";
+import { orderShorts, visitSeed, SHORTS_ORDER_DEFAULT, HINT_MS, type ShortsOrder } from "@/config/shorts";
 import { IconSoundOn, IconSoundOff, IconChevronLeft, IconChevronRight } from "./shorts-icons";
 
 /**
@@ -135,6 +135,48 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
     return () => io.disconnect();
   }, [view]);
 
+  /**
+   * 🔴 **「← → 좌우로 밀어서 영상을 변경하세요」 — 떴다가 사라진다.** (2026-09-18 지시 [49]④ · 대표님 원문)
+   *
+   * ⚠⚠ **위의 재생용 관찰기를 재활용할 수 없다.** 그것은 `root: rail` 이라
+   *   **가로 레일 «안»에서** 카드가 보이는지를 본다 — 레일이 **화면 아래 저 멀리 있어도 켜진다.**
+   *   그러면 손님이 **보지도 못한 안내가 혼자 떴다 사라진다.**
+   * ⇒ 여기서는 `root` 를 안 준다(= 화면 기준). **레일이 진짜로 눈에 들어올 때** 켠다.
+   *
+   * ⚠ **한 번만 띄운다**(`shown`). 스크롤을 오르내릴 때마다 다시 뜨면 성가시다.
+   *   그래서 켜자마자 `disconnect()` 한다.
+   * ⚠ **한 편뿐이면 안 띄운다** — 넘길 것이 없는데 「밀어서 바꾸세요」는 거짓말이다.
+   * ★ 시간은 `HINT_MS` 를 **그대로 쓴다**(2800ms). 대표님은 「3초」라 하셨고 권반장은 재량을 주셨는데,
+   *   **눈에 안 띄는 차이**라 «값이 적힌 자리를 하나로» 두는 쪽을 골랐다 — 무대·몰입모드와 같은 값이다.
+   */
+  const [hint, setHint] = useState(false);
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || view.length < 2) return;
+    let shown = false;
+    let t = 0;
+    /* 🔴 **「얼마나 보이나(비율)」로 재지 않는다 — «화면 한가운데에 닿았나»로 잰다.**
+       ⚠ 처음엔 `intersectionRatio >= 0.5` 로 썼다가 실측 중에 구멍을 찾았다:
+         레일이 **화면보다 두 배 넘게 크면 비율이 «영영» 0.5 에 못 닿는다**
+         (가로로 누운 창·작은 창에서 그렇다). 그러면 **안내가 평생 안 뜬다.**
+       ⇒ `rootMargin` 으로 화면의 **가운데 절반**만 남기고, 거기에 **닿기만 하면** 켠다.
+         레일이 크든 작든 똑같이 동작한다. */
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (shown || !e.isIntersecting) continue;
+          shown = true;
+          setHint(true);
+          t = window.setTimeout(() => setHint(false), HINT_MS);
+          io.disconnect();
+        }
+      },
+      { threshold: 0, rootMargin: "-25% 0px -25% 0px" },
+    );
+    io.observe(rail);
+    return () => { io.disconnect(); window.clearTimeout(t); };
+  }, [view.length]);
+
   /* 켜 두면 **지금 보이는 편**에서 소리가 난다. 안 보이는 편은 어차피 멈춰 있다 */
   useEffect(() => {
     vids.current.forEach((v) => { v.muted = !loud; });
@@ -149,7 +191,7 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
   };
 
   return (
-    <div className="shorts">
+    <div className="shorts" data-hint={hint ? "on" : undefined}>
       <div className="shorts-rail" ref={railRef}>
         {view.map((it) => (
           <article key={it.id} data-sid={it.id} className="shorts-card">
@@ -209,9 +251,20 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
 
       {view.length > 1 && (
         <>
-          {/* PC 전용 좌우 화살표 — 폰에서는 손가락으로 넘긴다 */}
+          {/**
+            * 🔴 **좌우 단추 — «PC 와 폰 둘 다»다.** (2026-09-18 지시 [49]④ · 대표님)
+            *
+            * > 대표님: 「**폰 버전에서도 좌우 플로팅 동그란 버튼이 있고,
+            * >   손으로 좌우 밀어서 스크롤도 가능한 거야**」
+            *
+            * ⚠ **옛 주석은 「PC 전용 — 폰에서는 손가락으로 넘긴다」였다.** 대표님 말씀은 **둘 다**다.
+            * ★ **손가락으로 밀기는 이미 된다** — `.shorts-rail` 이 `scroll-snap-type: x mandatory` +
+            *   터치 스크롤이라 **코드를 더할 것이 없었다**(실측으로 확인). 단추만 폰에서 켜면 된다.
+            */}
           <button type="button" className="shorts-arrow left" onClick={() => go(-1)} aria-label="이전 영상"><IconChevronLeft /></button>
           <button type="button" className="shorts-arrow right" onClick={() => go(1)} aria-label="다음 영상"><IconChevronRight /></button>
+          {/* 🔴 **대표님이 정하신 글자다.** 고치지 마라 (2026-09-18 [49]④) */}
+          {hint && <p className="shorts-help">← → 좌우로 밀어서 영상을 변경하세요</p>}
           <div className="shorts-dots" style={{ color: onInk }}>
             {view.map((it, i) => (
               <span key={it.id} className={i === active ? "on" : ""} />

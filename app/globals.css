@@ -1698,7 +1698,41 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
 }
 .shorts-arrow.left { left: calc(var(--gutter) / 2); }
 .shorts-arrow.right { right: calc(var(--gutter) / 2); }
-@media (min-width: 768px) { .shorts-arrow { display: grid; } }
+
+/* 🔴 **폰에서도 켠다.** (2026-09-18 지시 [49]④ · 대표님)
+   > 「**폰 버전에서도 좌우 플로팅 동그란 버튼이 있고, 손으로 좌우 밀어서 스크롤도 가능한 거야**」
+   ⚠ 전에는 `@media (min-width: 768px)` 안에만 있어서 **폰에서 아예 안 떴다.**
+   ★ **밀기는 이미 된다** — `.shorts-rail` 의 `scroll-snap-type: x mandatory` + 터치 스크롤.
+     단추를 켠다고 밀기가 막히지 않는다(단추는 레일 «위»에 뜨는 별개 요소다). */
+.shorts-arrow { display: grid; }
+
+/* 🔴 **「← → 좌우로 밀어서 영상을 변경하세요」 — 떴다 사라지는 안내.** (2026-09-18 [49]④)
+   ★ 모양은 몰입모드의 `.world-help` 와 같은 결이다 — 손님이 **같은 종류의 말**로 읽는다. */
+.shorts-help {
+  position: absolute; left: 50%; bottom: var(--s-5); transform: translateX(-50%);
+  margin: 0; padding: 9px 18px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: var(--t-caption); font-weight: 600; white-space: nowrap;
+  z-index: 3;
+  pointer-events: none;
+  /* 🔴🔴 **`world-in` 을 쓰면 안 된다 — 실측으로 잡았다(2026-09-18).**
+     `@keyframes world-in` 은 `transform: scale(1.04)` → `transform: none` 으로 끝난다.
+     `both` 라 **끝값이 그대로 남아** 위의 `translateX(-50%)` 를 **영구히 지운다.**
+     ⇒ 안내가 가운데로 안 오고 **오른쪽으로 밀려 화면 끝에 붙었다**(왼쪽여백 190 · 오른쪽여백 0).
+     ⚠ **자리를 `transform` 으로 잡는 요소에는 `transform` 을 건드리는 애니메이션을 쓰지 않는다.**
+     ⇒ **투명도만** 바꾸는 것으로 따로 만든다. */
+  animation: shorts-help-in var(--dur-enter, 700ms) var(--ease-out, ease) both;
+}
+@keyframes shorts-help-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* 🔴🔴 **안내가 «둘» 동시에 뜨지 않게.** (2026-09-18 권반장 지시)
+   > 「**두 개가 동시에 뜨지 않게 하십시오. 손님이 어느 것을 읽어야 할지 모릅니다**」
+   윗줄(`.shorts-say`)이 이미 「옆으로 넘겨 보세요」라고 말한다 — 거의 같은 말이다.
+   ⇒ 떠 있는 3초 동안만 윗줄을 **비운다.**
+   ⚠ `visibility` 다. `display:none` 으로 지우면 **줄이 사라지며 아래가 위로 튄다.**
+     자리는 그대로 두고 글자만 감춘다. */
+section:has(.shorts[data-hint="on"]) .shorts-say { visibility: hidden; }
 
 /* 몇 번째 영상인지 — 점 */
 .shorts-dots { display: flex; justify-content: center; gap: 6px; margin-top: var(--s-3); }

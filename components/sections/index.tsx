@@ -515,7 +515,7 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
           </h2>
           {/* 여러 편일 때만 안내 한 줄 — 손님이 «옆으로 넘길 수 있다»는 걸 알아야 넘긴다 */}
           {feed.length > 1 && (
-            <p className="t-small" style={{ margin: "0 0 var(--s-5)", color: on, opacity: 0.68 }}>
+            <p className="t-small shorts-say" style={{ margin: "0 0 var(--s-5)", color: on, opacity: 0.68 }}>
               {/* 🔴🔴 **이 문장이 [42] §3 으로 «거짓말»이 됐다 — 그래서 고친다.** (2026-09-17)
                     전 : 「… 소리는 **영상을 누르면 켜집니다**」
                     후 : 「… **영상을 누르면 몰입모드로 열립니다**」
