@@ -334,7 +334,7 @@ export function FinalCta({ doc, cta }: { doc: SiteDocT; cta?: CtaSettings }) {
     <section
       aria-label="최종 문의"
       className="hidden md:block"
-      style={{ paddingBlock: "var(--s-8)", paddingInline: "var(--gutter)", background: "var(--s-soft)" }}
+      style={{ paddingBlock: "var(--section-y)", paddingInline: "var(--gutter)", background: "var(--s-soft)" }}
     >
       <div className="mx-auto flex max-w-[var(--container)] flex-col items-center text-center" style={{ gap: "var(--s-4)" }}>
         {/* ⚠ 2026-09-16 검수 지적 — 지시서엔 「스크롤을 내리면 최종 문의하기로 이어지는 CTA

@@ -69,7 +69,7 @@ function SectionShell({ id, title, children }: { id?: string; title?: string; ch
     <section
       id={id}
       className="reveal"
-      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)", scrollMarginTop: "var(--bar-h)" }}
+      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--section-y)", scrollMarginTop: "var(--bar-h)" }}
     >
       <div className="mx-auto max-w-3xl">
         {title && (
@@ -405,7 +405,7 @@ function QuoteFormSec({ s, ctx }: { s: Extract<SectionT, { type: "quoteForm" }>;
     <section
       id="quote"
       className="reveal"
-      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--s-8)", background: "var(--s-soft)", scrollMarginTop: "var(--bar-h)" }}
+      style={{ paddingInline: "var(--gutter)", paddingBlock: "var(--section-y)", background: "var(--s-soft)", scrollMarginTop: "var(--bar-h)" }}
     >
       <QuoteForm s={s} slug={ctx.slug} />
     </section>
@@ -492,7 +492,7 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
       className="reveal"
       style={{
         background: "var(--s-ink)", color: on,
-        paddingBlock: "var(--s-8)",
+        paddingBlock: "var(--section-y)",
         scrollMarginTop: "var(--bar-h)",
       }}
     >
@@ -549,7 +549,75 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
 
 /* ── 레지스트리 ── */
 
-export function RenderSection({ s, ctx, index }: { s: SectionT; ctx: Ctx; index?: number }) {
+/**
+ * ★★★ **띠(band) — 「같은 바탕을 연속으로 두지 않는다」** (2026-09-17 지시 [19]③)
+ *
+ * ⚠ **실측으로 찾은 문제:** `sample-interior` 를 재 보니 **소개 · 진행 과정 · 시공 갤러리 ·
+ *   오시는 길** 네 섹션이 **전부 같은 흰 바탕**이었다. `docs/DESIGN.md` §7 이 못 박아 둔
+ *   「같은 배경 연속 금지 — 경계가 사라져 **한 덩어리로 보인다**」에 정면으로 어긋난다.
+ *   대표님이 「여긴 그냥 **평범한** 회사 홈페이지인데」라고 하신 그 느낌의 큰 몫이 여기다.
+ *
+ * ★ **스스로 바탕을 정하는 섹션**(무대·견적·띠배너)은 건드리지 않는다. 나머지만
+ *   바탕색 ↔ 은은한 색으로 **번갈아** 놓는다. 앞 섹션과 같은 색이 나오면 한 칸 밀어 피한다.
+ *
+ * ⚠ 새 색을 **하나도 만들지 않았다.** 사장님이 고른 팔레트의 `--s-bg`·`--s-soft` 둘뿐이다
+ *   (불변 규칙 11 — 색은 토큰만). 어떤 팔레트에서도 두 색은 서로 잘 붙는다.
+ */
+export type Band = "own" | { bg: "base" | "soft"; line: boolean };
+const OWN_BG = new Set<SectionT["type"]>(["video", "quoteForm", "banner", "hero"]);
+
+/** 스스로 바탕을 정하는 섹션이 실제로 «무슨 색»인가 — 앞뒤를 견주려면 이것부터 알아야 한다 */
+function ownColorOf(t: SectionT["type"]): "ink" | "soft" | "accent" | "photo" | null {
+  if (t === "video") return "ink";
+  if (t === "quoteForm") return "soft";
+  if (t === "banner") return "accent";
+  if (t === "hero") return "photo";
+  return null;
+}
+
+/** 섹션 목록을 받아 «각 칸이 무슨 띠인지»를 한 번에 정한다 — 화면과 한 곳에서 계산한다 */
+export function bandsOf(sections: SectionT[]): Band[] {
+  const own = sections.map((x) => ownColorOf(x.type));
+  const out: Band[] = [];
+  /** 바로 앞 칸이 실제로 무슨 색이었나 */
+  let prev: string | null = null;
+
+  for (let i = 0; i < sections.length; i++) {
+    if (OWN_BG.has(sections[i].type)) { out.push("own"); prev = own[i]; continue; }
+
+    /* ① 앞 칸과 «다르게». 이것이 첫 번째 규칙이다 */
+    let bg: "base" | "soft" = prev === "soft" ? "base" : "soft";
+    /* ② 다음 칸이 자기 색을 갖고 있고 그것과 겹치면 뒤집어 본다 */
+    const next = own[i + 1] ?? null;
+    if (next && next === bg && prev !== (bg === "soft" ? "base" : "soft")) {
+      bg = bg === "soft" ? "base" : "soft";
+    }
+    /* ③ 앞뒤가 둘 다 막혀 뒤집을 수 없으면 — 색은 같아도 **가는 선 한 줄**로 경계를 만든다.
+       ⚠ 새 색을 만들지 않는다. `--s-line` 은 팔레트가 이미 가진 토큰이다(불변 규칙 11). */
+    const line = !!next && next === bg;
+    out.push({ bg, line });
+    prev = bg;
+  }
+  return out;
+}
+
+export function RenderSection({ s, ctx, index, band }: { s: SectionT; ctx: Ctx; index?: number; band?: Band }) {
+  const el = renderOne({ s, ctx, index });
+  /* 스스로 바탕을 정하는 섹션은 그대로 둔다. 나머지만 띠로 감싼다 —
+     ⚠ 감싸개는 **여백을 하나도 더하지 않는다.** 섹션이 이미 자기 여백을 갖고 있다. */
+  if (!el || !band || band === "own") return el;
+  return (
+    /* ⚠ `background` 가 아니라 `backgroundColor` 다. 줄임 표기(`background`)를 쓰면
+         그것이 **`background-image` 까지 함께 지워** 무대 끝의 «밝아지는» 그라데이션이
+         사라진다(실측으로 잡았다 — `globals.css` 의 `.stage + *`). */
+    <div style={{
+      backgroundColor: band.bg === "soft" ? "var(--s-soft)" : "var(--s-bg)",
+      borderBottom: band.line ? "1px solid var(--s-line)" : undefined,
+    }}>{el}</div>
+  );
+}
+
+function renderOne({ s, ctx, index }: { s: SectionT; ctx: Ctx; index?: number }) {
   switch (s.type) {
     case "hero": return <HeroSec s={s} ctx={ctx} first={index === 0} />;
     case "about": return <AboutSec s={s} />;

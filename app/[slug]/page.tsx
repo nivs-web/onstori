@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { isAdmin } from "@/lib/admin-auth";
 import { localBusinessJsonLd } from "@/lib/jsonld";
 import { getSiteBySlug, getPausedSite, NOINDEX_SLUGS } from "@/lib/sites";
-import { PALETTES, RenderSection, onColor } from "@/components/sections";
+import { PALETTES, RenderSection, onColor, bandsOf } from "@/components/sections";
 import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
@@ -137,6 +137,9 @@ export default async function SitePage({ params }: Props) {
    *   힌트가 데려가는 곳과 화면이 같아야 한다). 무대가 서면 아래 영상 섹션은 자기를 지우므로
    *   그 자리 표(`ANCHOR_OF.video`)를 여기서 이어받지 않으면 **메뉴가 허공을 가리킨다.**
    */
+  /* 🔴 「같은 바탕을 연속으로 두지 않는다」(DESIGN.md §7) — 한 곳에서 미리 정한다 */
+  const bands = bandsOf(site.doc.sections);
+
   const videoTitle =
     (site.doc.sections.find((x) => x.type === "video") as { title?: string } | undefined)?.title?.trim()
     || "사장님 이야기";
@@ -158,7 +161,7 @@ export default async function SitePage({ params }: Props) {
   const jsonLd = localBusinessJsonLd(site, site.settings ?? {});
 
   return (
-    <div style={vars}>
+    <div className="site-shell" style={vars}>
       {/* ★★ 2026-09-15 대표님 — **상단 검은 띠를 뗐다.**
           전에는 여기에 「이 홈페이지는 온스토리가 만든 예시입니다」 띠가 있었다.
           왜 뗐나: 정식 영업을 시작했고, 예시는 `sample-interior` **한 곳뿐**이며,
@@ -199,7 +202,7 @@ export default async function SitePage({ params }: Props) {
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <React.Fragment key={i}>
-            <RenderSection s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn }} />
+            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn }} />
             {i === stageAfter && (
               <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />
             )}

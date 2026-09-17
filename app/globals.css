@@ -1731,8 +1731,26 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   /* 편수 + 1 화면. 변수는 컴포넌트가 넣는다(--stage-n) */
   height: calc((var(--stage-n, 1) + 1) * 100svh);
   background: #000;
-  /* 위 섹션(히어로)에서 «검게 잠기고», 아래로 나갈 때 «다시 밝아진다» — 지시 ③의 그 전환 */
-  box-shadow: 0 -60px 60px -60px rgb(0 0 0 / 0.9), 0 60px 60px -60px rgb(0 0 0 / 0.9);
+}
+
+/* ★★ **검게 «들어가고», 다시 밝게 «나온다»** — 대표님 지시 ③의 그 전환.
+   ⚠ 전에는 box-shadow 로 흉내 냈다. 그것은 경계에 **회색 얼룩**을 만들 뿐
+     「화면이 다 까맣게 변하면서」가 되지 않았다. 두 자리에 진짜 그라데이션을 놓는다. */
+
+/* ① 들어갈 때 — 히어로의 마지막 한 뼘이 «검게 잠긴다».
+   ⚠ 무대 «위»(top: -120px)에 걸친다. 무대 자신은 이미 검정이라 그 위에 놓아 봐야 안 보인다. */
+.stage::before {
+  content: "";
+  position: absolute; inset-inline: 0; top: -120px; height: 120px;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0), rgb(0 0 0 / 0.96));
+  pointer-events: none;
+}
+
+/* ② 나올 때 — 검정이 다음 섹션 색으로 «풀린다».
+   ⚠ 감싸개(띠)에 위 여백을 그만큼 준다. 안 주면 소개 제목이 **검은 부분 안에 갇혀** 안 읽힌다. */
+.stage + * {
+  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0.96) 0, rgb(0 0 0 / 0) 150px);
+  padding-top: 110px;
 }
 
 /* 눈금 — 보이지 않는다. 「지금 몇 번째인가」를 알려 주는 자 역할만 한다.
@@ -1864,6 +1882,9 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
      (`shorts-stage.tsx` 의 `calm`). 둘이 **같은 설정**을 본다. */
 @media (prefers-reduced-motion: reduce) {
   .stage { height: auto; box-shadow: none; padding-block: var(--s-5); }
+  /* 가두지 않으니 «검게 잠기는» 연출도 하지 않는다 — 그냥 검은 칸 하나로 지나간다 */
+  .stage::before { display: none; }
+  .stage + * { background-image: none; padding-top: 0; }
   .stage-steps { display: none; }
   .stage-sticky { position: static; height: auto; display: block; overflow: visible; }
   /* 칸이 아니라 **목록**이 된다 — 편수만큼 아래로 이어진다 */
@@ -1908,3 +1929,23 @@ html.stage-dark header.fixed button { color: #fff !important; }
 /* 문의하기 단추는 사장님 강조색 그대로 둔다 — 검은 화면에서 오히려 더 잘 보인다 */
 html.stage-dark header.fixed a[style*="--s-accent"],
 html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-accent) !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   🔴 손님 사이트(`app/[slug]`)의 «PC 숨통» — 2026-09-17 지시 [19]③
+
+   ⚠ **실측으로 찾은 것:** 1440px 화면에서 손님 사이트가 **폰과 똑같은 여백**을 쓰고 있었다.
+     섹션 세로 여백 **64px**, 좌우 **20px**. `docs/DESIGN.md` §7 은 **PC 120 / 좌우 32** 다.
+     ⇒ 큰 화면에서 글이 가장자리에 붙고 섹션이 다닥다닥 붙어 **「폰 화면을 늘려 놓은 것」**처럼
+       보였다. 대표님이 「평범한 회사 홈페이지」라고 하신 느낌의 큰 몫이 여기다.
+
+   ★ **새 값을 만들지 않았다.** `--section-y-lg`·`--gutter-lg` 는 원래 있던 토큰인데
+     손님 사이트가 그것을 **안 쓰고** 있었을 뿐이다. 이 스코프에서만 갈아 끼운다.
+   ⚠ 본사 화면(랜딩·에디터·어드민)은 `.site-shell` 밖이라 **한 픽셀도 안 바뀐다.**
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .site-shell {
+    --section-y: var(--section-y-lg);   /* 64 → 120 */
+    --gutter: var(--gutter-lg);         /* 20 → 32 */
+  }
+}
