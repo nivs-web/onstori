@@ -1709,3 +1709,202 @@ details.faq[open] .plusminus::after { transform: rotate(90deg) scaleX(0); opacit
   .shorts-rail { scroll-behavior: auto; }
   .shorts-dots span { transition: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   🔴 숏폼 무대 — 히어로 바로 아래에서 화면이 «까맣게» 덮이는 자리 (2026-09-17 지시 [19]①)
+
+   ★★ **「가두는」 느낌의 정체는 여기 두 줄이다. JS 가 스크롤을 훔치지 않는다.**
+     · 바깥 높이를 «편수 + 1 화면»으로 준다  → 그만큼 굴려야 이 구역을 벗어난다
+     · 안쪽을 `sticky` 로 붙인다            → 굴리는 동안 화면에 머문다
+     ⇒ 대표님이 말씀하신 「히어로의 2배 이상 내려야 빠져나간다」가 **저절로** 이뤄진다.
+       영상이 두 편이면 3화면, 일곱 편이면 8화면이다.
+
+   ★★ **그래서 「움직임 줄이기」를 CSS 한 뭉치로 끌 수 있다** — 맨 아래를 보라.
+     가두기가 CSS 라서 높이를 auto 로 되돌리기만 하면 **평범한 세로 목록**이 된다.
+     ⚠ JS 로 가뒀으면 이게 불가능했다. 그래서 이렇게 만들었다.
+
+   ⚠ `svh` 를 쓴다(`vh` 가 아니다). 폰의 주소창이 접혔다 펴질 때 `vh` 는 화면을 넘겨
+     **끝에서 덜컥거린다.** 실제로 `.shorts-frame` 이 같은 이유로 `svh` 를 쓴다.
+   ══════════════════════════════════════════════════════════════════════════ */
+.stage {
+  position: relative;
+  /* 편수 + 1 화면. 변수는 컴포넌트가 넣는다(--stage-n) */
+  height: calc((var(--stage-n, 1) + 1) * 100svh);
+  background: #000;
+  /* 위 섹션(히어로)에서 «검게 잠기고», 아래로 나갈 때 «다시 밝아진다» — 지시 ③의 그 전환 */
+  box-shadow: 0 -60px 60px -60px rgb(0 0 0 / 0.9), 0 60px 60px -60px rgb(0 0 0 / 0.9);
+}
+
+/* 눈금 — 보이지 않는다. 「지금 몇 번째인가」를 알려 주는 자 역할만 한다.
+   ⚠ 높이를 더하면 안 되므로 absolute 로 깔고 편수만큼 균등하게 나눈다. */
+.stage-steps {
+  position: absolute; inset: 0;
+  display: grid;
+  grid-template-rows: repeat(var(--stage-n, 1), 1fr);
+  pointer-events: none;
+}
+
+.stage-sticky {
+  position: sticky; top: 0;
+  height: 100svh;
+  display: grid; place-items: center;
+  background: #000;
+  overflow: hidden;
+}
+
+/* 🔴 **PC 에서도 9:16.** 좌우는 검게 두고 가운데만 세로로 — 가로로 늘리지 않는다(지시 ②).
+   ⚠ 높이를 먼저 정하고 너비를 비율로 낸다. 반대로 하면 폰에서 세로가 화면을 넘긴다. */
+.stage-frame {
+  position: relative;
+  height: 100svh;
+  aspect-ratio: 9 / 16;
+  max-width: 100vw;
+  overflow: hidden;
+  background: #000;
+}
+.stage-item {
+  position: absolute; inset: 0;
+  margin: 0;
+  opacity: 0;
+  /* 등장은 느리게(docs/MOTION.md) — 편이 바뀔 때 툭 끊기지 않는다 */
+  transition: opacity var(--dur-enter, 700ms) var(--ease-out, ease);
+}
+.stage-item.on { opacity: 1; }
+.stage-video {
+  width: 100%; height: 100%;
+  object-fit: cover;          /* 9:16 칸을 꽉 채운다 — 가로로 늘리지 않는다 */
+  display: block;
+  cursor: pointer;
+}
+/* 겹쳐 쌓였을 때는 아래 `.stage-meta` 가 캡션을 맡는다 — 두 번 그리지 않는다 */
+.stage-item-cap { display: none; }
+
+/* 위 — 「이건 뭐지?」에 답하는 한 줄 */
+.stage-top {
+  position: absolute; inset-inline: 0; top: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  /* ⚠ 위쪽은 **상단 바 높이만큼** 비운다 — 안 그러면 상호 띠에 가려 한 글자도 안 보인다(실측) */
+  padding: calc(var(--bar-h) + var(--s-2)) var(--s-4) var(--s-4);
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0));
+  color: #fff;
+  pointer-events: none;
+}
+.stage-kicker { font-size: var(--t-small); font-weight: 700; letter-spacing: 0.01em; }
+.stage-count { font-size: var(--t-caption); opacity: 0.8; font-variant-numeric: tabular-nums; }
+
+.stage-sound {
+  /* 상단 바 + 제목 줄 아래. 손가락이 햄버거를 잘못 누르지 않게 충분히 내린다 */
+  position: absolute; top: calc(var(--bar-h) + var(--s-7)); right: var(--s-4);
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff; font-size: 16px; line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.stage-meta {
+  position: absolute; inset-inline: 0; bottom: 0;
+  /* ⚠ 아래쪽은 **하단 고정 바(문의하기) + 건너뛰기 단추** 자리를 비운다 —
+     안 비우면 캡션과 SNS 단추가 그 바에 깔린다(실측). */
+  padding: var(--s-7) var(--s-4) calc(var(--dock-pad) + var(--s-4) + 46px);
+  background: linear-gradient(to top, rgb(0 0 0 / 0.82), rgb(0 0 0 / 0));
+  color: #fff;
+  pointer-events: none;      /* 글 위를 눌러도 «영상 누르기»가 되게 */
+}
+.stage-cap {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  font-weight: 600;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.5);
+}
+.stage-links { display: flex; flex-wrap: wrap; gap: var(--s-2); pointer-events: auto; }
+.stage-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: #fff; font-size: var(--t-caption); font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+}
+.stage-pill:hover { background: rgb(255 255 255 / 0.26); }
+.stage-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+
+/* 몇 번째인지 — 오른쪽 세로 점. 폰에서 손가락에 안 가리는 자리다 */
+.stage-dots {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.stage-dots span {
+  width: 5px; height: 5px; border-radius: 999px;
+  background: #fff; opacity: 0.3;
+  transition: opacity .2s, height .2s;
+}
+.stage-dots span.on { opacity: 0.95; height: 16px; }
+
+/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다(지시 ②) */
+/* 🔴 **하단 고정 바 «위»에 띄운다.** 실측에서 「문의하기」 바에 완전히 가려 있었다 —
+   탈출구가 안 보이면 「항상 띄운다」는 약속이 거짓말이 된다(지시 ②). */
+.stage-skip {
+  position: absolute; left: 50%; bottom: calc(var(--dock-pad) + var(--s-3)); transform: translateX(-50%);
+  padding: 8px 16px; border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  background: rgb(0 0 0 / 0.4);
+  color: #fff; font-size: var(--t-caption); font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.stage-skip:hover { background: rgb(0 0 0 / 0.65); }
+
+/* ⚠⚠ **「움직임 줄이기」를 켠 손님 — 가두지 않는다**(지시 ②).
+   멀미를 일으키는 화면이다. 높이를 되돌리고 sticky 를 풀면 **평범한 세로 목록**이 된다.
+   ⚠ 자동재생을 끄는 것은 CSS 가 못 한다 — 그건 컴포넌트가 같은 설정을 읽어서 한다
+     (`shorts-stage.tsx` 의 `calm`). 둘이 **같은 설정**을 본다. */
+@media (prefers-reduced-motion: reduce) {
+  .stage { height: auto; box-shadow: none; padding-block: var(--s-5); }
+  .stage-steps { display: none; }
+  .stage-sticky { position: static; height: auto; display: block; overflow: visible; }
+  /* 칸이 아니라 **목록**이 된다 — 편수만큼 아래로 이어진다 */
+  .stage-frame { height: auto; aspect-ratio: auto; overflow: visible; }
+  .stage-item {
+    position: relative; inset: auto;
+    opacity: 1; transition: none;
+    margin: 0 auto var(--s-6);
+    width: min(92vw, 360px);
+  }
+  .stage-video {
+    height: min(72svh, 620px);
+    aspect-ratio: 9 / 16;
+    border-radius: var(--r-lg);
+    cursor: default;
+  }
+  /* 🔴 여기서는 **영상마다 캡션이 따라붙는다.** 겹쳐 쌓일 때 쓰던 한 줄은 숨긴다 */
+  .stage-item-cap {
+    display: block;
+    margin-top: var(--s-2);
+    color: #fff;
+    font-size: var(--t-small);
+    line-height: 1.55;
+  }
+  .stage-meta, .stage-dots, .stage-skip, .stage-sound { display: none; }
+  .stage-top { position: static; background: none; padding-bottom: var(--s-5); }
+}
+
+
+/* ★★ 무대가 화면을 덮는 «동안» — 상단 바도 까맣게. (2026-09-17 지시 [19]①)
+   ⚠ `site-chrome.tsx` 는 색을 **인라인**으로 준다. 그래서 여기서 `!important` 로 덮어쓴다.
+     컴포넌트를 고치지 않는 이유: 그 파일은 손님 사이트 «전부»가 쓰는 공용 뼈대라,
+     무대 하나 때문에 조건을 심으면 다른 화면이 같이 흔들린다.
+   ⚠ 표(`stage-dark`)는 `shorts-stage.tsx` 가 붙였다 뗀다. 「움직임 줄이기」에서는 안 붙인다. */
+html.stage-dark header.fixed {
+  background: rgb(0 0 0 / 0.42) !important;
+  border-bottom-color: transparent !important;
+  backdrop-filter: blur(8px) !important;
+}
+html.stage-dark header.fixed a,
+html.stage-dark header.fixed button { color: #fff !important; }
+/* 문의하기 단추는 사장님 강조색 그대로 둔다 — 검은 화면에서 오히려 더 잘 보인다 */
+html.stage-dark header.fixed a[style*="--s-accent"],
+html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-accent) !important; }

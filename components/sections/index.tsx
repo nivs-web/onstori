@@ -27,7 +27,11 @@ export const PALETTES: Record<ThemeT["palette"], Record<string, string>> = {
  * ★ `shorts` 는 2026-09-16 에 더했다 — 홈페이지에 걸린 영상 «전부».
  *   없으면 `undefined` 다(옛 호출부가 안 깨지게). 그때는 영상 섹션이 지금까지처럼 한 편만 그린다.
  */
-type Ctx = { doc: SiteDocT; stories: StoryEntryT[]; slug: string; shorts?: ShortT[] };
+type Ctx = {
+  doc: SiteDocT; stories: StoryEntryT[]; slug: string; shorts?: ShortT[];
+  /** 🔴 히어로 아래 «숏폼 무대»가 이미 섰는가 (2026-09-17 지시 [19]①) — 아래 영상 섹션이 이걸 보고 비킨다 */
+  stageOn?: boolean;
+};
 
 /**
  * 강조색 위에 올릴 글자색을 **강조색에서 계산한다.**
@@ -464,6 +468,16 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
        (불변 규칙 2). 영상 목록은 DB 가 이미 진실을 갖고 있어(`video_out_key`) 스키마를 늘릴 이유가 없다. */
   const feed = ctx.shorts ?? [];
   const single = s.url?.trim() ?? "";
+
+  /**
+   * 🔴 **2026-09-17 지시 [19]① — 무대가 섰으면 여기서는 «비킨다».**
+   *   히어로 아래에 화면을 꽉 채우는 숏폼 무대가 이미 같은 영상을 다 보여 줬다.
+   *   여기서 또 그리면 **손님이 같은 영상을 두 번** 본다 — 「많다」가 아니라 「고장」으로 읽힌다.
+   * ⚠ 차림표의 「사장님 이야기」가 가리키던 표(`ANCHOR_OF.video`)는 **무대가 이어받았다**
+   *   (`app/[slug]/page.tsx`). 그러지 않으면 메뉴가 허공을 가리킨다(불변 규칙 12).
+   * ⚠ 무대가 «안» 섰을 때(영상 0편·미리보기)는 예전 그대로 돈다.
+   */
+  if (ctx.stageOn && feed.length) return null;
 
   // ★ 보여 줄 것이 하나도 없으면 **아무것도 그리지 않는다.** 빈 검은 칸이 남으면 안 된다(회장님 지시)
   if (!feed.length && !single) return null;

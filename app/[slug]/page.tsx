@@ -1,3 +1,4 @@
+import React from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -8,6 +9,8 @@ import { PALETTES, RenderSection, onColor } from "@/components/sections";
 import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
+import ShortsStage from "@/components/sections/shorts-stage";
+import { ANCHOR_OF } from "@/components/sections/nav";
 
 /**
  * 고객 사이트 렌더러 — 경로 방식: onstori.com/{slug}
@@ -110,6 +113,33 @@ export default async function SitePage({ params }: Props) {
   const p = PALETTES[site.doc.theme.palette];
   const accent = site.doc.theme.accent ?? p.accent;
   const firstIsHero = site.doc.sections[0]?.type === "hero";
+
+  /**
+   * ★★★ **숏폼 무대를 «히어로 바로 아래»에 끼운다.** (2026-09-17 지시 [19]①)
+   *
+   * > 대표님: 「여긴 그냥 평범한 회사 홈페이지인데, 히어로 섹션 아래 바로 숏폼 재생창이 있네?
+   * >   이건 뭐야? **이렇게 놀라게 하자.**」
+   *
+   * ⚠ **섹션 스키마를 늘리지 않았다**(불변 규칙 2 — 늘리면 네 곳이 함께 움직여야 한다).
+   *   무대는 사장님이 배치하는 «섹션»이 아니라, 영상이 걸려 있으면 **저절로 서는 무대**다.
+   *   진실은 이미 DB 에 있다(`story_entries.video_out_key`).
+   *
+   * 🔴 **영상이 0편이면 아무것도 끼우지 않는다.** 빈 검은 화면은 「고장 난 사이트」로 보인다(지시 ②).
+   *   그리고 그때는 `shorts-stage.tsx` 의 JS 가 **한 바이트도 안 나간다.**
+   */
+  const stageItems = site.shorts ?? [];
+  const stageOn = stageItems.length > 0;
+  /* 히어로가 없는 사이트도 있다 — 그때는 맨 앞에 세운다 */
+  const heroAt = site.doc.sections.findIndex((x) => x.type === "hero");
+  const stageAfter = stageOn ? Math.max(0, heroAt) : -1;
+  /**
+   * ⚠ **차림표의 「사장님 이야기」가 데려가는 곳을 무대로 옮긴다**(불변 규칙 12 —
+   *   힌트가 데려가는 곳과 화면이 같아야 한다). 무대가 서면 아래 영상 섹션은 자기를 지우므로
+   *   그 자리 표(`ANCHOR_OF.video`)를 여기서 이어받지 않으면 **메뉴가 허공을 가리킨다.**
+   */
+  const videoTitle =
+    (site.doc.sections.find((x) => x.type === "video") as { title?: string } | undefined)?.title?.trim()
+    || "사장님 이야기";
   const vars = {
     "--s-bg": p.bg, "--s-ink": p.ink, "--s-muted": p.muted, "--s-line": p.line,
     "--s-accent": accent, "--s-soft": p.soft,
@@ -168,7 +198,12 @@ export default async function SitePage({ params }: Props) {
             채널이 하나도 없으면 아무것도 그리지 않는다. */}
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
-          <RenderSection key={i} s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts }} />
+          <React.Fragment key={i}>
+            <RenderSection s={s} index={i} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn }} />
+            {i === stageAfter && (
+              <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} />
+            )}
+          </React.Fragment>
         ))}
         {/* ★ PC 전용 — 스크롤을 내리면 만나는 최종 문의 CTA (2026-09-16, 반장 지시 [3]) */}
         <FinalCta doc={site.doc} cta={site.settings?.ctaChannels as { selected?: string[]; links?: Record<string, string> } | undefined} />
