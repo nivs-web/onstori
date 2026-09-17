@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { sbAdmin } from "@/lib/db-admin";
 import { recomputeScore, markFunnel } from "@/lib/score";
-import { captureSite } from "@/lib/site-shot";
+import { captureSite, pruneOldShots } from "@/lib/site-shot";
 
 type PublishTarget = { id: string; slug: string; published: unknown };
 
@@ -41,7 +41,12 @@ export async function applyPublish(
       if (!shot.ok) { console.warn(JSON.stringify({ evt: "site_shot_skip", slug: site.slug, reason: shot.reason })); return; }
       const { data: s } = await sb.from("sites").select("settings").eq("id", site.id).single();
       const settings = { ...((s?.settings as Record<string, unknown>) ?? {}), shots: { pc: shot.pc, phone: shot.phone, at: shot.at } };
-      await sb.from("sites").update({ settings }).eq("id", site.id);
+      const { error: saveErr } = await sb.from("sites").update({ settings }).eq("id", site.id);
+      /* 🔴 **새 주소를 «적은 뒤에만» 옛 사진을 치운다** (2026-09-17 지시 [43]①).
+         적기에 실패했는데 옛것을 지우면 표는 옛 주소를 가리키고 그 파일은 없어져
+         **카드가 깨진 사진**이 된다. 순서가 곧 안전장치다. */
+      if (saveErr) { console.warn(JSON.stringify({ evt: "site_shot_save_failed", slug: site.slug, err: saveErr.message.slice(0, 160) })); return; }
+      await pruneOldShots(site.slug, shot.stamp);
     } catch { /* 반영은 이미 끝났다 */ }
   })();
 

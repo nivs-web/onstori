@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
-import { captureSite } from "@/lib/site-shot";
+import { captureSite, pruneOldShots } from "@/lib/site-shot";
 
 export const maxDuration = 60;
 
@@ -20,6 +20,11 @@ export async function POST(req: Request) {
   const { data: s } = await sb.from("sites").select("id, settings").eq("slug", slug).single();
   if (!s) return NextResponse.json({ error: "not-found" }, { status: 404 });
   const settings = { ...((s.settings as Record<string, unknown>) ?? {}), shots: { pc: shot.pc, phone: shot.phone, at: shot.at } };
-  await sb.from("sites").update({ settings }).eq("id", s.id);
-  return NextResponse.json({ ok: true, pc: shot.pc, phone: shot.phone, at: shot.at });
+  const { error: saveErr } = await sb.from("sites").update({ settings }).eq("id", s.id);
+  if (saveErr) return NextResponse.json({ error: saveErr.message }, { status: 500 });
+
+  /* 🔴 **새 주소를 적은 뒤에** 옛 사진을 치운다 (2026-09-17 지시 [43]①).
+     순서를 바꾸면 적기에 실패했을 때 **카드가 깨진 사진**이 된다 — `pruneOldShots` 주석 참조. */
+  const removed = await pruneOldShots(slug, shot.stamp);
+  return NextResponse.json({ ok: true, pc: shot.pc, phone: shot.phone, at: shot.at, removed });
 }

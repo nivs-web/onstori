@@ -39,8 +39,6 @@ import { STAGE_MAX } from "@/config/shorts";
 const SWIPE_PX = 48;
 /** 「탭하면 소리」를 띄워 두는 시간. 2~3초 — 읽히되 거슬리지 않는 선(권반장 지시 [31]①) */
 const HINT_MS = 2800;
-/** 전체화면을 «닫는» 쓸어내리기. 넘기기(48)보다 훨씬 커야 실수로 안 닫힌다 */
-const CLOSE_SWIPE_PX = 140;
 
 export default function ShortsStage({ items, anchorId, title }: { items: ShortT[]; anchorId?: string; title: string }) {
   /**
@@ -530,10 +528,20 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
   }, [at, loud]);
 
   /**
-   * 🔴 **폰에서 «아래로 크게 쓸어내리면» 닫힌다.** (권반장 조사 · [36]⑤)
-   *   인스타·틱톡·유튜브 **셋 다** 있는 몸짓입니다.
-   * ⚠ `preventDefault` 를 **하지 않습니다.** 막으면 평범한 스크롤이 죽습니다.
-   * ⚠ 위로 쓸면 «다음 편»입니다 — 닫히지 않습니다.
+   * 🔴🔴 **위아래로 쓸면 «영상 넘기기»다. 쓸어서 나가지지 않는다.** (2026-09-17 대표님 확정)
+   *
+   * > 대표님: 「나가는길, X 버튼 우측상단, 좌측 하단, ESC, 폰 뒤로가기,
+   * >   **아래로 쓸어내리는건 못나가게해, 위아래 스크롤은 영상 넘기기야**」
+   *
+   * ⚠⚠ **[36]⑤ 에서 넣었던 「아래로 크게 쓸면 닫힘」을 걷어냈다.**
+   *   인스타·틱톡·유튜브에 있는 몸짓이라 넣었는데, **우리 화면에서는 사고가 된다** —
+   *   **다음 편을 보려고 손가락을 움직이다 «크게» 쓸면 그대로 나가진다.**
+   *   나가는 길이 이미 넷이라 그 몸짓이 벌어 주는 것도 없다.
+   * 🔴 **그냥 «막기»만 하면 안 된다.** 아래로 쓸면 **이전 편**으로 가야 한다 —
+   *   아무 일도 안 일어나면 손님은 「멈췄나?」 한다.
+   *
+   * ⚠ 나가는 길은 그대로 **넷**이다 — **✕(우상) · ESC · 폰 뒤로가기 · 바깥 클릭.**
+   * ⚠ `preventDefault` 를 **하지 않는다.** 막으면 평범한 스크롤이 죽는다.
    */
   const onTouchStart = (e: React.TouchEvent) => { touchY.current = e.touches[0]?.clientY ?? null; };
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -541,9 +549,8 @@ function ShortsWorld({ items, at, onAt, onClose, calm }: {
     touchY.current = null;
     if (from === null || calm) return;
     const dy = (e.changedTouches[0]?.clientY ?? from) - from;
-    if (dy > CLOSE_SWIPE_PX) { close(); return; }            // 아래로 «크게» → 나가기
-    if (dy < -SWIPE_PX) { onAt(Math.min(items.length - 1, at + 1)); return; }
-    if (dy > SWIPE_PX) { onAt(Math.max(0, at - 1)); }
+    if (dy < -SWIPE_PX) { onAt(Math.min(items.length - 1, at + 1)); return; }   // 위로 → 다음 편
+    if (dy > SWIPE_PX) { onAt(Math.max(0, at - 1)); }                           // 아래로 → 이전 편
   };
 
   return createPortal(

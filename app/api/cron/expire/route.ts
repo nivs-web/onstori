@@ -251,6 +251,9 @@ export async function GET(req: Request) {
       out.filesPurged += await storage.removePrefix("media", `uploads/${s.slug}/`);
       out.filesPurged += await storage.removePrefix("private", `inquiries/${s.id}/`);
       out.filesPurged += await storage.removePrefix("private", `private/stories/${s.slug}/`);
+      /* 🔴 미리보기 사진도 함께 (2026-09-17 지시 [43]②). 빠져 있어서 **사이트를 지워도 남았다** —
+         쓰는 사람이 아무도 없는 파일에 요금만 계속 나갔다. */
+      out.filesPurged += await storage.removePrefix("media", `shots/${s.slug}/`);
       // showcase 는 slug 로만 엮여 있어 FK 캐스케이드가 안 걸린다 — 직접 지운다
       await sb.from("showcase").delete().eq("slug", s.slug);
       // sites 를 지우면 story_entries·site_versions·site_progress·inquiries·events 는

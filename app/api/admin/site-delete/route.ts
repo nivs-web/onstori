@@ -77,6 +77,9 @@ export async function POST(req: Request) {
     ["media", `uploads/${slug}/`],
     ["private", `inquiries/${site.id}/`],
     ["private", `private/stories/${slug}/`],
+    /* 🔴 미리보기 사진 (2026-09-17 지시 [43]②). 빠져 있어서 **사이트를 지워도 남았다.**
+       ⚠ 이 목록은 «세는 곳»과 «지우는 곳»이 함께 쓴다 — 한 줄 넣으면 둘 다 고쳐진다. */
+    ["media", `shots/${slug}/`],
   ] as const;
 
   if (dryRun) {

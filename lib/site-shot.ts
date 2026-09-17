@@ -17,7 +17,8 @@ import * as storage from "./storage";
  */
 
 export type ShotResult =
-  | { ok: true; pc: string; phone: string; at: string; kb?: Record<string, number> }
+  /** `stamp` — 이번에 올린 파일 이름에 박힌 시각. **옛 사진을 치울 때** 이것만 남긴다 */
+  | { ok: true; pc: string; phone: string; at: string; stamp: string; kb?: Record<string, number> }
   | { ok: false; reason: string };
 
 /** 이 기계에서 쓸 수 있는 크롬을 찾는다. 환경변수 > 흔한 설치 경로 순. */
@@ -194,10 +195,46 @@ export async function captureSite(slug: string, origin: string): Promise<ShotRes
       sizes[s.key] = Math.round(webp.length / 1024);
     }
 
-    return { ok: true, pc: urls.pc, phone: urls.phone, at: new Date().toISOString(), kb: sizes };
+    return { ok: true, pc: urls.pc, phone: urls.phone, at: new Date().toISOString(), stamp, kb: sizes };
   } catch (e) {
     return { ok: false, reason: String(e).slice(0, 160) };
   } finally {
     await browser?.close().catch(() => {});
+  }
+}
+
+/**
+ * 🔴 **옛 미리보기 사진을 치운다 — «방금 올린 것»만 남긴다.** (2026-09-17 지시 [43]①)
+ *
+ * ⚠⚠ **[발행] 을 누를 때마다 «새 이름»으로 올린다**(`shots/{slug}/pc-{시각}.webp`).
+ *   파일명에 시각을 넣는 것은 **R2 가 영구 캐시**라 같은 이름으로 덮으면 옛 사진이 계속 보이기 때문이다.
+ *   그래서 이름을 바꿔야 하는데 — **지우는 코드가 저장소 어디에도 없었다.**
+ *   ⇒ 사장님이 발행을 100번 하면 **안 쓰는 사진 100장에 요금이 계속 나간다.**
+ *
+ * 🔴🔴 **«URL 을 저장한 뒤에» 부른다. 찍자마자 부르면 안 된다.**
+ *   찍는 것과 「그 주소를 `settings.shots` 에 적는 것」은 **두 걸음**이다.
+ *   찍은 자리에서 옛것을 지웠는데 **적는 데서 실패하면**, 표에는 옛 주소가 남아 있고
+ *   그 파일은 방금 지워져 **카드가 깨진 사진**이 된다.
+ *   ⇒ 부르는 쪽(`lib/publish-site.ts` · `app/api/admin/site-shot`)이 **적기에 성공한 뒤** 부른다.
+ *
+ * ⚠ **이번 `stamp` 가 든 파일은 건드리지 않는다.** 그 밖의 것만 지운다 —
+ *   「최신 1장만 남긴다」를 «시각 비교»가 아니라 «방금 올린 이름»으로 판정한다.
+ *   시각으로 고르면 시계가 어긋난 기계에서 **살아 있는 사진을 지운다.**
+ * ⚠ 실패는 삼키고 세기만 한다 — **사진을 못 치웠다고 발행이 실패하면 안 된다.**
+ */
+export async function pruneOldShots(slug: string, stamp: string): Promise<number> {
+  try {
+    const keys = await storage.listPrefix("media", `shots/${slug}/`);
+    const old = keys.filter((k) => !k.includes(`-${stamp}.`));
+    let n = 0;
+    for (const key of old) {
+      try { await storage.remove("media", key); n++; }
+      catch (e) { console.warn(JSON.stringify({ evt: "shot_prune_failed", key, err: String(e).slice(0, 160) })); }
+    }
+    if (n) console.log(JSON.stringify({ evt: "shot_pruned", slug, removed: n, kept: keys.length - old.length }));
+    return n;
+  } catch (e) {
+    console.warn(JSON.stringify({ evt: "shot_prune_list_failed", slug, err: String(e).slice(0, 160) }));
+    return 0;
   }
 }
