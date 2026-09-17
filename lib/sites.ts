@@ -58,6 +58,42 @@ function sb() {
 }
 
 /**
+ * ★★★ **2026-09-17 지시 [19]⓪ — 「여러 편을 걸었는데 한 편만 나온다」의 «진짜» 원인.**
+ *
+ * 🔴 **`attach` 가 없어서가 아니었다.** 거는 길(`app/api/site/video`)은 멀쩡했고
+ *   `sample-interior` 에는 **일곱 편이 실제로 걸려 있었다**(실측). 그런데 손님 화면에는 한 편만 나왔다.
+ *
+ * 🔴 **범인은 RLS 정책 한 줄이다:**
+ * ```sql
+ * create policy "stories_public_read" on story_entries for select
+ *   using (visible and exists (...));     -- ← 「visible = true」 를 요구한다
+ * ```
+ *   그런데 **영상은 일부러 `visible` 을 안 켠다**(`api/site/video` 의 주석 —
+ *   켜면 이야기 피드에 **내용이 텅 빈 항목**이 뜨고 완성도 점수가 저절로 올라간다).
+ *   ⇒ **걸린 영상은 전부 `visible = false` 라, 손님 권한으로는 «한 줄도» 안 읽힌다.**
+ *   실측: 손님 권한으로 `story_entries` 를 읽으면 **0줄**, 운영자 권한이면 **7편**.
+ *
+ * ★ **불변 규칙 12 위반이었다** — 판정하는 값(`video_out_key`)과 **읽을 수 있는 조건**(`visible`)이
+ *   달랐다. 사장님은 「걸었다」고 보고, 손님은 못 본다.
+ *
+ * ⇒ **고치는 방법:** 손님용 조회를 **운영자 열쇠로** 한다. 🔴 **문을 넓힌 것이 아니다:**
+ *   · **「이 홈페이지를 보여도 되는가」는 여전히 손님 권한(RLS)이 정한다** — 위의 `sites` 조회는
+ *     그대로 손님 열쇠로 하고, 만료·정지된 곳은 **거기서 이미 걸러진다.**
+ *   · 그 문을 통과한 사이트의 **딸린 자료만** 운영자 열쇠로 읽는다.
+ *   · 이야기 글은 **`visible = true` 를 코드로 그대로 건다** — RLS 가 하던 일과 **한 글자도 다르지 않다.**
+ *
+ * ⚠ **DB 정책을 고치지 않았다.** 그것은 마이그레이션이고 「권반장이 시킬 수 없는 것」이다.
+ *   정책으로 푸는 편이 더 깨끗하지만, **그건 대표님 승인이 필요한 일**이라 여기 적어만 둔다:
+ *   `using ((visible or video_out_key is not null) and exists (...))`
+ */
+function svc() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;   // 열쇠가 없으면 부르는 쪽이 손님 열쇠로 내려앉는다
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+/**
  * ★★★ **폐기됨 — `/g/` 견본 경로 (2026-09-15 대표님 지시).**
  *
  *   전에는 「미리 만든 홈페이지」를 `/{상호}` 에서 **숨기고** `/g/{상호}` 에만 보여 주었다.
@@ -127,10 +163,17 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
      */
     const doc = forVisitors(SiteDoc.parse(site.published), site.settings); // 불량 데이터는 parse 에서 차단
 
-    const { data: rows } = await client
+    /* 🔴 위의 `sites` 문을 **손님 권한으로** 통과한 뒤다. 여기서부터는 딸린 자료를 읽는다.
+       열쇠가 없는 환경(로컬·시드)에서는 손님 열쇠로 그대로 내려앉는다 — 위 `svc()` 주석 참고. */
+    const reader = svc() ?? client;
+
+    /* ⚠ **`visible` 조건을 코드로 «그대로» 건다.** RLS 가 하던 일과 한 글자도 다르지 않다 —
+       숨긴 이야기가 이것 때문에 손님에게 새면 안 된다. */
+    const { data: rows } = await reader
       .from("story_entries")
       .select("id, entry_type, title, body, photos, entry_date")
       .eq("site_id", site.id)
+      .eq("visible", true)
       .order("entry_date", { ascending: false })
       .limit(30);
 
@@ -146,8 +189,10 @@ async function getFromDb(slug: string): Promise<SiteData | null> {
       return parsed.success ? [parsed.data] : [];
     });
 
-    /* ★ 홈페이지에 걸린 영상 전부 — 숏폼 피드용. 실패해도 빈 배열이라 사이트는 그대로 열린다 */
-    const shorts = await loadShorts(client, site.id);
+    /* ★ 홈페이지에 걸린 영상 전부 — 숏폼 피드용. 실패해도 빈 배열이라 사이트는 그대로 열린다.
+       🔴 **여기가 [19]⓪ 의 고친 자리다.** 판정은 `video_out_key` 하나이고(`lib/shorts.ts`),
+         `visible` 은 보지 않는다 — 그래야 「걸었다」와 「보인다」가 같아진다(불변 규칙 12). */
+    const shorts = await loadShorts(reader, site.id);
 
     const status = site.status === "active" ? "active" : "trial";
     const logo = (site.settings as { logo?: unknown } | null)?.logo;
