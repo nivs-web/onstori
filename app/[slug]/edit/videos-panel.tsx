@@ -102,6 +102,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [styleBusy, setStyleBusy] = useState(false);
   const [styleMsg, setStyleMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
+  /** 🔴 「인스타에서 안 보이는」 글 수 — **지워졌다고 단정하지 않는다**(지시 [48]①) */
+  const [snsSuspect, setSnsSuspect] = useState(0);
   /** 🔴 서버가 세어 준 «걸린 전체 편수». 목록은 잘려 오므로 이 수로만 판단한다 */
   const [attachedTotal, setAttachedTotal] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -171,12 +173,36 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     }
   }, [slug]);
 
+  /**
+   * 🔴 **「그 영상 아직 SNS 에 살아 있나」를 화면이 뜬 «뒤»에 한 번 물어본다.** (2026-09-17 지시 [48]①)
+   *
+   * ⚠ 목록을 받을 때 같이 물어보면 **인스타에 다녀오는 시간만큼 목록이 늦게 뜬다** —
+   *   사장님이 빈 화면을 몇 초 본다. 그래서 **목록을 먼저 보여 주고** 뒤에서 조용히 확인한다.
+   * ★ 지워진 것이 나오면 **그때 목록을 다시 읽어** 화면이 스스로 고쳐진다.
+   * ⚠ 실패는 **조용히 넘어간다** — 이것 때문에 편집화면이 시끄러우면 안 된다.
+   */
+  const recheckSns = useCallback(async () => {
+    try {
+      const r = await fetch("/api/site/videos/recheck", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, anonId }),
+      });
+      const d = (await r.json().catch(() => ({}))) as { suspect?: number };
+      /* ⚠ 「없다」는 답은 **지워졌다는 뜻이 아니다** — 우리 토큰으로 안 보인다는 뜻이다
+         (비공개·권한일 수도 있다. `recheck/route.ts` 주석 참조).
+         그래서 **감추지 않고 사장님께 「확인해 보세요」라고만** 말한다. */
+      if (r.ok && (d.suspect ?? 0) > 0) setSnsSuspect(d.suspect ?? 0);
+    } catch { /* 못 물어봤으면 그만이다 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, anonId]);
+
   /* ⚠ 이펙트 «본문»에서 곧바로 setState 하면 렌더가 연쇄로 돈다(load 의 첫 줄이 setLoadErr 다).
      한 틱 뒤에 부른다 — 그동안은 「불러오는 중…」이 떠 있다. */
   useEffect(() => {
-    const t = window.setTimeout(() => { void load(); }, 0);
+    /* ★ 목록을 «먼저» 띄우고, 그 뒤에 「SNS 에 아직 살아 있나」를 조용히 물어본다(지시 [48]①) */
+    const t = window.setTimeout(() => { void load().then(() => recheckSns()); }, 0);
     return () => window.clearTimeout(t);
-  }, [load]);
+  }, [load, recheckSns]);
 
   /**
    * ★★ **녹화 화면에서 «한 방에 올리기»를 누르고 넘어온 경우** (2026-09-17 지시 [17]).
@@ -811,6 +837,14 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         * ★ **먼저 거짓말부터 멈춘다.** 상한을 코드로 «푸는 것»은 가상화(8-2 [3])가 끝난 뒤다 —
         *   지금 풀면 폰에서 40편 넘는 영상이 크롬 재생기 상한에 걸려 **검은 화면**이 된다.
         */}
+      {/* 🔴 「인스타에서 안 보인다」 — **지워졌다고 말하지 않는다.** 확인을 권한다(지시 [48]①) */}
+      {snsSuspect > 0 && (
+        <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed">
+          ⚠ 인스타에 올린 영상 <b>{snsSuspect}건</b>이 지금 <b>저희 쪽에서 안 보입니다.</b>
+          <br />지우셨거나 비공개로 바꾸셨다면 <b>정상</b>입니다. 그런 적이 없으시면 인스타 연결을 한 번 확인해 주세요.
+        </p>
+      )}
+
       {attachedCount !== null && attachedCount > SHORTS_MAX && (
         <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed">
           ⚠ 지금 <b>{attachedCount}편</b>을 걸어 두셨는데, 홈페이지에는 <b>최신 {SHORTS_MAX}편</b>이 나옵니다.

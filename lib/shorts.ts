@@ -80,13 +80,36 @@ export async function loadShorts(client: SupabaseClient, siteId: string): Promis
     /* ★ SNS 주소를 한 번에 모아 온다 — 영상 편수만큼 조회를 반복하지 않는다 */
     const ids = rows.map((r) => String(r.id));
     const linksBy = new Map<string, ShortLink[]>();
+    /**
+     * 🔴🔴 **그쪽에서 «지워진» 글의 버튼은 안 그린다.** (2026-09-17 지시 [48]③)
+     *
+     * > 대표님: 「나머지에는 영상을 다 지웠어. **그러면 링크가 사라져?** …
+     * >   사장님이 안 좋은 댓글 때문에 **비공개로 할 수도 있고, 그러면 에러가 뜨면 안 됨**」
+     *
+     * ⚠ 지금까지는 **지워진 글의 「인스타에서 보기」가 손님 화면에 그대로** 떠 있었다.
+     *   눌러도 **없는 글**로 간다 — 화면이 사실과 다르면 그 자체가 거짓말이다(불변 규칙 12).
+     *
+     * ⚠⚠ **`remote_deleted_at` 칸은 마이그레이션(20260912140000) 뒤에 생긴다.**
+     *   그 칸이 «없는» DB 에서 이 조건을 걸면 조회가 통째로 실패해
+     *   🔴 **영상 링크가 하나도 안 나온다**(검증이 짚은 바로 그 위험).
+     *   ⇒ **`app/api/site/videos/route.ts` 와 «같은 방식»** — 먼저 그 칸까지 걸어 보고,
+     *     실패하면 **그 조건만 빼고 다시** 읽는다. 위의 `deleted_at` 도 같은 이유로 그렇게 한다(§56).
+     */
     try {
-      const { data: posts } = await client
+      const cols = "entry_id, provider, remote_url, status";
+      const base = () => client
         .from("sns_posts")
-        .select("entry_id, provider, remote_url, status")
+        .select(cols)
         .in("entry_id", ids)
         .eq("status", "published")
         .not("remote_url", "is", null);
+      const first = await base().is("remote_deleted_at", null);
+      let posts = first.data;
+      if (first.error) {
+        /* 칸이 아직 없다 — 그 조건만 빼고 읽는다. 링크가 하나도 안 나오는 것보다 낫다 */
+        const again = await base();
+        posts = again.data;
+      }
       for (const p of posts ?? []) {
         const prov = String(p.provider) as ShortLink["provider"];
         const url = String(p.remote_url ?? "");
