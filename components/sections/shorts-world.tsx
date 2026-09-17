@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { ShortT } from "@/lib/shorts";
+import type { ShortT, ShortLink } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import { SWIPE_PX, HINT_MS } from "@/config/shorts";
-import { IconSoundOn, IconSoundOff, IconClose, IconChevronUp, IconChevronDown } from "./shorts-icons";
+import { IconSoundOn, IconSoundOff, IconClose, IconChevronUp, IconChevronDown, IconHeart, IconComment } from "./shorts-icons";
 
 /**
  * 🔴🔴 **몰입모드(「숏폼시네마」)만 사는 파일.** (2026-09-17 지시 [42] §1)
@@ -203,6 +203,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
                     <span className="world-dot" style={{ background: SNS_DOT[l.provider] }} />
                     {SNS_LABEL[l.provider]}
                   </a>
+                  <Reactions link={l} />
                 </span>
               ))}
             </div>
@@ -350,5 +351,40 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
       )}
     </div>,
     document.body,
+  );
+}
+
+/**
+ * 🔴 **좋아요·댓글 «자리».** (2026-09-17 지시 [49]③ — 「자리와 모양만」)
+ *
+ * ⚠⚠ **지금은 «아무것도 안 그려진다».** 숫자를 가져오는 일이 **[46]** 이라
+ *   `likes`·`comments` 가 아직 늘 `undefined` 다. 그래서 이 컴포넌트는 **지금 `null` 을 돌려준다.**
+ *   🔴 **그것이 맞다.** 숫자도 없이 ♡ 만 띄우면 손님은 **누를 수 있는 단추인 줄** 안다 —
+ *     우리 ♡ 는 **누르는 단추가 아니라 «보여주는 표시»**다.
+ *
+ * ## 🔴 0 이면 안 그린다 — 이유
+ *
+ * > 권반장: 「**0이면 아예 안 그립니다**」
+ *
+ * 「♡ 0」은 **「아무도 안 좋아했다」**로 읽힌다. 사장님 홈페이지에 그렇게 적을 이유가 없다.
+ * **모르는 것(`undefined`)도 안 그린다** — 모르면서 아는 척하지 않는다.
+ *
+ * ⚠ **숫자는 `tabular-nums`** 다. 1 과 8 의 폭이 달라지면 **숫자가 바뀔 때 줄이 흔들린다.**
+ */
+function Reactions({ link }: { link: ShortLink }) {
+  const n = (v: number | undefined) => (typeof v === "number" && v > 0 ? v : null);
+  const likes = n(link.likes);
+  const comments = n(link.comments);
+  /* 🔴 둘 다 없으면 **칸 자체를 안 만든다** — 빈 칸이 남으면 알약 옆이 어색하게 벌어진다 */
+  if (likes === null && comments === null) return null;
+  return (
+    <span className="world-react" aria-hidden>
+      {likes !== null && (
+        <span className="world-react-one"><IconHeart /><b>{likes.toLocaleString("ko-KR")}</b></span>
+      )}
+      {comments !== null && (
+        <span className="world-react-one"><IconComment /><b>{comments.toLocaleString("ko-KR")}</b></span>
+      )}
+    </span>
   );
 }

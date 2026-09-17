@@ -2115,6 +2115,23 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-pill:hover { background: rgb(255 255 255 / 0.26); }
 .world-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
 
+/* 🔴 **좋아요·댓글 표시 — 알약 오른쪽.** (2026-09-17 지시 [49]③ 「자리와 모양만」)
+   ⚠⚠ **지금은 화면에 «안 뜬다».** 숫자를 가져오는 일이 [46] 이라 값이 아직 없다
+     (`shorts-world.tsx` 의 `Reactions` 가 `null` 을 돌려준다). 이 규칙은 **그때를 위한 자리**다.
+   🔴 **누르는 단추가 아니다.** 원형 배지를 «안» 준 이유가 그것이다 —
+     둥근 단추 모양을 주면 손님이 **누르면 좋아요가 되는 줄** 안다. 우리 ♡ 는 «보여주는 표시»다.
+   ⚠ **`tabular-nums`** — 1 과 8 의 폭이 다르면 숫자가 바뀔 때 **줄이 흔들린다.** */
+.world-react { display: inline-flex; align-items: center; gap: var(--s-3); }
+.world-react-one {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: #fff; font-size: 12px; line-height: 1;
+  /* 🔴 밝은 영상 위에서도 읽혀야 한다 — 그림자가 유일한 장치다(배지가 없으므로) */
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+}
+/* ★ 아이콘 크기는 여기 `font-size` 가 정한다 — SVG 를 `1em` 으로 그렸다(`shorts-icons.tsx`) */
+.world-react-one svg { font-size: 15px; opacity: 0.95; }
+.world-react-one b { font-weight: 700; font-variant-numeric: tabular-nums; }
+
 /* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
 /* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 «크게».**
    ⚠ 대표님은 「화면 «가운데»에 ［나가기 ✕］」를 원하셨습니다. **위치는 아직 안 옮겼습니다** —

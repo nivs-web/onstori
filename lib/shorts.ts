@@ -23,7 +23,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   실패·대기 중인 것을 붙이면 손님이 눌렀을 때 아무 데도 안 간다.
  */
 
-export type ShortLink = { provider: "instagram" | "tiktok" | "youtube" | "facebook" | "threads" | "x"; url: string };
+/**
+ * 바깥 SNS 글 하나.
+ *
+ * 🔴 **`likes`·`comments` 는 «아직 아무도 안 채운다».** (2026-09-17 지시 [49]③)
+ *   가져오는 일은 **[46]** 이다. 그전까지는 늘 `undefined` 라 **화면에 아무것도 안 그린다.**
+ * ⚠ **`0` 과 `undefined` 를 갈라 둔다** — `0` 은 「세어 봤더니 0」, `undefined` 는 「아직 안 세어 봤다」다.
+ *   🔴 **둘 다 안 그리지만 뜻이 다르다.** 「♡ 0」은 「아무도 안 좋아했다」로 읽혀서 안 그리는 것이고
+ *   (권반장 지시), `undefined` 는 **우리가 모르는 것**이라 안 그린다.
+ */
+export type ShortLink = {
+  provider: "instagram" | "tiktok" | "youtube" | "facebook" | "threads" | "x";
+  url: string;
+  /** 좋아요 수 — **[46] 이 채운다.** 안 세어 봤으면 `undefined` */
+  likes?: number;
+  /** 댓글 수 — **[46] 이 채운다.** 안 세어 봤으면 `undefined` */
+  comments?: number;
+};
 
 export type ShortT = {
   id: string;
