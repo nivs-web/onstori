@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdminPw } from "@/lib/admin-pw";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import { ADMIN_SESSION_DAYS } from "@/config/admin-session";
 
 /**
  * 운영자 입장 — **두 개의 문**이 있다. (2026-09-17 지시 [34])
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
   const res = NextResponse.json({ ok: true });
   /* ⚠ 어느 문으로 들어왔든 **같은 쿠키**다 — 안쪽 코드는 아무것도 안 바뀐다 */
   res.cookies.set("onstori_admin", key0, {
-    httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
+    httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * ADMIN_SESSION_DAYS,
   });
   return res;
 }

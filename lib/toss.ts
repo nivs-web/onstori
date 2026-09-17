@@ -89,6 +89,43 @@ export function cancelPayment(paymentKey: string, reason: string, cancelAmount?:
   return call<PaymentResult>(`/payments/${encodeURIComponent(paymentKey)}/cancel`, body, `cancel-${paymentKey}-${cancelAmount ?? "full"}`);
 }
 
+/**
+ * 🔴 **빌링키 폐기 — 해지하면 토스 쪽 카드 정보도 지운다.** (2026-09-17 지시 [32])
+ *
+ * ★ **왜:** ①**개인정보** — 목적이 끝난 카드 정보는 지우는 것이 원칙이다
+ *   ②**신뢰** — 「해지하면 카드 정보도 지웁니다」라고 쓸 수 있어야 **안심하고 가입**하신다
+ *   ③**사고 대비** — 우리가 언젠가 뚫려도 **이미 지운 빌링키는 못 쓴다**
+ *
+ * ★ **공식 문서에서 확인했다**(2026-09-17 · 두 곳 대조):
+ *   `DELETE /v1/billing/{billingKey}` · 성공하면 **본문 없이 200** · 실패하면 `code`·`message`.
+ *   (docs.tosspayments.com/reference 의 「빌링키 삭제」 · guides/v2/billing/integration-api 가 그리로 링크한다)
+ *
+ * ⚠ **이 함수는 «실호출로 검증한 적이 없다».** `TOSS_SECRET_KEY` 가 아직 없고 유료 고객이 0명이라
+ *   **진짜 빌링키가 하나도 없다.** 첫 유료 고객이 해지하실 때가 첫 실행이다 —
+ *   그래서 부르는 쪽이 **실패해도 해지를 무르지 않게** 되어 있다(`api/billing/cancel`).
+ * ⚠ 다른 함수와 달리 **POST 가 아니라 DELETE** 라 `call()` 을 못 쓴다. 여기서 직접 부른다.
+ * ⚠ **빌링키를 로그에 찍지 않는다.** 그것만으로 카드를 긁을 수 있는 자격증명이다.
+ */
+export async function deleteBillingKey(billingKey: string): Promise<TossResult<Record<string, never>>> {
+  try {
+    const res = await fetch(`${API}/billing/${encodeURIComponent(billingKey)}`, {
+      method: "DELETE",
+      headers: { Authorization: authHeader() },
+    });
+    if (res.ok) return { ok: true, data: {} };
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    return {
+      ok: false,
+      status: res.status,
+      code: String(data.code ?? `HTTP_${res.status}`),
+      message: String(data.message ?? "빌링키를 지우지 못했습니다"),
+    };
+  } catch (e) {
+    /* 열쇠가 없으면 `authHeader()` 가 던진다 — 가맹 심사 전에는 그게 정상이다 */
+    return { ok: false, status: 0, code: "NO_CALL", message: String(e).slice(0, 120) };
+  }
+}
+
 /** 카드 번호 마스킹본에서 마지막 4자리만 뽑는다 (화면 표시용) */
 export function last4(masked?: string): string | null {
   if (!masked) return null;

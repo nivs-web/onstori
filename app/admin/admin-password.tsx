@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ADMIN_SESSION_DAYS } from "@/config/admin-session";
 
 /**
  * 🔴 **어드민 아이디·비밀번호 만들기 / 바꾸기.** (2026-09-17 지시 [34])
@@ -40,6 +41,14 @@ export function AdminPassword() {
       } catch { setSt({ error: "불러오지 못했어요" }); }
     })();
   }, []);
+
+  async function logout() {
+    setBusy(true);
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+      location.href = "/admin";
+    } finally { setBusy(false); }
+  }
 
   async function save() {
     setBusy(true); setErr(""); setMsg("");
@@ -113,6 +122,21 @@ export function AdminPassword() {
 
             {msg && <p className="mt-2 t-small" style={{ color: "var(--green)" }}>{msg}</p>}
             {err && <p className="mt-2 t-small text-danger">{err}</p>}
+
+            {/**
+              * 🔴 **나가기** — 권반장 지시: 「P7 로 미루지 마십시오.」
+              *   운영자 쿠키는 **`ADMIN_SESSION_DAYS` 일**이나 산다. 대표님은 **여러 PC 를 쓰시고 원격으로도** 접속하신다.
+              *   나가는 버튼이 없으면 **그 PC 에 그동안 계속 로그인된 채로** 남는다.
+              */}
+            <div className="mt-4 border-t border-n-100 pt-3">
+              <button type="button" disabled={busy} onClick={logout}
+                className="rounded-full border border-n-300 px-4 py-1.5 t-small font-semibold disabled:opacity-40">
+                이 컴퓨터에서 나가기
+              </button>
+              <span className="ml-2 t-caption text-[var(--text-soft)]">
+                공용 PC 를 쓰셨으면 <b>꼭 눌러 주세요.</b> 안 누르면 <b>{ADMIN_SESSION_DAYS}일 동안</b> 로그인된 채로 남습니다.
+              </span>
+            </div>
           </>
         )}
       </div>

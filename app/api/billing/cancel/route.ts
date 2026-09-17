@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { purgeSnsForSite } from "@/lib/sns/maintenance";
+import { deleteBillingKey } from "@/lib/toss";
 
 /**
  * 구독 해지 — 2026-09-06.
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
 
   const { data: bill } = await sb
     .from("billing")
-    .select("site_id, status, next_charge_at")
+    .select("site_id, status, next_charge_at, billing_key")
     .eq("site_id", owned.site.id)
     .maybeSingle();
   if (!bill) return NextResponse.json({ error: "등록된 정기결제가 없어요." }, { status: 404 });
@@ -104,6 +105,39 @@ export async function POST(req: Request) {
    */
   try { await purgeSnsForSite(owned.site.id as string, "구독 해지"); }
   catch (e) { console.error(JSON.stringify({ evt: "cancel_sns_purge_error", err: String(e).slice(0, 160) })); }
+
+  /**
+   * 🔴🔴 **토스 쪽 카드 정보도 지운다.** (2026-09-17 지시 [32])
+   *
+   * ★ 전에는 **우리 장부만** `canceled` 로 바꿨다. 우리가 안 긁으니 **돈은 안 나갔지만**,
+   *   **해지하신 분의 카드 정보(빌링키)가 토스 쪽에 그대로 남아** 있었다.
+   *   ⇒ ①개인정보 ②신뢰(「해지하면 카드 정보도 지웁니다」라고 쓸 수 있어야 한다) ③사고 대비.
+   *
+   * 🔴 **폐기가 실패해도 해지는 «이미 끝났다».** 손님이 「해지가 안 됐다」고 느끼면 안 된다 —
+   *   그래서 이 블록은 **위의 `canceled` 갱신 «뒤»에** 있고, 실패해도 아무것도 무르지 않는다.
+   *   실패는 **기록만** 남기고 사람이 나중에 정리한다.
+   *
+   * ★★ **그리고 «우리 손»에서도 지운다 — 이쪽이 더 확실하다.**
+   *   토스 호출이 실패해도(가맹 심사 전이면 열쇠가 없어 아예 못 부른다) **우리가 키를 안 가지고 있으면
+   *   우리도 못 긁는다.** 권반장 지시 2번이 그 말이다.
+   *   ⚠ `billing_key` 는 **`not null`** 칸이라 빈 글자로 둔다(마이그레이션 없이 지우는 유일한 방법).
+   *   ⚠ `customer_key` 는 남긴다 — 그건 자격증명이 아니라 **누구였는지**를 가리키는 번호다.
+   */
+  try {
+    const key = String(bill.billing_key ?? "");
+    if (key) {
+      const r = await deleteBillingKey(key);
+      /* ⚠ 빌링키를 로그에 찍지 않는다 — 그것만으로 카드를 긁을 수 있다 */
+      console.log(JSON.stringify({
+        evt: r.ok ? "billing_key_deleted" : "billing_key_delete_failed",
+        slug: owned.site.slug, code: r.ok ? undefined : r.code,
+      }));
+    }
+    const { error: wipeErr } = await sb.from("billing").update({ billing_key: "" }).eq("site_id", owned.site.id);
+    if (wipeErr) console.error(JSON.stringify({ evt: "billing_key_wipe_failed", err: wipeErr.message.slice(0, 120) }));
+  } catch (e) {
+    console.error(JSON.stringify({ evt: "billing_key_purge_error", err: String(e).slice(0, 160) }));
+  }
 
   console.log(JSON.stringify({ evt: "subscription_canceled", slug: owned.site.slug, paidUntil: bill.next_charge_at }));
   // 이미 낸 달은 끝까지 쓰신다 — 화면이 이 날짜를 그대로 보여준다
