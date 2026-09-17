@@ -20,12 +20,29 @@ import { STAGE_MAX, SWIPE_PX, HINT_MS } from "@/config/shorts";
  */
 const ShortsWorld = dynamic(() => import("./shorts-world"), { ssr: false });
 
-/** 몰입모드 뭉치를 미리 당겨 온다. 여러 번 불러도 브라우저가 한 번만 받는다 */
+/**
+ * 몰입모드 뭉치를 **미리** 당겨 온다. 여러 번 불러도 브라우저가 한 번만 받는다.
+ *
+ * ⚠⚠ **「무대가 보이면 당긴다」 하나에만 기대지 않는다.** 그 길은 `IntersectionObserver` 를 타는데,
+ *   **창이 숨어 있으면 브라우저가 그것을 아예 안 돌린다**(2026-09-17 실측: 숨은 창에서
+ *   `stage-dark` 토글도 함께 죽어 있었다 — 애니메이션이 멈춘 것과 같은 이유다).
+ *   그 길만 두면 **재 볼 수도 없고, 안 도는 손님이 생겨도 모른다.**
+ * ⇒ **한가해지면 무조건 한 번** 당겨 온다(`requestIdleCallback`). 첫 화면을 그리는 동안에는
+ *   끼어들지 않고, 손님이 누르기 «훨씬 전»에 조용히 받아 둔다.
+ * ★ 무대가 보일 때·마우스를 올릴 때도 그대로 부른다 — **먼저 오는 쪽이 이긴다.**
+ */
 let warmed = false;
 function warmWorld() {
   if (warmed) return;
   warmed = true;
   void import("./shorts-world");
+}
+
+/** 한가한 틈에 한 번. `requestIdleCallback` 이 없는 브라우저(사파리 옛 버전)는 타이머로 */
+function warmWhenIdle() {
+  const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => warmWorld(), { timeout: 3000 });
+  else window.setTimeout(warmWorld, 1200);
 }
 
 /**
@@ -130,6 +147,9 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
   const setVid = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) vids.current.set(id, el); else vids.current.delete(id);
   }, []);
+
+  /* 🔴 한가해지면 몰입모드를 미리 받아 둔다 — 누르는 순간 기다리지 않게(위 `warmWhenIdle`) */
+  useEffect(() => { warmWhenIdle(); }, []);
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
