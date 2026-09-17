@@ -89,6 +89,14 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
   const vids = useRef(new Map<string, HTMLVideoElement>());
   const touchY = useRef<number | null>(null);
 
+  /**
+   * 🔴🔴 **창 밖으로 나가는 영상은 «재생기를 반납»시킨다.** (2026-09-17 지시 [38] · 조사 8-2 [3])
+   *
+   *   크롬은 한 화면에 살아 있는 영상 재생기를 **폰 40개 · PC 75개**까지만 허용한다.
+   *   넘으면 「Blocked attempt to create a WebMediaPlayer」와 함께 **조용히 검은 화면**이 된다.
+   *   ⚠ `pause()` 만으로는 **반납되지 않는다.** 아래 세 줄이 있어야 크롬이 놓는다 —
+   *     `app/rec/[slug]/rec-client.tsx` 가 이미 같은 일을 하고 있다.
+   */
   const setVid = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) vids.current.set(id, el); else vids.current.delete(id);
   }, []);
@@ -229,16 +237,24 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
           {/* ⚠ 한 편씩 `<figure>` 로 싼다 — 「움직임 줄이기」를 켠 손님에게는 이 묶음이
                  그대로 **세로 목록 한 칸**이 되고, 캡션도 영상마다 따라붙는다.
                  보통 손님에게는 이 묶음이 겹쳐 쌓여 한 칸처럼 보인다(CSS 가 한다). */}
-          {items.map((it, i) => (
+          {items.map((it, i) => {
+            /**
+             * 🔴🔴 **화면에 살아 있는 <video> 는 «항상 세 칸»뿐이다.** (2026-09-17 조사 8-2 [3])
+             *
+             * ⚠ 전에는 **편수만큼 전부** 만들었다. 100편을 걸면 재생기가 100개가 되어
+             *   크롬 상한(폰 40 · PC 75)을 넘고 **조용히 검은 화면**이 된다.
+             * ★ 칸(`<figure>`)은 **N개 그대로** 둔다 — 무대 높이·눈금은 CSS 가 그 수로 계산한다
+             *   (`.stage { height: calc((N+1) × 100svh) }`). **그 계산을 건드리지 마라.**
+             * ⚠ 「움직임 줄이기」에서는 **평범한 목록**이라 전부 그린다 —
+             *   자동재생이 없고 `preload="none"` 이라 **바이트가 안 샌다.**
+             */
+            const near = calm || Math.abs(i - active) <= 1;
+            if (!near) return <figure key={it.id} className="stage-item" aria-hidden />;
+            return (
             <figure key={it.id} className={`stage-item${i === active ? " on" : ""}`}>
-              <video
-                ref={(el) => setVid(it.id, el)}
-                className="stage-video"
-                src={it.src}
-                poster={it.poster}
-                muted
-                loop
-                playsInline
+              <StageVideo
+                it={it}
+                onEl={setVid}
                 /* ⚠ 지금 편과 그 다음 편만 미리 받는다. 열 편을 한꺼번에 받으면 데이터가 샌다 */
                 preload={i === active || i === active + 1 ? "metadata" : "none"}
                 controls={calm}
@@ -246,7 +262,7 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
                  * 🔴 **PC 는 «세상»을 열고, 폰은 지금처럼 소리만** (2026-09-17 지시 [33]·6번).
                  *   대표님: 「폰은 이대로 좋아」 — 폰의 동작을 바꾸지 않습니다.
                  */
-                onClick={() => {
+                onPick={() => {
                   if (calm) return;
                   if (typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
                     setLoud(true);          // 눌렀으니 브라우저가 소리를 허락한다
@@ -263,7 +279,8 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
               {/* 목록으로 보일 때만 뜬다 — 겹쳐 쌓였을 때는 아래 `.stage-meta` 가 맡는다 */}
               {it.caption && <figcaption className="stage-item-cap">{it.caption}</figcaption>}
             </figure>
-          ))}
+            );
+          })}
 
           {/* 위쪽 — 여기가 무엇인지 한 줄. 「이건 뭐지?」에 답해 준다 */}
           <div className="stage-top">
@@ -321,6 +338,56 @@ export default function ShortsStage({ items, anchorId, title }: { items: ShortT[
       {/* 🔴🔴 **숏폼피드 세상** — 클릭하면 통째로 열리는 전체화면 (2026-09-17 지시 [33]) */}
       {world !== null && <ShortsWorld items={items} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} />}
     </section>
+  );
+}
+
+/**
+ * 한 편의 `<video>`. **작은 컴포넌트로 뺀 이유가 하나뿐이다** — (2026-09-17 지시 [38])
+ *
+ * 🔴🔴 **창 밖으로 나갈 때 «재생기를 반납»시켜야 한다.**
+ *   크롬은 살아 있는 영상 재생기를 **폰 40개·PC 75개**까지만 허용한다. 넘으면
+ *   「Blocked attempt to create a WebMediaPlayer」와 함께 **조용히 검은 화면**이 된다.
+ *   `pause()` 만으로는 안 놓는다 — **`removeAttribute('src')` + `load()`** 까지 해야 한다.
+ *
+ * ⚠⚠ **처음에 `ref` 콜백에서 그 정리를 했다가 «살아 있는 영상의 src 를 지웠다».**
+ *   React 는 화면을 다시 그릴 때마다 **인라인 ref 를 «뗐다 붙인다»** — 떼는 순간을
+ *   「사라진다」로 착각한 것이다. 실측: 모든 영상이 `src있나: false` · 재생 안 됨.
+ *   ⇒ 정리는 **효과(useEffect)의 뒷정리**에서 한다. 그것은 **진짜 사라질 때만** 돈다.
+ * ⚠ 그래도 개발 중에는 React 가 효과를 두 번 돌린다(StrictMode). 그래서
+ *   **화면에서 실제로 떨어졌는지(`isConnected`)** 를 한 번 더 본다.
+ */
+function StageVideo({ it, onEl, preload, controls, onPick }: {
+  it: ShortT; onEl: (id: string, el: HTMLVideoElement | null) => void;
+  preload: "metadata" | "none"; controls: boolean; onPick: () => void;
+}) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const v = ref.current;
+    onEl(it.id, v);
+    return () => {
+      /* 🔴 **진짜로 화면에서 떨어졌을 때만** 반납한다 */
+      if (v && !v.isConnected) {
+        try { v.pause(); v.removeAttribute("src"); v.load(); } catch { /* 이미 떠났으면 그만이다 */ }
+      }
+      onEl(it.id, null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <video
+      ref={ref}
+      className="stage-video"
+      src={it.src}
+      /* 🔴 표지도 이 세 칸에만 붙는다 — 전에는 **편수만큼 전부** 내려받았다(실측 7장/7편) */
+      poster={it.poster}
+      muted
+      loop
+      playsInline
+      preload={preload}
+      controls={controls}
+      onClick={onPick}
+    />
   );
 }
 

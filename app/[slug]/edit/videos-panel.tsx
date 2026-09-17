@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SHORTS_MAX } from "@/config/shorts";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -94,6 +95,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
 }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadErr, setLoadErr] = useState("");
+  /** 🔴 서버가 세어 준 «걸린 전체 편수». 목록은 잘려 오므로 이 수로만 판단한다 */
+  const [attachedTotal, setAttachedTotal] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<{ id: string; msg: string } | null>(null);
   const [dur, setDur] = useState<Record<string, number>>({});
@@ -146,10 +149,12 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean };
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null };
       setItems(got.items);
       /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
       if (got.softDeleteReady === false) setCanDelete(false);
+      /* 🔴 서버가 세어 준 «걸린 전체 편수» — 목록은 잘려 오므로 이 수로만 판단한다 */
+      setAttachedTotal(typeof got.attachedTotal === "number" ? got.attachedTotal : null);
     } catch {
       setLoadErr("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
       setItems([]);
@@ -590,10 +595,35 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
     return <div className="space-y-4">{tabs}<p className="mt-8 text-center t-small text-[var(--text-soft)]">영상을 불러오는 중…</p></div>;
   }
 
+  /**
+   * 🔴 지금 «홈페이지에 걸린» 편수 — **서버가 따로 세어 준 수**를 쓴다.
+   * ⚠⚠ **목록 길이로 세면 안 된다.** 목록은 이미 `SHORTS_MAX` 로 잘려서 오기 때문에
+   *   25편을 거셔도 20줄뿐이고, 그러면 **이 안내가 영영 안 뜬다**(실측으로 잡았다).
+   * ⚠ 옛 서버 응답에는 이 수가 없다 — 그때는 안내를 안 띄운다(없는 말을 지어내지 않는다).
+   */
+  const attachedCount = attachedTotal;
+
   return (
     <div className="space-y-4">
       {tabs}
       {loadErr && <p className="rounded-xl bg-danger-soft p-3 t-caption font-semibold text-danger">{loadErr}</p>}
+
+      {/**
+        * 🔴🔴 **21편째부터 «어디에도» 안 나온다 — 그런데 화면은 「걸림」이라고 말한다.**
+        *   (2026-09-17 권반장 조사 8-2 [1]a)
+        *
+        * ⚠ `lib/shorts.ts` 의 `SHORTS_MAX` 가 **DB 조회 자체를 그만큼으로 자른다.**
+        *   그래서 25편을 거신 사장님의 21~25편은 **홈페이지에 영영 안 나옵니다.**
+        *   그런데 편집화면은 그 영상들을 **「걸림」으로 보여 줍니다** — **화면이 거짓말을 하고 있다.**
+        * ★ **먼저 거짓말부터 멈춘다.** 상한을 코드로 «푸는 것»은 가상화(8-2 [3])가 끝난 뒤다 —
+        *   지금 풀면 폰에서 40편 넘는 영상이 크롬 재생기 상한에 걸려 **검은 화면**이 된다.
+        */}
+      {attachedCount !== null && attachedCount > SHORTS_MAX && (
+        <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed">
+          ⚠ 지금 <b>{attachedCount}편</b>을 걸어 두셨는데, 홈페이지에는 <b>최신 {SHORTS_MAX}편</b>이 나옵니다.
+          <br />꼭 보여 주고 싶은 영상은 <b>[▲ 위로]</b> 로 순서를 올려 주세요.
+        </p>
+      )}
 
       {items.length === 0 ? (
         /* ★ 빈 화면 — 여기서 «찍으러 가는 길»을 준다(회장님 지시 3).

@@ -1,4 +1,5 @@
 import { publicUrl, posterKeyOf } from "./storage";
+import { SHORTS_MAX } from "@/config/shorts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -38,8 +39,9 @@ export type ShortT = {
   links: ShortLink[];
 };
 
-/** 화면에 한 번에 담는 최대 편수. 이보다 많으면 최신 것부터 자른다 */
-export const SHORTS_MAX = 20;
+/** 화면에 한 번에 담는 최대 편수. 이보다 많으면 최신 것부터 자른다.
+    🔴 **값은 `config/shorts.ts` 에 있다** — 화면 코드도 읽어야 해서 그리로 옮겼다(2026-09-17). */
+export { SHORTS_MAX };
 
 const KNOWN: ShortLink["provider"][] = ["instagram", "tiktok", "youtube", "facebook", "threads", "x"];
 

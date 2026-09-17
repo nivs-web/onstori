@@ -3,11 +3,19 @@ import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { quickCheckForInstagram } from "@/lib/sns/mp4";
+import { SHORTS_MAX } from "@/config/shorts";
 
 export const dynamic = "force-dynamic";
 
-/** 한 번에 보여줄 최대 개수. 60초 녹화가 이보다 많으면 오래된 것부터 밀린다 */
-const LIMIT = 20;
+/**
+ * 한 번에 보여줄 최대 개수. 60초 녹화가 이보다 많으면 오래된 것부터 밀린다.
+ *
+ * ⚠⚠ **2026-09-17 — 숫자 20 이 «두 파일»에 따로 박혀 있었다**(권반장 조사 8-2 [1]b).
+ *   여기와 `lib/shorts.ts` 의 `SHORTS_MAX`. **한쪽만 고치면 어긋난다** —
+ *   편집화면은 25편을 보여 주는데 홈페이지는 20편만 나오는 식이 된다.
+ *   ⇒ **`SHORTS_MAX` 한 곳에서 가져다 쓴다.**
+ */
+const LIMIT = SHORTS_MAX;
 
 /**
  * 사장님이 찍어 올린 60초 영상 **목록** (2026-09-11, V-1 C).
@@ -149,5 +157,23 @@ export async function POST(req: Request) {
 
   /* ⚠ 「지우기」가 아직 준비 안 됐으면 화면이 그 버튼을 **안 그린다.**
      눌러도 아무 일이 안 나는 버튼이 가장 나쁘다. */
-  return NextResponse.json({ items, softDeleteReady });
+  /**
+   * 🔴🔴 **「홈페이지에 «몇 편»이 걸려 있나」를 따로 세어 준다.** (2026-09-17 지시 [38])
+   *
+   * ⚠⚠ **이게 없으면 편집화면이 «21편이 있는지 알 수가 없다».**
+   *   위 조회가 이미 `LIMIT`(= `SHORTS_MAX`) 로 **잘라서** 주기 때문이다 —
+   *   25편을 거셔도 목록은 20줄이라, 화면은 「20편이구나」로 본다.
+   *   (제가 처음에 목록 길이로 세었다가 **안내가 영영 안 뜨는** 것을 실측으로 잡았다.)
+   * ★ 세기만 한다(`head: true`) — 줄을 가져오지 않아 값이 싸다.
+   */
+  let attachedTotal: number | null = null;
+  try {
+    const q = () => sbAdmin().from("story_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", r.site.id).not("video_out_key", "is", null);
+    const alive = await q().is("deleted_at", null);
+    attachedTotal = alive.error ? (await q()).count ?? null : alive.count ?? null;
+  } catch { /* 못 세도 목록은 그대로 나간다 */ }
+
+  return NextResponse.json({ items, softDeleteReady, attachedTotal });
 }
