@@ -307,6 +307,17 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [igReady, setIgReady] = useState<{ ok: boolean; why: string } | null>(null);
   /** 틱톡도 같은 판정 — 다만 올리는 길은 «시트»를 거친다(심사 요건) */
   const [ttReady, setTtReady] = useState<{ ok: boolean; why: string } | null>(null);
+  /**
+   * 🔴🔴 **유튜브도 같은 판정.** (2026-09-19 — 유튜브 API 감사 신청용 화면)
+   *
+   * ★ **뒷단은 이미 다 있었다.** 새로 만든 것이 없다 —
+   *   `lib/sns/index.ts`(열림) · `youtube.ts`(어댑터) · `db.ts`(하루 1개 한도) ·
+   *   `youtube-gate.ts`(문) · `api/sns/publish`(어댑터 호출). **화면에만 길이 없었다.**
+   * 🔴 **`isAvailable` 안에 «문»이 들어 있다**(`youtube.ts:137` → `canUpload`).
+   *   ⇒ 여기 `ok` 가 참인 것은 **그 사이트가 올려도 되는 곳**이라는 뜻이다.
+   *     감사 전 아무 사장님 계정에 단추가 뜨는 일은 **구조적으로** 생기지 않는다.
+   */
+  const [ytReady, setYtReady] = useState<{ ok: boolean; why: string } | null>(null);
 
   /* ★★ 틱톡 시트 — 사장님이 **매번** 제목·공개범위·댓글을 고른다 (2026-09-12 지시 8).
      ⚠ 「지난번에는 이렇게 하셨어요」 같은 기본값 유도는 **심사 전에는 넣지 않는다**(회장님 지시).
@@ -369,7 +380,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slug, anonId }),
         });
-        if (!r.ok) { if (alive) setIgReady({ ok: false, why: "" }); return; }
+        if (!r.ok) { if (alive) { setIgReady({ ok: false, why: "" }); setYtReady({ ok: false, why: "" }); } return; }
         type Row = { provider: string; name: string; available: { ok: boolean; why?: string }; connection: { status: string; disclaimerAgreedAt: string | null } | null };
         const d = (await r.json()) as { items?: Row[] };
         if (!alive) return;
@@ -390,6 +401,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         };
         setIgReady(verdict("instagram", "인스타그램"));
         setTtReady(verdict("tiktok", "틱톡"));
+        setYtReady(verdict("youtube", "유튜브 쇼츠"));
         /* ★★ 검토 화면은 **모든 곳**을 보여 준다 — 못 고르는 곳도 «왜»와 함께 보여야
            사장님이 「고장인가」 하지 않는다. 단 **틱톡은 뺀다**(아래 이유). */
         setSnsAll(
@@ -400,7 +412,7 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
               return { provider: x.provider as SnsProvider, name: x.name, ok: v.ok, why: v.why };
             }),
         );
-      } catch { if (alive) { setIgReady({ ok: false, why: "" }); setTtReady({ ok: false, why: "" }); } }
+      } catch { if (alive) { setIgReady({ ok: false, why: "" }); setTtReady({ ok: false, why: "" }); setYtReady({ ok: false, why: "" }); } }
     })();
     return () => { alive = false; };
   }, [slug]);
@@ -1034,8 +1046,20 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                       </label>
                     ))}
                   </div>
+                  {/**
+                    * 🔴🔴 **유튜브를 이 목록(「한 방 등록」)에 «넣지 않는다».** (2026-09-19)
+                    *
+                    * 이유 둘 — 둘 다 무겁다:
+                    * ① **하루 1개뿐**이다(`lib/sns/db.ts` 사이트당 1/일). 한 방에 섞이면
+                    *    사장님이 **모르는 새 그날 몫이 사라진다.**
+                    * ② 🔴 **감사 신청서에 「한 번의 명시적 클릭마다 한 번 호출」이라고 적었다.**
+                    *    화면이 그 말과 어긋나면 **그 자체가 반려 사유**가 된다.
+                    * ⇒ 유튜브는 **영상마다 있는 [유튜브에 올리기] 단추 하나**로만 나간다.
+                    */}
                   <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">
-                    유튜브 쇼츠·쓰레드·X·페이스북은 <b>준비 중</b>이라 아직 못 고릅니다. 열리는 대로 여기에 나타납니다.
+                    쓰레드·X·페이스북은 <b>준비 중</b>이라 아직 못 고릅니다. 열리는 대로 여기에 나타납니다.
+                    <br />
+                    유튜브 쇼츠는 <b>영상마다 있는 [유튜브에 올리기]</b> 로 한 편씩 올립니다(하루 1편).
                   </p>
                 </div>
 
@@ -1315,6 +1339,57 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     </div>
                   ) : igReady.why ? (
                     <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">{igReady.why}</p>
+                  ) : null
+                )}
+
+                {/**
+                  * 🔴🔴 **유튜브에 올리기 — «한 번의 명시적 클릭마다 한 번 호출».** (2026-09-19)
+                  *
+                  * ★ **인스타 상자를 그대로 본떴다.** 다른 것은 셋뿐이다:
+                  *   ① 보내는 곳이 `["youtube"]` ② 글자 수 재기가 유튜브 기준(설명 5000자·해시태그 15개)
+                  *   ③ **「비공개로 올라갑니다」 안내**가 붙는다(아래).
+                  *
+                  * 🔴 **왜 「비공개」인가 — 되돌릴 수 없는 일이라 그렇다**(`lib/sns/youtube-gate.ts` 원문):
+                  *   감사 통과 «전»에 올린 영상은 **비공개로 잠기고 «항소가 안 된다».**
+                  *   감사를 나중에 통과해도 **이미 잠긴 것은 안 풀린다** — 다시 찍어 다시 올려야 한다.
+                  *   ⇒ 그래서 문(`youtube-gate`)이 **올려도 되는 사이트만** 열어 준다.
+                  *     이 상자가 보인다는 것은 **이미 그 문을 통과했다**는 뜻이다(`isAvailable` 안에 문이 있다).
+                  *
+                  * ⚠ **이미 올린 영상에는 상자를 다시 두지 않는다**(인스타와 같은 규칙).
+                  *   하루 1편뿐이라, 눌러도 「이미 올렸어요」만 나오는 단추는 **한도를 걱정하게** 만든다.
+                  * ⚠ **영상 규격 검사는 인스타 것을 함께 쓴다**(`it.ig`) — 틱톡 상자와 같은 방식이다.
+                  *   위 인스타 상자가 이미 «왜 못 올리는지»를 적어 주므로 여기서 또 말하지 않는다.
+                  */}
+                {ytReady && !(it.posted ?? []).some((x) => x.provider === "youtube" && x.status === "published") && (
+                  it.ig && !it.ig.ok ? null
+                  : ytReady.ok ? (
+                    <div className="rounded-xl border border-green-700 p-3">
+                      <p className="t-caption font-semibold">유튜브에 올리기</p>
+                      <label className="mt-2 block">
+                        <span className="t-caption text-[var(--text-soft)]">글 (비워 두면 질문·제목이 들어가요)</span>
+                        <textarea
+                          className="mt-1 w-full rounded-lg border border-n-300 p-2 t-caption"
+                          rows={3}
+                          value={cap[it.id] ?? it.question ?? it.title ?? ""}
+                          onChange={(e) => setCap((p) => ({ ...p, [it.id]: e.target.value }))}
+                          placeholder="손님에게 하고 싶은 말을 적어 주세요"
+                        />
+                      </label>
+                      <TextMeter text={cap[it.id] ?? it.question ?? it.title ?? ""} providers={["youtube"]} className="mt-1" />
+                      <button type="button" disabled={pubBusy === it.id}
+                        onClick={() => void publish(it.id, ["youtube"])}
+                        className="mt-2 rounded-full bg-green-700 px-4 py-2 t-caption font-semibold text-white disabled:opacity-40">
+                        {pubBusy === it.id ? "올리는 중…" : "유튜브에 올리기"}
+                      </button>
+                      {/* 🔴 **이 문장을 지우지 마라.** 「올렸는데 왜 안 보이지?」를 미리 막는 말이고,
+                          감사 전에는 **실제로 비공개로 올라간다**(위 주석). 화면이 사실과 같아야 한다 */}
+                      <p className="mt-1.5 t-caption leading-relaxed text-[var(--text-soft)]">
+                        지금은 준비 기간이라 <b>비공개</b>로 올라갑니다.
+                        사장님 유튜브에서는 보이지만 손님에게는 아직 안 보입니다.
+                      </p>
+                    </div>
+                  ) : ytReady.why ? (
+                    <p className="rounded-xl bg-n-50 p-3 t-caption leading-relaxed text-[var(--text-soft)]">{ytReady.why}</p>
                   ) : null
                 )}
 
