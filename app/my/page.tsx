@@ -56,6 +56,7 @@ function badgeOf(site: MySite): { label: string; bg: string; fg: string } {
  *   [수정하기] 한 번이면 편집 화면이다.
  *
  * ⚠ 카드는 **한 장만** 그린다. 한 계정에 홈페이지 하나이기 때문이다(config/limits.ts).
+ * 🔴 **예외는 «심사 계정» 하나뿐이다** — 아래 `isReviewer` 주석을 보라.
  */
 export default async function MyPage() {
   const user = await getSessionUser();
@@ -68,9 +69,40 @@ export default async function MyPage() {
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
   const all = (data ?? []) as MySite[];
-  const sites = all.slice(0, SITES_PER_ACCOUNT);
+
+  /**
+   * 🔴🔴 **심사 계정만 «가진 것을 전부» 그린다.** (2026-09-18 대표님 지시 · 토스 카드사 심사)
+   *
+   * ## 왜 필요한가 — 이것이 없으면 «반려»다
+   * 토스 회신서에 **「로그인하시면 홈페이지가 두 개 보입니다」**라고 적어 보낸다:
+   * ```
+   * onstori.com/sample-toss       ← 무료체험. 심사관이 여기서 [결제] 를 누른다
+   * onstori.com/sample-interior   ← 이미 정회원이라 결제창이 안 열린다(정상)
+   * ```
+   * 🔴 그런데 `slice(0, 1)` 이 **가장 최근에 고친 한 곳만** 남겨,
+   *   `sample-toss` 가 목록 밖으로 밀려 있었다(2026-09-18 대표님이 직접 로그인해 확인).
+   *   ⇒ 심사관이 **결제창까지 가지 못한다 = 반려**. 다시 1~2개월을 기다린다.
+   *
+   * ## 🔴 「최근 순」으로 해결하지 않은 이유
+   * `sample-toss` 의 `updated_at` 을 올려 «순서»로 맞추는 길도 있었다. **그렇게 하지 않았다** —
+   * **심사관은 1~2개월 뒤에 본다.** 그 사이 우리가 사이트를 한 번만 고쳐도 **또 뒤집힌다.**
+   * ⇒ 순서에 기대지 않고 **규칙 자체에 예외 한 줄**을 둔다.
+   *
+   * ## ⚠ 지킨 것 셋
+   * 1. 🔴 **`SITES_PER_ACCOUNT` 는 손대지 않았다** — 일반 회원의 제품 규칙이다(1개 그대로).
+   * 2. **`REVIEW_EMAIL` 이 없으면(로컬 등) 아무 일도 일어나지 않는다** — 지금 동작 그대로다.
+   *    빈 값이 `user.email` 의 빈 값과 우연히 같아지는 일이 없게 **먼저 «있나»부터 본다.**
+   * 3. 대소문자·공백을 **양쪽 다 지운 뒤** 견준다 — 메일 주소는 대소문자를 안 가린다.
+   * ⚠ **계정을 새로 만들거나 사이트 주인을 옮기지 않았다.** 그렇게 하면 두 샘플이 이 계정에서
+   *   떨어져 나간다(`app/api/auth/review/sync/route.ts` 주석의 같은 경고).
+   */
+  const reviewEmail = process.env.REVIEW_EMAIL?.trim().toLowerCase();
+  const isReviewer = !!reviewEmail && (user.email ?? "").trim().toLowerCase() === reviewEmail;
+
+  const sites = isReviewer ? all : all.slice(0, SITES_PER_ACCOUNT);
   /* ⚠ 규칙보다 많이 가진 옛 계정이 있을 수 있다. 화면에서 **지우지는 않는다**(규칙 10 정신) —
-     아래에 작은 글씨로 몇 개가 더 있는지 알려 준다. */
+     아래에 작은 글씨로 몇 개가 더 있는지 알려 준다.
+     ★ 심사 계정에서는 전부 그리므로 이 값이 **저절로 0** 이 된다 — 「1개 더 있어요」 문구가 사라진다. */
   const extra = all.length - sites.length;
 
   return (
