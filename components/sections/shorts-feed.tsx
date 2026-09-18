@@ -367,6 +367,8 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
             if (v) { v.muted = true; void v.play().catch(() => {}); }
           }}
           calm={calm}
+          /* 🔴 「⋯」(영상 관리로 가는 길)이 이 주소를 쓴다 — 2026-09-18 B-20 */
+          slug={slug}
         />
       )}
     </div>

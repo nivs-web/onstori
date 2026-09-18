@@ -2165,6 +2165,9 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 .world-logo:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 /* 🔴 로고 그림은 **크기를 여기서만** 정한다. 유튜브는 가로가 긴 그림이라 높이를 맞춘다 */
 .world-logo img { width: 22px; height: auto; display: block; }
+/* 🔴 「⋯」 — 로고 단추와 «같은 배지»를 쓴다(자리도 같은 줄이다). 다른 것은 안에 든 그림뿐이다.
+   ⚠ 값을 여기서 다시 적지 마라. `.world-logo` 를 함께 달아 두면 한쪽만 어긋날 일이 없다. */
+.world-more { color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
 
 /* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
 /* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 «크게».**

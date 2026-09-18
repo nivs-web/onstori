@@ -4,6 +4,7 @@ import { sbAdmin } from "@/lib/db-admin";
 import { verifyStoryLink, signStoryLink } from "@/lib/story-link";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { RecClient } from "./rec-client";
+import { videosToday } from "@/lib/story-quota";
 import { Relink } from "./relink";
 
 export const dynamic = "force-dynamic";
@@ -46,9 +47,16 @@ export default async function RecPage({ params, searchParams }: { params: Promis
   }
 
   let name = "";
+  /**
+   * 🔴 **오늘 몇 편 쓰셨나 — 찍기 «전»에 알려 드린다.** (2026-09-18 지시 B-5 · 권반장 부탁)
+   * ⚠ 다 쓴 «뒤»에만 막으면 사장님이 60초를 헛되이 쓰신다. 들어오실 때 먼저 보여 드린다.
+   * ⚠ 못 세면 `-1` 이고, 그때는 **아무 말도 안 한다**(모르는 것을 지어내지 않는다).
+   */
+  let usedToday = -1;
   if (key) {
     try {
-      const { data, error } = await sbAdmin().from("sites").select("business_name").eq("slug", slug).maybeSingle();
+      const { data, error } = await sbAdmin().from("sites").select("business_name, id").eq("slug", slug).maybeSingle();
+      if (data?.id) usedToday = await videosToday(data.id as string);
       // 행이 없으면 무효. DB 자체가 안 닿으면(로컬·장애) 녹화는 열어 두고 제출 단계에서 다시 확인한다
       name = error ? slug : (data?.business_name ?? "");
     } catch { name = slug; }
@@ -76,7 +84,7 @@ export default async function RecPage({ params, searchParams }: { params: Promis
           __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__onstoriBip=e;});`,
         }}
       />
-      <RecClient slug={slug} k={key} businessName={name} />
+      <RecClient slug={slug} k={key} businessName={name} usedToday={usedToday} />
     </>
   );
 }

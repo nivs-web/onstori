@@ -8,6 +8,7 @@ import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media
 /* ★★ 2026-09-17 — 녹화를 «캔버스 중계»로 (지시 [16]). 세로 100% 보장.
    ⚠ 끄고 켜는 것은 `config/recording.ts` 하나다. 여기에 조건을 또 만들지 마라. */
 import { CANVAS_RELAY, RELAY_W, RELAY_H, RELAY_FPS, RELAY_MEASURE, VIDEO_BPS } from "@/config/recording";
+import { VIDEOS_PER_DAY } from "@/config/limits";
 
 /**
  * 60초 녹화 화면 — 레멘토 web.remento.co 14화면을 9화면으로 (기획1 /mainplan #rec).
@@ -436,8 +437,10 @@ async function capturePoster(blob: Blob, recordedSec: number): Promise<Blob | nu
  *   그 자리에서는 「보냈어요 → 홈페이지 관리로」가 아니라 **가입을 마저 끝내야** 한다.
  * ⚠ 안 넘기면(문자 링크로 들어온 평소 길) **예전과 글자 하나까지 같게** 동작한다.
  */
-export function RecClient({ slug, k, businessName, onDone }: {
+export function RecClient({ slug, k, businessName, onDone, usedToday = -1 }: {
   slug: string; k: string; businessName: string;
+  /** 🔴 오늘(한국 시간) 이미 올리신 영상 수. **-1 이면 «못 셌다»**이고 그때는 아무 말도 안 한다 */
+  usedToday?: number;
   /** 영상이 저장된 뒤 부른다. `entryId` 는 「홈페이지에 걸기」에 쓴다 */
   onDone?: (entryId: string | null) => void;
 }) {
@@ -1142,6 +1145,23 @@ export function RecClient({ slug, k, businessName, onDone }: {
                   말하면 대부분이 시작하기도 전에 겁을 먹는다 — 실제로는 열리는데도.
                 ★ 대신 **진짜로 카메라를 열어 보고 실패했을 때만** 길을 안내한다(`setup()` 의 catch).
                   「하지 마라」가 아니라 「알 수 없는 것은 묻지 않고 해 본다」로 바꾼 것이다. */}
+            {/**
+              * 🔴🔴 **「오늘 3 / 5」 — 찍기 «전»에 보여 드린다.** (2026-09-18 대표님 B-5)
+              *
+              * > 대표님: 「하루 영상 제한 5개라고 여러 번 말했는데 **못 올리게 막아**」
+              * ⚠ 권반장 부탁: **다 쓴 뒤에만 막으면 사장님이 헛수고**를 하신다. 먼저 알려 드린다.
+              * ⚠ **`-1`(못 셌다)이면 아무 말도 안 한다** — 모르는 것을 지어내지 않는다.
+              * ⚠ 「하루」는 **한국 시간 자정** 기준이다(`lib/story-quota.ts` 의 표를 보라).
+              *   SNS 쪽 한도는 UTC 자정이라 **둘이 다른 것이 맞다.**
+              */}
+            {usedToday >= 0 && (
+              <p className={`mx-auto mt-6 w-fit rounded-full px-4 py-2 t-caption font-bold ${
+                usedToday >= VIDEOS_PER_DAY ? "bg-white/20" : "border border-white/25"}`}>
+                {usedToday >= VIDEOS_PER_DAY
+                  ? "오늘 몫을 다 쓰셨어요 — 내일 다시 찍어 주세요"
+                  : `오늘 ${usedToday} / ${VIDEOS_PER_DAY}편`}
+              </p>
+            )}
             <button type="button" onClick={() => setScreen("ask")} className="btn-lime mt-8 w-full !py-4 !t-body">60초 영상 촬영하기</button>
             <ShootGuide />
             {/* ★★ 2026-09-17 대표님 아이디어 [20] — **홈 화면에 바로가기.**
@@ -1271,7 +1291,9 @@ export function RecClient({ slug, k, businessName, onDone }: {
             )}
             {err && (
               <div className="mt-3">
-                <p className="t-small font-semibold leading-relaxed" style={{ color: "var(--danger-soft)" }}>{err}</p>
+                {/* ⚠ `whitespace-pre-line` — 서버가 **두 줄짜리 문장**을 보낼 때가 있다
+                    (하루 5건 한도 문구 · 2026-09-18 B-5). 없으면 두 줄이 한 줄로 붙어 읽기 어렵다. */}
+                <p className="t-small font-semibold leading-relaxed whitespace-pre-line" style={{ color: "var(--danger-soft)" }}>{err}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {/* ★★ 갇히지 않는 길 — **앞/뒤를 처음부터 다시 고르는 자리로 돌아간다.**
                       전환(두 번째 권한 요청)이 막힌 폰이라도 이 길은 «처음 켤 때와 똑같은 요청»이라
@@ -1403,7 +1425,7 @@ export function RecClient({ slug, k, businessName, onDone }: {
               </>
             ) : (
               <>
-                {err && <p className="t-small" style={{ marginTop: "var(--s-3)", color: "var(--danger-soft)" }}>{err}</p>}
+                {err && <p className="t-small whitespace-pre-line" style={{ marginTop: "var(--s-3)", color: "var(--danger-soft)" }}>{err}</p>}
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <button type="button" onClick={reRecord} className="rounded-full border border-white/40 py-4 t-body font-bold">다시 찍기</button>
                   <button type="button" onClick={send} className="btn-lime !py-4 !t-body">보내기</button>

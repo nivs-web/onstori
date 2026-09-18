@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import type { ShortT, ShortLink } from "@/lib/shorts";
 import { SNS_LABEL, pillLinks } from "./sns-brand";
 import { SWIPE_PX, HINT_MS } from "@/config/shorts";
-import { IconSoundOn, IconSoundOff, IconChevronUp, IconChevronDown } from "./shorts-icons";
+import { IconSoundOn, IconSoundOff, IconChevronUp, IconChevronDown, IconMore } from "./shorts-icons";
 
 /**
  * 🔴 **공식 로고 파일 — 대표님이 주신 것을 그대로 쓴다.** (2026-09-18 B-19)
@@ -49,8 +50,10 @@ const LOGO_SRC: Partial<Record<ShortLink["provider"], string>> = {
  *   하나뿐이면 갇힌 느낌이 난다. 그리고 **닫으면 원래 보던 자리로** 돌아간다(지시 3번).
  * 🔴 **키보드로만 쓰는 손님**(지시 5번) — 열리면 **[✕] 에 초점이 가고**, `Tab` 으로 단추들을 돈다.
  */
-export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
+export default function ShortsWorld({ items, at, onAt, onClose, calm, slug }: {
   items: ShortT[]; at: number; onAt: (i: number) => void; onClose: () => void; calm: boolean;
+  /** 🔴 «영상 관리»로 가는 길에 쓴다(2026-09-18 B-20). 없으면 「⋯」를 안 그린다 */
+  slug?: string;
 }) {
   const vid = useRef<HTMLVideoElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -70,6 +73,37 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
   const [loud, setLoud] = useState(true);
   const touchY = useRef<number | null>(null);
   const cur = items[at];
+  /* 「⋯」가 편집화면으로 데려갈 때 쓴다 — 통째로 새로 받지 않게 라우터로 간다 */
+  const router = useRouter();
+
+  /**
+   * 🔴🔴 **「⋯」 — «영상 관리»로 가는 길.** (2026-09-18 대표님 지시 B-20)
+   *
+   * > 대표님: 「**온스토리에 영상 삭제 버튼이 어디 있는지 못 찾겠다**」
+   * ⇒ 기능이 없는 것이 아니라 **길이 없었다.** 인스타처럼 `⋯` 를 두고 편집화면으로 보낸다.
+   *
+   * ## ⚠⚠ 이것은 «권한 검사»가 아니다 — «단추를 보여 줄까»를 정하는 짐작이다
+   *   손님 홈페이지는 **캐시(ISR)** 라 서버가 「지금 보는 사람이 주인인가」를 모른다.
+   *   물어보러 가면(네트워크) **손님 모두의 몰입모드가 느려진다** — 대표님이 가장 싫어하시는 것이다.
+   *   ⇒ **브라우저 안에 있는 흔적 둘**로만 짐작한다. 네트워크를 한 번도 안 쓴다:
+   *     ① `onstori:anonId` — 홈페이지를 만들어 본 브라우저에만 있다
+   *     ② `sb-…-auth-token` 쿠키 — 로그인한 브라우저에만 있다
+   * 🔴 **틀려도 안전하다.** 남이 눌러도 편집화면이 **서버에서 막는다**(`loadOwnedSite`).
+   *   여기서 새는 것은 «단추 하나가 보였다»뿐이고, 영상·글은 어차피 손님에게 보이는 것이다.
+   * ⚠ **첫 그림(SSR)에서는 «항상 없음»이다.** `localStorage` 를 그릴 때 읽으면
+   *   서버 그림과 달라져 **하이드레이션이 깨진다.** 그래서 효과에서 한 박자 뒤에 켠다.
+   */
+  const maybeOwner = useSyncExternalStore(
+    /* 바뀔 일이 없다 — 구독하지 않는다(해지도 할 것이 없다) */
+    () => () => {},
+    () => {
+      try {
+        return !!localStorage.getItem("onstori:anonId") || /(^|;\s*)sb-[^=]*auth-token/.test(document.cookie);
+      } catch { return false; }   /* 사생활 보호 모드 등 — 못 읽으면 «안 보여 준다» */
+    },
+    /* 🔴 **서버 그림에서는 언제나 «없음»**이다. 이 한 줄이 하이드레이션 어긋남을 막는다 */
+    () => false,
+  );
 
   /* 열리면 닫기 단추에 초점을 준다 — 키보드만 쓰는 손님이 곧바로 나갈 수 있어야 한다 */
   useEffect(() => { closeRef.current?.focus(); }, []);
@@ -240,9 +274,33 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           * ⚠ **연결된 채널만 그린다**(`pillLinks`) ⇒ 0~2개다. 없으면 줄 자체를 안 만든다.
           * ⚠ 글자를 못 읽는 손님을 위해 `aria-label` 에 이름을 남긴다(눈에는 안 보인다).
           */}
-        {pillLinks(cur?.links ?? []).length ? (
+        {(pillLinks(cur?.links ?? []).length > 0 || (maybeOwner && slug)) ? (
           <div className="world-side">
-            {pillLinks(cur.links).map((l) => {
+            {/**
+              * 🔴 **「⋯」는 «주인일 듯한» 분에게만 보인다**(위 `maybeOwner` 주석).
+              * ⚠ 누르면 편집화면의 **[내 영상]** 자리로 곧장 간다(`#video-list` 앵커 — 지시 [17] 때 달아 둔 것).
+              *   거기서 그 영상 줄의 **[지우기]** 를 누르시면 된다.
+              * ⚠ 몰입모드는 «닫고» 간다 — 검은 화면 위에서 페이지가 바뀌면 되돌아올 때 어지럽다.
+              */}
+            {maybeOwner && slug && (
+              <button type="button" className="world-logo world-more" aria-label="이 영상 관리하기"
+                title="이 영상 관리하기"
+                onClick={() => {
+                  /**
+                   * 🔴🔴 **`close()` 를 부르면 «안 된다». 실측으로 잡았다(2026-09-18).**
+                   *   `close()` 안에는 **`history.back()`** 이 들어 있다(폰 뒤로가기로 닫히게 하려고
+                   *   열 때 기록을 하나 밀어 넣었기 때문이다). 그 되돌아가기와 **페이지 이동이 경주**를 해서
+                   *   **되돌아가기가 이긴다** — 눌러도 편집화면으로 «안 갔다»(실측: 주소가 그대로였다).
+                   * ⇒ **덮개만 접고**(onClose) 곧바로 간다.
+                   * ⚠ 밀어 넣은 기록 한 칸이 남지만 **페이지를 아예 떠나므로** 해가 없다.
+                   */
+                  onClose();
+                  router.push(`/${slug}/edit#video-list`);
+                }}>
+                <IconMore />
+              </button>
+            )}
+            {pillLinks(cur?.links ?? []).map((l) => {
               const src = LOGO_SRC[l.provider];
               if (!src) return null;   /* 로고 파일이 없는 채널은 그리지 않는다(위 주석) */
               return (

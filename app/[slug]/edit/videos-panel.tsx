@@ -7,7 +7,7 @@ import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
 import { ReviewSheet } from "./review-sheet";
 import { sayPost, providerName, josa } from "@/lib/sns/status-say";
-import { SNS_EDIT_NOTICE, SNS_GROWTH_NOTE, SNS_DELETE_SCOPE, SNS_DELETE_BUTTON } from "@/lib/sns/copy";
+import { SNS_EDIT_NOTICE, SNS_GROWTH_NOTE, SNS_DELETE_SCOPE, SNS_DELETE_BUTTON, SNS_DELETE_ASK } from "@/lib/sns/copy";
 import { TextMeter } from "./text-meter";
 import type { SnsProvider } from "@/lib/sns/types";
 import {
@@ -111,8 +111,11 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<{ id: string; msg: string } | null>(null);
   const [dur, setDur] = useState<Record<string, number>>({});
-  /** 영상 메뉴 안의 두 갈래 — 「내 영상」과 「SNS 연결」 */
-  const [view, setView] = useState<"list" | "sns">("list");
+  /**
+   * 영상 메뉴 안의 **세 갈래** — 「내 영상」·「영상 설정」·「SNS 연결」 (2026-09-18 대표님 B-14)
+   * ⚠ 첫 화면은 **언제나 「내 영상」**이다. 사장님이 여기 오시는 까닭은 «올리는 일»이다.
+   */
+  const [view, setView] = useState<"list" | "settings" | "sns">("list");
   /** 올릴 곳으로 고른 SNS. ④ 올리기가 이 값을 쓴다 */
   /** ⚠ 로그인 안 한 사장님의 소유 증명. 사생활 보호 모드에서는 읽기가 «던지므로» 감싼다 */
   const anonId = (() => { try { return localStorage.getItem("onstori:anonId") ?? ""; } catch { return ""; } })();
@@ -642,7 +645,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
        ⚠ `data-tour` 는 그대로 둔다. 그건 투어·완성도 힌트의 이름이고(규칙 3), 이 `id` 는 스크롤용이다.
          둘은 목적이 달라 한 자리에 같이 있어도 된다. */
     <div id="video-list" className="flex gap-2" data-tour="panel-video" style={{ scrollMarginTop: "var(--s-8)" }}>
-      {([["list", "내 영상"], ["sns", "SNS 연결"]] as const).map(([id, label]) => (
+      {/* 🔴 **순서가 곧 «자주 쓰는 차례»다**(대표님 B-14). 「내 영상」이 맨 앞이다 */}
+      {([["list", "내 영상"], ["settings", "영상 설정"], ["sns", "SNS 연결"]] as const).map(([id, label]) => (
         <button key={id} type="button" onClick={() => setView(id)}
           className={`rounded-full px-4 py-2 t-caption font-semibold ${
             view === id ? "bg-green-700 text-white" : "border border-n-300"}`}>
@@ -651,6 +655,234 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
       ))}
     </div>
   );
+
+  /**
+   * 🔴🔴 **「영상 설정」 — 한 번 정하면 끝인 것들을 «따로» 둔다.** (2026-09-18 대표님 지시 B-14)
+   *
+   * > 대표님: 「edit 영상 메뉴를 **(내 영상) (영상 설정) (SNS 연결)** 셋으로.
+   * >   **「내 영상」엔 영상 목록 + 「한 방에 올리기」가 «바로»** 보이게.
+   * >   숏폼스타일·재생순서·이름바꾸기는 **「영상 설정」**으로」
+   *
+   * ⚠⚠ **왜 옮기나:** 설정은 **한 번 정하면 끝**인데 그것이 목록 «위»에 있어서,
+   *   영상을 올리러 오신 사장님이 **매번 그 큰 칸을 지나쳐야** 했다.
+   *   ⇒ 「내 영상」을 열면 **올리는 일이 제일 먼저** 보이게 한다.
+   * ⚠ 내용은 **한 줄도 바꾸지 않았다. 자리만 옮겼다** — 그래야 뭔가 어긋났을 때
+   *   «옮기기가 잘못됐는지 내용이 잘못됐는지»를 가를 수 있다([42] §1 에서 배운 것).
+   * ⚠ **「이름 바꾸기」(B-15)는 아직 없다.** 만들면 이 탭에 들어온다.
+   * ★ 목록을 불러오는 «동안»에도 들어올 수 있게 `items === null` 검사 **위**에 둔다.
+   */
+  if (view === "settings") {
+    return (
+      <div className="space-y-4">
+        {tabs}
+        {/**
+          * 🔴🔴 **「숏폼 스타일 선택」 — 사장님이 «모양»을 고르는 자리.** (2026-09-17 지시 [42] §4)
+          *
+          * ★ **왜 여기인가:** 고르는 것이 **사이트마다**라 사장님 화면이 자연스럽다.
+          *   대표님 원문은 「홈페이지 관리자 - 어드민 - 영상 - "숏폼 스타일 선택"」인데
+          *   「관리자」가 사장님인지 우리인지 갈려 **권반장이 대표님께 여쭙는 중**이다.
+          *   ⇒ **사장님 쪽을 «주»로 먼저 만든다**(권반장이 정함). 어드민 표는 그 뒤다.
+          *
+          * ⚠⚠ **설명글은 «대표님이 쓰신 문장 그대로»다. 다듬지 마라.**
+          *   (`fable51plandept/handoff/2026-09-17-숏폼시네마/00-기획서-대표님확인용.md` §1-1)
+          * 🔴 **「몰입모드」·「숏폼시네마」라는 낱말을 여기 쓰지 않는다**(권반장이 정함) —
+          *   **우리끼리 부르는 이름**이라 사장님도 모른다. **무엇이 일어나는지**로 쓴다.
+          * ★ **그림으로 한눈에** — 세로/가로 방향을 작은 그림으로 보여 준다(글보다 빠르다).
+          */}
+        <section data-tour="panel-shorts-style" className="space-y-3 rounded-2xl border border-n-200 p-4">
+          <div>
+            <p className="t-body font-bold">숏폼 스타일 선택</p>
+            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+              홈페이지에서 영상을 <b>어떤 모양으로</b> 보여 드릴지 고르세요. 언제든 바꿀 수 있어요.
+            </p>
+            {/**
+              * 🔴 **대표님이 주신 문장 그대로다. 다듬지 마라.** (2026-09-18 지시 B-16)
+              * > 「기존 문구 아래에 **「어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고,
+              * >   몰입모드에서는 모든 영상이 재생됩니다」** — **몰입모드 존재를 각인시키는 목적**」
+              *
+              * ⚠ **「몰입모드」라는 낱말이 여기에는 있어도 된다.** 2026-09-18 대표님 B-18 로
+              *   규칙이 «완화»되었다 — 「**사장님은 몰입모드·숏폼시네마를 알아도 됨.
+              *   홈페이지 방문 «손님»에게만** 굳이 안 알려도 된다」.
+              * 🔴 **손님 화면(`components/sections/*`)에는 여전히 쓰지 않는다.** 여기는 사장님 화면이다.
+              */}
+            <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+              어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고, 몰입모드에서는 모든 영상이 재생됩니다.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {SHORTS_STYLES.map((o) => {
+              const on = style === o.key;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => chooseShorts({ style: o.key })}
+                  disabled={styleBusy}
+                  aria-pressed={on}
+                  className={`rounded-2xl border p-4 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                >
+                  <span className="flex items-center gap-2">
+                    {/* 고른 것에 동그라미 — 라디오처럼 보이게(하나만 고른다는 뜻) */}
+                    <span className={`inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
+                      {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
+                    </span>
+                    <b className="t-body">{o.label}</b>
+                    {/* 🔴 **고른 값을 그대로 보여 준다.** 고정 숫자(10·20)를 적어 두면 사장님이 5편으로
+                        바꾸셨을 때 화면이 거짓말을 한다(불변 규칙 12) */}
+                    <span className="t-caption text-[var(--text-soft)]">최근 {o.key === "shorts" ? stageN : cardsN}편</span>
+                  </span>
+
+                  {/* ★ 그림 한 장 — 세로로 넘기나(숏폼형태) 옆으로 넘기나(카드형태) */}
+                  <span aria-hidden className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-n-100 p-3">
+                    {o.key === "shorts" ? (
+                      <span className="flex flex-col items-center gap-1">
+                        <span className="block h-3 w-10 rounded bg-n-300" />
+                        <span className="block h-10 w-10 rounded bg-n-400" />
+                        <span className="block h-3 w-10 rounded bg-n-300" />
+                        <span className="t-caption font-semibold text-[var(--text-soft)]">↓ 세로로</span>
+                      </span>
+                    ) : (
+                      <span className="flex flex-col items-center gap-1">
+                        <span className="flex items-center gap-1">
+                          <span className="block h-10 w-4 rounded bg-n-300" />
+                          <span className="block h-12 w-9 rounded bg-n-400" />
+                          <span className="block h-10 w-4 rounded bg-n-300" />
+                        </span>
+                        <span className="t-caption font-semibold text-[var(--text-soft)]">→ 옆으로</span>
+                      </span>
+                    )}
+                  </span>
+
+                  {/* 🔴 **대표님이 쓰신 문장 그대로**(기획서 §1-1). 줄이거나 다듬지 마라 */}
+                  <span className="mt-3 block t-caption font-bold leading-relaxed">&ldquo;{o.headline}&rdquo;</span>
+                  {o.body.map((line) => (
+                    <span key={line} className="mt-2 block t-caption leading-relaxed text-[var(--text-soft)]">{line}</span>
+                  ))}
+                </button>
+              );
+            })}
+          </div>
+
+          {/**
+            * 🔴 **가두는 편수 — 5~10편.** (2026-09-17 대표님 지시)
+            *
+            * > 「스크롤에 갇히는 거 몇 개로 할지 설정할 수 있게 … **최소 5개에서 최대 10개 중에 고를 수 있음.**
+            * >   숏폼형태 10개면 **너무 많이 영상이 가려서 사장님들이 답답해 할 수 있으니까**」
+            *
+            * ⚠ **숏폼형태일 때만** 뜬다 — 카드형태는 스크롤을 안 가두므로 이 숫자가 뜻이 없다.
+            * ⚠ 카드형태 20편은 **대표님 지시로 그대로** 둔다(고르는 칸을 안 만든다).
+            */}
+          {style === "shorts" && (
+            <div className="border-t border-n-200 pt-3">
+              <p className="t-body font-bold">가두는 영상 수</p>
+              <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+                손님이 <b>몇 편까지 보고</b> 홈페이지의 다음 부분으로 내려가게 할지 고르세요.
+                <br />숫자가 클수록 영상을 더 많이 보시지만, <b>홈페이지의 다른 내용이 그만큼 늦게</b> 나옵니다.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {STAGE_N_CHOICES.map((n) => {
+                  const on = stageN === n;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => chooseShorts({ stageN: n })}
+                      disabled={styleBusy}
+                      aria-pressed={on}
+                      className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                    >
+                      {n}편
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/**
+            * 🔴 **카드형태가 늘어놓는 편수 — 10~40편.** (2026-09-18 대표님 지시 B-17)
+            *
+            * > 「카드형태 편수 선택 — **10 / 15 / 20 / 25 / 30 / 40** 중 고르게 (최저 10, 최대 40)」
+            *
+            * ⚠ **카드형태일 때만** 뜬다 — 숏폼형태에는 「가두는 편수」(위 칸)가 그 몫이다.
+            * ⚠ 숫자를 여기 박지 않는다 — `config/shorts.ts` 의 `CARDS_N_CHOICES` 를 돌려 그린다.
+            * ★ 숏폼형태(5~10)보다 **넉넉히 열어 둔 까닭**은 카드형태가 **스크롤을 안 가두기** 때문이다.
+            *   많아도 손님이 답답하지 않다 — 옆으로 넘기다 말면 그만이다.
+            */}
+          {style === "cards" && (
+            <div className="border-t border-n-200 pt-3">
+              <p className="t-body font-bold">보여 드릴 영상 수</p>
+              <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+                홈페이지의 카드 줄에 <b>최근 몇 편까지</b> 늘어놓을지 고르세요.
+                <br />여기서 자르더라도 <b>영상을 클릭하면 올려 두신 영상이 전부</b> 이어서 재생됩니다.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {CARDS_N_CHOICES.map((n) => {
+                  const on = cardsN === n;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => chooseShorts({ cardsN: n })}
+                      disabled={styleBusy}
+                      aria-pressed={on}
+                      className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                    >
+                      {n}편
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/**
+            * 🔴 **재생 순서.** (지시 [42] §5 · 대표님 기획서 §1-2)
+            * ⚠ **목록을 여기 박지 않는다** — `config/shorts.ts` 의 `SHORTS_ORDERS` 를 돌려 그린다.
+            *   대표님이 **「옵션이 더 늘어난다」**고 하셔서, 늘 때 **그 배열에 한 줄만** 더하면 되게 뒀다.
+            */}
+          <div className="border-t border-n-200 pt-3">
+            <p className="t-body font-bold">재생 순서</p>
+            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+              손님이 홈페이지에 들어왔을 때 <b>어떤 차례로</b> 보여 드릴지 고르세요.
+            </p>
+            <div className="mt-3 space-y-2">
+              {SHORTS_ORDERS.map((o) => {
+                const on = order === o.key;
+                return (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => chooseShorts({ order: o.key })}
+                    disabled={styleBusy}
+                    aria-pressed={on}
+                    className={`flex w-full items-start gap-2 rounded-xl border p-3 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                  >
+                    <span className={`mt-0.5 inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
+                      {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
+                    </span>
+                    <span>
+                      <b className="t-caption">{o.label}</b>
+                      <span className="mt-0.5 block t-caption leading-relaxed text-[var(--text-soft)]">{o.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* ⚠ 「왜 새로고침해도 안 바뀌나」를 미리 답해 둔다 — 안 그러면 「고장났나?」 한다 */}
+            {order !== "newest" && (
+              <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+                손님 한 분에게는 <b>보시는 동안 순서가 바뀌지 않습니다.</b> 새로 오시면 그때 다시 섞입니다.
+              </p>
+            )}
+          </div>
+
+          {styleMsg && <p className="t-caption font-semibold">{styleMsg}</p>}
+        </section>
+      </div>
+    );
+  }
 
   if (view === "sns") {
     return (
@@ -678,211 +910,6 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
       {tabs}
       {loadErr && <p className="rounded-xl bg-danger-soft p-3 t-caption font-semibold text-danger">{loadErr}</p>}
 
-      {/**
-        * 🔴🔴 **「숏폼 스타일 선택」 — 사장님이 «모양»을 고르는 자리.** (2026-09-17 지시 [42] §4)
-        *
-        * ★ **왜 여기인가:** 고르는 것이 **사이트마다**라 사장님 화면이 자연스럽다.
-        *   대표님 원문은 「홈페이지 관리자 - 어드민 - 영상 - "숏폼 스타일 선택"」인데
-        *   「관리자」가 사장님인지 우리인지 갈려 **권반장이 대표님께 여쭙는 중**이다.
-        *   ⇒ **사장님 쪽을 «주»로 먼저 만든다**(권반장이 정함). 어드민 표는 그 뒤다.
-        *
-        * ⚠⚠ **설명글은 «대표님이 쓰신 문장 그대로»다. 다듬지 마라.**
-        *   (`fable51plandept/handoff/2026-09-17-숏폼시네마/00-기획서-대표님확인용.md` §1-1)
-        * 🔴 **「몰입모드」·「숏폼시네마」라는 낱말을 여기 쓰지 않는다**(권반장이 정함) —
-        *   **우리끼리 부르는 이름**이라 사장님도 모른다. **무엇이 일어나는지**로 쓴다.
-        * ★ **그림으로 한눈에** — 세로/가로 방향을 작은 그림으로 보여 준다(글보다 빠르다).
-        */}
-      <section data-tour="panel-shorts-style" className="space-y-3 rounded-2xl border border-n-200 p-4">
-        <div>
-          <p className="t-body font-bold">숏폼 스타일 선택</p>
-          <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
-            홈페이지에서 영상을 <b>어떤 모양으로</b> 보여 드릴지 고르세요. 언제든 바꿀 수 있어요.
-          </p>
-          {/**
-            * 🔴 **대표님이 주신 문장 그대로다. 다듬지 마라.** (2026-09-18 지시 B-16)
-            * > 「기존 문구 아래에 **「어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고,
-            * >   몰입모드에서는 모든 영상이 재생됩니다」** — **몰입모드 존재를 각인시키는 목적**」
-            *
-            * ⚠ **「몰입모드」라는 낱말이 여기에는 있어도 된다.** 2026-09-18 대표님 B-18 로
-            *   규칙이 «완화»되었다 — 「**사장님은 몰입모드·숏폼시네마를 알아도 됨.
-            *   홈페이지 방문 «손님»에게만** 굳이 안 알려도 된다」.
-            * 🔴 **손님 화면(`components/sections/*`)에는 여전히 쓰지 않는다.** 여기는 사장님 화면이다.
-            */}
-          <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
-            어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고, 몰입모드에서는 모든 영상이 재생됩니다.
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {SHORTS_STYLES.map((o) => {
-            const on = style === o.key;
-            return (
-              <button
-                key={o.key}
-                type="button"
-                onClick={() => chooseShorts({ style: o.key })}
-                disabled={styleBusy}
-                aria-pressed={on}
-                className={`rounded-2xl border p-4 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
-              >
-                <span className="flex items-center gap-2">
-                  {/* 고른 것에 동그라미 — 라디오처럼 보이게(하나만 고른다는 뜻) */}
-                  <span className={`inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
-                    {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
-                  </span>
-                  <b className="t-body">{o.label}</b>
-                  {/* 🔴 **고른 값을 그대로 보여 준다.** 고정 숫자(10·20)를 적어 두면 사장님이 5편으로
-                      바꾸셨을 때 화면이 거짓말을 한다(불변 규칙 12) */}
-                  <span className="t-caption text-[var(--text-soft)]">최근 {o.key === "shorts" ? stageN : cardsN}편</span>
-                </span>
-
-                {/* ★ 그림 한 장 — 세로로 넘기나(숏폼형태) 옆으로 넘기나(카드형태) */}
-                <span aria-hidden className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-n-100 p-3">
-                  {o.key === "shorts" ? (
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="block h-3 w-10 rounded bg-n-300" />
-                      <span className="block h-10 w-10 rounded bg-n-400" />
-                      <span className="block h-3 w-10 rounded bg-n-300" />
-                      <span className="t-caption font-semibold text-[var(--text-soft)]">↓ 세로로</span>
-                    </span>
-                  ) : (
-                    <span className="flex flex-col items-center gap-1">
-                      <span className="flex items-center gap-1">
-                        <span className="block h-10 w-4 rounded bg-n-300" />
-                        <span className="block h-12 w-9 rounded bg-n-400" />
-                        <span className="block h-10 w-4 rounded bg-n-300" />
-                      </span>
-                      <span className="t-caption font-semibold text-[var(--text-soft)]">→ 옆으로</span>
-                    </span>
-                  )}
-                </span>
-
-                {/* 🔴 **대표님이 쓰신 문장 그대로**(기획서 §1-1). 줄이거나 다듬지 마라 */}
-                <span className="mt-3 block t-caption font-bold leading-relaxed">&ldquo;{o.headline}&rdquo;</span>
-                {o.body.map((line) => (
-                  <span key={line} className="mt-2 block t-caption leading-relaxed text-[var(--text-soft)]">{line}</span>
-                ))}
-              </button>
-            );
-          })}
-        </div>
-
-        {/**
-          * 🔴 **가두는 편수 — 5~10편.** (2026-09-17 대표님 지시)
-          *
-          * > 「스크롤에 갇히는 거 몇 개로 할지 설정할 수 있게 … **최소 5개에서 최대 10개 중에 고를 수 있음.**
-          * >   숏폼형태 10개면 **너무 많이 영상이 가려서 사장님들이 답답해 할 수 있으니까**」
-          *
-          * ⚠ **숏폼형태일 때만** 뜬다 — 카드형태는 스크롤을 안 가두므로 이 숫자가 뜻이 없다.
-          * ⚠ 카드형태 20편은 **대표님 지시로 그대로** 둔다(고르는 칸을 안 만든다).
-          */}
-        {style === "shorts" && (
-          <div className="border-t border-n-200 pt-3">
-            <p className="t-body font-bold">가두는 영상 수</p>
-            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
-              손님이 <b>몇 편까지 보고</b> 홈페이지의 다음 부분으로 내려가게 할지 고르세요.
-              <br />숫자가 클수록 영상을 더 많이 보시지만, <b>홈페이지의 다른 내용이 그만큼 늦게</b> 나옵니다.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {STAGE_N_CHOICES.map((n) => {
-                const on = stageN === n;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => chooseShorts({ stageN: n })}
-                    disabled={styleBusy}
-                    aria-pressed={on}
-                    className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
-                  >
-                    {n}편
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/**
-          * 🔴 **카드형태가 늘어놓는 편수 — 10~40편.** (2026-09-18 대표님 지시 B-17)
-          *
-          * > 「카드형태 편수 선택 — **10 / 15 / 20 / 25 / 30 / 40** 중 고르게 (최저 10, 최대 40)」
-          *
-          * ⚠ **카드형태일 때만** 뜬다 — 숏폼형태에는 「가두는 편수」(위 칸)가 그 몫이다.
-          * ⚠ 숫자를 여기 박지 않는다 — `config/shorts.ts` 의 `CARDS_N_CHOICES` 를 돌려 그린다.
-          * ★ 숏폼형태(5~10)보다 **넉넉히 열어 둔 까닭**은 카드형태가 **스크롤을 안 가두기** 때문이다.
-          *   많아도 손님이 답답하지 않다 — 옆으로 넘기다 말면 그만이다.
-          */}
-        {style === "cards" && (
-          <div className="border-t border-n-200 pt-3">
-            <p className="t-body font-bold">보여 드릴 영상 수</p>
-            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
-              홈페이지의 카드 줄에 <b>최근 몇 편까지</b> 늘어놓을지 고르세요.
-              <br />여기서 자르더라도 <b>영상을 클릭하면 올려 두신 영상이 전부</b> 이어서 재생됩니다.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {CARDS_N_CHOICES.map((n) => {
-                const on = cardsN === n;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => chooseShorts({ cardsN: n })}
-                    disabled={styleBusy}
-                    aria-pressed={on}
-                    className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
-                  >
-                    {n}편
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/**
-          * 🔴 **재생 순서.** (지시 [42] §5 · 대표님 기획서 §1-2)
-          * ⚠ **목록을 여기 박지 않는다** — `config/shorts.ts` 의 `SHORTS_ORDERS` 를 돌려 그린다.
-          *   대표님이 **「옵션이 더 늘어난다」**고 하셔서, 늘 때 **그 배열에 한 줄만** 더하면 되게 뒀다.
-          */}
-        <div className="border-t border-n-200 pt-3">
-          <p className="t-body font-bold">재생 순서</p>
-          <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
-            손님이 홈페이지에 들어왔을 때 <b>어떤 차례로</b> 보여 드릴지 고르세요.
-          </p>
-          <div className="mt-3 space-y-2">
-            {SHORTS_ORDERS.map((o) => {
-              const on = order === o.key;
-              return (
-                <button
-                  key={o.key}
-                  type="button"
-                  onClick={() => chooseShorts({ order: o.key })}
-                  disabled={styleBusy}
-                  aria-pressed={on}
-                  className={`flex w-full items-start gap-2 rounded-xl border p-3 text-left transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
-                >
-                  <span className={`mt-0.5 inline-grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${on ? "border-green-700" : "border-n-300"}`}>
-                    {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
-                  </span>
-                  <span>
-                    <b className="t-caption">{o.label}</b>
-                    <span className="mt-0.5 block t-caption leading-relaxed text-[var(--text-soft)]">{o.hint}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {/* ⚠ 「왜 새로고침해도 안 바뀌나」를 미리 답해 둔다 — 안 그러면 「고장났나?」 한다 */}
-          {order !== "newest" && (
-            <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
-              손님 한 분에게는 <b>보시는 동안 순서가 바뀌지 않습니다.</b> 새로 오시면 그때 다시 섞입니다.
-            </p>
-          )}
-        </div>
-
-        {styleMsg && <p className="t-caption font-semibold">{styleMsg}</p>}
-      </section>
 
       {/**
         * 🔴🔴 **21편째부터 «어디에도» 안 나온다 — 그런데 화면은 「걸림」이라고 말한다.**
@@ -1176,7 +1203,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     {/* ★★ 지우기 확인 — 일곱 자리 중 ⑤. **버튼 글자 자체가 «어디까지 지우는지»를 말한다** */}
                     {askDelete === it.id && (
                       <div className="mt-3 rounded-xl border border-danger p-3">
-                        <p className="t-caption font-bold text-danger">이 영상을 지울까요?</p>
+                        {/* 🔴 **대표님 문장 그대로다(2026-09-18 B-20).** `lib/sns/copy.ts` 한 곳에서 읽는다 */}
+                        <p className="t-caption font-bold text-danger">{SNS_DELETE_ASK}</p>
                         <p className="mt-1 whitespace-pre-line t-caption leading-relaxed text-[var(--text-soft)]">
                           {SNS_DELETE_SCOPE}
                         </p>

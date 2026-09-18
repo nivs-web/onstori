@@ -5,6 +5,8 @@ import { sbAdmin } from "@/lib/db-admin";
 import * as storage from "@/lib/storage";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
 import { recomputeScore } from "@/lib/score";
+import { videosToday, overDailyLimit } from "@/lib/story-quota";
+import { VIDEOS_PER_DAY, VIDEOS_PER_DAY_MSG } from "@/config/limits";
 
 /**
  * 녹화 제출 — story_entries 에 '업로드됨' 행을 남긴다 (기획1 /mainplan #rec).
@@ -62,6 +64,21 @@ export async function POST(req: Request) {
   const { data: site } = await sb.from("sites").select("id, status").eq("slug", slug).maybeSingle();
   if (!site) return NextResponse.json({ error: "not-found" }, { status: 404 });
   if (site.status === "expired" || site.status === "suspended") return NextResponse.json({ error: "홈페이지가 정지 상태예요. 정기결제를 시작하시면 바로 다시 녹화하실 수 있어요" }, { status: 402 });
+
+  /**
+   * 🔴🔴 **하루 5건 — «진짜» 관문은 여기다.** (2026-09-18 대표님 지시 B-5)
+   *
+   * ⚠ 앞의 `upload-url` 에서도 한 번 막지만, 그것은 **60초를 헛되이 올리지 않게** 하는 «예의»다.
+   *   파일은 다른 길로도 올 수 있으므로 **줄을 만드는 이 자리**가 마지막 관문이어야 한다.
+   * ⚠ **막더라도 이미 올라간 파일은 지우지 않는다**(불변 규칙 10) — 비공개 버킷에 남을 뿐
+   *   아무 데서도 참조되지 않는다.
+   * ⚠ 429 는 「너무 자주」라는 뜻의 상태 번호다. 화면은 이 글을 그대로 보여 준다.
+   */
+  const usedToday = await videosToday(site.id as string);
+  if (overDailyLimit(usedToday)) {
+    console.log(JSON.stringify({ evt: "story_daily_limit", slug, used: usedToday, limit: VIDEOS_PER_DAY }));
+    return NextResponse.json({ error: VIDEOS_PER_DAY_MSG, used: usedToday, limit: VIDEOS_PER_DAY }, { status: 429 });
+  }
 
   const base = { site_id: site.id, entry_type: "work", title: question.slice(0, 60), entry_date: new Date().toISOString().slice(0, 10), visible: false };
 

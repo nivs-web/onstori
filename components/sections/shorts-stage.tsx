@@ -466,7 +466,7 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
       </div>
 
       {/* 🔴🔴 **숏폼피드 세상** — 클릭하면 통째로 열리는 전체화면 (2026-09-17 지시 [33]) */}
-      {world !== null && <ShortsWorld items={view} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} />}
+      {world !== null && <ShortsWorld items={view} at={world} onAt={setWorld} onClose={() => setWorld(null)} calm={calm} slug={slug} />}
     </section>
   );
 }

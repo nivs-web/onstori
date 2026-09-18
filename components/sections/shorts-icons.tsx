@@ -147,3 +147,23 @@ export function IconChevronRight({ className }: P) {
     </svg>
   );
 }
+
+/**
+ * ⑩ **점 셋 「⋯」** — 인스타·틱톡의 «더 보기» 자리다. (2026-09-18 대표님 지시 B-20)
+ *
+ * > 대표님: 「인스타처럼 `⋯` 버튼 → 누르면 **영상 관리 페이지**로 → 거기서 삭제 가능.
+ * >   **온스토리에 영상 삭제 버튼이 어디 있는지 못 찾겠다**」
+ *
+ * ⚠ **글자 `⋯`(U+22EF)를 쓰지 않는다** — [49]① 에서 이모지·특수문자를 전부 SVG 로 바꾼 까닭과 같다.
+ *   기기마다 굵기와 자리가 달라지고, 키우면 흐려진다.
+ * ★ 점 셋을 **세로**가 아니라 **가로**로 놓는다(인스타 릴스가 가로다).
+ */
+export function IconMore({ className }: P) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
