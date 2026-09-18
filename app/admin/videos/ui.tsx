@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES,
+  SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES, CARDS_N_CHOICES,
   type ShortsStyle, type ShortsOrder,
 } from "@/config/shorts";
 
@@ -13,6 +13,8 @@ export type SiteRow = {
   videos: number;
   style: ShortsStyle;
   stageN: number;
+  /** 🔴 카드형태가 늘어놓는 편수 — 10~40 (2026-09-18 B-17) */
+  cardsN: number;
   order: ShortsOrder;
   /** 사장님이 직접 고른 적이 있나 — 없으면 기본값으로 도는 중 */
   chosen: boolean;
@@ -46,7 +48,7 @@ export function VideosStyleTable({ rows, warnAt }: { rows: SiteRow[]; warnAt: nu
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<Record<string, string>>({});
 
-  async function change(slug: string, patch: { style?: ShortsStyle; order?: ShortsOrder; stageN?: number }) {
+  async function change(slug: string, patch: { style?: ShortsStyle; order?: ShortsOrder; stageN?: number; cardsN?: number }) {
     if (busy) return;
     const before = list.find((r) => r.slug === slug);
     if (!before) return;
@@ -140,6 +142,30 @@ export function VideosStyleTable({ rows, warnAt }: { rows: SiteRow[]; warnAt: nu
                     onClick={() => change(r.slug, { stageN: n })}
                     className={`rounded-xl border px-2.5 py-1.5 t-caption font-semibold disabled:opacity-40 ${
                       r.stageN === n && r.style === "shorts" ? "border-green-700 bg-n-50" : "border-n-200"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 🔴 늘어놓는 편수 — 카드형태일 때만 뜻이 있다 (2026-09-18 B-17) */}
+            <div>
+              <p className="t-caption font-bold">
+                늘어놓는 편수
+                {r.style !== "cards" && <span className="font-normal text-[var(--text-soft)]"> (숏폼형태는 해당 없음)</span>}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {CARDS_N_CHOICES.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={busy === r.slug || r.style !== "cards"}
+                    aria-pressed={r.cardsN === n}
+                    onClick={() => change(r.slug, { cardsN: n })}
+                    className={`rounded-xl border px-2.5 py-1.5 t-caption font-semibold disabled:opacity-40 ${
+                      r.cardsN === n && r.style === "cards" ? "border-green-700 bg-n-50" : "border-n-200"
                     }`}
                   >
                     {n}

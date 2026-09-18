@@ -235,6 +235,29 @@ export function stageNOf(settings: unknown): number {
 }
 
 /**
+ * 🔴🔴 **카드형태가 «그리는» 편수를 사장님이 고른다 — 10~40편.** (2026-09-18 대표님 지시 B-17)
+ *
+ * > 대표님: 「카드형태 편수 선택 — **10 / 15 / 20 / 25 / 30 / 40** 중 고르게 (최저 10, 최대 40)」
+ *
+ * ⚠ **숏폼형태의 `stageN`(5~10)과 다른 숫자다. 섞지 마라.**
+ *   · `stageN`  = 스크롤을 **가두는** 편수 — 많으면 손님이 답답하다
+ *   · 여기      = 카드로 **늘어놓는** 편수 — 가두지 않으므로 넉넉해도 된다(대표님이 40까지 여신 이유)
+ * ⚠ `SHORTS_MAX`(200)와도 다르다 — 그것은 **DB 에서 몇 편 가져오나**이고, 몰입모드는 여전히 전부 본다.
+ * 🔴 **목록에 없는 값은 조용히 기본값(20)이다.** 옛 사이트·손으로 고친 값이 화면을 깨면 안 된다.
+ */
+export const CARDS_N_CHOICES = [10, 15, 20, 25, 30, 40] as const;
+
+/** 기본은 **20** — 2026-09-18 까지 모두가 보던 값 그대로다(아무것도 안 고른 사장님은 안 바뀐다) */
+export const CARDS_N_DEFAULT: number = SHORTS_SHAPE_N.cards;
+
+/** 저장 자리는 `sites.settings.shorts.cardsN`. ⚠ 목록 밖이면 기본값이다 */
+export function cardsNOf(settings: unknown): number {
+  const v = (settings as { shorts?: { cardsN?: unknown } } | null | undefined)?.shorts?.cardsN;
+  const n = typeof v === "number" ? Math.round(v) : Number.NaN;
+  return (CARDS_N_CHOICES as readonly number[]).includes(n) ? n : CARDS_N_DEFAULT;
+}
+
+/**
  * 🔴 **한 사장님이 이 편수를 넘으면 어드민 표에서 «눈에 띄게» 한다.** (2026-09-17 지시 [47]②)
  *
  * ⚠⚠ **막는 값이 아니다.** 올리는 것을 막는 것은 **«사업 정책»이고 «돈»과 얽혀** 대표님 결정 사항이다.

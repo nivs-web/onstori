@@ -1,7 +1,7 @@
 import { isAdmin } from "@/lib/admin-auth";
 import { sbAdmin } from "@/lib/db-admin";
 import { AdminLogin } from "../ui";
-import { shortsStyleOf, shortsOrderOf, stageNOf, SHORTS_SHAPE_N, VIDEOS_WARN_AT } from "@/config/shorts";
+import { shortsStyleOf, shortsOrderOf, stageNOf, cardsNOf, VIDEOS_WARN_AT } from "@/config/shorts";
 import * as storage from "@/lib/storage";
 import { VideosStyleTable, type SiteRow } from "./ui";
 
@@ -88,6 +88,7 @@ export default async function VideosAdmin() {
     videos: counts.get(s.id as string) ?? 0,
     style: shortsStyleOf(s.settings),
     stageN: stageNOf(s.settings),
+    cardsN: cardsNOf(s.settings),
     order: shortsOrderOf(s.settings),
     /** 🔴 사장님이 «직접 고른 적이 있나» — 없으면 기본값으로 도는 중이다 */
     chosen: !!(s.settings as { shorts?: unknown } | null)?.shorts,
@@ -102,7 +103,9 @@ export default async function VideosAdmin() {
           <br />
           ⚠ 원래는 <b>사장님이 편집화면에서 직접 고르는 것</b>입니다. 여기는 전화로 부탁하셨을 때 <b>대신 눌러 드리는 자리</b>입니다.
           <br />
-          ⚠ 카드형태는 최근 <b>{SHORTS_SHAPE_N.cards}편</b>이 나옵니다(고정). 숏폼형태만 편수를 고릅니다.
+          ⚠ <b>편수는 모양마다 다릅니다</b> — 숏폼형태는 «가두는 편수»(5~10), 카드형태는 «늘어놓는 편수»(10~40)를 고릅니다
+          <br />
+          ⚠ 어느 쪽이든 <b>영상을 클릭하면 올려 둔 영상이 전부</b> 이어서 재생됩니다(몰입모드).
           <br />
           🔴 <b>영상 편수에 제한이 없습니다.</b> 저장한 용량이 그대로 요금이 되므로 여기서 <b>눈으로 지켜봅니다</b> —
           <b>{VIDEOS_WARN_AT}편</b>이 넘는 곳은 눈에 띄게 표시합니다(막지는 않습니다).

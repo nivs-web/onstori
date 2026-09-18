@@ -6,7 +6,7 @@ import { ANCHOR_OF, contactOf } from "./nav";
 import QuoteForm from "./quote-form";
 import type { ShortT } from "@/lib/shorts";
 import ShortsFeed from "./shorts-feed";
-import { SHORTS_SHAPE_N, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
+import { CARDS_N_DEFAULT, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
 
 /**
  * 섹션 렌더러 v1 — JSON을 화면으로.
@@ -36,6 +36,8 @@ type Ctx = {
   shortsStyle?: ShortsStyle;
   /** 사장님이 고른 재생 순서 — 섞는 일은 브라우저가 한다 */
   shortsOrder?: ShortsOrder;
+  /** 🔴 카드형태가 «그리는» 편수 — 사장님이 10~40 에서 고른다(2026-09-18 B-17). 없으면 기본 20 */
+  cardsN?: number;
 };
 
 /**
@@ -477,7 +479,10 @@ function VideoSecR({ s, ctx }: { s: Extract<SectionT, { type: "video" }>; ctx: C
    *   몰입모드는 여전히 **가져온 전부**를 본다.
    */
   const all = ctx.shorts ?? [];
-  const feed = all.length > SHORTS_SHAPE_N.cards ? all.slice(0, SHORTS_SHAPE_N.cards) : all;
+  /* 🔴 **편수는 사장님이 고른다**(2026-09-18 B-17 · 10~40). 값이 없으면 지금까지와 같은 20 이다.
+     ⚠ 여기 숫자를 다시 박지 마라 — 목록은 `config/shorts.ts` 한 곳이다 */
+  const cardsN = ctx.cardsN ?? CARDS_N_DEFAULT;
+  const feed = all.length > cardsN ? all.slice(0, cardsN) : all;
   const single = s.url?.trim() ?? "";
 
   /**

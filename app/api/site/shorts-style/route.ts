@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loadOwnedSite } from "@/lib/site-owner";
 import { sbAdmin } from "@/lib/db-admin";
 import { revalidatePath } from "next/cache";
-import { SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES, shortsStyleOf, shortsOrderOf, stageNOf } from "@/config/shorts";
+import { SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES, CARDS_N_CHOICES, shortsStyleOf, shortsOrderOf, stageNOf, cardsNOf } from "@/config/shorts";
 
 /**
  * 🔴 **사장님이 「숏폼 모양」을 고르는 창구.** (2026-09-17 지시 [42] §4)
@@ -21,7 +21,7 @@ import { SHORTS_STYLES, SHORTS_ORDERS, STAGE_N_CHOICES, shortsStyleOf, shortsOrd
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string; order?: string; stageN?: number };
+  const body = (await req.json().catch(() => ({}))) as { slug?: string; anonId?: string; style?: string; order?: string; stageN?: number; cardsN?: number };
   const r = await loadOwnedSite(String(body.slug ?? ""), body.anonId);
   if ("error" in r) {
     return NextResponse.json({ error: r.error }, { status: r.error === "forbidden" ? 403 : 404 });
@@ -53,6 +53,13 @@ export async function POST(req: Request) {
     }
     patchN.stageN = Number(body.stageN);
   }
+  if (body.cardsN !== undefined) {
+    /* 🔴 카드형태가 «그리는» 편수(2026-09-18 B-17). 목록 밖 숫자는 **받지 않는다** */
+    if (!(CARDS_N_CHOICES as readonly number[]).includes(Number(body.cardsN))) {
+      return NextResponse.json({ error: "고를 수 없는 편수예요" }, { status: 400 });
+    }
+    patchN.cardsN = Number(body.cardsN);
+  }
   if (!Object.keys(patch).length && !Object.keys(patchN).length) {
     return NextResponse.json({ error: "바꿀 것이 없어요" }, { status: 400 });
   }
@@ -73,5 +80,5 @@ export async function POST(req: Request) {
   revalidatePath(`/${r.site.slug}`);
 
   console.log(JSON.stringify({ evt: "shorts_style_set", slug: r.site.slug, ...patch, ...patchN }));
-  return NextResponse.json({ ok: true, style: shortsStyleOf(next), order: shortsOrderOf(next), stageN: stageNOf(next) });
+  return NextResponse.json({ ok: true, style: shortsStyleOf(next), order: shortsOrderOf(next), stageN: stageNOf(next), cardsN: cardsNOf(next) });
 }

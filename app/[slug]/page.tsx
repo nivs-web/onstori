@@ -10,7 +10,7 @@ import { SiteChrome, FinalCta } from "@/components/sections/site-chrome";
 import { PausedSite } from "@/components/sections/paused";
 import { ChannelWidget } from "@/components/sections/channel-widget";
 import ShortsStage from "@/components/sections/shorts-stage";
-import { shortsStyleOf, shortsOrderOf, stageNOf } from "@/config/shorts";
+import { shortsStyleOf, shortsOrderOf, stageNOf, cardsNOf } from "@/config/shorts";
 import ShortsSns from "@/components/sections/shorts-sns";
 import { ANCHOR_OF } from "@/components/sections/nav";
 
@@ -143,6 +143,9 @@ export default async function SitePage({ params }: Props) {
   const shortsOrder = shortsOrderOf(site.settings);
   /* 🔴 가두는 편수 — 사장님이 5~10 에서 고른다(2026-09-17 대표님) */
   const stageN = stageNOf(site.settings);
+  /* 🔴 카드형태가 늘어놓는 편수 — 사장님이 10~40 에서 고른다(2026-09-18 대표님 B-17).
+     ⚠ 몰입모드는 여전히 **가져온 전부**를 본다. 여기서 자르는 것은 «첫 화면에 그리는 수»뿐이다 */
+  const cardsN = cardsNOf(site.settings);
   const stageOn = shortsStyle === "shorts" && stageItems.length > 0;
   /* 히어로가 없는 사이트도 있다 — 그때는 맨 앞에 세운다 */
   const heroAt = site.doc.sections.findIndex((x) => x.type === "hero");
@@ -223,7 +226,7 @@ export default async function SitePage({ params }: Props) {
         <ChannelWidget channels={(site.settings?.channels as Record<string, unknown> | undefined) ?? null} />
         {site.doc.sections.map((s, i) => (
           <React.Fragment key={i}>
-            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle, shortsOrder }} />
+            <RenderSection s={s} index={i} band={bands[i]} ctx={{ doc: site.doc, stories: site.stories, slug, shorts: site.shorts, stageOn, shortsStyle, shortsOrder, cardsN }} />
             {i === stageAfter && (
               <>
                 <ShortsStage items={stageItems} anchorId={ANCHOR_OF.video} title={videoTitle} slug={slug} order={shortsOrder} stageN={stageN} />

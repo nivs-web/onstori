@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SHORTS_MAX, SHORTS_STYLES, SHORTS_SHAPE_N, SHORTS_STYLE_DEFAULT, SHORTS_ORDERS, SHORTS_ORDER_DEFAULT, STAGE_N_CHOICES, STAGE_N_MAX, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
+import { SHORTS_MAX, SHORTS_STYLES, SHORTS_STYLE_DEFAULT, SHORTS_ORDERS, SHORTS_ORDER_DEFAULT, STAGE_N_CHOICES, STAGE_N_MAX, CARDS_N_CHOICES, CARDS_N_DEFAULT, type ShortsStyle, type ShortsOrder } from "@/config/shorts";
 import type { SectionT, SiteDocT } from "@/lib/schema";
 import { StoryLinkButton } from "./story-link";
 import { SnsPanel } from "./sns-panel";
@@ -99,6 +99,8 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
   const [order, setOrder] = useState<ShortsOrder>(SHORTS_ORDER_DEFAULT);
   /** 🔴 숏폼형태가 «가두는» 편수 — 사장님이 5~10 에서 고른다(2026-09-17 대표님) */
   const [stageN, setStageN] = useState<number>(STAGE_N_MAX);
+  /** 🔴 카드형태가 «늘어놓는» 편수 — 10~40 에서 고른다(2026-09-18 대표님 B-17) */
+  const [cardsN, setCardsN] = useState<number>(CARDS_N_DEFAULT);
   const [styleBusy, setStyleBusy] = useState(false);
   const [styleMsg, setStyleMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
@@ -158,11 +160,12 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         setItems([]);
         return;
       }
-      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle; shortsOrder?: ShortsOrder; stageN?: number };
+      const got = (await r.json()) as { items: Item[]; softDeleteReady?: boolean; attachedTotal?: number | null; shortsStyle?: ShortsStyle; shortsOrder?: ShortsOrder; stageN?: number; cardsN?: number };
       setItems(got.items);
       if (got.shortsStyle) setStyle(got.shortsStyle);
       if (got.shortsOrder) setOrder(got.shortsOrder);
       if (typeof got.stageN === "number") setStageN(got.stageN);
+      if (typeof got.cardsN === "number") setCardsN(got.cardsN);
       /* ⚠ 「지우기」 칸이 아직 없으면 그 버튼을 안 그린다 */
       if (got.softDeleteReady === false) setCanDelete(false);
       /* 🔴 서버가 세어 준 «걸린 전체 편수» — 목록은 잘려 오므로 이 수로만 판단한다 */
@@ -434,15 +437,17 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
    * ⚠ **먼저 화면을 바꾸고** 서버에 보낸다 — 누르자마자 반응이 있어야 한다.
    *   실패하면 **되돌리고 사실대로 말한다**(조용히 삼키면 바뀐 줄 안다).
    */
-  async function chooseShorts(patch: { style?: ShortsStyle; order?: ShortsOrder; stageN?: number }) {
+  async function chooseShorts(patch: { style?: ShortsStyle; order?: ShortsOrder; stageN?: number; cardsN?: number }) {
     if (styleBusy) return;
     if (patch.style && patch.style === style) return;
     if (patch.order && patch.order === order) return;
     if (patch.stageN && patch.stageN === stageN) return;
-    const before = { style, order, stageN };
+    if (patch.cardsN && patch.cardsN === cardsN) return;
+    const before = { style, order, stageN, cardsN };
     if (patch.style) setStyle(patch.style);
     if (patch.order) setOrder(patch.order);
     if (patch.stageN) setStageN(patch.stageN);
+    if (patch.cardsN) setCardsN(patch.cardsN);
     setStyleBusy(true); setStyleMsg("");
     try {
       const r = await fetch("/api/site/shorts-style", {
@@ -450,10 +455,10 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
         body: JSON.stringify({ slug, anonId, ...patch }),
       });
       const d = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) { setStyle(before.style); setOrder(before.order); setStageN(before.stageN); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
+      if (!r.ok) { setStyle(before.style); setOrder(before.order); setStageN(before.stageN); setCardsN(before.cardsN); setStyleMsg(d.error ?? "바꾸지 못했어요."); return; }
       setStyleMsg("바꿨어요. 홈페이지를 열어 보시면 바로 보입니다.");
     } catch {
-      setStyle(before.style); setOrder(before.order); setStageN(before.stageN);
+      setStyle(before.style); setOrder(before.order); setStageN(before.stageN); setCardsN(before.cardsN);
       setStyleMsg("연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
     } finally { setStyleBusy(false); }
   }
@@ -693,6 +698,19 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
           <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
             홈페이지에서 영상을 <b>어떤 모양으로</b> 보여 드릴지 고르세요. 언제든 바꿀 수 있어요.
           </p>
+          {/**
+            * 🔴 **대표님이 주신 문장 그대로다. 다듬지 마라.** (2026-09-18 지시 B-16)
+            * > 「기존 문구 아래에 **「어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고,
+            * >   몰입모드에서는 모든 영상이 재생됩니다」** — **몰입모드 존재를 각인시키는 목적**」
+            *
+            * ⚠ **「몰입모드」라는 낱말이 여기에는 있어도 된다.** 2026-09-18 대표님 B-18 로
+            *   규칙이 «완화»되었다 — 「**사장님은 몰입모드·숏폼시네마를 알아도 됨.
+            *   홈페이지 방문 «손님»에게만** 굳이 안 알려도 된다」.
+            * 🔴 **손님 화면(`components/sections/*`)에는 여전히 쓰지 않는다.** 여기는 사장님 화면이다.
+            */}
+          <p className="mt-2 t-caption leading-relaxed text-[var(--text-soft)]">
+            어떤 영상이든 영상을 클릭하면 몰입모드로 바뀌고, 몰입모드에서는 모든 영상이 재생됩니다.
+          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -713,7 +731,9 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     {on && <span className="h-2.5 w-2.5 rounded-full bg-green-700" />}
                   </span>
                   <b className="t-body">{o.label}</b>
-                  <span className="t-caption text-[var(--text-soft)]">최근 {SHORTS_SHAPE_N[o.key]}편</span>
+                  {/* 🔴 **고른 값을 그대로 보여 준다.** 고정 숫자(10·20)를 적어 두면 사장님이 5편으로
+                      바꾸셨을 때 화면이 거짓말을 한다(불변 규칙 12) */}
+                  <span className="t-caption text-[var(--text-soft)]">최근 {o.key === "shorts" ? stageN : cardsN}편</span>
                 </span>
 
                 {/* ★ 그림 한 장 — 세로로 넘기나(숏폼형태) 옆으로 넘기나(카드형태) */}
@@ -771,6 +791,43 @@ export function VideosPanel({ slug, doc, phone, onAttach, onDetach }: {
                     key={n}
                     type="button"
                     onClick={() => chooseShorts({ stageN: n })}
+                    disabled={styleBusy}
+                    aria-pressed={on}
+                    className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
+                  >
+                    {n}편
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/**
+          * 🔴 **카드형태가 늘어놓는 편수 — 10~40편.** (2026-09-18 대표님 지시 B-17)
+          *
+          * > 「카드형태 편수 선택 — **10 / 15 / 20 / 25 / 30 / 40** 중 고르게 (최저 10, 최대 40)」
+          *
+          * ⚠ **카드형태일 때만** 뜬다 — 숏폼형태에는 「가두는 편수」(위 칸)가 그 몫이다.
+          * ⚠ 숫자를 여기 박지 않는다 — `config/shorts.ts` 의 `CARDS_N_CHOICES` 를 돌려 그린다.
+          * ★ 숏폼형태(5~10)보다 **넉넉히 열어 둔 까닭**은 카드형태가 **스크롤을 안 가두기** 때문이다.
+          *   많아도 손님이 답답하지 않다 — 옆으로 넘기다 말면 그만이다.
+          */}
+        {style === "cards" && (
+          <div className="border-t border-n-200 pt-3">
+            <p className="t-body font-bold">보여 드릴 영상 수</p>
+            <p className="mt-1 t-caption leading-relaxed text-[var(--text-soft)]">
+              홈페이지의 카드 줄에 <b>최근 몇 편까지</b> 늘어놓을지 고르세요.
+              <br />여기서 자르더라도 <b>영상을 클릭하면 올려 두신 영상이 전부</b> 이어서 재생됩니다.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {CARDS_N_CHOICES.map((n) => {
+                const on = cardsN === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => chooseShorts({ cardsN: n })}
                     disabled={styleBusy}
                     aria-pressed={on}
                     className={`min-w-[52px] rounded-xl border px-3 py-2 t-caption font-bold transition disabled:opacity-60 ${on ? "border-green-700 bg-n-50" : "border-n-200"}`}
