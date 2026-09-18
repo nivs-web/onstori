@@ -15,10 +15,31 @@ const ONLY = arg("slug", "");
 async function main() {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
-  // 첫 페이지에 걸린 것만 찍는다 — 안 쓰는 사이트를 찍을 이유가 없다
-  const { data: show } = await sb.from("showcase").select("slug").order("sort");
-  const slugs = (show ?? []).map((r) => r.slug as string).filter((s) => !ONLY || s === ONLY);
-  if (!slugs.length) { console.log("찍을 사이트가 없다 (showcase 가 비었나?)"); return; }
+  /**
+   * 🔴🔴 **`--slug` 를 주면 showcase 를 «거치지 않는다».** (2026-09-18 토스 심사 건)
+   *
+   * ⚠⚠ **왜 고쳤나:** 전에는 대상 목록을 **언제나 `showcase` 에서** 가져오고 `--slug` 는
+   *   그 목록을 «거르는» 데만 썼다. 그래서 showcase 에 없는 사이트는 `--slug` 를 줘도
+   *   **「찍을 사이트가 없다」로 조용히 끝났다.**
+   * 🔴 **showcase 에 넣어서 푸는 방법을 쓰면 안 된다** — showcase 는
+   *   **첫 페이지 「온스토리로 만든 홈페이지」 목록**이다. 넣는 순간
+   *   `sample-toss`(토스 심사용 예시)가 **손님들 첫 화면에 걸린다.**
+   * ⇒ 이름을 «집어» 주면 그것만 찍는다. 목록에 있든 없든 상관없다.
+   * ⚠ 다만 **그 사이트가 실제로 있는지는 확인한다** — 오타로 엉뚱한 이름을 주면
+   *   크롬을 띄우고 나서야 「사이트 없음」이 된다. 먼저 묻는 것이 싸다.
+   */
+  let slugs: string[];
+  if (ONLY) {
+    const { data: one } = await sb.from("sites").select("slug").eq("slug", ONLY).maybeSingle();
+    if (!one) { console.log(`그런 홈페이지가 없다: ${ONLY}`); return; }
+    slugs = [ONLY];
+    console.log(`«이름을 집어» 찍는다 — showcase 는 보지 않는다`);
+  } else {
+    // 이름을 안 주면 예전 그대로 — 첫 페이지에 걸린 것만 찍는다(안 쓰는 사이트를 찍을 이유가 없다)
+    const { data: show } = await sb.from("showcase").select("slug").order("sort");
+    slugs = (show ?? []).map((r) => r.slug as string);
+    if (!slugs.length) { console.log("찍을 사이트가 없다 (showcase 가 비었나?)"); return; }
+  }
 
   console.log(`대상 ${slugs.length}곳 · 기준 주소 ${ORIGIN}`);
   let ok = 0, fail = 0;
