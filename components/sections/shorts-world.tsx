@@ -3,9 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ShortT, ShortLink } from "@/lib/shorts";
-import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
+import { SNS_LABEL, pillLinks } from "./sns-brand";
 import { SWIPE_PX, HINT_MS } from "@/config/shorts";
-import { IconSoundOn, IconSoundOff, IconChevronUp, IconChevronDown, IconHeart, IconComment } from "./shorts-icons";
+import { IconSoundOn, IconSoundOff, IconChevronUp, IconChevronDown } from "./shorts-icons";
+
+/**
+ * 🔴 **공식 로고 파일 — 대표님이 주신 것을 그대로 쓴다.** (2026-09-18 B-19)
+ * ⚠ 직접 그리거나 색을 바꾸지 마라(상표 규칙). 흰 단색만 쓴다.
+ * ⚠ **일부러 «빠진 채널이 있는» 표다**(`Partial`). 로고 파일이 없는 채널이 들어오면
+ *   그 단추는 **안 그린다** — 깨진 그림 자리가 영상 위에 남는 것보다 낫다.
+ */
+const LOGO_SRC: Partial<Record<ShortLink["provider"], string>> = {
+  instagram: "/brand/instagram-white.svg",
+  youtube: "/brand/youtube-white.png",
+};
 
 /**
  * 🔴🔴 **몰입모드(「숏폼시네마」)만 사는 파일.** (2026-09-17 지시 [42] §1)
@@ -206,21 +217,44 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           *   **0 이라 아예 안 그린다** — 「♡ 0」은 「아무도 안 좋아했다」로 읽힌다(권반장 지시).
           */}
         <div className="world-meta">
+          {/* 🔴 좌하에는 **제목만** 남는다. [인스타에서 보기] 알약은 2026-09-18 [49]③ 으로
+               «우측 세로줄의 로고 단추»가 되었다(아래 `.world-side`). */}
           {cur?.caption && <p className="world-cap">{cur.caption}</p>}
-          {pillLinks(cur?.links ?? []).length ? (
-            <div className="world-links">
-              {pillLinks(cur.links).map((l) => (
-                <span key={l.provider} className="world-row">
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="world-pill">
-                    <span className="world-dot" style={{ background: SNS_DOT[l.provider] }} />
-                    {SNS_LABEL[l.provider]}
-                  </a>
-                  <Reactions link={l} />
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
+
+        {/**
+          * 🔴🔴 **우측 세로줄 — «로고 단추»뿐이다. 숫자는 없다.** (2026-09-18 [49]③ · B-12 · B-19)
+          *
+          * > 대표님(B-19): 「로고는 `fable51plandept\etc\insta logo` · `youtube logo` 에 넣어 뒀다.
+          * >   **SVG · 흰색 · 컬러 없는 심플한 것만.** 숫자 0이면 **로고만** 표시」
+          * > 대표님(B-12): 「**좋아요·댓글 수는 지금 안 한다(확정).**」
+          *
+          * ⚠⚠ **전에는 「인스타에서 보기」 «글자 알약»이 좌하에 있었다.** 알약 하나가 120px 이라
+          *   폰에서 **영상을 가렸다** — 대표님이 「디자인이 별로」라 하신 것의 한 자락이다.
+          * ⇒ 글자를 **공식 로고 그림**으로 바꾸고 **오른쪽 세로줄**로 옮겼다(릴스·쇼츠와 같은 자리).
+          *
+          * 🔴 **로고는 «공식 파일»이다. 직접 그리지 않았다**(상표) —
+          *   `public/brand/instagram-white.svg`(Meta 공식 White Glyph) ·
+          *   `public/brand/youtube-white.png`(Google 공식 White icon · 96px 로 줄인 것).
+          *   ⚠ 유튜브는 **공식 SVG 가 없다**(.ai/.eps/.png 뿐) — 그래서 PNG 다. 늘리지 마라.
+          * ⚠ **연결된 채널만 그린다**(`pillLinks`) ⇒ 0~2개다. 없으면 줄 자체를 안 만든다.
+          * ⚠ 글자를 못 읽는 손님을 위해 `aria-label` 에 이름을 남긴다(눈에는 안 보인다).
+          */}
+        {pillLinks(cur?.links ?? []).length ? (
+          <div className="world-side">
+            {pillLinks(cur.links).map((l) => {
+              const src = LOGO_SRC[l.provider];
+              if (!src) return null;   /* 로고 파일이 없는 채널은 그리지 않는다(위 주석) */
+              return (
+                <a key={l.provider} href={l.url} target="_blank" rel="noopener noreferrer"
+                  className="world-logo" aria-label={SNS_LABEL[l.provider]} title={SNS_LABEL[l.provider]}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 작은 고정 크기 로고 두 장뿐이라 next/image 의 최적화가 값을 못 한다 */}
+                  <img src={src} alt="" width={22} height={22} />
+                </a>
+              );
+            })}
+          </div>
+        ) : null}
 
         {/**
           * 🔴🔴 **아래 것들은 «화면 구석»이 아니라 «영상 프레임» 안에 붙는다.** (2026-09-17 [42] §2)
@@ -361,37 +395,7 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
   );
 }
 
-/**
- * 🔴 **좋아요·댓글 «자리».** (2026-09-17 지시 [49]③ — 「자리와 모양만」)
- *
- * ⚠⚠ **지금은 «아무것도 안 그려진다».** 숫자를 가져오는 일이 **[46]** 이라
- *   `likes`·`comments` 가 아직 늘 `undefined` 다. 그래서 이 컴포넌트는 **지금 `null` 을 돌려준다.**
- *   🔴 **그것이 맞다.** 숫자도 없이 ♡ 만 띄우면 손님은 **누를 수 있는 단추인 줄** 안다 —
- *     우리 ♡ 는 **누르는 단추가 아니라 «보여주는 표시»**다.
- *
- * ## 🔴 0 이면 안 그린다 — 이유
- *
- * > 권반장: 「**0이면 아예 안 그립니다**」
- *
- * 「♡ 0」은 **「아무도 안 좋아했다」**로 읽힌다. 사장님 홈페이지에 그렇게 적을 이유가 없다.
- * **모르는 것(`undefined`)도 안 그린다** — 모르면서 아는 척하지 않는다.
- *
- * ⚠ **숫자는 `tabular-nums`** 다. 1 과 8 의 폭이 달라지면 **숫자가 바뀔 때 줄이 흔들린다.**
- */
-function Reactions({ link }: { link: ShortLink }) {
-  const n = (v: number | undefined) => (typeof v === "number" && v > 0 ? v : null);
-  const likes = n(link.likes);
-  const comments = n(link.comments);
-  /* 🔴 둘 다 없으면 **칸 자체를 안 만든다** — 빈 칸이 남으면 알약 옆이 어색하게 벌어진다 */
-  if (likes === null && comments === null) return null;
-  return (
-    <span className="world-react" aria-hidden>
-      {likes !== null && (
-        <span className="world-react-one"><IconHeart /><b>{likes.toLocaleString("ko-KR")}</b></span>
-      )}
-      {comments !== null && (
-        <span className="world-react-one"><IconComment /><b>{comments.toLocaleString("ko-KR")}</b></span>
-      )}
-    </span>
-  );
-}
+/* 🔴 **여기 있던 `Reactions`(♡·💬 숫자)는 2026-09-18 대표님 B-12 로 «폐기»했다.**
+   > 「좋아요·댓글 수는 **지금은 안 한다(확정)**. 속도 위험 + 숫자 불일치 우려.
+   >   **아이디어뱅크에 기획서로** 넣어 둔다. 유튜브 연결 뒤 꺼내서 속도 시험」
+   ⚠ 되살릴 때는 git 에서 꺼내라(2026-09-18 이전 판). 지금 «자리»는 `.world-side` 가 쓴다. */

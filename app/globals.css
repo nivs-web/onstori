@@ -2128,52 +2128,43 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
        화면을 밀어냈다. **글자는 한 자도 안 바꾼다** — 넘칠 때 «…»으로 멈출 뿐이다. */
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
   overflow: hidden;
-  /* ⚠ **오른쪽 여백(124px)은 걷었다.** (2026-09-18 B-9) 우하에 있던 나가기 단추가
-     **하단 중앙으로 옮겨져** 제목 오른쪽을 비워 둘 이유가 사라졌다.
-     🔴 대신 **아래를 비운다** — `.world-meta` 의 `padding-bottom` 이 그 일을 한다. */
+  /* 🔴 **오른쪽을 76px 비운다** — 2026-09-18 [49]③ 으로 **우측 세로줄(로고 44px + 16px)**이
+     생겼다. 비우지 않으면 긴 제목의 오른쪽 끝이 그 단추 «밑으로 깔린다»
+     (2026-09-17 에 나가기 단추로 똑같은 일이 있었다 — 104px 이 겹쳤다).
+     ⚠ 옛 값 124px 은 «우하 나가기» 자리였다. 그 단추는 하단 중앙으로 갔다. */
+  margin-right: 76px;
 }
-/* 🔴 좌하 묶음 — [인스타에서 보기] 와 [쇼츠에서 보기] 를 **세로로 쌓는다**(지시 [42] §2).
-   ⚠ 전에는 가로로 나란히였다. 대표님 설계는 «한 줄에 하나»이고, 그래야 오른쪽에
-     ♡·💬 가 붙을 자리가 생긴다(§6). */
-.world-links { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); pointer-events: auto; }
-/* 알약 한 줄 — 오른쪽이 ♡·💬 자리다(§6 전에는 비어 있다) */
-.world-row { display: inline-flex; align-items: center; gap: var(--s-3); }
+/* 🔴🔴 **우측 세로줄 — 공식 «로고 단추»뿐이다.** (2026-09-18 [49]③ · B-12 · B-19)
 
-/* 🔴 몰입모드의 SNS 알약 — **`.stage-pill`·`.stage-dot` 의 «글자까지 같은» 사본**이다.
-   (2026-09-17 지시 [42] §1 — 몰입모드를 파일로 떼면서 CSS 이름도 갈랐다)
+   > 대표님: 「좋아요·댓글 수는 **지금은 안 한다(확정)**」 · 「로고는 **SVG · 흰색 · 심플한 것만**」
 
-   ⚠⚠ **왜 빌려 쓰던 것을 갈랐나:** 전에는 몰입모드가 무대의 `.stage-pill` 을 그대로 썼다.
-     [42] 2단계에서 **무대와 몰입모드가 서로 «다른» 모양**이 된다 —
-     그때 `.stage-pill` 을 고치면 **몰입모드까지 같이 바뀌어** 버린다(그 반대도 마찬가지).
-   ★ **지금은 값이 똑같다. 화면이 한 픽셀도 안 바뀐다**(§1 「화면 변화 0」).
-     달라지는 것은 2단계부터다 — 그때 이 블록만 고치면 된다. */
-.world-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 999px;
-  background: rgb(255 255 255 / 0.16);
-  color: #fff; font-size: var(--t-caption); font-weight: 600;
-  text-decoration: none;
+   ⚠⚠ **여기 있던 것들(`.world-links`·`.world-row`·`.world-pill`·`.world-dot`·`.world-react*`)을 지웠다.**
+     「인스타에서 보기」 **글자 알약 하나가 120px** 이라 폰에서 영상을 가렸다 — 그래서
+     글자를 **로고 그림**으로 바꾸고 **오른쪽**으로 옮겼다(릴스·쇼츠와 같은 자리).
+     되살릴 일이 생기면 git 에 남아 있다(2026-09-18 이전 판).
+
+   ★ **자리:** 오른쪽 · 아래에서 90px — 하단 중앙 [숏폼 나가기](10px + 알약 49px)와 «겹치지 않는»
+     가장 낮은 자리다. 점 표시기(`.world-rail`)는 오른쪽 «한가운데»라 이것과도 안 겹친다.
+   ⚠ **프레임 «안»이다.** 2026-09-17 에 프레임 밖에 뒀다가 PC 에서 영상과 415px 떨어져
+     남남이 된 일이 있다([42] §2 실측). 그 교훈을 지킨다. */
+.world-side {
+  position: absolute; right: 16px; bottom: 90px;
+  display: flex; flex-direction: column; gap: var(--s-3);
+  pointer-events: auto;
+}
+/* 원형 배지 — 소리 단추(`.world-sound`)와 «같은 결», 크기만 한 치수 작다(누르는 것이 주가 아니다) */
+.world-logo {
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
+  background: rgb(0 0 0 / 0.5);
   backdrop-filter: blur(6px);
+  text-decoration: none;
 }
-.world-pill:hover { background: rgb(255 255 255 / 0.26); }
-.world-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
-
-/* 🔴 **좋아요·댓글 표시 — 알약 오른쪽.** (2026-09-17 지시 [49]③ 「자리와 모양만」)
-   ⚠⚠ **지금은 화면에 «안 뜬다».** 숫자를 가져오는 일이 [46] 이라 값이 아직 없다
-     (`shorts-world.tsx` 의 `Reactions` 가 `null` 을 돌려준다). 이 규칙은 **그때를 위한 자리**다.
-   🔴 **누르는 단추가 아니다.** 원형 배지를 «안» 준 이유가 그것이다 —
-     둥근 단추 모양을 주면 손님이 **누르면 좋아요가 되는 줄** 안다. 우리 ♡ 는 «보여주는 표시»다.
-   ⚠ **`tabular-nums`** — 1 과 8 의 폭이 다르면 숫자가 바뀔 때 **줄이 흔들린다.** */
-.world-react { display: inline-flex; align-items: center; gap: var(--s-3); }
-.world-react-one {
-  display: inline-flex; align-items: center; gap: 5px;
-  color: #fff; font-size: 12px; line-height: 1;
-  /* 🔴 밝은 영상 위에서도 읽혀야 한다 — 그림자가 유일한 장치다(배지가 없으므로) */
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
-}
-/* ★ 아이콘 크기는 여기 `font-size` 가 정한다 — SVG 를 `1em` 으로 그렸다(`shorts-icons.tsx`) */
-.world-react-one svg { font-size: 15px; opacity: 0.95; }
-.world-react-one b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.world-logo:hover { background: rgb(0 0 0 / 0.75); }
+.world-logo:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* 🔴 로고 그림은 **크기를 여기서만** 정한다. 유튜브는 가로가 긴 그림이라 높이를 맞춘다 */
+.world-logo img { width: 22px; height: auto; display: block; }
 
 /* 나가는 길 — [✕]. 키보드로 들어오면 여기에 초점이 간다 */
 /* 🔴 2026-09-17 대표님 지시 [35]② — **나가기를 «크게».**
