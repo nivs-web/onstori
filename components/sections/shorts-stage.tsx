@@ -285,7 +285,7 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
     return () => { document.body.style.overflow = prev; window.scrollTo(0, y); };
   }, [world]);
 
-  /** 「건너뛰기 ↓」 — 무대 «바로 아래»로 내려간다 */
+  /** 「숏폼 나가기」 — 무대 «바로 아래»로 내려간다 (이름은 2026-09-18 B-8 로 통일) */
   const skip = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -456,8 +456,12 @@ export default function ShortsStage({ items, anchorId, title, slug, order = SHOR
           )}
 
           {/* 🔴 **항상 보이는 탈출구.** 가두기만 하면 나간다 — 나갈 수 있다는 걸 알아야 머문다.
-              ⚠ 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.** 키우고 또렷하게 했다. */}
-          <button type="button" className="stage-skip" onClick={skip}>건너뛰기 ↓</button>
+              ⚠ 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.** 키우고 또렷하게 했다.
+              🔴🔴 **이름은 「숏폼 나가기」 하나다.** (2026-09-18 대표님 B-8)
+                > 「「숏폼에서 나가기」·「건너뛰기」 전부 → **「숏폼 나가기」** 하나로」
+              ⚠ **「↓」 화살표를 뗐다** — 몰입모드의 [숏폼 나가기]와 «글자가 같아야» 손님이
+                같은 단추로 읽는다. 하는 일(무대 아래로 내려간다)은 그대로다. */}
+          <button type="button" className="stage-skip" onClick={skip}>숏폼 나가기</button>
         </div>
       </div>
 

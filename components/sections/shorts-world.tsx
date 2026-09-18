@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import type { ShortT, ShortLink } from "@/lib/shorts";
 import { SNS_LABEL, SNS_DOT, pillLinks } from "./sns-brand";
 import { SWIPE_PX, HINT_MS } from "@/config/shorts";
-import { IconSoundOn, IconSoundOff, IconClose, IconChevronUp, IconChevronDown, IconHeart, IconComment } from "./shorts-icons";
+import { IconSoundOn, IconSoundOff, IconChevronUp, IconChevronDown, IconHeart, IconComment } from "./shorts-icons";
 
 /**
  * 🔴🔴 **몰입모드(「숏폼시네마」)만 사는 파일.** (2026-09-17 지시 [42] §1)
@@ -153,7 +153,8 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
    * 🔴 **그냥 «막기»만 하면 안 된다.** 아래로 쓸면 **이전 편**으로 가야 한다 —
    *   아무 일도 안 일어나면 손님은 「멈췄나?」 한다.
    *
-   * ⚠ 나가는 길은 그대로 **넷**이다 — **✕(우상) · ESC · 폰 뒤로가기 · 바깥 클릭.**
+   * ⚠ 나가는 길은 그대로 **넷**이다 — **[숏폼 나가기](하단 중앙) · ESC · 폰 뒤로가기 · 바깥 클릭.**
+   *   (2026-09-18 B-9 로 «우상 ✕» 가 사라지고 그 자리가 소리 단추가 되었다)
    * ⚠ `preventDefault` 를 **하지 않는다.** 막으면 평범한 스크롤이 죽는다.
    */
   const onTouchStart = (e: React.TouchEvent) => { touchY.current = e.touches[0]?.clientY ?? null; };
@@ -173,7 +174,18 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
         <video ref={vid} className="world-video" src={cur?.src} poster={cur?.poster}
           autoPlay loop playsInline controls={calm} />
 
-        {/* 🔴 **소리 단추 하나** — 영상 왼쪽 위(유튜브 쇼츠와 같은 자리). 없어서 못 끄던 것을 고쳤다 */}
+        {/**
+          * 🔴🔴 **소리 단추 하나 — 영상 «오른쪽» 위.** (2026-09-18 대표님 지시 B-9)
+          *
+          * > 대표님: 「몰입모드 우측 상단의 **X 동그라미를 없애고 그 자리에 «스피커 음소거» 버튼**.
+          * >   나가기는 **하단 중앙 하나만**」
+          *
+          * ⚠⚠ **2026-09-17 의 「좌상 🔊 · 우상 ✕ 완벽 대칭」은 «대표님 지시로» 끝났다.**
+          *   ✕ 가 사라졌으니 대칭을 맞출 짝이 없다. 되돌리지 마라 — 그때도 대표님 지시였고
+          *   이번에도 대표님 지시다. **나중 것이 이긴다.**
+          * ⚠ 자리는 릴스·쇼츠와 같아졌다(둘 다 소리 단추가 오른쪽 위다).
+          * 🔴 화면에 스피커 그림은 **언제나 하나**다. 무대의 것은 이 검은 화면 아래에 깔린다.
+          */}
         {!calm && (
           <button type="button" className="world-sound" aria-label={loud ? "소리 끄기" : "소리 켜기"}
             onClick={() => setLoud((v) => !v)}>
@@ -225,21 +237,15 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
           */}
 
         {/**
-          * 🔴🔴 **우상 ✕ 는 좌상 🔊 와 «완벽한 대칭»이다.** (2026-09-17 지시 [42] §2 · 대표님 두 번 강조)
+          * 🔴🔴 **여기 있던 «우상 ✕» 는 2026-09-18 대표님 지시(B-9)로 없앴다.**
           *
-          * > 대표님: 「원형의 스피커 아이콘과 **똑같은 디자인에 가운데 스피커 모양만
-          * >   스피커가 아닌 X 마크**가 있고 동그란 형태가 우측 상단에」
+          * > 「몰입모드 우측 상단의 **X 동그라미를 없애고 그 자리에 «스피커 음소거» 버튼**.
+          * >   나가기는 **하단 중앙 하나만**이고 **X 모양은 쓰지 마라**」
           *
-          * ⚠⚠ **「나가기」 글자를 뗐다.** 전에는 「✕ + 나가기」 알약이었다.
-          *   🔴 그러면 나가는 길이 «덜 보이는데», **대표님이 그것을 이미 계산하고
-          *   우하에 「✕ 몰입모드 나가기」를 두셨다** — 「버튼이 2개나 우측 상단과 하단에 있으므로
-          *   크게 강조할 필요 없음」. **글자는 우하가 맡는다.**
-          * ⚠ **모양 값을 손으로 맞추지 마라.** CSS 에서 `.world-sound` 와 **같은 값을 공유**한다
-          *   (`app/globals.css` 의 `.world-sound, .world-x` 한 줄) — 한쪽만 바뀌면 대칭이 깨진다.
+          * ⚠ **다시 만들지 마라.** 나가는 길은 여전히 **넷**이다 —
+          *   하단 중앙 [숏폼 나가기] · ESC · 폰 뒤로가기 · 바깥(검은 띠) 클릭.
+          * ⚠ 옛 코드는 git 에 남아 있다(`.world-x`).
           */}
-        <button ref={closeRef} type="button" className="world-x" onClick={close} aria-label="숏폼에서 나가기">
-          <IconClose />
-        </button>
 
         {/**
           * 상단 정중앙 「1 / N」. (지시 [42] §2)
@@ -280,19 +286,20 @@ export default function ShortsWorld({ items, at, onAt, onClose, calm }: {
 
 
       {/**
-          * 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2 · 대표님 원문)
+          * 🔴🔴 **나가기는 «하단 중앙 하나»다. ✕ 모양을 쓰지 않는다.** (2026-09-18 대표님 B-8·B-9·B-10)
           *
-          * > 「오른쪽 아래에는 **큰 X가 위에 있고 그 아래 작은 글씨로 「몰입모드 나가기」**」
-          * > 「버튼이 2개나 우측 상단과 하단에 있으므로 **크게 강조할 필요 없음**」
+          * > 「나가기는 **하단 중앙 하나만** (X 모양 쓰지 말 것)」
+          * > 「**화면 최하단에서 10px 위 고정** — 폰·PC·몰입모드 어디서나 같은 자리.
+          * >   지금 폰에서 **공중에 떠 있어** 보기 안 좋다」
+          * > 「「숏폼에서 나가기」·「건너뛰기」 전부 → **「숏폼 나가기」** 하나로」
           *
-          * ★ 우상 ✕ 가 글자를 뗀 몫을 **이 단추가 받는다.** 그래서 나가는 길이 여전히 보인다.
+          * ⚠ **2026-09-17 의 「우하 ✕ + 작은 글씨」는 대표님 지시로 끝났다.** 되돌리지 마라.
+          * ⚠ 글자가 그림을 대신하므로 **알약 배경을 준다** — 영상 위 흰 글자만으로는
+          *   밝은 영상에서 읽히지 않는다(무대의 `.stage-skip` 과 같은 결이다).
+          * 🔴 **초점은 이 단추가 받는다**(64행) — 키보드만 쓰는 손님이 열자마자 나갈 수 있어야 한다.
           */}
-        <button type="button" className="world-exit" onClick={close} aria-label="숏폼에서 나가기">
-          <IconClose className="world-exit-x" />
-          {/* 🔴 **대표님이 직접 정하신 글자다.** (2026-09-17)
-               > 「**몰입모드 나가기 라는 이름을 그냥 «숏폼에서 나가기» 라는 명칭으로 바꿔**」
-             ⚠ 「몰입모드」는 **우리끼리 부르는 이름**이라 손님이 모른다 — 그래서 바뀐 것이다. */}
-          <span className="world-exit-say">숏폼에서 나가기</span>
+        <button ref={closeRef} type="button" className="world-exit" onClick={close}>
+          숏폼 나가기
         </button>
 
         {/**

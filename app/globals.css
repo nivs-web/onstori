@@ -1925,8 +1925,18 @@ section:has(.shorts[data-hint="on"]) .shorts-say { visibility: hidden; }
    탈출구가 안 보이면 「항상 띄운다」는 약속이 거짓말이 된다(지시 ②). */
 /* 🔴 2026-09-17 대표님 지시 [33]6 — **「빠져나가기 버튼만 더 눈에 띄게」.**
    ⚠ 「항상 띄운다」는 약속은 **보여야** 참이 된다. 키우고, 흰 테두리를 또렷하게, 글자도 키웠다. */
+/* 🔴 **[숏폼 나가기] — 하단 중앙 · «아래 바»에서 10px 위.** (2026-09-18 대표님 B-10)
+
+   > 「**화면 최하단에서 10px 위 고정** … 지금 폰에서 **공중에 떠 있어** 보기 안 좋다」
+
+   ⚠⚠ **여기서는 «화면 최하단»이 아니라 «아래 바 바로 위»다 — 일부러 다르게 했다.**
+     무대 아래에는 폰에서 **[문의하기] 고정 바**가 깔려 있다(`--dock-pad`).
+     10px 로 내리면 그 바 «밑으로 깔려» 손님이 누를 수 있는 단추를 가린다.
+   ⇒ 「바닥에서 10px」이라는 **대표님 뜻(공중에 뜨지 않게)은 그대로** 지키고,
+     여기서의 바닥은 **그 바의 윗변**으로 읽었다. 몰입모드(`.world-exit`)는 바가 없어
+     **진짜 10px** 이다. 🔴 이 판단을 대표님께 보고했다 — 아니라 하시면 10px 로 내린다. */
 .stage-skip {
-  position: absolute; left: 50%; bottom: calc(var(--dock-pad) + var(--s-3)); transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: calc(var(--dock-pad) + 10px); transform: translateX(-50%);
   min-height: var(--tap);
   padding: 11px 22px; border-radius: 999px;
   border: 1.5px solid rgb(255 255 255 / 0.75);
@@ -2103,7 +2113,9 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
 
 .world-meta {
   position: absolute; inset-inline: 0; bottom: 0;
-  padding: var(--s-7) var(--s-4) var(--s-5);
+  /* 🔴 **아래를 66px 비운다** — 하단 중앙 [숏폼 나가기](10px + 알약 높이 약 46px + 숨)이
+     제목·알약 위에 깔리면 둘 다 못 읽는다(2026-09-18 B-10). */
+  padding: var(--s-7) var(--s-4) 66px;
   background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0));
   color: #fff; pointer-events: none;
 }
@@ -2116,12 +2128,9 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
        화면을 밀어냈다. **글자는 한 자도 안 바꾼다** — 넘칠 때 «…»으로 멈출 뿐이다. */
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
   overflow: hidden;
-  /* 🔴 **오른쪽을 비워 둔다 — 우하 「몰입모드 나가기」가 그 자리에 선다.** (2026-09-17 [42] §2)
-     ⚠ 실측으로 잡았다: 비우지 않으면 **제목의 오른쪽 끝이 나가기 단추 «밑으로 깔린다»**
-       (폰 375px 에서 제목 오른끝 359 · 단추 왼끝 255 — 104px 이 겹쳤다).
-     ⚠ 알약([인스타에서 보기])은 짧아서 안 겹친다 — **제목에만** 준다.
-       묶음 전체에 주면 알약까지 쓸데없이 좁아진다. */
-  margin-right: 124px;
+  /* ⚠ **오른쪽 여백(124px)은 걷었다.** (2026-09-18 B-9) 우하에 있던 나가기 단추가
+     **하단 중앙으로 옮겨져** 제목 오른쪽을 비워 둘 이유가 사라졌다.
+     🔴 대신 **아래를 비운다** — `.world-meta` 의 `padding-bottom` 이 그 일을 한다. */
 }
 /* 🔴 좌하 묶음 — [인스타에서 보기] 와 [쇼츠에서 보기] 를 **세로로 쌓는다**(지시 [42] §2).
    ⚠ 전에는 가로로 나란히였다. 대표님 설계는 «한 줄에 하나»이고, 그래야 오른쪽에
@@ -2243,19 +2252,28 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
   .world-arrow { display: grid; }
 }
 
-/* 🔴 **우하 — 큰 ✕ 아래 작은 글씨 「몰입모드 나가기」.** (지시 [42] §2)
-   ★ 우상 ✕ 가 글자를 뗀 몫을 이 단추가 받는다. 대표님: 「크게 강조할 필요 없음」 */
+/* 🔴🔴 **[숏폼 나가기] — 하단 «중앙» · 화면 최하단에서 10px 위.** (2026-09-18 대표님 B-8·B-9·B-10)
+
+   > 「나가기는 **하단 중앙 하나만** (X 모양 쓰지 말 것)」
+   > 「**화면 최하단에서 10px 위 고정** — 폰·PC·몰입모드 어디서나 같은 자리.
+   >   지금 폰에서 **공중에 떠 있어** 보기 안 좋다」
+
+   ⚠ **`bottom: 10px` 이 곧 「화면 최하단에서 10px」이다** — `.world-frame` 의 높이가
+     `100svh`(화면 전부)라서 프레임 밑변이 화면 밑변이다. 값을 `--s-*` 로 바꾸지 마라.
+     대표님이 **숫자로** 정하신 자리다.
+   ⚠ 글자만 남았으므로 **알약 배경을 준다** — 밝은 영상 위 흰 글자는 안 읽힌다.
+     무대의 `.stage-skip` 과 «같은 결»로 맞췄다(손님이 같은 단추로 읽는다). */
 .world-exit {
-  position: absolute; right: var(--s-4); bottom: var(--s-5);
-  display: grid; justify-items: center; gap: 2px;
-  padding: 8px 12px; border: 0; border-radius: var(--r-md, 12px);
-  background: transparent;
-  color: #fff; cursor: pointer;
-  text-shadow: 0 1px 12px rgb(0 0 0 / 0.6);
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  min-height: var(--tap);
+  padding: 11px 22px; border-radius: 999px;
+  border: 1.5px solid rgb(255 255 255 / 0.75);
+  background: rgb(0 0 0 / 0.6);
+  color: #fff; font-size: var(--t-small); font-weight: 700;
+  white-space: nowrap; cursor: pointer;
+  backdrop-filter: blur(6px);
 }
-.world-exit-x { font-size: 26px; line-height: 1; }
-.world-exit-say { font-size: var(--t-caption); font-weight: 600; opacity: 0.9; white-space: nowrap; }
-.world-exit:hover .world-exit-say { opacity: 1; }
+.world-exit:hover { background: rgb(0 0 0 / 0.85); }
 .world-exit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* 「← → 로 넘기고, ESC 로 나가요」 — 열린 직후 한 번만 */
@@ -2281,16 +2299,16 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
      조용한 곳에서 연 손님은 허둥대다 그대로 나갔다.
    ★ 자리는 **영상 왼쪽 위** — 유튜브 쇼츠와 같다(조사 2026-09-17).
    🔴 화면에 스피커 그림은 **언제나 1개**를 넘지 않는다. 무대의 것은 이 검은 화면 아래에 깔린다. */
-/* 🔴🔴 **좌상 🔊 와 우상 ✕ 는 «한 규칙»이다.** (2026-09-17 지시 [42] §2)
+/* 🔴🔴 **소리 단추는 «오른쪽 위» 하나다.** (2026-09-18 대표님 지시 B-9)
 
-   > 대표님: 「원형의 스피커 아이콘과 **똑같은 디자인에 가운데 스피커 모양만
-   >   스피커가 아닌 X 마크**가 있고 동그란 형태가 우측 상단에」
+   > 대표님: 「몰입모드 우측 상단의 **X 동그라미를 없애고 그 자리에 «스피커 음소거» 버튼**」
 
-   ⚠⚠ **두 블록으로 나눠 적지 마라.** 크기·테두리·배경을 각각 적으면 한쪽만 고쳐져
-     **대칭이 조용히 깨진다.** 여기 한 줄에 묶어 두면 그럴 수가 없다.
-   ⇒ **다른 것은 «어느 쪽 끝에 붙느냐» 하나뿐이다.** */
-.world-sound, .world-x {
-  position: absolute; top: 16px;
+   ⚠⚠ **2026-09-17 의 `.world-x`(우상 ✕)는 지웠다.** 그때 「좌상 🔊 와 완벽 대칭」으로
+     한 규칙에 묶어 둔 까닭이 «짝이 있어서»였는데, **그 짝이 없어졌다.**
+     ⇒ 되돌리지 마라. 둘 다 대표님 지시이고 **나중 것이 이긴다.**
+   ★ 릴스·쇼츠도 소리 단추가 오른쪽 위다 — 손님이 이미 아는 자리가 되었다. */
+.world-sound {
+  position: absolute; top: 16px; right: 16px;
   width: 48px; height: 48px;
   display: grid; place-items: center;
   border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px;
@@ -2298,10 +2316,8 @@ html.stage-dark header.fixed button[style*="--s-accent"] { color: var(--s-on-acc
   color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
   backdrop-filter: blur(6px);
 }
-.world-sound { left: 16px; }
-.world-x { right: 16px; }
-.world-sound:hover, .world-x:hover { background: rgb(0 0 0 / 0.75); }
-.world-sound:focus-visible, .world-x:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.world-sound:hover { background: rgb(0 0 0 / 0.75); }
+.world-sound:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* ⚠ 「전부 보기」 단추의 모양(`.stage-all`)은 [42]④ 로 «뺐다» — 영상을 누르기만 하면 열리므로
    같은 곳으로 가는 길이 둘일 이유가 없다(권반장이 정함). 되살릴 일이 생기면 git 에 남아 있다. */

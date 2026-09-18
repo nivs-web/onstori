@@ -93,6 +93,19 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
   const [loud, setLoud] = useState(false);
   const railRef = useRef<HTMLDivElement | null>(null);
   const vids = useRef(new Map<string, HTMLVideoElement>());
+  /**
+   * 🔴🔴 **「가려는 칸」을 따로 들고 있는다.** (2026-09-18 대표님 C-1·C-3)
+   *
+   * > 대표님: 「오른쪽·왼쪽 이동이 **안 됨**」 「다음영상·이전영상 버튼으로 **휙휙 이동이 안 됨**」
+   *
+   * ⚠⚠ **원인:** 옛 `go()` 는 `active` 에서 한 칸을 셌다. 그런데 `active` 는
+   *   **관찰기(IntersectionObserver)가 «부드러운 스크롤이 끝난 뒤»에** 올려 준다.
+   *   ⇒ 단추를 **두 번 빨리 누르면 둘 다 «같은 칸»에서 세어** 두 번째가 아무 일도 안 한다.
+   *     **연달아 누를수록 안 움직이는** 것으로 보인다 — 대표님이 겪으신 그것이다.
+   * ⇒ 누른 «뜻»을 여기 적어 두고, 다음 누름은 **그 뜻에서** 센다. 화면이 따라오는 것과 무관하다.
+   * ⚠ 손가락으로 밀었을 때는 관찰기가 알려 주므로 **거기서도 이 값을 맞춰** 둔다(아래 `setActive` 옆).
+   */
+  const aim = useRef(0);
 
   const setVid = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) vids.current.set(id, el); else vids.current.delete(id);
@@ -120,7 +133,7 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
           if (!v) continue;
           if (e.isIntersecting && e.intersectionRatio >= 0.6) {
             const i = view.findIndex((it) => it.id === id);
-            if (i >= 0) setActive(i);
+            if (i >= 0) { setActive(i); aim.current = i; }   /* 🔴 손가락으로 밀었을 때도 «뜻»을 맞춘다 */
             /* ⚠ play() 는 약속(Promise)을 돌려주고 실패할 수 있다(전원 절약 모드 등).
                잡지 않으면 콘솔에 빨간 줄이 남고, 손님은 아무 잘못이 없다. 조용히 넘긴다. */
             void v.play().catch(() => {});
@@ -177,17 +190,63 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
     return () => { io.disconnect(); window.clearTimeout(t); };
   }, [view.length]);
 
-  /* 켜 두면 **지금 보이는 편**에서 소리가 난다. 안 보이는 편은 어차피 멈춰 있다 */
+  /**
+   * 🔴🔴 **소리는 «한 편»에서만 난다. 두 번 나면 안 된다.** (2026-09-18 대표님 C-5·C-6)
+   *
+   * > 대표님: 「**어떤 경우에도 소리가 두 번 나면 절대 안 됨**. 한 번만 재생」
+   *
+   * ⚠⚠ **옛 코드는 «전부»를 켰다** — `vids.forEach(v => v.muted = !loud)`.
+   *   보이지 않는 편은 멈춰 있어서 «대개» 조용했지만, **멈추지 않은 편이 하나라도 있으면
+   *   그대로 두 겹으로 났다**(몰입모드를 열었을 때가 바로 그 경우다 — 아래 ④).
+   * ⇒ **지금 보이는 한 편만** 소리를 허락한다. 나머지는 «언제나» 음소거다.
+   */
   useEffect(() => {
-    vids.current.forEach((v) => { v.muted = !loud; });
-  }, [loud, active]);
+    const id = view[active]?.id;
+    vids.current.forEach((v, key) => { v.muted = !(loud && key === id); });
+  }, [loud, active, view]);
 
+  /**
+   * 🔴🔴 **끝에서 멈추지 않는다 — «무한 회전»이다.** (2026-09-18 대표님 C-4)
+   *
+   * > 대표님: 「20개든 7개든 **«끝»에서 멈추면 안 됨 — «무한 회전»이어야 함**
+   * >   (숏폼형태는 5~10편 보면 탈출 가능, 카드형태는 **«무한 반복 고리»**)」
+   *
+   * ⚠⚠ **옛 코드는 `Math.min`·`Math.max` 로 «가뒀다»** — 마지막 편에서 [다음]을 누르면
+   *   **아무 일도 안 일어났다.** 손님은 단추가 고장 났다고 느낀다.
+   * ⇒ 나머지(`%`)로 **한 바퀴 돌린다.** 마지막 → 첫 편, 첫 편 → 마지막.
+   *
+   * ⚠ **한 바퀴 넘어갈 때는 «부드럽게» 하지 않는다.** 20편을 부드럽게 되감으면
+   *   레일이 **몇 초 동안 휙 지나가** 멀미가 난다. 그때만 «즉시» 옮긴다.
+   */
   const go = (dir: -1 | 1) => {
     const rail = railRef.current;
-    if (!rail) return;
-    const next = Math.min(view.length - 1, Math.max(0, active + dir));
+    const n = view.length;
+    if (!rail || n === 0) return;
+    const from = aim.current;
+    const next = (from + dir + n) % n;
+    aim.current = next;
+    const wrapped = Math.abs(next - from) > 1;               /* 끝 ↔ 처음으로 건너뛰었나 */
     const card = rail.querySelector<HTMLElement>(`[data-sid="${view[next]?.id}"]`);
-    card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    if (!card) return;
+    /**
+     * 🔴🔴 **`scrollIntoView()` 를 «쓰지 않는다». 그것이 대표님이 겪으신 「이동이 안 됨」이다.**
+     *   (2026-09-18 실측 · 대표님 C-1)
+     *
+     * ⚠⚠ **실측:** 카드형태 화면에서 `card.scrollIntoView({inline:"center"})` 를 불러도
+     *   **레일도 페이지도 «1px 도» 안 움직였다**(레일 scrollLeft 0 → 0). 같은 화면에서
+     *   `rail.scrollTo({left:900})` 는 **1028 로 (스냅까지 맞춰) 제대로 움직였다.**
+     *   ⇒ 움직이지 못하는 것이 아니라 **`scrollIntoView` 가 이 자리에서 아무 일도 안 한다.**
+     * ⇒ **가야 할 자리를 «우리가 셈해서» 레일에게 직접 말한다.** 셈은 화면 좌표로 한다 —
+     *   `offsetLeft` 는 «자리 잡힌 조상» 기준이라 레일이 아닐 수 있어 틀린다.
+     * ★ 스냅(`scroll-snap-type: x mandatory`)이 마지막 몇 px 을 알아서 맞춰 준다.
+     */
+    const rr = rail.getBoundingClientRect();
+    const cr = card.getBoundingClientRect();
+    const left = rail.scrollLeft + (cr.left - rr.left) - (rr.width - cr.width) / 2;
+    rail.scrollTo({ left, behavior: wrapped || calm ? "auto" : "smooth" });
+    /* 🔴 **점 표시기를 «그 자리에서» 옮긴다.** 관찰기는 스크롤이 끝난 뒤에나 알려 준다 —
+       그때까지 점이 안 움직이면 손님은 「안 눌렸나?」 하고 또 누른다(대표님 C-3). */
+    setActive(next);
   };
 
   return (
@@ -208,10 +267,27 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
                    🔴 **누르면 «몰입모드»가 열린다**(2026-09-17 지시 [42] §3 · 대표님 확정).
                      전에는 누르면 소리가 켜졌다 — 그 몫은 이제 **스피커 단추**가 맡는다.
                    ⚠ 「움직임 줄이기」를 켠 손님에게는 열지 않고 **전처럼 소리만** 켠다. */
+                /**
+                 * 🔴🔴 **영상을 누르면 «뒤에서 돌던 소리를 끊고» 몰입모드로 간다.**
+                 *   (2026-09-18 대표님 C-5·C-6·C-7)
+                 *
+                 * > 「소리 켜고 보다가 몰입모드 들어가면 **뒤에서 돌던 소리가 안 꺼짐**」
+                 * > 「«영상»을 클릭 → **배경 소리 전부 정지** + 몰입모드로 전환」
+                 *
+                 * ⚠⚠ **옛 코드는 여기서 `setLoud(true)` 를 했다** — 그것이 범인이다.
+                 *   레일의 영상은 **멈추지 않은 채** 음소거만 풀렸고, 그 위로 몰입모드가
+                 *   **자기 소리를 켜고** 열렸다. ⇒ **소리가 두 겹.**
+                 * 🔴 **`setLoud(false)` «만»으로는 늦다.** 상태는 다음 그림에 반영되므로
+                 *   그 사이 한두 칸은 소리가 난다. ⇒ **여기서 손으로 먼저 끊는다.**
+                 * ⚠ 몰입모드는 **자기 소리를 켠 채** 열린다(`shorts-world.tsx` 의 `loud` 첫값) —
+                 *   손님이 «눌러서» 들어왔으니 브라우저가 허락한다. 그래서 여기서 끄는 것이
+                 *   「소리가 아예 안 난다」가 되지 않는다.
+                 */
                 onClick={() => {
                   if (calm) { setLoud((v) => !v); return; }
                   const i = world.findIndex((x) => x.id === it.id);
-                  setLoud(true);              // 눌렀으니 브라우저가 소리를 허락한다
+                  setLoud(false);
+                  vids.current.forEach((v) => { v.muted = true; v.pause(); });
                   setWorldAt(i >= 0 ? i : 0);
                 }}
               />
@@ -275,7 +351,23 @@ export default function ShortsFeed({ items, all, onInk, slug, order = SHORTS_ORD
 
       {/* 🔴 **몰입모드 — 무대와 «같은 파일»을 쓴다**(지시 [42] §1 에서 떼어낸 그것) */}
       {worldAt !== null && (
-        <ShortsWorld items={world} at={worldAt} onAt={setWorldAt} onClose={() => setWorldAt(null)} calm={calm} />
+        <ShortsWorld
+          items={world}
+          at={worldAt}
+          onAt={setWorldAt}
+          /**
+           * 🔴 **닫으면 «음소거로» 되살린다.** (2026-09-18 C-6)
+           * ⚠ 위 ⑤ 에서 레일의 영상을 **멈춰** 두었다. 관찰기는 «보이는 것이 바뀔 때»만
+           *   깨어나므로, 몰입모드가 닫혀도 **그대로 멈춰 있어 「고장난 화면」**처럼 보인다.
+           *   ⇒ 여기서 한 편만 손으로 다시 돌린다. **소리는 끈 채로** — 「두 번 나면 안 됨」.
+           */
+          onClose={() => {
+            setWorldAt(null);
+            const v = vids.current.get(view[active]?.id ?? "");
+            if (v) { v.muted = true; void v.play().catch(() => {}); }
+          }}
+          calm={calm}
+        />
       )}
     </div>
   );
