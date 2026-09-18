@@ -7,7 +7,7 @@ import type { Question } from "@/config/questions";
 import { SNIFF_BYTES, isPlayableVideo, sniff, whyNotPlayable } from "@/lib/media-sniff";
 /* ★★ 2026-09-17 — 녹화를 «캔버스 중계»로 (지시 [16]). 세로 100% 보장.
    ⚠ 끄고 켜는 것은 `config/recording.ts` 하나다. 여기에 조건을 또 만들지 마라. */
-import { CANVAS_RELAY, RELAY_W, RELAY_H, RELAY_FPS, RELAY_MEASURE } from "@/config/recording";
+import { CANVAS_RELAY, RELAY_W, RELAY_H, RELAY_FPS, RELAY_MEASURE, VIDEO_BPS } from "@/config/recording";
 
 /**
  * 60초 녹화 화면 — 레멘토 web.remento.co 14화면을 9화면으로 (기획1 /mainplan #rec).
@@ -217,13 +217,28 @@ function CopyLinkButton() {
      릴스·쇼츠는 30fps 가 표준이고, 60fps 로 올려도 그쪽에서 30 으로 다시 만든다.
    ⚠ 전부 `ideal` 이다. **`exact` 를 쓰면 못 맞추는 기기에서 카메라가 아예 안 열린다.**
      못 맞추면 기기가 알아서 가장 가까운 값으로 준다 — 실패하지 않는다.
-   ⚠ 60초에 약 45MB 다(6Mbps × 60초 ÷ 8). 인스타 상한 300MB 안이고,
-     지금(38MB)보다 조금 크지만 **화면 넓이가 2.25배**가 된다. */
-const VIDEO_W = 1080;
-const VIDEO_H = 1920;   // 세로. 릴스·쇼츠가 세로다
+   🔴🔴 **2026-09-18 정정 — 위 표의 「1080 을 요청한다」 전제가 이미 깨져 있었다.**
+     [16](캔버스 중계)로 **실제 녹화 크기는 720×1280** 이 되었는데 **비트만 1080 시절 6Mbps** 로
+     남아 있었다. 실측: 9/17 이후 영상이 **720×1280 · 5.86Mbps · 60초 환산 42.7MB**.
+     ⇒ 이제 크기는 `config/recording.ts` 의 `RELAY_W`·`RELAY_H` 를 그대로 요청하고,
+       비트는 같은 파일의 `VIDEO_BPS`(환경변수로 조절 · 기본 6,000,000)를 쓴다. 지시 [51].
+     ⚠ 「60초에 45MB」는 **6Mbps 를 그대로 받았을 때의 계산값**이다. 실제로는 기기가 넘기기도 한다
+       (안드로이드 +37% 실측) — `videoBitsPerSecond` 는 **상한이 아니라 부탁**이다. */
+/**
+ * 🔴🔴 **카메라에 «실제로 녹화할 크기»를 그대로 요청한다.** (2026-09-18 지시 [51]②)
+ *
+ * ⚠⚠ **2026-09-18 까지 «1080×1920 을 요청해 놓고 캔버스가 720 으로 줄이고» 있었다.**
+ *   큰 그림을 열어 놓고 버리는 셈이라 **폰만 더 뜨거워지고 얻는 것이 없었다.**
+ *   ⇒ `config/recording.ts` 의 `RELAY_W`·`RELAY_H` 를 **그대로** 쓴다. 숫자를 두 곳에 적지 않는다.
+ * ⚠ 캔버스 중계가 꺼진 경우(`CANVAS_RELAY=off`)에도 720 으로 찍힌다 — **그게 맞다.**
+ *   그때는 카메라 그림이 곧 결과물이므로 «요청한 크기»가 진짜 크기가 된다.
+ * ⚠ 비율은 여전히 9:16(0.5625)이다. 아래 `aspectRatio` 주석이 그 까닭을 적어 두었다.
+ */
+const VIDEO_W = RELAY_W;
+const VIDEO_H = RELAY_H;
 const VIDEO_FPS = 30;
-/** 영상 초당 비트 — 인스타 릴스 권장(5~8Mbps)의 가운데 */
-const VIDEO_BPS = 6_000_000;
+/* 🔴 영상 초당 비트는 **`config/recording.ts`** 로 옮겼다(지시 [51]① · 환경변수로 고를 수 있게).
+   기본값은 **지금 그대로 6,000,000** 이다 — 화질은 대표님이 폰으로 보시고 정하신다. */
 /** 소리 초당 비트 — 목소리가 상품이다. 35k 로 두면 안 된다 */
 const AUDIO_BPS = 128_000;
 
@@ -853,6 +868,29 @@ export function RecClient({ slug, k, businessName, onDone }: {
       if (relayed) stream = relayed;
       else console.warn(JSON.stringify({ evt: "relay_fallback", why: "캔버스를 못 만들어 카메라 스트림으로 녹화한다" }));
     }
+    /**
+     * 🔴 **카메라가 «실제로» 준 값을 남긴다.** (2026-09-18 지시 [51]③)
+     *
+     * ⚠⚠ **2026-09-12~16 에 `2052×1154` 로 찍힌 적이 있는데 «왜 그랬는지 아직 모른다».**
+     *   (세로로 들면 브라우저가 정사각형에 가까운 모드를 다시 만드는 현상으로 보인다)
+     *   ⇒ **다시 나오면 그 자리에서 보이게** 해 둔다. 로그가 없으면 또 «짐작»만 하게 된다.
+     * ⚠ `getSettings()` 는 «부탁한 값»을 그대로 돌려주는 기기도 있어 **완전히 믿을 수는 없다.**
+     *   그래도 **아무것도 없는 것보다는 낫다** — 어긋나는 순간이 보이기 때문이다.
+     * ⚠ 손님(사장님) 화면에는 아무것도 안 보인다. 콘솔에만 남는다.
+     */
+    try {
+      const t0 = camera.getVideoTracks()[0];
+      const got = t0?.getSettings?.() ?? {};
+      console.log(JSON.stringify({
+        evt: "rec_start",
+        mode,
+        요청: `${VIDEO_W}x${VIDEO_H}@${VIDEO_FPS}`,
+        카메라: `${got.width ?? "?"}x${got.height ?? "?"}@${Math.round(Number(got.frameRate ?? 0)) || "?"}`,
+        캔버스중계: CANVAS_RELAY && mode === "video",
+        비트: VIDEO_BPS,
+      }));
+    } catch { /* 로그 하나 때문에 녹화가 죽으면 안 된다 */ }
+
     chunks.current = [];
     const mime = pickMime(mode);
     /* ★★ **초당 비트를 직접 정한다** (2026-09-12). 안 정하면 브라우저가 «안전하게 낮은 쪽»을 고른다.
